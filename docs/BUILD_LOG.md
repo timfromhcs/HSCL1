@@ -125,3 +125,6 @@ Only what was run is listed; see `docs/CLAIMS.md` for the full evidence table.
 - Public repo `timfromhcs/HSCL1` created (owner decision: public); `codex/hscl1-v1` and `main` pushed without force; default branch `main`.
 - M1: login autostart `hscl autotune` (hscl-desktop) and hidden KDE Connect daemon autostart (hscl-security); `tests/security/test_autostart.py`, two new `verify-image.sh` checks. Status IMPLEMENTED/TESTED (static); **not VM-verified** until a rebuilt/respun image shows no `*:1716` and a matching graphics profile after login.
 - Full suite: 161 passed, 11 skipped (environment-dependent, unchanged).
+- Release `v0.1.0-alpha.0` (pre-release): ISO commit 7a42ae3, 4 parts of 1500 MiB + SHA256SUMS + manifest; whole-image sha256 08649dc8...33fc8d matches the build manifest. Does not include the M1 fixes.
+- PR #5 (M1) merged into `main` after CI green (3 jobs).
+- `hscl system updates --check`: stale/missing package lists are reported as unknown (new JSON fields, warning text); cargo test 88 pass, clippy clean.

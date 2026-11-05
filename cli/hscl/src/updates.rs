@@ -14,7 +14,34 @@ pub struct Updates {
     pub new_packages: usize,
     pub to_remove: usize,
     pub reboot_required: bool,
+    /// Age of the newest APT package list in days; `None` when there are no lists at all.
+    pub lists_age_days: Option<u64>,
+    /// True when the lists are missing or older than `STALE_DAYS`: the counts then say nothing about what is available upstream.
+    pub lists_stale: bool,
     pub packages: Vec<String>,
+}
+
+pub const STALE_DAYS: u64 = 7;
+
+/// Pure staleness rule: no lists or lists older than `STALE_DAYS` days.
+pub fn lists_state(newest_age_secs: Option<u64>) -> (Option<u64>, bool) {
+    match newest_age_secs {
+        None => (None, true),
+        Some(s) => (Some(s / 86_400), s / 86_400 >= STALE_DAYS),
+    }
+}
+
+/// Age in seconds of the newest regular file in /var/lib/apt/lists (ignoring `lock` and `partial`).
+fn newest_list_age_secs() -> Option<u64> {
+    let now = std::time::SystemTime::now();
+    std::fs::read_dir("/var/lib/apt/lists")
+        .ok()?
+        .filter_map(|e| e.ok())
+        .filter(|e| e.file_name() != "lock" && e.file_type().map(|t| t.is_file()).unwrap_or(false))
+        .filter_map(|e| e.metadata().ok()?.modified().ok())
+        .filter_map(|m| now.duration_since(m).ok())
+        .map(|d| d.as_secs())
+        .min()
 }
 
 /// Parse `apt-get -s dist-upgrade` output (LC_ALL=C).
@@ -47,6 +74,8 @@ pub fn parse_simulation(text: &str) -> Result<Updates> {
         new_packages: num("newly installed"),
         to_remove: num("to remove"),
         reboot_required: false,
+        lists_age_days: None,
+        lists_stale: true,
         packages,
     })
 }
@@ -66,6 +95,9 @@ pub fn check() -> Result<Updates> {
     }
     let mut u = parse_simulation(&String::from_utf8_lossy(&out.stdout))?;
     u.reboot_required = Path::new("/var/run/reboot-required").exists();
+    let (age, stale) = lists_state(newest_list_age_secs());
+    u.lists_age_days = age;
+    u.lists_stale = stale;
     Ok(u)
 }
 
@@ -78,6 +110,12 @@ pub fn render(u: &Updates) -> String {
         u.to_remove,
         if u.reboot_required { "yes" } else { "no" }
     );
+    if u.lists_stale {
+        s.push_str(&match u.lists_age_days {
+            Some(d) => format!("\nWARNING: package lists are {d} days old - this result is unknown, not 'up to date'. Run: sudo apt update"),
+            None => "\nWARNING: no package lists - this result is unknown, not 'up to date'. Run: sudo apt update".to_string(),
+        });
+    }
     if !u.packages.is_empty() {
         s.push_str("\nPackages: ");
         s.push_str(&u.packages.join(", "));
@@ -118,6 +156,23 @@ Conf libfoo1 (1.1 Ubuntu:26.04/resolute-security [amd64])\n\
         assert!(parse_simulation("").is_err());
         assert!(parse_simulation("E: Could not open lock file\n").is_err());
         assert!(parse_simulation("Reading package lists...\n").is_err());
+    }
+
+    #[test]
+    fn stale_rule() {
+        assert_eq!(lists_state(None), (None, true));
+        assert_eq!(lists_state(Some(86_400 * 6 + 10)), (Some(6), false));
+        assert_eq!(lists_state(Some(86_400 * 7)), (Some(7), true));
+    }
+
+    #[test]
+    fn stale_lists_are_never_rendered_as_up_to_date() {
+        let u = parse_simulation(NONE).unwrap(); // defaults to stale
+        assert!(render(&u).contains("unknown, not 'up to date'"));
+        let mut fresh = u;
+        fresh.lists_stale = false;
+        fresh.lists_age_days = Some(0);
+        assert!(!render(&fresh).contains("WARNING"));
     }
 
     #[test]

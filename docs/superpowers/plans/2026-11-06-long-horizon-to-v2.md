@@ -70,7 +70,7 @@ Versions use semver pre-release tags; the ISO embeds its version and the manifes
 - [~] KDE Connect listener (`:1716`) off by default: autostart entry hidden (IMPLEMENTED, unit + verify-image checks); **VM listening-socket check still pending**.
 - [~] Autotune at login: XDG autostart running `hscl autotune` (idempotent via fingerprint, honours lock) IMPLEMENTED; **VM test after login pending**.
 - [ ] Aurora wallpaper redesign (ribbons); screenshots before/after; CPU cost measured and recorded (`hscl wallpaper` perf note) - or the claim stays "not measured".
-- [ ] Stale-package-list issue: image ships fresh lists or `hscl system updates --check` says "unknown, lists stale" instead of "0".
+- [x] Stale-package-list issue: `hscl system updates --check` now reports `lists_age_days`/`lists_stale` (JSON) and a WARNING "unknown, not 'up to date'" when lists are missing or >= 7 days old (TESTED, unit; VM run pending).
 - [ ] Refresh `docs/KNOWN_LIMITATIONS.md` and `CLAIMS.md` from evidence after each fix.
 
 ### M2 - Installer, encryption, update path
