@@ -72,7 +72,11 @@ def bootstrap(vm) -> dict:
 
 
 def wsl_path(p: Path) -> str:
-    return subprocess.run(["wsl", "-d", "Ubuntu", "--", "wslpath", "-a", "-u", str(Path(p).resolve())], capture_output=True, text=True).stdout.strip() if os.name == "nt" else str(p)
+    """Windows path -> WSL path without going through a shell (backslashes would be eaten): E:/x/y -> /mnt/e/x/y."""
+    if os.name != "nt":
+        return str(p)
+    r = Path(p).resolve().as_posix()
+    return "/mnt/" + r[0].lower() + r[2:] if len(r) > 2 and r[1] == ":" else r
 
 
 def sh(cmd: str) -> subprocess.CompletedProcess:
