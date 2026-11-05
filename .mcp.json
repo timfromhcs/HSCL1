@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "hscl-workshop": {
+      "command": "python",
+      "args": [
+        "scripts/workshop_mcp.py"
+      ]
+    }
+  }
+}

@@ -245,10 +245,15 @@ def main(argv: list[str]) -> int:
     if not os.path.exists(port):
         print(f"no such port: {port}", file=sys.stderr)
         return 1
-    fd = os.open(port, os.O_RDWR)
-    with os.fdopen(fd, "rb", buffering=0) as r, os.fdopen(os.dup(fd), "wb", buffering=0) as w:
-        serve(r, w)
-    return 0
+    # The host may connect and disconnect many times; keep serving until the service is stopped.
+    while True:
+        try:
+            fd = os.open(port, os.O_RDWR)
+            with os.fdopen(fd, "rb", buffering=0) as r, os.fdopen(os.dup(fd), "wb", buffering=0) as w:
+                serve(r, w)
+        except OSError:
+            pass
+        time.sleep(0.5)
 
 
 if __name__ == "__main__":
