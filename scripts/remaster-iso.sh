@@ -52,6 +52,7 @@ CARGO_TARGET_DIR="$work/target" cargo build --release --manifest-path "$root/Car
 debdir="$work/debs"; rm -rf "$debdir"; mkdir -p "$debdir"
 "$root/scripts/build-deb.sh" hscl-base "$debdir" --bin "$work/target/release/hscl" >/dev/null
 "$root/scripts/build-deb.sh" hscl-branding "$debdir" >/dev/null
+"$root/scripts/build-deb.sh" hscl-handbook "$debdir" >/dev/null
 ls -l "$debdir"/*.deb
 
 echo "== Unpack live root filesystem (fresh) =="
@@ -63,7 +64,7 @@ sudo unsquashfs -f -d "$rootfs" "$work/iso-files/filesystem.squashfs" >/dev/null
 echo "== Customise =="
 sudo mkdir -p "$rootfs/tmp/hscl-debs"
 sudo install -m 0644 "$debdir"/*.deb "$rootfs/tmp/hscl-debs/"
-sudo chroot "$rootfs" sh -c 'dpkg -i /tmp/hscl-debs/*.deb'
+sudo chroot "$rootfs" sh -c 'dpkg -i /tmp/hscl-debs/hscl-base_*.deb /tmp/hscl-debs/hscl-branding_*.deb /tmp/hscl-debs/hscl-handbook_*.deb'
 sudo rm -rf "$rootfs/tmp/hscl-debs"
 sudo env ROOTFS="$rootfs" bash "$root/distro/live/hooks/010-hscl-defaults.sh"
 echo "== Verify branding inside the image (fails the build if anything is missing) =="

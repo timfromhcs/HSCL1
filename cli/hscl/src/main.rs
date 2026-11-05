@@ -6,6 +6,7 @@ mod ai;
 mod appearance;
 mod doctor;
 mod redact;
+mod report;
 mod security;
 mod sysinfo;
 
@@ -66,6 +67,12 @@ enum Cmd {
     Ai {
         #[command(subcommand)]
         cmd: AiCmd,
+    },
+    /// Write a support report with user/host/MAC/private IP redacted.
+    Report {
+        /// Write JSON to this new file instead of stdout (never overwrites).
+        #[arg(long, value_name = "PATH")]
+        output: Option<std::path::PathBuf>,
     },
     /// Desktop appearance.
     Appearance {
@@ -182,6 +189,16 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
             let d = ai::detect();
             let v = serde_json::to_value(&d)?;
             print_value(j, &v, || ai::render(&d));
+        }
+        Cmd::Report { output } => {
+            let r = report::build()?;
+            match output {
+                Some(p) => {
+                    report::write_new(&p, &r)?;
+                    println!("report written to {}", p.display());
+                }
+                None => println!("{}", serde_json::to_string_pretty(&r)?),
+            }
         }
         Cmd::Appearance {
             cmd: AppearanceCmd::Theme { cmd },

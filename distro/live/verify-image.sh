@@ -16,6 +16,12 @@ check "os-release HSCL1_VERSION set"      grep -q '^HSCL1_VERSION="[0-9]' "$root
 check "original os-release diverted"      test -f "$root/usr/lib/os-release.ubuntu"
 check "/etc/os-release resolves to ours"  grep -q '^NAME="HSCL1"' "$root/etc/os-release"
 check "/etc/issue branded"                grep -q 'HSCL1' "$root/etc/issue"
+check "original /etc/issue diverted"      test -f "$root/etc/issue.ubuntu"
+check "handbook (en) installed"           test -s "$root/usr/share/doc/hscl-handbook/en/index.html"
+check "handbook (de) installed"           test -s "$root/usr/share/doc/hscl-handbook/de/index.html"
+check "handbook (fr) installed"           test -s "$root/usr/share/doc/hscl-handbook/fr/index.html"
+check "handbook launcher"                 test -x "$root/usr/bin/hscl-handbook"
+check "handbook desktop entry"            test -s "$root/usr/share/applications/hscl-handbook.desktop"
 check "hscl CLI installed"                test -x "$root/usr/bin/hscl"
 check "release marker"                    test -f "$root/usr/share/hscl/release.json"
 for w in HSCL1Midnight HSCL1Light HSCL1Nord HSCL1Aurora; do
