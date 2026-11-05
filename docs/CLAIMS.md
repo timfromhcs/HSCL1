@@ -14,9 +14,14 @@ Rule: nothing is stated as working without evidence. "unit-tested" means only th
 | `hscl ai` hardware profile, model catalog, download with sha256 check | unit-tested (49+ tests); download + verify also run against the real file | smoke test |
 | Real local inference: pinned llama.cpp b12130 (CPU build, sha256 verified) with `qwen3.5-2b-abliterated` Q4_K_M, 127.0.0.1 only, chat completion answered | VERIFIED on the WSL builder (CPU, 4 threads) | `scripts/ai-smoke-test.sh`; server reported 21.55 tokens/s for one 2-token reply - a sanity number, **not a benchmark** |
 | Vulkan/GPU inference, MTP, TurboQuant | **NOT VERIFIED**; the profile engine only enables TurboQuant/MTP if the backend's `--help` lists them (the pinned upstream build was not checked to), no speed is claimed | needs a GPU host and a fork/build that advertises them |
-| `hscl graphics` autodetect and apply | unit-tested | not run in a VM with a real session |
-| `hscl wallpaper` presets/apply | unit-tested | not run against a live Plasma session |
+| `hscl graphics` detect | VM-VERIFIED (see above) | |
+| `hscl graphics apply` / autotune at login | unit-tested; **apply not yet run in a session; autotune is not started automatically at login yet** | |
+| `hscl wallpaper apply` against a live Plasma session | unit-tested + dry-run in the VM; **real apply not yet verified** | |
 | `hscl mcp` stdio server | unit-tested + one real stdio round trip (initialize, tools/list, one tool call) | not yet driven by a real agent |
 | `hscl code` / HCS Coder: catalog, licence gate, install command generation, OpenCode config writer | unit-tested | **the OpenCode config format and the installs were not run against the real tools**; licences marked "not confirmed" stay gated |
 | Abliterated models | catalogued with a warning; the real 2B model answered a prompt | quality and safety are not assessed |
-| Memory manager (zram, earlyoom, slices), media AI (image gen, image-to-3D, rigging), Blender/Godot MCP, RSI loop | **PLANNED, not implemented** | see the plans in `docs/superpowers/plans/` |
+| Memory protection in the live VM (4 GB RAM): `earlyoom` active; `/dev/zram0` swap 1.9 G (half of RAM) at priority 100 with zstd selected; `vm.swappiness=100`, `vm.page-cluster=0`; `hscl-ai.slice` MemoryHigh 2456178688 (60 %), MemoryMax 3070222336 (75 %) | VM-VERIFIED (configuration applied and active); **protection effect under real memory pressure not tested** | `artifacts/e2e3/cli-report.json` |
+| `hscl` inside the live VM as the desktop user: `version`, `memory status/budget`, `graphics detect` (QEMU standard VGA classified Software -> minimal), `ai model list/profile` (tier tiny, plan computed under the 60 % budget), `wallpaper list/apply --dry-run`, `code list`, `mcp` stdio round trip | VM-VERIFIED (commands run and return the shown data) | `artifacts/e2e3/cli-report.json` |
+| `hscl system updates --check` in the live VM printed 0 updates | **Not a statement that the system is up to date**: the image has stale/empty package lists; the same command on the builder found 33 pending packages | |
+| Listening sockets in the live VM | observed: KDE Connect on `*:1716` (TCP and UDP), mDNS on `*:5353`, CUPS on loopback `:631`, resolver/NTP on loopback; the firewall denies inbound by default; **KDE Connect should be off by default - open item** | `artifacts/e2e3/cli-report.json` |
+| Memory manager apply paths beyond the above, media AI (image gen, image-to-3D, rigging), Blender/Godot MCP, RSI loop | **PLANNED, not implemented** | see the plans in `docs/superpowers/plans/` |
