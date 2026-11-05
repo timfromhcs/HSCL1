@@ -103,6 +103,15 @@ SDDM theme, HSCL1 default avatar), slideshow advertised an unbound shortcut, wel
 85 % because the screen went idle (harness now keeps the guest awake and waits for the disk to go idle).
 Not yet re-verified in an image: the SDDM/avatar/label fixes (need a rebuilt ISO).
 
+## Workshop, main ISO and local AI (2026-11-05, later session)
+Only what was run is listed; see `docs/CLAIMS.md` for the full evidence table.
+- Single main ISO built on the cached overlay engine in 3.5 min (cache hit), `verify-image.sh` passed incl. "Workshop is inert" checks; manifest `workshop_default: disabled`.
+- Workshop over the virtio port: daemon started by udev without any enable symlink, `status` answered (session user `kubuntu`), desktop reached 101-111 s after boot.
+- API update path: a hook pushed the current `hscl-respin`/daemon files into the running VM, a second hook formatted the scratch disk (`/dev/vda ext4`), `respin` squashed the live state in 373 s. The first xorriso step then failed (device busy); fixed with `stdio:`; the full proof (new ISO boots with the pushed file) is still running and **not yet verified**.
+- Real model test (WSL builder, CPU): pinned llama.cpp b12130 tarball sha256 OK; `hscl ai model download qwen3.5-2b-abliterated` verified size+sha256; `hscl ai profile` produced the plan (cpu, ctx 32768, KV q8_0, 4 threads); llama-server listened on loopback only; the chat reply was "pong"; server reported 21.55 tokens/s (single tiny request, not a benchmark).
+- Found and fixed on the way: live-session detection (no `boot=casper` on the Kubuntu command line), virtio hello handshake race, Qwen3.5 returns empty `content` when thinking consumes the token budget (test disables thinking via `chat_template_kwargs`).
+- Implemented and unit-tested only: `hscl graphics`, `hscl wallpaper`, `hscl mcp`, `hscl code`, `hscl low-vram`, Wallpaper effects (QML tests), model catalog generator, backend pin generator.
+
 ## Next safe actions
 1. Finish ISO download + verification, run remaster PoC, boot in QEMU (UEFI + BIOS).
 2. Design tokens, architecture/threat-model docs, package manifests.
