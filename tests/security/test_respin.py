@@ -51,6 +51,9 @@ def test_collect_takes_hscl_trees_and_skips_secrets_and_symlinks(tmp_path):
     put("usr/share/applications/hscl-handbook.desktop")
     put("usr/share/applications/firefox.desktop")
     put("etc/shadow")
+    put("usr/lib/hscl/workshop/hscl-respin")
+    put("usr/bin/hscl")
+    put("usr/bin/bash")
     put("home/live/.ssh/id_ed25519")
     put("usr/lib/hscl/workshop/hooks/__pycache__/x.pyc")
     got = {p.as_posix() for p in rs.collect(tmp_path)}
@@ -58,6 +61,7 @@ def test_collect_takes_hscl_trees_and_skips_secrets_and_symlinks(tmp_path):
     assert "usr/share/plasma/wallpapers/org.hcs.hscl1.rain/contents/ui/main.qml" in got
     assert "usr/share/wallpapers/HSCL1Midnight/metadata.json" in got
     assert "usr/share/applications/hscl-handbook.desktop" in got
+    assert "usr/lib/hscl/workshop/hscl-respin" in got and "usr/bin/hscl" in got and "usr/bin/bash" not in got
     for leaked in ("usr/share/hscl/workshop.token", "usr/share/hscl/.bash_history", "usr/share/wallpapers/Kubuntu/metadata.json",
                    "usr/share/applications/firefox.desktop", "etc/shadow", "home/live/.ssh/id_ed25519"):
         assert leaked not in got, leaked

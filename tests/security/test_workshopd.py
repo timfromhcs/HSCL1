@@ -40,7 +40,7 @@ def test_there_is_no_generic_command_operation():
 
 @pytest.mark.parametrize("bad", [
     "relative/path", "/etc/passwd", "/usr/share/hscl/../../etc/passwd", "/usr//share/hscl/x", "/usr/share/hscl/\x00x",
-    "/usr/share/wallpapers/Kubuntu/x", "/etc/shadow", "/root/.ssh/authorized_keys", "/usr/bin/hscl", "/usr/lib/systemd/system/x.service",
+    "/usr/share/wallpapers/Kubuntu/x", "/etc/shadow", "/root/.ssh/authorized_keys", "/usr/bin/bash", "/usr/bin/hscl-evil", "/usr/lib/systemd/system/x.service", "/usr/lib/hscl/../x",
 ])
 def test_paths_outside_the_allow_list_are_rejected(bad, tmp_path):
     with pytest.raises(wd.OpError):
@@ -109,3 +109,8 @@ def test_serve_speaks_line_delimited_json_with_hello():
     assert lines[0]["hello"] == "hscl-workshopd"
     assert lines[1] == {"id": 7, "ok": True, "result": {"fine": True}}
     assert lines[2]["ok"] is False and lines[2]["id"] == 8
+
+
+@pytest.mark.parametrize("ok", ["/usr/bin/hscl", "/usr/lib/hscl/workshop/hscl-respin", "/etc/hscl/x.toml", "/var/lib/hscl/workshop/debs/a.deb", "/usr/share/doc/hscl-handbook/en/x.html"])
+def test_hscl_owned_paths_are_allowed(ok, tmp_path):
+    assert wd.validate_put_path(ok, str(tmp_path))

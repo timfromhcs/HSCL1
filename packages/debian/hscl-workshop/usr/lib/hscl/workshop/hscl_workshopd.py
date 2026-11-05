@@ -33,8 +33,13 @@ ALLOWED_PREFIXES = (
     "/usr/share/icons/hicolor/",
     "/usr/share/applications/hscl-",
     "/etc/calamares/branding/hscl1/",
+    "/etc/hscl/",
+    "/usr/lib/hscl/",
+    "/usr/share/doc/hscl-",
+    "/var/lib/hscl/workshop/debs/",
     HOOKS_DIR + "/",
 )
+ALLOWED_EXACT = ("/usr/bin/hscl", "/usr/bin/hcscoder", "/usr/bin/hscl-control-center", "/usr/bin/hscl-handbook")
 HOOK_NAME = re.compile(r"^[a-z0-9][a-z0-9._-]{0,40}$")
 ALLOWED_MODES = {"0644": 0o644, "0755": 0o755}
 
@@ -50,7 +55,7 @@ def validate_put_path(path: str, root: str = "/") -> Path:
         raise OpError("path must be absolute")
     if ".." in Path(path).parts or "//" in path:
         raise OpError("path must be normalised (no '..' or '//')")
-    if not any(path.startswith(p) for p in ALLOWED_PREFIXES):
+    if not (path in ALLOWED_EXACT or any(path.startswith(p) for p in ALLOWED_PREFIXES)):
         raise OpError("path is outside the allow-listed directories")
     base = Path(root)
     target = base / path.lstrip("/")

@@ -25,9 +25,10 @@ from pathlib import Path
 # Mirrors hscl_workshopd.ALLOWED_PREFIXES (directories that Workshop may change).
 INCLUDE_PREFIXES = (
     "usr/share/hscl", "usr/share/plasma", "usr/share/color-schemes", "usr/share/sddm/themes/hscl1",
-    "usr/share/icons/hicolor", "etc/calamares/branding/hscl1", "usr/lib/hscl/workshop/hooks",
+    "usr/share/icons/hicolor", "etc/calamares/branding/hscl1", "usr/lib/hscl", "etc/hscl", "var/lib/hscl/workshop/debs",
 )
-INCLUDE_GLOBS = ("usr/share/wallpapers/HSCL1*", "usr/share/applications/hscl-*")
+INCLUDE_FILES = ("usr/bin/hscl", "usr/bin/hcscoder", "usr/bin/hscl-control-center", "usr/bin/hscl-handbook")
+INCLUDE_GLOBS = ("usr/share/wallpapers/HSCL1*", "usr/share/applications/hscl-*", "usr/share/doc/hscl-*")
 SECRET_PATTERNS = ("*.token", "*.key", "*.pem", "id_rsa*", "id_ed25519*", "*history*", "*.hscl-tmp", "__pycache__", "*.pyc", "authorized_keys")
 BAD_TARGET_FS = {"tmpfs", "ramfs", "overlay", "squashfs", "iso9660", "rootfs", "proc", "sysfs", "devtmpfs", "9p", "virtiofs", "fuse.sshfs"}
 GOOD_TARGET_FS = {"ext4", "xfs", "btrfs"}
@@ -60,7 +61,7 @@ def is_secret(name: str) -> bool:
 def collect(root: Path) -> list[Path]:
     """Relative paths of regular files below the include prefixes, secrets and symlinks skipped."""
     found: list[Path] = []
-    bases = [root / p for p in INCLUDE_PREFIXES]
+    bases = [root / p for p in INCLUDE_PREFIXES + INCLUDE_FILES]
     for g in INCLUDE_GLOBS:
         bases += sorted((root / Path(g).parent).glob(Path(g).name)) if (root / Path(g).parent).is_dir() else []
     for b in bases:
