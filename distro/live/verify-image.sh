@@ -43,6 +43,7 @@ check "installer launcher renamed"        grep -q '^Name=Install HSCL1' "$root/u
 check "no Kubuntu installer launcher name" sh -c "! grep -E '^(Name|GenericName)(\\[[^]]*\\])?=.*Kubuntu' '$root/usr/share/applications/kubuntu-calamares.desktop'"
 check "live desktop: no Kubuntu Focus link" test ! -e "$root/etc/skel/Desktop/org.kfocus.web.howtos.desktop"
 check "live desktop: handbook link"       test -L "$root/etc/skel/Desktop/hscl-handbook.desktop"
+check "root filesystem label is hscl1_root" grep -q '"hscl1_root"' "$root/etc/calamares/modules/partition.conf"
 check "hscl CLI installed"                test -x "$root/usr/bin/hscl"
 check "release marker"                    test -f "$root/usr/share/hscl/release.json"
 for w in HSCL1Midnight HSCL1Light HSCL1Nord HSCL1Aurora; do

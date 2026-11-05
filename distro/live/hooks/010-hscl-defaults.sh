@@ -33,10 +33,13 @@ patch_file "$ROOTFS/etc/calamares/settings.conf" 's/^branding: *kubuntu$/brandin
 patch_file "$ROOTFS/usr/share/applications/kubuntu-calamares.desktop" \
   '/^\(Name\|GenericName\)\(\[[^]]*\]\)\?=/ s/Kubuntu 26\.04/HSCL1/; /^\(Name\|GenericName\)\(\[[^]]*\]\)\?=/ s/Kubuntu/HSCL1/'
 
+# Partition/filesystem names that end up on the installed disk
+patch_file "$ROOTFS/etc/calamares/modules/partition.conf" 's/"kubuntu_boot"/"hscl1_boot"/; s/"kubuntu_2604"/"hscl1_root"/'
+
 # Replace upstream marketing shortcuts on the live desktop with HSCL1 entries
 rm -f "$ROOTFS/etc/skel/Desktop/org.kfocus.web.howtos.desktop" "$ROOTFS/etc/skel/Desktop/org.kubuntu.web.home.desktop"
 ln -sf /usr/share/applications/hscl-handbook.desktop "$ROOTFS/etc/skel/Desktop/hscl-handbook.desktop"
 ln -sf /usr/share/applications/hscl-control-center.desktop "$ROOTFS/etc/skel/Desktop/hscl-control-center.desktop"
 
 echo "010-hscl-defaults: patched $patched files"
-[ "$patched" -ge 10 ] || { echo "expected to patch at least 10 files" >&2; exit 1; }
+[ "$patched" -ge 11 ] || { echo "expected to patch at least 11 files" >&2; exit 1; }
