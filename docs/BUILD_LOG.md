@@ -68,6 +68,21 @@ Harness additions: Windows/WHPX support, TCP QMP, resolution-change safe wallpap
 dark/light/mono SVG, PNG sizes, favicon.ico); 6 unit tests pass. Themes HCS Nord and HCS Aurora added; `check-tokens.py`
 passes for all 4 themes. APT source policy + test added (`distro/base/apt`, `tests/security`).
 
+## Milestones M1-M4 progress (2026-11-05, same session)
+| Item | Status | Evidence |
+|---|---|---|
+| Logo family (mark, wordmark, lockup, favicon), 4 themes (Midnight, Light, Nord, Aurora) | TESTED (unit) | `tests/unit/test_brand.py`, `check-tokens.py` |
+| `hscl-branding` (wallpapers, logos, icon, os-release/issue/About via dpkg-divert, colour schemes) | VM-VERIFIED (UEFI boot) | in-image `verify-image.sh` (all checks pass), `artifacts/boot-whpx-3` |
+| `hscl-desktop`: HCS Hybrid Desktop (slim top bar, floating centred dock, default look-and-feel) | VM-VERIFIED (first boot, screenshot) | `artifacts/boot-whpx-3/desktop-final.png` shows top bar with HSCL1 launcher, centred clock, tray and floating dock |
+| `hscl-security`: sysctl hardening + first-boot firewall service | TESTED (static/script); not yet VM-verified | `tests/security/*` |
+| `hscl-handbook`: EN/DE/FR offline handbook, locale-aware launcher | TESTED; installed in image (verified present) | `tests/unit/test_handbook*.py` |
+| `hscl` CLI: `appearance theme list/show/current/set/restore`, `report` | TESTED (19 unit tests) | `cargo test` |
+| Control Center (Qt6/QML: Overview, Appearance, Security, About; allow-listed CLI backend; de/fr) | TESTED (C++ + QML tests pass in WSL); not yet seen in a VM | `ctest` 2/2, `tests/unit/test_cc_i18n.py` |
+| VM QA channel (`hscl-qa`, virtio port, `qa_report.py`) | IMPLEMENTED + unit-tested; first VM run pending | `tests/unit/test_qa_*.py` |
+
+Known defects after these runs: desktop icons and the installer still show Kubuntu branding; the dock reuses the HSCL1
+mark for the handbook icon; Secure Boot state inside the guest not yet read; no physical hardware tested.
+
 ## Next safe actions
 1. Finish ISO download + verification, run remaster PoC, boot in QEMU (UEFI + BIOS).
 2. Design tokens, architecture/threat-model docs, package manifests.
