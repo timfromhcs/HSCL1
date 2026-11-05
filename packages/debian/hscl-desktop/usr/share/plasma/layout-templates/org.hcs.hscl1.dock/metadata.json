@@ -1,6 +1,6 @@
 {
     "KPackageStructure": "Plasma/LayoutTemplate",
-    "KPlugin": { "Authors": [{ "Name": "HCSMEDIA" }], "Id": "org.hcs.hscl1.dock", "Name": "HSCL1 dock", "License": "see NOTICE" },
+    "KPlugin": { "Authors": [{ "Name": "HCSMEDIA" }], "Id": "org.hcs.hscl1.dock", "Name": "HSCL1 dock", "License": "GPL-3.0-or-later" },
     "X-Plasma-APIVersion": "1",
     "X-Plasma-ContainmentCategories": ["panel"]
 }

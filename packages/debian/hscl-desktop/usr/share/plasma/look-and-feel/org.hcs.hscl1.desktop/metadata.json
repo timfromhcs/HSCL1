@@ -5,7 +5,7 @@
         "Category": "",
         "Description": "HCS Hybrid Desktop - top bar and floating dock",
         "Id": "org.hcs.hscl1.desktop",
-        "License": "see NOTICE",
+        "License": "GPL-3.0-or-later",
         "Name": "HSCL1 Midnight",
         "Version": "0.1"
     },

@@ -4,7 +4,7 @@
         "Authors": [{ "Name": "HCSMEDIA" }],
         "Description": "HSCL1 number rain: falling hex and binary digits on the HSCL1 midnight colours",
         "Id": "org.hcs.hscl1.rain",
-        "License": "see NOTICE",
+        "License": "GPL-3.0-or-later",
         "Name": "HSCL1 Number Rain",
         "Name[de]": "HSCL1 Zahlenregen",
         "Name[fr]": "HSCL1 Pluie de chiffres"

@@ -14,7 +14,7 @@ for theme in "${!names[@]}"; do
   "KPlugin": {
     "Authors": [{ "Name": "HCSMEDIA" }],
     "Id": "${names[$theme]}",
-    "License": "see NOTICE",
+    "License": "GPL-3.0-or-later",
     "Name": "${titles[$theme]}"
   }
 }
