@@ -72,3 +72,13 @@ jobs:
           cmake -S apps/control-center -B build/cc -G Ninja -DCMAKE_BUILD_TYPE=Release
           cmake --build build/cc
           ctest --test-dir build/cc --output-on-failure
+
+  advisories:
+    name: Rust dependency advisories (cargo audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Install cargo-audit (locked)
+        run: cargo install cargo-audit --locked  # unpinned on purpose: the advisory DB format moves (CVSS 4.0 broke 0.21.2)
+      - name: Audit Cargo.lock (fails on known vulnerabilities, never skipped)
+        run: cargo audit
