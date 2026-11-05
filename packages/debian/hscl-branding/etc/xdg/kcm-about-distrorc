@@ -1,0 +1,5 @@
+[General]
+LogoPath=/usr/share/hscl/brand/hscl1-mark-512.png
+Name=HSCL1
+UseOSReleaseVersion=true
+Website=

@@ -25,16 +25,20 @@ trap 'rm -rf "$stage"' EXIT
 cp -a "$src/." "$stage/"
 sed -i "s/^Version:.*/Version: ${version//-/\~}/" "$stage/DEBIAN/control"
 
-# Generated, not committed: wallpaper from design tokens.
-if [ -d "$stage/usr/share/wallpapers" ] || [ "$name" = "hscl-base" ]; then
-  python3 "$root/scripts/gen-wallpaper.py" \
-    "$stage/usr/share/wallpapers/HSCL1Midnight/contents/images/1920x1080.png" 1920 1080 >/dev/null
+# Per-package generator: packages/debian/<name>/build.sh runs with STAGE, ROOT, VERSION set and may create
+# generated (not committed) files such as wallpapers and logos. It is not shipped.
+if [ -f "$stage/build.sh" ]; then
+  STAGE="$stage" ROOT="$root" VERSION="$version" bash "$stage/build.sh"
+  rm -f "$stage/build.sh"
 fi
 if [ -n "$bin" ]; then
   install -D -m 0755 "$bin" "$stage/usr/bin/hscl"
 fi
-printf '{"product":"HSCL1","version":"%s","credit":"Made with love by hcsmedia","channel":"pre-alpha"}\n' \
-  "$version" > "$stage/usr/share/hscl/release.json"
+if [ "$name" = "hscl-base" ]; then
+  mkdir -p "$stage/usr/share/hscl"
+  printf '{"product":"HSCL1","version":"%s","credit":"Made with love by hcsmedia","channel":"pre-alpha"}
+'     "$version" > "$stage/usr/share/hscl/release.json"
+fi
 chmod 0755 "$stage/DEBIAN"
 find "$stage" -type d -exec chmod 0755 {} +
 mkdir -p "$out"

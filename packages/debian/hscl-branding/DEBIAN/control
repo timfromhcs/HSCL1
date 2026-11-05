@@ -1,0 +1,11 @@
+Package: hscl-branding
+Version: 0.0.0
+Architecture: all
+Section: misc
+Priority: optional
+Maintainer: HCSMEDIA <noreply@hcsmedia.invalid>
+Description: HSCL1 branding: logos, wallpapers, os-release and About data
+ Original HSCL1 logo family, four generated wallpapers (Midnight, Light, Nord,
+ Aurora), icon, os-release and Plasma About metadata. Made with love by hcsmedia.
+ .
+ HSCL1 is not endorsed by Canonical, the Kali project or the Tails project.

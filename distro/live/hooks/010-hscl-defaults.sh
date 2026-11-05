@@ -16,12 +16,14 @@ patch_file() { # file sed-expression
 }
 
 for lnf in "$ROOTFS"/usr/share/plasma/look-and-feel/org.kubuntu*.desktop/contents; do
-  patch_file "$lnf/defaults" 's/^Image=Kubuntu$/Image=HSCL1Midnight/'
-  patch_file "$lnf/layouts/org.kde.plasma.desktop-layout.js" \
-    "s#file:///usr/share/wallpapers/Kubuntu\#day-night#file:///usr/share/wallpapers/HSCL1Midnight#"
+  wp=HSCL1Midnight
+  case "$lnf" in *org.kubuntulight.desktop*) wp=HSCL1Light ;; esac
+  patch_file "$lnf/defaults" "s/^Image=Kubuntu\$/Image=$wp/"
+  # layout scripts use either ".../Kubuntu" or ".../Kubuntu#day-night"
+  patch_file "$lnf/layouts/org.kde.plasma.desktop-layout.js"     "s#file:///usr/share/wallpapers/Kubuntu\(\#day-night\)\?#file:///usr/share/wallpapers/$wp#"
 done
 patch_file "$ROOTFS/usr/share/kubuntu-default-settings/kf5-settings/kscreenlockerrc" \
   's#file:///usr/share/wallpapers/Kubuntu/\#day-night#file:///usr/share/wallpapers/HSCL1Midnight#g'
 
 echo "010-hscl-defaults: patched $patched files"
-[ "$patched" -ge 4 ] || { echo "expected to patch at least 4 files" >&2; exit 1; }
+[ "$patched" -ge 7 ] || { echo "expected to patch at least 7 files" >&2; exit 1; }

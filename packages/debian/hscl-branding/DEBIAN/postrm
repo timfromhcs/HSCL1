@@ -1,0 +1,6 @@
+#!/bin/sh
+set -e
+if [ "$1" = remove ] || [ "$1" = abort-install ] || [ "$1" = disappear ]; then
+  rm -f /usr/lib/os-release
+  dpkg-divert --package hscl-branding --quiet --rename --remove /usr/lib/os-release
+fi

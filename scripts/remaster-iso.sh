@@ -47,11 +47,12 @@ echo "version  : $version  compression: $([ "$fast" -eq 1 ] && echo zstd-fast ||
 echo "== Verify base ISO checksum against upstream-signed SHA256SUMS =="
 ( cd "$(dirname "$base")" && sha256sum -c "$(basename "$base").sha256" )
 
-echo "== Build hscl binary + hscl-base package =="
+echo "== Build hscl binary + HSCL1 packages =="
 CARGO_TARGET_DIR="$work/target" cargo build --release --manifest-path "$root/Cargo.toml" -q
 debdir="$work/debs"; rm -rf "$debdir"; mkdir -p "$debdir"
-deb="$("$root/scripts/build-deb.sh" hscl-base "$debdir" --bin "$work/target/release/hscl")"
-echo "package  : $deb"
+"$root/scripts/build-deb.sh" hscl-base "$debdir" --bin "$work/target/release/hscl" >/dev/null
+"$root/scripts/build-deb.sh" hscl-branding "$debdir" >/dev/null
+ls -l "$debdir"/*.deb
 
 echo "== Unpack live root filesystem (fresh) =="
 sudo rm -rf "$rootfs"
@@ -60,10 +61,13 @@ xorriso -osirrox on -indev "$base" -extract /casper/filesystem.squashfs "$work/i
 sudo unsquashfs -f -d "$rootfs" "$work/iso-files/filesystem.squashfs" >/dev/null
 
 echo "== Customise =="
-sudo install -m 0644 "$deb" "$rootfs/tmp/hscl-base.deb"
-sudo chroot "$rootfs" dpkg -i /tmp/hscl-base.deb
-sudo rm -f "$rootfs/tmp/hscl-base.deb"
+sudo mkdir -p "$rootfs/tmp/hscl-debs"
+sudo install -m 0644 "$debdir"/*.deb "$rootfs/tmp/hscl-debs/"
+sudo chroot "$rootfs" sh -c 'dpkg -i /tmp/hscl-debs/*.deb'
+sudo rm -rf "$rootfs/tmp/hscl-debs"
 sudo env ROOTFS="$rootfs" bash "$root/distro/live/hooks/010-hscl-defaults.sh"
+echo "== Verify branding inside the image (fails the build if anything is missing) =="
+sudo bash "$root/distro/live/verify-image.sh" "$rootfs"
 
 echo "== Re-squash =="
 new_sq="$work/iso-files/filesystem.new.squashfs"; sudo rm -f "$new_sq"

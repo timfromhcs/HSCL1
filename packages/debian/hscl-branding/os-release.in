@@ -1,0 +1,14 @@
+PRETTY_NAME="HSCL1 @VERSION@ (Ubuntu 26.04 LTS base)"
+NAME="HSCL1"
+VERSION_ID="26.04"
+VERSION="@VERSION@ (Resolute Raccoon base)"
+VERSION_CODENAME=resolute
+ID=ubuntu
+ID_LIKE=debian
+HOME_URL="https://github.com/timfromhcs"
+UBUNTU_CODENAME=resolute
+LOGO=hscl1
+VARIANT="HSCL1"
+VARIANT_ID=hscl1
+HSCL1_VERSION="@VERSION@"
+HSCL1_CREDIT="Made with love by hcsmedia"
