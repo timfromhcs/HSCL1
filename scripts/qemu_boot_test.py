@@ -77,6 +77,38 @@ def looks_like_welcome(rgb: bytes, w: int, h: int) -> bool:
     return hits / max(tot, 1) > 0.8
 
 
+def click(qmp, fx: float, fy: float) -> None:
+    """Left-click at fractional screen coordinates (usb-tablet absolute axes 0..32767)."""
+    qmp.cmd("input-send-event", events=[
+        {"type": "abs", "data": {"axis": "x", "value": int(fx * 32767)}},
+        {"type": "abs", "data": {"axis": "y", "value": int(fy * 32767)}}])
+    time.sleep(0.4)
+    for down in (True, False):
+        qmp.cmd("input-send-event", events=[{"type": "btn", "data": {"button": "left", "down": down}}])
+        time.sleep(0.15)
+
+
+def double_click(qmp, fx: float, fy: float) -> None:
+    qmp.cmd("input-send-event", events=[
+        {"type": "abs", "data": {"axis": "x", "value": int(fx * 32767)}},
+        {"type": "abs", "data": {"axis": "y", "value": int(fy * 32767)}}])
+    time.sleep(0.5)
+    for down in (True, False, True, False):  # two clicks well inside the double-click interval
+        qmp.cmd("input-send-event", events=[{"type": "btn", "data": {"button": "left", "down": down}}])
+        time.sleep(0.05)
+
+
+def grab(qmp, out: Path, name: str):
+    ppm = out / (name + ".ppm")
+    r = qmp.cmd("screendump", filename=str(ppm))
+    if "error" in r or not ppm.exists():
+        return None
+    png, w, h, rgb = ppm_to_png(ppm.read_bytes())
+    ppm.unlink()
+    (out / (name + ".png")).write_bytes(png)
+    return w, h, rgb
+
+
 class Qmp:
     def __init__(self, path: str):
         # "tcp:HOST:PORT" (Windows QEMU) or a unix socket path
@@ -114,6 +146,8 @@ def main():
     ap.add_argument("--firmware", choices=["uefi", "bios"], default="uefi")
     ap.add_argument("--secure-boot", action="store_true", help="UEFI Secure Boot with Microsoft keys enrolled (OVMF ms variant)")
     ap.add_argument("--try-live", action="store_true", help="click 'Try' on the live welcome screen once")
+    ap.add_argument("--dismiss-welcome", action="store_true", help="after the desktop is reached, click Skip on the Plasma Welcome Center and capture desktop-final.png")
+    ap.add_argument("--launch-installer", action="store_true", help="after --dismiss-welcome, double-click the Install icon and capture installer-*.png (no disk is attached; nothing is written)")
     ap.add_argument("--accel", help="override accelerator (kvm|whpx|tcg)")
     ap.add_argument("--qmp-port", type=int, default=4444, help="QMP TCP port (Windows QEMU only)")
     ap.add_argument("--mem", type=int, default=4096)
@@ -170,7 +204,7 @@ def main():
     result = {"firmware": a.firmware, "secure_boot_requested": a.secure_boot, "accel": accel, "iso": os.path.basename(a.iso), "shots": [], "reached_desktop": False}
     try:
         qmp = Qmp(qmp_path)
-        streak, n, ref, clicked = 0, 0, None, False
+        streak, n, ref, ref_size, clicked = 0, 0, None, None, False
         while time.time() - t0 < a.timeout and proc.poll() is None:
             time.sleep(a.interval)
             n += 1
@@ -181,8 +215,8 @@ def main():
             png, w, h, rgb = ppm_to_png(ppm.read_bytes())
             ppm.unlink()
             (out / f"shot-{n:03d}.png").write_bytes(png)
-            if ref is None:
-                ref = wallpaper_reference(w, h)
+            if ref is None or ref_size != (w, h):  # firmware/boot stages switch resolution
+                ref, ref_size = wallpaper_reference(w, h), (w, h)
             frac = wallpaper_similarity(rgb, ref, w, h)
             welcome = looks_like_welcome(rgb, w, h)
             if a.try_live and welcome and not clicked and frac < 0.5:
@@ -198,9 +232,23 @@ def main():
                 print("clicked 'Try' on welcome screen", flush=True)
             result["shots"].append({"n": n, "t": round(time.time() - t0), "wallpaper_match": round(frac, 3), "welcome_screen": welcome, "size": [w, h]})
             print(f"[{round(time.time() - t0):5d}s] shot-{n:03d} {w}x{h} wallpaper_match={frac:.2f} welcome={welcome}", flush=True)
-            streak = streak + 1 if frac > 0.6 else 0
+            streak = streak + 1 if frac > 0.4 else 0
+            qmp.cmd("input-send-event", events=[{"type": "rel", "data": {"axis": "x", "value": 1}}])  # keep the session awake (no dimming)
             if streak >= 2:
                 result["reached_desktop"] = True
+                if a.dismiss_welcome:
+                    click(qmp, 0.288, 0.848)  # "Skip" button of the Welcome Center
+                    time.sleep(4)
+                    g = grab(qmp, out, "desktop-final")
+                    if g:
+                        result["desktop_final_wallpaper_match"] = round(wallpaper_similarity(g[2], ref, g[0], g[1]), 3)
+                        print("desktop-final wallpaper_match=%.2f" % result["desktop_final_wallpaper_match"], flush=True)
+                if a.launch_installer:
+                    double_click(qmp, 0.135, 0.05)  # "Install ..." desktop icon
+                    for k in range(1, 7):
+                        time.sleep(20)
+                        grab(qmp, out, f"installer-{k}")
+                    result["installer_shots"] = 6
                 break
     finally:
         try:
