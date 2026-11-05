@@ -15,7 +15,7 @@ TOKENS = json.loads((ROOT / "themes/tokens/tokens.json").read_text(encoding="utf
 def test_metadata_and_files():
     m = json.loads((P / "metadata.json").read_text(encoding="utf-8"))
     assert m["KPackageStructure"] == "Plasma/Wallpaper" and m["KPlugin"]["Id"] == "org.hcs.hscl1.rain"
-    for f in ("contents/ui/main.qml", "contents/ui/RainField.qml", "contents/ui/config.qml", "contents/config/main.xml"):
+    for f in ("contents/ui/main.qml", "contents/ui/RainField.qml", "contents/ui/StarField.qml", "contents/ui/AuroraField.qml", "contents/ui/GridField.qml", "contents/ui/config.qml", "contents/config/main.xml"):
         assert (P / f).is_file(), f
 
 
@@ -23,7 +23,7 @@ def test_config_schema_has_bounded_entries():
     ns = {"k": "http://www.kde.org/standards/kcfg/1.0"}
     root = ET.parse(P / "contents/config/main.xml").getroot()
     entries = {e.get("name"): e for e in root.iterfind(".//k:entry", ns)}
-    assert set(entries) == {"Density", "Speed", "ShowMark"}
+    assert set(entries) == {"Effect", "Density", "Speed", "ShowMark", "Accent", "Background"}
     for n in ("Density", "Speed"):
         assert entries[n].find("k:min", ns).text == "1" and entries[n].find("k:max", ns).text == "3"
 
@@ -38,6 +38,8 @@ def test_colours_come_from_the_design_tokens():
 def test_main_respects_the_system_animation_setting():
     main = (P / "contents/ui/main.qml").read_text(encoding="utf-8")
     assert "animate: Kirigami.Units.longDuration > 0" in main
+    for effect in ("rain", "starfield", "aurora", "grid"):
+        assert effect in main
 
 
 def qmltestrunner():

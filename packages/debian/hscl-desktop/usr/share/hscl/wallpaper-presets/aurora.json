@@ -1,0 +1,10 @@
+{
+  "id": "aurora",
+  "name": "Aurora Ribbons",
+  "effect": "aurora",
+  "density": 2,
+  "speed": 1,
+  "show_mark": true,
+  "accent": "#6c8cff",
+  "background": "#0f0b1a"
+}

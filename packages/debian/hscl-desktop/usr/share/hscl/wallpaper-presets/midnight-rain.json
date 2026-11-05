@@ -1,0 +1,10 @@
+{
+  "id": "midnight-rain",
+  "name": "Midnight Rain",
+  "effect": "rain",
+  "density": 2,
+  "speed": 2,
+  "show_mark": true,
+  "accent": "#6c8cff",
+  "background": "#0e1117"
+}

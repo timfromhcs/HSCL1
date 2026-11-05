@@ -1,0 +1,10 @@
+{
+  "id": "grid-pulse",
+  "name": "Grid Pulse",
+  "effect": "grid",
+  "density": 2,
+  "speed": 2,
+  "show_mark": false,
+  "accent": "#3ecf8e",
+  "background": "#0e1117"
+}

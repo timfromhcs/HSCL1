@@ -4,14 +4,18 @@
       xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0 http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
   <kcfgfile name=""/>
   <group name="General">
+    <entry name="Effect" type="String">
+      <label>Effect: rain, starfield, aurora or grid</label>
+      <default>rain</default>
+    </entry>
     <entry name="Density" type="Int">
-      <label>Column density (1 sparse, 3 dense)</label>
+      <label>Density (1 sparse, 3 dense)</label>
       <default>2</default>
       <min>1</min>
       <max>3</max>
     </entry>
     <entry name="Speed" type="Int">
-      <label>Fall speed (1 slow, 3 fast)</label>
+      <label>Speed (1 slow, 3 fast)</label>
       <default>2</default>
       <min>1</min>
       <max>3</max>
@@ -19,6 +23,14 @@
     <entry name="ShowMark" type="Bool">
       <label>Show the HSCL1 mark</label>
       <default>true</default>
+    </entry>
+    <entry name="Accent" type="String">
+      <label>Accent colour (#rrggbb, empty = HSCL1 accent)</label>
+      <default></default>
+    </entry>
+    <entry name="Background" type="String">
+      <label>Background colour (#rrggbb, empty = HSCL1 midnight)</label>
+      <default></default>
     </entry>
   </group>
 </kcfg>

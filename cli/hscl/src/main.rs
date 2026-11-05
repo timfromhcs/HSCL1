@@ -16,6 +16,7 @@ mod report;
 mod security;
 mod sysinfo;
 mod updates;
+mod wallpaper;
 
 use clap::{Parser, Subcommand};
 use serde_json::json;
@@ -81,6 +82,11 @@ enum Cmd {
         #[arg(long, value_name = "PATH")]
         output: Option<std::path::PathBuf>,
     },
+    /// Wallpaper Studio: presets for the animated HSCL1 wallpaper effects.
+    Wallpaper {
+        #[command(subcommand)]
+        cmd: WallpaperCmd,
+    },
     /// HCS Coder: install, configure and launch open-source coding agents for the local model.
     Code {
         #[command(subcommand)]
@@ -110,6 +116,50 @@ enum Cmd {
     Appearance {
         #[command(subcommand)]
         cmd: AppearanceCmd,
+    },
+}
+
+#[derive(Subcommand)]
+enum WallpaperCmd {
+    /// All presets (system and yours).
+    List,
+    /// One preset as JSON.
+    Show { id: String },
+    /// Save a preset of your own.
+    Create {
+        id: String,
+        #[arg(long)]
+        name: Option<String>,
+        /// rain, starfield, aurora or grid
+        #[arg(long, default_value = "rain")]
+        effect: String,
+        #[arg(long, default_value_t = 2)]
+        density: u8,
+        #[arg(long, default_value_t = 2)]
+        speed: u8,
+        #[arg(long)]
+        no_mark: bool,
+        /// #rrggbb
+        #[arg(long, default_value = "")]
+        accent: String,
+        /// #rrggbb
+        #[arg(long, default_value = "")]
+        background: String,
+        #[arg(long)]
+        overwrite: bool,
+    },
+    /// Make a preset the wallpaper (low-VRAM mode caps density and speed).
+    Apply {
+        id: String,
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Delete one of your presets.
+    Delete { id: String },
+    /// Copy a preset to a new file.
+    Export {
+        id: String,
+        path: std::path::PathBuf,
     },
 }
 
@@ -358,6 +408,7 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
                 None => println!("{}", serde_json::to_string_pretty(&r)?),
             }
         }
+        Cmd::Wallpaper { cmd } => return run_wallpaper(j, cmd),
         Cmd::Code { cmd } => return run_code(j, cmd),
         Cmd::Mcp { allow_write } => {
             mcp::serve(
@@ -382,6 +433,94 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
             if report.failed > 0 {
                 return Ok(exit::CHECK_FAILED);
             }
+        }
+    }
+    Ok(exit::OK)
+}
+
+fn run_wallpaper(j: bool, cmd: WallpaperCmd) -> anyhow::Result<u8> {
+    let (sys, usr) = (wallpaper::system_dir(), wallpaper::user_dir());
+    let all = wallpaper::load_all(&sys, &usr);
+    let low_vram = std::fs::read_to_string(appearance::config_dir().join("low-vram")).is_ok();
+    match cmd {
+        WallpaperCmd::List => {
+            print_value(j, &json!({"presets": all, "low_vram": low_vram}), || {
+                all.iter()
+                    .map(|p| {
+                        format!(
+                            "{:<16} {:<10} density {} speed {}  {}",
+                            p.id, p.effect, p.density, p.speed, p.name
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            });
+        }
+        WallpaperCmd::Show { id } => {
+            let p = wallpaper::find(&all, &id)?;
+            print_value(j, &serde_json::to_value(p)?, || {
+                serde_json::to_string_pretty(p).unwrap_or_default()
+            });
+        }
+        WallpaperCmd::Create {
+            id,
+            name,
+            effect,
+            density,
+            speed,
+            no_mark,
+            accent,
+            background,
+            overwrite,
+        } => {
+            let p = wallpaper::Preset {
+                name: name.unwrap_or_else(|| id.clone()),
+                id,
+                effect,
+                density,
+                speed,
+                show_mark: !no_mark,
+                accent,
+                background,
+            };
+            let path = wallpaper::save(&usr, &p, overwrite)?;
+            print_value(j, &json!({"saved": path}), || {
+                format!("saved {}", path.display())
+            });
+        }
+        WallpaperCmd::Apply { id, dry_run } => {
+            let p = wallpaper::find(&all, &id)?;
+            if dry_run {
+                let cmds = wallpaper::apply_commands(&wallpaper::capped(p, low_vram))?;
+                print_value(
+                    j,
+                    &json!({"dry_run": true, "low_vram": low_vram, "commands": cmds}),
+                    || {
+                        cmds.iter()
+                            .map(|c| c.join(" "))
+                            .collect::<Vec<_>>()
+                            .join("\n")
+                    },
+                );
+            } else {
+                wallpaper::apply(p, low_vram, &mut appearance::SystemRunner)?;
+                print_value(j, &json!({"applied": id, "low_vram": low_vram}), || {
+                    format!(
+                        "applied {id}{}",
+                        if low_vram { " (low-VRAM caps)" } else { "" }
+                    )
+                });
+            }
+        }
+        WallpaperCmd::Delete { id } => {
+            wallpaper::delete(&usr, &id)?;
+            print_value(j, &json!({"deleted": id}), || format!("deleted {id}"));
+        }
+        WallpaperCmd::Export { id, path } => {
+            wallpaper::export(wallpaper::find(&all, &id)?, &path)?;
+            print_value(j, &json!({"exported": path}), || {
+                format!("wrote {}", path.display())
+            });
         }
     }
     Ok(exit::OK)

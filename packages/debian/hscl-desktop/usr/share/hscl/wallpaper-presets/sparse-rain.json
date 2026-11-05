@@ -1,0 +1,10 @@
+{
+  "id": "sparse-rain",
+  "name": "Sparse Rain",
+  "effect": "rain",
+  "density": 1,
+  "speed": 1,
+  "show_mark": true,
+  "accent": "#5cc8ff",
+  "background": "#0e1117"
+}
