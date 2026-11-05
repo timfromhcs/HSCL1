@@ -2,8 +2,8 @@
 """Boot an HSCL1 ISO in QEMU, take periodic screenshots over QMP and report evidence.
 
 Evidence produced in OUTDIR: screenshots (PNG), qemu.log, result.json.
-Success heuristic: the HSCL1 Midnight wallpaper colours dominate the screen (desktop reached with the
-HSCL1 default wallpaper). Screenshots must still be reviewed by a human/agent; this is a smoke gate,
+Success heuristic: the screen matches a render of the HSCL1 Midnight wallpaper (desktop reached with the
+HSCL1 default wallpaper); the Kubuntu welcome screen is detected separately and never counts as success. Screenshots must still be reviewed by a human/agent; this is a smoke gate,
 not proof of usability.
 
 Disposable resources only: a read-only ISO and an optional throwaway qcow2 created inside OUTDIR.
@@ -31,18 +31,50 @@ def ppm_to_png(ppm: bytes):
     return png, w, h, data
 
 
-def looks_like_hscl_desktop(rgb: bytes, w: int, h: int) -> float:
-    """Fraction of sampled pixels that are dark-blue 'Midnight' wallpaper colours."""
-    hits = total = 0
-    for y in range(0, h, 7):
-        for x in range(0, w, 7):
+def wallpaper_reference(w: int, h: int) -> bytes:
+    """Render the HSCL1 Midnight wallpaper at the screen size (same code as the packaged wallpaper)."""
+    import importlib.util, io
+    spec = importlib.util.spec_from_file_location("genwp", Path(__file__).with_name("gen-wallpaper.py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    tok = json.loads((Path(__file__).resolve().parent.parent / "themes/tokens/tokens.json").read_text(encoding="utf-8"))["themes"]["hcs-midnight"]
+    png = mod.render(w, h, tok)
+    # decode our own PNG (filter 0, RGB8) back to raw RGB
+    idat = b""
+    pos = 8
+    while pos < len(png):
+        ln = struct.unpack(">I", png[pos:pos + 4])[0]
+        typ = png[pos + 4:pos + 8]
+        if typ == b"IDAT":
+            idat += png[pos + 8:pos + 8 + ln]
+        pos += 12 + ln
+    raw = zlib.decompress(idat)
+    stride = w * 3 + 1
+    return b"".join(raw[y * stride + 1:(y + 1) * stride] for y in range(h))
+
+
+def wallpaper_similarity(rgb: bytes, ref: bytes, w: int, h: int) -> float:
+    """1.0 = screen region matches the wallpaper; compares sampled pixels outside the bottom panel/top bar.
+    Desktop icons/widgets cover only a few pixels, so a median-ish tolerant fraction is used."""
+    ok = tot = 0
+    for y in range(60, h - 70, 9):
+        for x in range(0, w, 9):
             i = (y * w + x) * 3
-            r, g, b = rgb[i], rgb[i + 1], rgb[i + 2]
-            total += 1
-            # wallpaper: dark navy gradient (~#0e1117 .. #3d4f8f); blue channel dominates
-            if b > r + 6 and b >= g and 14 <= b <= 170 and r < 90:
-                hits += 1
-    return hits / max(total, 1)
+            d = abs(rgb[i] - ref[i]) + abs(rgb[i + 1] - ref[i + 1]) + abs(rgb[i + 2] - ref[i + 2])
+            tot += 1
+            ok += d <= 40
+    return ok / max(tot, 1)
+
+
+def looks_like_welcome(rgb: bytes, w: int, h: int) -> bool:
+    """Kubuntu live welcome: dark-blue full screen with a bright centre logo. Used only to click 'Try'."""
+    hits = tot = 0
+    for y in range(0, h, 11):
+        for x in range(0, w, 11):
+            i = (y * w + x) * 3
+            tot += 1
+            hits += rgb[i + 2] > rgb[i] + 6 and rgb[i + 2] < 140
+    return hits / max(tot, 1) > 0.8
 
 
 class Qmp:
@@ -75,6 +107,7 @@ def main():
     ap.add_argument("outdir")
     ap.add_argument("--firmware", choices=["uefi", "bios"], default="uefi")
     ap.add_argument("--secure-boot", action="store_true", help="UEFI Secure Boot with Microsoft keys enrolled (OVMF ms variant)")
+    ap.add_argument("--try-live", action="store_true", help="click 'Try' on the live welcome screen once")
     ap.add_argument("--mem", type=int, default=4096)
     ap.add_argument("--smp", type=int, default=4)
     ap.add_argument("--timeout", type=int, default=2400)
@@ -111,7 +144,7 @@ def main():
     result = {"firmware": a.firmware, "secure_boot_requested": a.secure_boot, "accel": accel, "iso": os.path.basename(a.iso), "shots": [], "reached_desktop": False}
     try:
         qmp = Qmp(str(out / "qmp.sock"))
-        streak, n = 0, 0
+        streak, n, ref, clicked = 0, 0, None, False
         while time.time() - t0 < a.timeout and proc.poll() is None:
             time.sleep(a.interval)
             n += 1
@@ -122,10 +155,24 @@ def main():
             png, w, h, rgb = ppm_to_png(ppm.read_bytes())
             ppm.unlink()
             (out / f"shot-{n:03d}.png").write_bytes(png)
-            frac = looks_like_hscl_desktop(rgb, w, h)
-            result["shots"].append({"n": n, "t": round(time.time() - t0), "wallpaper_fraction": round(frac, 3), "size": [w, h]})
-            print(f"[{round(time.time() - t0):5d}s] shot-{n:03d} {w}x{h} wallpaper={frac:.2f}", flush=True)
-            streak = streak + 1 if frac > 0.55 else 0
+            if ref is None:
+                ref = wallpaper_reference(w, h)
+            frac = wallpaper_similarity(rgb, ref, w, h)
+            welcome = looks_like_welcome(rgb, w, h)
+            if a.try_live and welcome and not clicked and frac < 0.5:
+                # absolute tablet coordinates 0..32767; 'Try' button centre is about (27%, 80%)
+                qmp.cmd("input-send-event", events=[
+                    {"type": "abs", "data": {"axis": "x", "value": int(0.27 * 32767)}},
+                    {"type": "abs", "data": {"axis": "y", "value": int(0.80 * 32767)}}])
+                time.sleep(0.5)
+                for down in (True, False):
+                    qmp.cmd("input-send-event", events=[{"type": "btn", "data": {"button": "left", "down": down}}])
+                    time.sleep(0.2)
+                clicked = True
+                print("clicked 'Try' on welcome screen", flush=True)
+            result["shots"].append({"n": n, "t": round(time.time() - t0), "wallpaper_match": round(frac, 3), "welcome_screen": welcome, "size": [w, h]})
+            print(f"[{round(time.time() - t0):5d}s] shot-{n:03d} {w}x{h} wallpaper_match={frac:.2f} welcome={welcome}", flush=True)
+            streak = streak + 1 if frac > 0.6 else 0
             if streak >= 2:
                 result["reached_desktop"] = True
                 break
