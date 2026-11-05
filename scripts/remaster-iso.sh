@@ -4,19 +4,21 @@
 # Runs on an Ubuntu 26.04 builder (WSL2 or VM). Uses sudo only for unsquashfs/chroot/mksquashfs
 # on a script-owned work directory. Never touches host disks.
 #
-# Usage: scripts/remaster-iso.sh --out ISO [--base-iso ISO] [--work DIR] [--fast] [--force]
+# Usage: scripts/remaster-iso.sh --out ISO [--base-iso ISO] [--work DIR] [--fast] [--qa] [--force]
+#   --qa  also installs hscl-qa (VM evidence channel); never use for release images.
 set -Eeuo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 base="$HOME/hscl1-build/upstream/kubuntu-26.04.1-desktop-amd64.iso"
 work="$HOME/hscl1-build/work"
-out=""; fast=0; force=0
+out=""; fast=0; force=0; qa=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --base-iso) base="${2:?}"; shift 2 ;;
     --work) work="${2:?}"; shift 2 ;;
     --out) out="${2:?}"; shift 2 ;;
     --fast) fast=1; shift ;;
+    --qa) qa=1; shift ;;
     --force) force=1; shift ;;
     -h|--help) sed -n '2,9p' "$0"; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
@@ -51,11 +53,9 @@ echo "== Build hscl binary + HSCL1 packages =="
 CARGO_TARGET_DIR="$work/target" cargo build --release --manifest-path "$root/Cargo.toml" -q
 debdir="$work/debs"; rm -rf "$debdir"; mkdir -p "$debdir"
 "$root/scripts/build-deb.sh" hscl-base "$debdir" --bin "$work/target/release/hscl" >/dev/null
-"$root/scripts/build-deb.sh" hscl-branding "$debdir" >/dev/null
-"$root/scripts/build-deb.sh" hscl-handbook "$debdir" >/dev/null
-"$root/scripts/build-deb.sh" hscl-desktop "$debdir" >/dev/null
-"$root/scripts/build-deb.sh" hscl-security "$debdir" >/dev/null
-"$root/scripts/build-deb.sh" hscl-control-center "$debdir" >/dev/null
+pkgs=(hscl-branding hscl-handbook hscl-desktop hscl-security hscl-control-center)
+[ "$qa" -eq 1 ] && pkgs+=(hscl-qa)
+for p in "${pkgs[@]}"; do "$root/scripts/build-deb.sh" "$p" "$debdir" >/dev/null; done
 ls -l "$debdir"/*.deb
 
 echo "== Unpack live root filesystem (fresh) =="
@@ -67,7 +67,7 @@ sudo unsquashfs -f -d "$rootfs" "$work/iso-files/filesystem.squashfs" >/dev/null
 echo "== Customise =="
 sudo mkdir -p "$rootfs/tmp/hscl-debs"
 sudo install -m 0644 "$debdir"/*.deb "$rootfs/tmp/hscl-debs/"
-sudo chroot "$rootfs" sh -c 'dpkg -i /tmp/hscl-debs/hscl-base_*.deb /tmp/hscl-debs/hscl-branding_*.deb /tmp/hscl-debs/hscl-handbook_*.deb /tmp/hscl-debs/hscl-desktop_*.deb /tmp/hscl-debs/hscl-security_*.deb /tmp/hscl-debs/hscl-control-center_*.deb'
+sudo chroot "$rootfs" sh -c 'dpkg -i /tmp/hscl-debs/*.deb'
 sudo rm -rf "$rootfs/tmp/hscl-debs"
 sudo env ROOTFS="$rootfs" bash "$root/distro/live/hooks/010-hscl-defaults.sh"
 echo "== Verify branding inside the image (fails the build if anything is missing) =="
