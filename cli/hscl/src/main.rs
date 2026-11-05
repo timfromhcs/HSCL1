@@ -6,6 +6,8 @@ mod ai;
 mod appearance;
 mod catalog;
 mod doctor;
+mod download;
+mod graphics;
 mod profile;
 mod redact;
 mod report;
@@ -77,11 +79,42 @@ enum Cmd {
         #[arg(long, value_name = "PATH")]
         output: Option<std::path::PathBuf>,
     },
+    /// Detect the graphics hardware and tune the desktop for it (Qt Quick backend, animations, blur, rain density).
+    Graphics {
+        #[command(subcommand)]
+        cmd: GraphicsCmd,
+    },
+    /// Detect this machine and apply every automatic tuning (graphics now; AI profile is shown).
+    Autotune {
+        /// Print the plan only.
+        #[arg(long)]
+        dry_run: bool,
+        /// Re-apply even if the hardware did not change.
+        #[arg(long)]
+        force: bool,
+    },
     /// Desktop appearance.
     Appearance {
         #[command(subcommand)]
         cmd: AppearanceCmd,
     },
+}
+
+#[derive(Subcommand)]
+enum GraphicsCmd {
+    /// What was detected and which profile it maps to.
+    Detect,
+    /// Apply the profile for this machine (skipped when unchanged or locked).
+    Apply {
+        #[arg(long)]
+        dry_run: bool,
+        #[arg(long)]
+        force: bool,
+    },
+    /// Never auto-tune again (keeps your manual settings).
+    Lock,
+    /// Allow auto-tuning again.
+    Unlock,
 }
 
 #[derive(Subcommand)]
@@ -167,6 +200,33 @@ enum ModelCmd {
     },
     /// Details, licence and warning of one model.
     Info { id: String },
+    /// Download a model (sha256 verified). Abliterated models need --accept-warning.
+    Download {
+        id: String,
+        /// Target directory (default: ~/AI/Models or HSCL_MODELS_DIR).
+        #[arg(long, value_name = "DIR")]
+        dir: Option<std::path::PathBuf>,
+        /// Also download the vision projector (image input) when the catalog has one.
+        #[arg(long)]
+        with_vision: bool,
+        /// Confirm that you read the community-derivative warning of abliterated models.
+        #[arg(long)]
+        accept_warning: bool,
+    },
+    /// Re-check size and sha256 of a downloaded model.
+    Verify {
+        id: String,
+        #[arg(long, value_name = "DIR")]
+        dir: Option<std::path::PathBuf>,
+    },
+    /// Delete a downloaded model file (nothing else).
+    Remove {
+        id: String,
+        #[arg(long, value_name = "DIR")]
+        dir: Option<std::path::PathBuf>,
+    },
+    /// Show the model storage directory.
+    Path,
 }
 
 fn print_value(as_json: bool, v: &serde_json::Value, human: impl FnOnce() -> String) {
@@ -257,6 +317,10 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
                 None => println!("{}", serde_json::to_string_pretty(&r)?),
             }
         }
+        Cmd::Graphics { cmd } => return run_graphics(j, cmd),
+        Cmd::Autotune { dry_run, force } => {
+            return run_graphics(j, GraphicsCmd::Apply { dry_run, force });
+        }
         Cmd::Appearance {
             cmd: AppearanceCmd::Theme { cmd },
         } => return run_theme(j, cmd),
@@ -267,6 +331,105 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
             if report.failed > 0 {
                 return Ok(exit::CHECK_FAILED);
             }
+        }
+    }
+    Ok(exit::OK)
+}
+
+fn detect_machine() -> graphics::Machine {
+    let d = ai::detect();
+    let gpu = d.gpus.first();
+    let driver = gpu.and_then(|g| g.driver.clone());
+    let discrete_hint = gpu.is_some_and(|g| {
+        g.vendor == "NVIDIA" || (g.vendor == "AMD" && g.vram_mib.is_some_and(|v| v > 2048))
+    });
+    let cfg_low = std::fs::read_to_string(appearance::config_dir().join("low-vram")).is_ok();
+    graphics::Machine {
+        gpu: graphics::classify(driver.as_deref(), !d.render_nodes.is_empty(), discrete_hint),
+        driver,
+        ram_total_mib: d.mem_total_mib,
+        cpu_threads: d.cpu_threads as u32,
+        pixels: largest_display_pixels(),
+        on_battery_device: std::fs::read_dir("/sys/class/power_supply")
+            .map(|r| {
+                r.flatten()
+                    .any(|e| e.file_name().to_string_lossy().starts_with("BAT"))
+            })
+            .unwrap_or(false),
+        low_vram_mode: cfg_low,
+    }
+}
+
+fn largest_display_pixels() -> Option<u64> {
+    let mut best = None;
+    for e in std::fs::read_dir("/sys/class/drm").ok()?.flatten() {
+        let p = e.path();
+        if std::fs::read_to_string(p.join("status"))
+            .map(|s| s.trim() == "connected")
+            .unwrap_or(false)
+        {
+            if let Some(first) = std::fs::read_to_string(p.join("modes"))
+                .ok()
+                .and_then(|m| m.lines().next().map(str::to_string))
+            {
+                let mut it = first.split('x');
+                if let (Some(w), Some(h)) = (
+                    it.next().and_then(|v| v.parse::<u64>().ok()),
+                    it.next().and_then(|v| v.trim().parse::<u64>().ok()),
+                ) {
+                    best = best.max(Some(w * h));
+                }
+            }
+        }
+    }
+    best
+}
+
+fn run_graphics(j: bool, cmd: GraphicsCmd) -> anyhow::Result<u8> {
+    let machine = detect_machine();
+    let cfg = appearance::config_dir();
+    match cmd {
+        GraphicsCmd::Detect => {
+            let p = graphics::profile(&machine);
+            let v = json!({"machine": machine, "profile": p, "environment": graphics::environment_file(&p), "state": {"fingerprint": graphics::fingerprint(&machine)}});
+            print_value(j, &v, || {
+                format!("{:?} GPU, {} MiB RAM, {} threads -> profile {} (Qt Quick: {}, animations x{}, blur {}, rain density {})\n{}", machine.gpu, machine.ram_total_mib, machine.cpu_threads, p.level.name(), p.qt_quick, p.animation_factor, p.blur, p.rain_density, p.notes.join("\n"))
+            });
+        }
+        GraphicsCmd::Apply { dry_run, force } => {
+            let p = graphics::profile(&machine);
+            if dry_run {
+                let v = json!({"dry_run": true, "profile": p, "commands": graphics::commands(&p)});
+                print_value(j, &v, || {
+                    graphics::commands(&p)
+                        .iter()
+                        .map(|c| c.join(" "))
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                });
+            } else {
+                let ran = graphics::apply(&machine, &cfg, &mut appearance::SystemRunner, force)?;
+                print_value(j, &json!({"applied": ran, "level": p.level.name()}), || {
+                    if ran {
+                        format!("applied profile {}", p.level.name())
+                    } else {
+                        "nothing to do (unchanged hardware or locked)".to_string()
+                    }
+                });
+            }
+        }
+        GraphicsCmd::Lock | GraphicsCmd::Unlock => {
+            let lock = matches!(cmd, GraphicsCmd::Lock);
+            let mut st = graphics::load_state(&cfg);
+            st.locked = lock;
+            std::fs::create_dir_all(&cfg)?;
+            std::fs::write(
+                cfg.join("graphics.json"),
+                serde_json::to_string_pretty(&st)?,
+            )?;
+            print_value(j, &json!({"locked": lock}), || {
+                format!("auto-tuning {}", if lock { "locked" } else { "unlocked" })
+            });
         }
     }
     Ok(exit::OK)
@@ -350,6 +513,52 @@ fn run_model(j: bool, cmd: ModelCmd) -> anyhow::Result<u8> {
                     s += "\nWARNING: abliterated models are community derivatives with refusal behaviour removed; quality and safety are not guaranteed.";
                 }
                 s
+            });
+        }
+        ModelCmd::Path => {
+            let d = download::models_dir();
+            print_value(j, &json!({"models_dir": d}), || d.display().to_string());
+        }
+        ModelCmd::Download {
+            id,
+            dir,
+            with_vision,
+            accept_warning,
+        } => {
+            let m = catalog::find(&models, &id)?;
+            if !m.warning.is_empty() && !accept_warning {
+                anyhow::bail!(
+                    "{}\nRe-run with --accept-warning to confirm you read this.",
+                    m.warning
+                );
+            }
+            let dir = dir.unwrap_or_else(download::models_dir);
+            let (p, mm) = download::download(
+                m,
+                &dir,
+                with_vision,
+                home_free_disk(),
+                &download::CurlFetcher,
+            )?;
+            print_value(
+                j,
+                &json!({"model": p, "mmproj": mm, "verified": true}),
+                || format!("verified: {}", p.display()),
+            );
+        }
+        ModelCmd::Verify { id, dir } => {
+            let m = catalog::find(&models, &id)?;
+            let p = dir.unwrap_or_else(download::models_dir).join(&m.file);
+            download::verify_file(&p, m.size_bytes, &m.sha256)?;
+            print_value(j, &json!({"model": p, "verified": true}), || {
+                format!("ok: {}", p.display())
+            });
+        }
+        ModelCmd::Remove { id, dir } => {
+            let m = catalog::find(&models, &id)?;
+            let gone = download::remove(m, &dir.unwrap_or_else(download::models_dir))?;
+            print_value(j, &json!({"removed": gone}), || {
+                format!("removed {} file(s)", gone.len())
             });
         }
         ModelCmd::Info { id } => {
