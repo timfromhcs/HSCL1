@@ -148,6 +148,7 @@ def main():
     ap.add_argument("--try-live", action="store_true", help="click 'Try' on the live welcome screen once")
     ap.add_argument("--dismiss-welcome", action="store_true", help="after the desktop is reached, click Skip on the Plasma Welcome Center and capture desktop-final.png")
     ap.add_argument("--launch-installer", action="store_true", help="after --dismiss-welcome, double-click the Install icon and capture installer-*.png (no disk is attached; nothing is written)")
+    ap.add_argument("--qa-out", help="attach a virtio port hscl.qa and write the guest report (hscl-qa package) to this file")
     ap.add_argument("--accel", help="override accelerator (kvm|whpx|tcg)")
     ap.add_argument("--qmp-port", type=int, default=4444, help="QMP TCP port (Windows QEMU only)")
     ap.add_argument("--mem", type=int, default=4096)
@@ -183,6 +184,10 @@ def main():
            "-netdev", "user,id=n0", "-device", "virtio-net-pci,netdev=n0",
            "-drive", f"file={a.iso},media=cdrom,readonly=on",
            "-boot", "d", "-qmp", qmp_arg, "-no-reboot"]
+    if a.qa_out:
+        qa_path = str(Path(a.qa_out).resolve()).replace("\\", "/")
+        cmd += ["-device", "virtio-serial-pci", "-chardev", f"file,id=qa,path={qa_path}",
+                "-device", "virtserialport,chardev=qa,name=hscl.qa"]
     if a.firmware == "uefi":
         vars_copy = out / "OVMF_VARS.fd"
         if win:

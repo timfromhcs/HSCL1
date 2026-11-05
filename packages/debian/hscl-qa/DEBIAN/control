@@ -1,0 +1,11 @@
+Package: hscl-qa
+Version: 0.0.0
+Architecture: all
+Section: admin
+Priority: optional
+Depends: hscl-base
+Maintainer: HCSMEDIA <noreply@hcsmedia.invalid>
+Description: HSCL1 VM QA channel (development and release-candidate test images only)
+ Writes a system report to the virtio port "hscl.qa" when a hypervisor
+ provides it. Inert on real hardware. Never part of a stable release image.
+ Made with love by hcsmedia.
