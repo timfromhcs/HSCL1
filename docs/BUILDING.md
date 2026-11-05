@@ -14,11 +14,13 @@ Windows the fast path is native QEMU with WHPX (see [`TESTING.md`](TESTING.md)).
 
 ```console
 $ scripts/fetch-base-iso.sh                       # downloads and verifies kubuntu-26.04.1-desktop-amd64.iso
-$ scripts/remaster-iso.sh --out ~/hscl1-build/out/HSCL1-poc-fast.iso --fast
+$ scripts/remaster-iso.sh --out ~/hscl1-build/out/HSCL1-0.1.0-alpha.0-amd64.iso --variants release,qa --fast
 ```
 
 - `--fast` uses quick zstd compression (development); omit it for the xz release compression.
-- `--qa` additionally installs `hscl-qa` (VM evidence channel). **Never use `--qa` for a release image.**
+- `--variants release` (default), `qa` or `release,qa`. The QA variant adds `hscl-qa` (VM evidence channel) and is written to
+  `<out>-qa.iso`; **never release it** - `make_release.py` refuses it and `verify-image.sh ... release` fails if the QA channel
+  is present in the release variant.
 - `--force` is required to overwrite an existing output file.
 
 What the script does: verifies the base ISO checksum, builds the `hscl` binary and the HSCL1 `.deb` packages
@@ -46,3 +48,12 @@ Each package is a tree under `packages/debian/<name>`; an optional `build.sh` ge
 
 Not bit-for-bit reproducible yet: squashfs timestamps and package build times differ between runs. The base ISO is pinned
 by upstream checksum; manifests are generated from the finished image in the release process.
+
+## Build engine and resources
+
+- The unpacked base filesystem is cached in `work/pristine` (keyed by the base ISO checksum) and customised through an
+  overlayfs, so a repeat build skips the unpack and never modifies the cache.
+- `mksquashfs` runs with `-processors $(nproc) -mem 1G`.
+- The script refuses to start with less than `HSCL_MIN_FREE_MB` (default 3000) MB of available memory; the VM harness refuses
+  with less than VM size + 1.5 GB. On a 20 GB Windows host keep WSL at about 10 GB (`~/.wslconfig`: `memory=10GB`,
+  `[experimental] autoMemoryReclaim=gradual`).

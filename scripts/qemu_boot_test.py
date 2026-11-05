@@ -77,6 +77,25 @@ def looks_like_welcome(rgb: bytes, w: int, h: int) -> bool:
     return hits / max(tot, 1) > 0.8
 
 
+def free_memory_mb() -> int:
+    """Physical memory available to start a VM, in MB (Windows: GlobalMemoryStatusEx, Linux: /proc/meminfo)."""
+    if os.name == "nt":
+        import ctypes
+
+        class MS(ctypes.Structure):
+            _fields_ = [("l", ctypes.c_ulong), ("load", ctypes.c_ulong), ("tp", ctypes.c_ulonglong), ("ap", ctypes.c_ulonglong),
+                        ("tpf", ctypes.c_ulonglong), ("apf", ctypes.c_ulonglong), ("tv", ctypes.c_ulonglong), ("av", ctypes.c_ulonglong),
+                        ("ae", ctypes.c_ulonglong)]
+        m = MS()
+        m.l = ctypes.sizeof(MS)
+        ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(m))
+        return int(m.ap // (1024 * 1024))
+    for line in open("/proc/meminfo"):
+        if line.startswith("MemAvailable"):
+            return int(line.split()[1]) // 1024
+    return 1 << 30
+
+
 def click(qmp, fx: float, fy: float) -> None:
     """Left-click at fractional screen coordinates (usb-tablet absolute axes 0..32767)."""
     qmp.cmd("input-send-event", events=[
@@ -222,6 +241,7 @@ def main():
     ap.add_argument("--disk-size", default="40G", help="size for a newly created --disk")
     ap.add_argument("--login-password", help="installed-system boot: after --boot-wait seconds type this password at the login screen (single user preselected)")
     ap.add_argument("--boot-wait", type=int, default=75)
+    ap.add_argument("--no-mem-guard", action="store_true", help="start even when free memory is low (not recommended)")
     ap.add_argument("--accel", help="override accelerator (kvm|whpx|tcg)")
     ap.add_argument("--qmp-port", type=int, default=4444, help="QMP TCP port (Windows QEMU only)")
     ap.add_argument("--mem", type=int, default=4096)
@@ -232,6 +252,12 @@ def main():
     ap.add_argument("--height", type=int, default=768)
     a = ap.parse_args()
 
+    need = a.mem + 1500
+    have = free_memory_mb()
+    if not a.no_mem_guard and have < need:
+        print(f"refusing to start: {have} MB free, need {need} MB (VM {a.mem} MB + 1.5 GB headroom). "
+              "Close apps or run 'wsl --shutdown'; --no-mem-guard overrides.")
+        return 3
     out = Path(a.outdir)
     out.mkdir(parents=True, exist_ok=True)
     win = os.name == "nt"
