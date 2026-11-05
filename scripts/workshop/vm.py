@@ -123,6 +123,7 @@ class Vm:
         last: Exception | None = None
         while time.time() < deadline:
             s, f = self._connect(max(5.0, deadline - time.time()))
+            s.settimeout(max(5.0, deadline - time.time()))   # slow operations (screenshots, respin) may take minutes
             try:
                 f.write(payload)
                 while time.time() < deadline:

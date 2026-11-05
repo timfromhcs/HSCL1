@@ -16,8 +16,9 @@ GB = 2**30
 
 
 def test_only_live_sessions_are_accepted():
-    rs.check_live("BOOT_IMAGE=/casper/vmlinuz boot=casper quiet splash")
-    for bad in ("root=/dev/vda2 ro quiet", "boot=casperx", ""):
+    rs.check_live("BOOT_IMAGE=/casper/vmlinuz quiet splash")            # grub boot image path
+    rs.check_live("quiet splash", cdrom_has_squashfs=True)              # squashfs present under /cdrom
+    for bad in ("root=/dev/vda2 ro quiet", "BOOT_IMAGE=/boot/vmlinuz-7.0.0 root=UUID=x", ""):
         with pytest.raises(rs.RespinError):
             rs.check_live(bad)
 

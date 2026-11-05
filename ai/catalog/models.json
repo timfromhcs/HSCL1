@@ -1,0 +1,128 @@
+{
+  "schema": 1,
+  "generated_from": "Hugging Face API",
+  "models": [
+    {
+      "id": "qwen3.5-2b-abliterated",
+      "repo": "mradermacher/Huihui-Qwen3.5-2B-abliterated-GGUF",
+      "file": "Huihui-Qwen3.5-2B-abliterated.Q4_K_M.gguf",
+      "size_bytes": 1270809024,
+      "sha256": "aa25eea787afe56a097268f7ed3460cb623e1901d2e89cd2b654cabb42f80636",
+      "quant": "Q4_K_M",
+      "tier": "tiny",
+      "role": "chat",
+      "variant": "abliterated",
+      "base_model": "Qwen/Qwen3.5-2B",
+      "licence": "apache-2.0",
+      "mtp": false,
+      "min_ram_gb": 4,
+      "warning": "Community-derived 'abliterated' model: refusal behaviour was removed by the community, not by the base publisher. Quality and safety are not guaranteed; you are responsible for how you use it.",
+      "source_url": "https://huggingface.co/mradermacher/Huihui-Qwen3.5-2B-abliterated-GGUF",
+      "mmproj": {
+        "file": "Huihui-Qwen3.5-2B-abliterated.mmproj-Q8_0.gguf",
+        "size_bytes": 364664448,
+        "sha256": "d5ca558662f6eb46201c08c567ecac6c5b5628cacd6182413ed12342441bf7d6"
+      }
+    },
+    {
+      "id": "gemma4-e2b-abliterated",
+      "repo": "mradermacher/Huihui-gemma-4-E2B-it-abliterated-GGUF",
+      "file": "Huihui-gemma-4-E2B-it-abliterated.Q4_K_M.gguf",
+      "size_bytes": 3427874272,
+      "sha256": "55044454df35c2e3b9f4ca7a52b27cc7b057b3b3547cd114183196c31f5062a8",
+      "quant": "Q4_K_M",
+      "tier": "tiny",
+      "role": "chat",
+      "variant": "abliterated",
+      "base_model": "google/gemma-4-E2B-it",
+      "licence": "apache-2.0",
+      "mtp": false,
+      "min_ram_gb": 6,
+      "warning": "Community-derived 'abliterated' model: refusal behaviour was removed by the community, not by the base publisher. Quality and safety are not guaranteed; you are responsible for how you use it.",
+      "source_url": "https://huggingface.co/mradermacher/Huihui-gemma-4-E2B-it-abliterated-GGUF",
+      "mmproj": {
+        "file": "Huihui-gemma-4-E2B-it-abliterated.mmproj-Q8_0.gguf",
+        "size_bytes": 557368128,
+        "sha256": "030b1a496787c3ca9240552a3d5488db0ba50c6d6cdc878793513340d736765c"
+      }
+    },
+    {
+      "id": "qwen3.5-4b-abliterated",
+      "repo": "mradermacher/Huihui-Qwen3.5-4B-abliterated-GGUF",
+      "file": "Huihui-Qwen3.5-4B-abliterated.Q4_K_M.gguf",
+      "size_bytes": 2707514688,
+      "sha256": "423f10b6ec2d99c3378143d7cd3b80eb4887b3ed92103103ac59173b404f4f7c",
+      "quant": "Q4_K_M",
+      "tier": "small",
+      "role": "chat",
+      "variant": "abliterated",
+      "base_model": "Qwen/Qwen3.5-4B",
+      "licence": "apache-2.0",
+      "mtp": false,
+      "min_ram_gb": 8,
+      "warning": "Community-derived 'abliterated' model: refusal behaviour was removed by the community, not by the base publisher. Quality and safety are not guaranteed; you are responsible for how you use it.",
+      "source_url": "https://huggingface.co/mradermacher/Huihui-Qwen3.5-4B-abliterated-GGUF",
+      "mmproj": {
+        "file": "Huihui-Qwen3.5-4B-abliterated.mmproj-Q8_0.gguf",
+        "size_bytes": 366894720,
+        "sha256": "650e2af8754b8b10e21debdbaf352cab43cd2435ec8ed56b893b9b581ae4a95c"
+      }
+    },
+    {
+      "id": "qwen3.5-9b-abliterated",
+      "repo": "mradermacher/Huihui-Qwen3.5-9B-abliterated-GGUF",
+      "file": "Huihui-Qwen3.5-9B-abliterated.Q4_K_M.gguf",
+      "size_bytes": 5627045248,
+      "sha256": "ea1858ef4dc4b648b8dbb44612962a0333e945060dd0545ac0f28d7c4416e4b3",
+      "quant": "Q4_K_M",
+      "tier": "medium",
+      "role": "chat",
+      "variant": "abliterated",
+      "base_model": "Qwen/Qwen3.5-9B",
+      "licence": "apache-2.0",
+      "mtp": false,
+      "min_ram_gb": 12,
+      "warning": "Community-derived 'abliterated' model: refusal behaviour was removed by the community, not by the base publisher. Quality and safety are not guaranteed; you are responsible for how you use it.",
+      "source_url": "https://huggingface.co/mradermacher/Huihui-Qwen3.5-9B-abliterated-GGUF",
+      "mmproj": {
+        "file": "Huihui-Qwen3.5-9B-abliterated.mmproj-Q8_0.gguf",
+        "size_bytes": 624229760,
+        "sha256": "cf54897b6bbfa89c809fdc2b8236e0977bed70760b39ee8f11d87296e1d0e046"
+      }
+    },
+    {
+      "id": "gemma4-12b-heretic-abliterated",
+      "repo": "culturerevolt/gemma-4-12b-heretic-abliterated-GGUF",
+      "file": "gemma-4-12b-heretic-Q4_K_M.gguf",
+      "size_bytes": 7381382496,
+      "sha256": "6c4067ea0210d2367b2dbdd460d2dd86032a9b6e8dcbe03b83a3ea0a0a16dbee",
+      "quant": "Q4_K_M",
+      "tier": "medium",
+      "role": "chat",
+      "variant": "abliterated",
+      "base_model": "google/gemma-4-12b",
+      "licence": "apache-2.0",
+      "mtp": false,
+      "min_ram_gb": 16,
+      "warning": "Community-derived 'abliterated' model: refusal behaviour was removed by the community, not by the base publisher. Quality and safety are not guaranteed; you are responsible for how you use it.",
+      "source_url": "https://huggingface.co/culturerevolt/gemma-4-12b-heretic-abliterated-GGUF"
+    },
+    {
+      "id": "qwen3-coder-30b-a3b-abliterated",
+      "repo": "mradermacher/Huihui-Qwen3-Coder-30B-A3B-Instruct-abliterated-i1-GGUF",
+      "file": "Huihui-Qwen3-Coder-30B-A3B-Instruct-abliterated.i1-Q4_K_M.gguf",
+      "size_bytes": 18556689920,
+      "sha256": "bf6c1462967444b5be32b103b793d93b9174c7b589300f9f279c390c7fb59036",
+      "quant": "i1-Q4_K_M",
+      "tier": "large",
+      "role": "coder",
+      "variant": "abliterated",
+      "base_model": "Qwen/Qwen3-Coder-30B-A3B-Instruct",
+      "licence": "apache-2.0",
+      "mtp": false,
+      "min_ram_gb": 24,
+      "warning": "Community-derived 'abliterated' model: refusal behaviour was removed by the community, not by the base publisher. Quality and safety are not guaranteed; you are responsible for how you use it.",
+      "source_url": "https://huggingface.co/mradermacher/Huihui-Qwen3-Coder-30B-A3B-Instruct-abliterated-i1-GGUF"
+    }
+  ]
+}

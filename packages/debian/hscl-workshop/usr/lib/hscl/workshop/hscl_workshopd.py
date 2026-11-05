@@ -160,7 +160,7 @@ def op_status(_args: dict) -> dict:
                 k, v = line.split("=", 1)
                 osr[k] = v.strip('"')
     su = session_user()
-    return {"workshop": VERSION, "hscl1_version": osr.get("HSCL1_VERSION"), "live": "boot=casper" in cmdline,
+    return {"workshop": VERSION, "hscl1_version": osr.get("HSCL1_VERSION"), "live": os.path.exists("/cdrom/casper/filesystem.squashfs") or "/casper/" in cmdline,
             "session_user": su[0] if su else None, "ops": sorted(OPS)}
 
 

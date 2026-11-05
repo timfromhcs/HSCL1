@@ -1,0 +1,11 @@
+{
+  "_comment": "Inputs for scripts/build_model_catalog.py. File names, sizes, sha256 and licences are fetched from the Hugging Face API, never typed here.",
+  "models": [
+    {"id": "qwen3.5-2b-abliterated", "repo": "mradermacher/Huihui-Qwen3.5-2B-abliterated-GGUF", "quant": "Q4_K_M", "tier": "tiny", "role": "chat", "variant": "abliterated", "base_model": "Qwen/Qwen3.5-2B", "mtp": false, "min_ram_gb": 4},
+    {"id": "gemma4-e2b-abliterated", "repo": "mradermacher/Huihui-gemma-4-E2B-it-abliterated-GGUF", "quant": "Q4_K_M", "tier": "tiny", "role": "chat", "variant": "abliterated", "base_model": "google/gemma-4-E2B-it", "mtp": false, "min_ram_gb": 6},
+    {"id": "qwen3.5-4b-abliterated", "repo": "mradermacher/Huihui-Qwen3.5-4B-abliterated-GGUF", "quant": "Q4_K_M", "tier": "small", "role": "chat", "variant": "abliterated", "base_model": "Qwen/Qwen3.5-4B", "mtp": false, "min_ram_gb": 8},
+    {"id": "qwen3.5-9b-abliterated", "repo": "mradermacher/Huihui-Qwen3.5-9B-abliterated-GGUF", "quant": "Q4_K_M", "tier": "medium", "role": "chat", "variant": "abliterated", "base_model": "Qwen/Qwen3.5-9B", "mtp": false, "min_ram_gb": 12},
+    {"id": "gemma4-12b-heretic-abliterated", "repo": "culturerevolt/gemma-4-12b-heretic-abliterated-GGUF", "quant": "Q4_K_M", "tier": "medium", "role": "chat", "variant": "abliterated", "base_model": "google/gemma-4-12b", "mtp": false, "min_ram_gb": 16},
+    {"id": "qwen3-coder-30b-a3b-abliterated", "repo": "mradermacher/Huihui-Qwen3-Coder-30B-A3B-Instruct-abliterated-i1-GGUF", "quant": "i1-Q4_K_M", "tier": "large", "role": "coder", "variant": "abliterated", "base_model": "Qwen/Qwen3-Coder-30B-A3B-Instruct", "mtp": false, "min_ram_gb": 24}
+  ]
+}

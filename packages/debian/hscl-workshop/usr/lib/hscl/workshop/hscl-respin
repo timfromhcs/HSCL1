@@ -7,7 +7,7 @@ on the OUTPUT disk; that overlay is squashed and a new ISO is written with the b
 Casper artefacts (live user, hostname, machine-id, sudoers) are never captured because only the allow-listed trees are.
 
 Usage: hscl-respin --out-dir DIR [--dry-run] [--min-free-gb N]
-Safety: live sessions only; the output must be a real disk filesystem (not RAM/overlay/ISO); never the boot device.
+Safety: live sessions only (detected via /cdrom/casper/filesystem.squashfs); the output must be a real disk filesystem (not RAM/overlay/ISO); never the boot device.
 """
 from __future__ import annotations
 
@@ -37,9 +37,11 @@ class RespinError(Exception):
     pass
 
 
-def check_live(cmdline: str) -> None:
-    if "boot=casper" not in cmdline.split():
-        raise RespinError("not a live session (boot=casper missing); respin only runs from the live ISO")
+def check_live(cmdline: str, cdrom_has_squashfs: bool = False) -> None:
+    """A live session booted from the ISO: casper is detected by the initrd (no boot=casper on the command line), so look
+    for the ISO's squashfs under /cdrom or the /casper/ kernel path in the boot image."""
+    if not (cdrom_has_squashfs or "/casper/" in cmdline):
+        raise RespinError("not a live session (no /cdrom/casper/filesystem.squashfs); respin only runs from the live ISO")
 
 
 def check_target(fstype: str, source_dev: str, boot_dev: str, free_bytes: int, min_free_bytes: int) -> None:
@@ -104,7 +106,7 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--min-free-gb", type=int, default=14)
     a = ap.parse_args(argv)
     try:
-        check_live(Path("/proc/cmdline").read_text())
+        check_live(Path("/proc/cmdline").read_text(), Path("/cdrom/casper/filesystem.squashfs").exists())
         if os.geteuid() != 0:
             raise RespinError("run as root (sudo)")
         out_dir = Path(a.out_dir)
