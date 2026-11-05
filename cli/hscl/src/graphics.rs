@@ -63,28 +63,24 @@ pub struct Profile {
     pub notes: Vec<String>,
 }
 
+const VIRTUAL_DRIVERS: &[&str] = &[
+    "bochs-drm",
+    "bochs",
+    "vmwgfx",
+    "virtio_gpu",
+    "virtio-gpu",
+    "qxl",
+    "cirrus",
+    "simpledrm",
+    "vboxvideo",
+    "hyperv_drm",
+];
+
 /// Classify the GPU from the DRM driver name and whether a render node exists.
 pub fn classify(driver: Option<&str>, has_render_node: bool, discrete_hint: bool) -> GpuClass {
     match driver {
         None => GpuClass::None,
-        Some(d)
-            if matches!(
-                d,
-                "bochs-drm"
-                    | "bochs"
-                    | "vmwgfx"
-                    | "virtio_gpu"
-                    | "virtio-gpu"
-                    | "qxl"
-                    | "cirrus"
-                    | "simpledrm"
-                    | "vboxvideo"
-                    | "hyperv_drm"
-            ) =>
-        {
-            GpuClass::Software
-        }
-        Some(_) if !has_render_node => GpuClass::Software,
+        Some(d) if VIRTUAL_DRIVERS.contains(&d) || !has_render_node => GpuClass::Software,
         Some(_) if discrete_hint => GpuClass::Discrete,
         Some(_) => GpuClass::Integrated,
     }
