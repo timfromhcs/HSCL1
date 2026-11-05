@@ -1,0 +1,6 @@
+# HSCL1: D-Bus activation of KDE Connect is disabled. The tray applet would otherwise start kdeconnectd,
+# which listens on *:1716 (TCP+UDP). To opt in: remove this file and the dpkg diversion
+# (sudo rm /usr/share/dbus-1/services/org.kde.kdeconnect.service && sudo dpkg-divert --package hscl-security --rename --remove /usr/share/dbus-1/services/org.kde.kdeconnect.service).
+[D-BUS Service]
+Name=org.kde.kdeconnect
+Exec=/bin/false

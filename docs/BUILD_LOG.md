@@ -128,3 +128,7 @@ Only what was run is listed; see `docs/CLAIMS.md` for the full evidence table.
 - Release `v0.1.0-alpha.0` (pre-release): ISO commit 7a42ae3, 4 parts of 1500 MiB + SHA256SUMS + manifest; whole-image sha256 08649dc8...33fc8d matches the build manifest. Does not include the M1 fixes.
 - PR #5 (M1) merged into `main` after CI green (3 jobs).
 - `hscl system updates --check`: stale/missing package lists are reported as unknown (new JSON fields, warning text); cargo test 88 pass, clippy clean.
+
+## M1 VM run (2026-11-06)
+- Image `HSCL1-dev-m1.iso` (commit 20bf9b7, built with a dirty tree because untracked logs existed; sha256 3088717a...4d21b9) passed `verify-image.sh` (0 FAIL) after fixing a dpkg conflict the build itself caught (kdeconnect owns the autostart file -> dpkg-divert).
+- In-guest run (`scripts/workshop/e2e_cli.py`, 23 checks, desktop after 111 s): autotune and stale-list reporting VM-VERIFIED; KDE Connect still listening -> root cause D-Bus activation by the tray applet (`scripts/workshop/e2e_probe.py`, read-only). Fix committed (fb6565d) but the rebuild + re-run was stopped by the host for low memory; **pending**, not restarted automatically.

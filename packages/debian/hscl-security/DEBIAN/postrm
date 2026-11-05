@@ -1,0 +1,8 @@
+#!/bin/sh
+set -e
+if [ "$1" = remove ] || [ "$1" = abort-install ] || [ "$1" = disappear ]; then
+  rm -f /etc/xdg/autostart/org.kde.kdeconnect.daemon.desktop
+  dpkg-divert --package hscl-security --quiet --rename --remove /etc/xdg/autostart/org.kde.kdeconnect.daemon.desktop
+  rm -f /usr/share/dbus-1/services/org.kde.kdeconnect.service
+  dpkg-divert --package hscl-security --quiet --rename --remove /usr/share/dbus-1/services/org.kde.kdeconnect.service
+fi
