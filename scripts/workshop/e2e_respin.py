@@ -72,7 +72,7 @@ def bootstrap(vm) -> dict:
 
 
 def wsl_path(p: Path) -> str:
-    return subprocess.run(["wsl", "-d", "Ubuntu", "--", "wslpath", "-a", "-u", str(p)], capture_output=True, text=True).stdout.strip() if os.name == "nt" else str(p)
+    return subprocess.run(["wsl", "-d", "Ubuntu", "--", "wslpath", "-a", "-u", str(Path(p).resolve())], capture_output=True, text=True).stdout.strip() if os.name == "nt" else str(p)
 
 
 def sh(cmd: str) -> subprocess.CompletedProcess:
@@ -83,28 +83,33 @@ def sh(cmd: str) -> subprocess.CompletedProcess:
 def main() -> int:
     iso, out = sys.argv[1], Path(sys.argv[2])
     out.mkdir(parents=True, exist_ok=True)
-    report: dict = {}
-    proof = f"hscl-respin-proof-{uuid.uuid4()}"
+    resume = "--resume" in sys.argv
+    report: dict = json.loads((out / "report.json").read_text()) if resume else {}
+    proof_known = bool(report.get("proof")) or not resume
+    proof = report.get("proof") or f"hscl-respin-proof-{uuid.uuid4()}"
+    report["proof"] = proof if proof_known else None
     scratch = out / "scratch.qcow2"
-    scratch.unlink(missing_ok=True)
+    if not resume:
+        scratch.unlink(missing_ok=True)
 
     mgr = vmmod.VmManager(out / "vm")
     # ---- phase 1: update a live VM through the API and respin it
-    vm = mgr.start("one", iso, str(scratch), 4096, "uefi")
+    vm = None if resume else mgr.start("one", iso, str(scratch), 4096, "uefi")
     try:
-        report["desktop_after_s"] = wait_desktop(vm)
-        report["status"] = vm.rpc("status", timeout=180)
-        report["bootstrap"] = bootstrap(vm)["stdout"].strip()
-        report["diag"] = hook(vm, "diag.sh", "cat /proc/cmdline; echo; ls /cdrom | head; echo; findmnt -no SOURCE,FSTYPE /cdrom; lsblk -dno NAME,SIZE | head\n")["stdout"][-900:]
-        put(vm, "/usr/share/hscl/respin-proof.txt", proof.encode())
-        h = hook(vm, "mkout.sh", "set -e\nmkfs.ext4 -q -F -L hscl-out /dev/vda\nmkdir -p /mnt/out\nmount /dev/vda /mnt/out\nfindmnt -no SOURCE,FSTYPE /mnt/out\n")
-        report["mkout"] = h
-        t0 = time.time()
-        r = vm.rpc("respin", {"out_dir": "/mnt/out"}, timeout=3600)
-        report["respin"] = {"exit": r["exit"], "stdout": r["stdout"][-600:], "stderr": r["stderr"][-600:], "seconds": round(time.time() - t0)}
-        if r["exit"] != 0:
-            raise SystemExit("respin failed: " + json.dumps(report["respin"]))
-        report["ls_out"] = hook(vm, "lsout.sh", "ls -la /mnt/out; sync\n")["stdout"][-600:]
+      if vm is not None:
+          report["desktop_after_s"] = wait_desktop(vm)
+          report["status"] = vm.rpc("status", timeout=180)
+          report["bootstrap"] = bootstrap(vm)["stdout"].strip()
+          report["diag"] = hook(vm, "diag.sh", "cat /proc/cmdline; echo; ls /cdrom | head; echo; findmnt -no SOURCE,FSTYPE /cdrom; lsblk -dno NAME,SIZE | head\n")["stdout"][-900:]
+          put(vm, "/usr/share/hscl/respin-proof.txt", proof.encode())
+          h = hook(vm, "mkout.sh", "set -e\nmkfs.ext4 -q -F -L hscl-out /dev/vda\nmkdir -p /mnt/out\nmount /dev/vda /mnt/out\nfindmnt -no SOURCE,FSTYPE /mnt/out\n")
+          report["mkout"] = h
+          t0 = time.time()
+          r = vm.rpc("respin", {"out_dir": "/mnt/out"}, timeout=3600)
+          report["respin"] = {"exit": r["exit"], "stdout": r["stdout"][-600:], "stderr": r["stderr"][-600:], "seconds": round(time.time() - t0)}
+          if r["exit"] != 0:
+              raise SystemExit("respin failed: " + json.dumps(report["respin"]))
+          report["ls_out"] = hook(vm, "lsout.sh", "ls -la /mnt/out; sync\n")["stdout"][-600:]
     finally:
         (out / "report.json").write_text(json.dumps(report, indent=1))
         mgr.stop_all()
@@ -135,7 +140,9 @@ def main() -> int:
         report["respun_desktop_after_s"] = wait_desktop(vm2)
         report["respun_status"] = vm2.rpc("status", timeout=180)
         cat = hook(vm2, "check.sh", "cat /usr/share/hscl/respin-proof.txt\n")
-        report["proof_found"] = cat["stdout"].strip() == proof
+        got = cat["stdout"].strip()
+        report["proof_found"] = (got == proof) if proof_known else got.startswith("hscl-respin-proof-")
+        report["proof_check"] = "exact uuid" if proof_known else "prefix only (the uuid of the first phase was not recorded)"
         (out / "respun-desktop.png").write_bytes(rgb_shot(vm2)[0])
     finally:
         (out / "report.json").write_text(json.dumps(report, indent=1))
