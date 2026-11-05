@@ -135,6 +135,17 @@ def palettes(tokens: dict) -> dict[str, tuple[str, str]]:
             "mono": ("#000000", "#000000")}
 
 
+def lockup_layers(accent: str, text: str) -> tuple[list[tuple[str, list[Poly]]], float, float]:
+    """Mark + wordmark side by side. Returns (layers, width, height) in SVG units."""
+    wm, wm_w = wordmark_shapes()
+    pad, scale, off = 8.0, 100 / 256, 128.0
+    shift = lambda polys, dx: [[(px + dx, py + pad) for px, py in poly] for poly in polys]  # noqa: E731
+    ring = [[(px * scale, py * scale) for px, py in poly] for poly in mark_ring()]
+    one = [[(px * scale, py * scale) for px, py in poly] for poly in mark_one()]
+    layers = [(accent, shift(ring, pad)), (text, shift(one, pad)), (text, shift(wm, off + pad))]
+    return layers, off + wm_w + 2 * pad, 100 + 2 * pad
+
+
 def build_svgs(tokens: dict) -> dict[str, str]:
     files: dict[str, str] = {}
     wm, wm_w = wordmark_shapes()
@@ -142,15 +153,8 @@ def build_svgs(tokens: dict) -> dict[str, str]:
         files[f"hscl1-mark-{variant}.svg"] = svg_doc(256, 256, [(accent, mark_ring()), (text, mark_one())], "HSCL1")
         pad = 8.0
         files[f"hscl1-wordmark-{variant}.svg"] = svg_doc(wm_w + 2 * pad, 100 + 2 * pad, [(text, [[(px + pad, py + pad) for px, py in s] for s in wm])], "HSCL1")
-        scale = 100 / 256
-        m = [[(px * scale, py * scale) for px, py in s] for s in mark_ring()]
-        o = [[(px * scale, py * scale) for px, py in s] for s in mark_one()]
-        off = 100 + 28
-        lock = [[(px + off + pad, py + pad) for px, py in s] for s in wm]
-        files[f"hscl1-lockup-{variant}.svg"] = svg_doc(off + wm_w + 2 * pad, 100 + 2 * pad,
-                                                      [(accent, [[(px + pad, py + pad) for px, py in s] for s in m]),
-                                                       (text, [[(px + pad, py + pad) for px, py in s] for s in o]),
-                                                       (text, lock)], "HSCL1")
+        layers, lw, lh = lockup_layers(accent, text)
+        files[f"hscl1-lockup-{variant}.svg"] = svg_doc(lw, lh, layers, "HSCL1")
     return files
 
 
@@ -255,6 +259,8 @@ def main() -> int:
     wmw, wmh = wm_w + 2 * pad, 100 + 2 * pad
     wpx = 1024
     (out / "hscl1-wordmark-dark.png").write_bytes(render_layers(wpx, round(wpx * wmh / wmw), wmw, wmh, [(text, [[(px + pad, py + pad) for px, py in s] for s in wm])]))
+    layers, lw, lh = lockup_layers(accent, text)
+    (out / "hscl1-lockup-dark.png").write_bytes(render_layers(wpx, round(wpx * lh / lw), lw, lh, layers))
     print(f"wrote {len(list(out.iterdir()))} files to {out}")
     return 0
 

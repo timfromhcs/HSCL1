@@ -1,0 +1,11 @@
+[
+  {"keys": ["meta_l"]},
+  {"wait": 3},
+  {"shot": "launcher-open"},
+  {"keys": ["esc"]},
+  {"wait": 1},
+  {"keys": ["meta_l", "tab"]},
+  {"wait": 3},
+  {"shot": "overview-effect"},
+  {"keys": ["esc"]}
+]

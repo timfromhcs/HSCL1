@@ -1,0 +1,18 @@
+[
+  {"keys": ["alt", "f2"]},
+  {"wait": 2},
+  {"type": "hscl-control-center"},
+  {"wait": 1},
+  {"keys": ["ret"]},
+  {"wait": 12},
+  {"shot": "cc-overview"},
+  {"keys": ["down"]},
+  {"wait": 2},
+  {"shot": "cc-appearance"},
+  {"keys": ["down"]},
+  {"wait": 2},
+  {"shot": "cc-security"},
+  {"keys": ["down"]},
+  {"wait": 2},
+  {"shot": "cc-about"}
+]

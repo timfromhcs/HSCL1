@@ -98,6 +98,45 @@ def double_click(qmp, fx: float, fy: float) -> None:
         time.sleep(0.05)
 
 
+QCODES = {" ": "spc", "-": "minus", ".": "dot", ",": "comma", "/": "slash", "\n": "ret"}
+
+
+def send_keys(qmp, keys) -> None:
+    """Press and release a chord such as ["alt", "f2"] or ["meta_l", "k"] (QEMU qcodes)."""
+    qmp.cmd("send-key", keys=[{"type": "qcode", "data": k} for k in keys], **{"hold-time": 80})
+    time.sleep(0.3)
+
+
+def type_text(qmp, text: str) -> None:
+    for ch in text:
+        if ch.isupper():
+            send_keys(qmp, ["shift", ch.lower()])
+        else:
+            send_keys(qmp, [QCODES.get(ch, ch)])
+
+
+def run_steps(qmp, out: Path, steps: list, ref, result: dict) -> None:
+    """Scenario steps: {"wait": s} {"keys": [..]} {"type": "text"} {"click": [fx, fy]} {"dclick": [fx, fy]} {"shot": "name"}."""
+    shots = result.setdefault("scenario_shots", [])
+    for st in steps:
+        if "wait" in st:
+            time.sleep(float(st["wait"]))
+        elif "keys" in st:
+            send_keys(qmp, st["keys"])
+        elif "type" in st:
+            type_text(qmp, st["type"])
+        elif "click" in st:
+            click(qmp, *st["click"])
+        elif "dclick" in st:
+            double_click(qmp, *st["dclick"])
+        elif "shot" in st:
+            g = grab(qmp, out, st["shot"])
+            shots.append(st["shot"] if g else st["shot"] + " (failed)")
+            print("scenario shot:", st["shot"], flush=True)
+        else:
+            raise ValueError(f"unknown scenario step: {st}")
+
+
 def grab(qmp, out: Path, name: str):
     ppm = out / (name + ".ppm")
     r = qmp.cmd("screendump", filename=str(ppm))
@@ -149,6 +188,7 @@ def main():
     ap.add_argument("--dismiss-welcome", action="store_true", help="after the desktop is reached, click Skip on the Plasma Welcome Center and capture desktop-final.png")
     ap.add_argument("--launch-installer", action="store_true", help="after --dismiss-welcome, double-click the Install icon and capture installer-*.png (no disk is attached; nothing is written)")
     ap.add_argument("--qa-out", help="attach a virtio port hscl.qa and write the guest report (hscl-qa package) to this file")
+    ap.add_argument("--steps", help="JSON scenario file run after the desktop is reached (see tests/visual/scenarios)")
     ap.add_argument("--accel", help="override accelerator (kvm|whpx|tcg)")
     ap.add_argument("--qmp-port", type=int, default=4444, help="QMP TCP port (Windows QEMU only)")
     ap.add_argument("--mem", type=int, default=4096)
@@ -248,6 +288,8 @@ def main():
                     if g:
                         result["desktop_final_wallpaper_match"] = round(wallpaper_similarity(g[2], ref, g[0], g[1]), 3)
                         print("desktop-final wallpaper_match=%.2f" % result["desktop_final_wallpaper_match"], flush=True)
+                if a.steps:
+                    run_steps(qmp, out, json.loads(Path(a.steps).read_text(encoding="utf-8")), ref, result)
                 if a.launch_installer:
                     double_click(qmp, 0.135, 0.05)  # "Install ..." desktop icon
                     for k in range(1, 7):
