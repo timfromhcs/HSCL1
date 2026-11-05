@@ -287,6 +287,9 @@ def main() -> int:
             (out / f"hscl1-app-{name}-{size}.png").write_bytes(render_layers(size, size, 256, 256, app_layers))
     layers, lw, lh = lockup_layers(accent, text)
     (out / "hscl1-lockup-dark.png").write_bytes(render_layers(wpx, round(wpx * lh / lw), lw, lh, layers))
+    laccent, ltext = palettes(tokens)["light"]
+    llayers, llw, llh = lockup_layers(laccent, ltext)
+    (out / "hscl1-lockup-light.png").write_bytes(render_layers(wpx, round(wpx * llh / llw), llw, llh, llayers))
     print(f"wrote {len(list(out.iterdir()))} files to {out}")
     return 0
 

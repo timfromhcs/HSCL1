@@ -44,7 +44,7 @@ python3 "$ROOT/scripts/gen_colorschemes.py" "$STAGE/usr/share/color-schemes" >/d
 cal="$STAGE/etc/calamares/branding/hscl1"
 install -D -m 0644 "$brand/hscl1-mark-128.png" "$cal/logo.png"
 install -D -m 0644 "$brand/hscl1-mark-256.png" "$cal/icon.png"
-install -D -m 0644 "$brand/hscl1-lockup-dark.png" "$cal/welcome.png"
+install -D -m 0644 "$brand/hscl1-lockup-light.png" "$cal/welcome.png"
 
 mkdir -p "$STAGE/usr/lib"
 sed "s/@VERSION@/$VERSION/g" "$STAGE/os-release.in" > "$STAGE/usr/lib/os-release"
