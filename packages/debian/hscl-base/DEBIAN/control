@@ -1,0 +1,13 @@
+Package: hscl-base
+Version: 0.0.0
+Architecture: amd64
+Section: misc
+Priority: optional
+Maintainer: HCSMEDIA <noreply@hcsmedia.invalid>
+Description: HSCL1 base files: CLI, release marker and Midnight wallpaper
+ HSCL1 is a Linux workstation built on Ubuntu 26.04 LTS and KDE Plasma.
+ Made with love by hcsmedia.
+ .
+ This package ships the hscl command line tool, /etc/hscl-release and the
+ original HSCL1 Midnight wallpaper. It is not endorsed by Canonical, the
+ Kali project or the Tails project.
