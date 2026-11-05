@@ -15,8 +15,9 @@ Rule: nothing is stated as working without evidence. "unit-tested" means only th
 | Real local inference: pinned llama.cpp b12130 (CPU build, sha256 verified) with `qwen3.5-2b-abliterated` Q4_K_M, 127.0.0.1 only, chat completion answered | VERIFIED on the WSL builder (CPU, 4 threads) | `scripts/ai-smoke-test.sh`; server reported 21.55 tokens/s for one 2-token reply - a sanity number, **not a benchmark** |
 | Vulkan/GPU inference, MTP, TurboQuant | **NOT VERIFIED**; the profile engine only enables TurboQuant/MTP if the backend's `--help` lists them (the pinned upstream build was not checked to), no speed is claimed | needs a GPU host and a fork/build that advertises them |
 | `hscl graphics` detect | VM-VERIFIED (see above) | |
-| `hscl graphics apply` / autotune at login | unit-tested; **apply not yet run in a session; autotune is not started automatically at login yet** | |
-| `hscl wallpaper apply` against a live Plasma session | unit-tested + dry-run in the VM; **real apply not yet verified** | |
+| `hscl graphics apply --force` in the live Plasma session (QEMU VGA = software profile) | VM-VERIFIED: `AnimationDurationFactor` read back as 0 and `blurEnabled` as false afterwards | `artifacts/e2e4/apply-report.json` |
+| Autotune at login | **NOT implemented**: `hscl autotune` exists but nothing starts it at login yet | |
+| `hscl wallpaper apply` switching the live desktop between effects (aurora, grid pulse, starfield, midnight rain) | VM-VERIFIED by one screenshot per effect (still frames; motion not measured). Visual finding: the aurora effect looks like overlapping circles, not ribbons - design needs work | `artifacts/e2e4/05-08*.png` |
 | `hscl mcp` stdio server | unit-tested + one real stdio round trip (initialize, tools/list, one tool call) | not yet driven by a real agent |
 | `hscl code` / HCS Coder: catalog, licence gate, install command generation, OpenCode config writer | unit-tested | **the OpenCode config format and the installs were not run against the real tools**; licences marked "not confirmed" stay gated |
 | Abliterated models | catalogued with a warning; the real 2B model answered a prompt | quality and safety are not assessed |
