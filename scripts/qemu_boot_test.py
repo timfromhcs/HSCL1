@@ -115,7 +115,7 @@ def type_text(qmp, text: str) -> None:
             send_keys(qmp, [QCODES.get(ch, ch)])
 
 
-def run_steps(qmp, out: Path, steps: list, ref, result: dict) -> None:
+def run_steps(qmp, out: Path, steps: list, ref, result: dict, proc=None) -> None:
     """Scenario steps: {"wait": s} {"keys": [..]} {"type": "text"} {"click": [fx, fy]} {"dclick": [fx, fy]} {"shot": "name"}."""
     shots = result.setdefault("scenario_shots", [])
     for st in steps:
@@ -129,6 +129,14 @@ def run_steps(qmp, out: Path, steps: list, ref, result: dict) -> None:
             click(qmp, *st["click"])
         elif "dclick" in st:
             double_click(qmp, *st["dclick"])
+        elif "wait_exit" in st:  # wait for the VM to power off by itself (e.g. after the installer's "Restart")
+            t_end = time.time() + float(st["wait_exit"])
+            while proc is not None and proc.poll() is None and time.time() < t_end:
+                time.sleep(2)
+            result["vm_exited"] = proc is not None and proc.poll() is not None
+            print("vm exited:", result["vm_exited"], flush=True)
+            if result["vm_exited"]:
+                return
         elif "shot" in st:
             g = grab(qmp, out, st["shot"])
             shots.append(st["shot"] if g else st["shot"] + " (failed)")
@@ -189,6 +197,8 @@ def main():
     ap.add_argument("--launch-installer", action="store_true", help="after --dismiss-welcome, double-click the Install icon and capture installer-*.png (no disk is attached; nothing is written)")
     ap.add_argument("--qa-out", help="attach a virtio port hscl.qa and write the guest report (hscl-qa package) to this file")
     ap.add_argument("--steps", help="JSON scenario file run after the desktop is reached (see tests/visual/scenarios)")
+    ap.add_argument("--disk", help="attach this qcow2 as the only virtio disk (created when missing; disposable test disks only)")
+    ap.add_argument("--disk-size", default="40G", help="size for a newly created --disk")
     ap.add_argument("--accel", help="override accelerator (kvm|whpx|tcg)")
     ap.add_argument("--qmp-port", type=int, default=4444, help="QMP TCP port (Windows QEMU only)")
     ap.add_argument("--mem", type=int, default=4096)
@@ -222,8 +232,16 @@ def main():
            "-device", "usb-ehci", "-device", "usb-kbd", "-device", "usb-tablet",
            "-audiodev", "none,id=a0", "-device", "intel-hda", "-device", "hda-duplex,audiodev=a0",
            "-netdev", "user,id=n0", "-device", "virtio-net-pci,netdev=n0",
-           "-drive", f"file={a.iso},media=cdrom,readonly=on",
-           "-boot", "d", "-qmp", qmp_arg, "-no-reboot"]
+           *([] if a.iso == "none" else ["-drive", f"file={a.iso},media=cdrom,readonly=on"]),
+           "-boot", "c" if a.iso == "none" else "d", "-qmp", qmp_arg, "-no-reboot"]
+    if a.disk:
+        disk = Path(a.disk)
+        if not disk.exists():
+            img = str(qdir / "qemu-img.exe") if win else "qemu-img"
+            subprocess.run([img, "create", "-f", "qcow2", str(disk), a.disk_size], check=True, capture_output=True)
+        if disk.suffix != ".qcow2":
+            raise SystemExit("--disk must be a .qcow2 file (disposable test disks only)")
+        cmd += ["-drive", f"file={disk},if=virtio,format=qcow2"]
     if a.qa_out:
         qa_path = str(Path(a.qa_out).resolve()).replace("\\", "/")
         cmd += ["-device", "virtio-serial-pci", "-chardev", f"file,id=qa,path={qa_path}",
@@ -289,7 +307,7 @@ def main():
                         result["desktop_final_wallpaper_match"] = round(wallpaper_similarity(g[2], ref, g[0], g[1]), 3)
                         print("desktop-final wallpaper_match=%.2f" % result["desktop_final_wallpaper_match"], flush=True)
                 if a.steps:
-                    run_steps(qmp, out, json.loads(Path(a.steps).read_text(encoding="utf-8")), ref, result)
+                    run_steps(qmp, out, json.loads(Path(a.steps).read_text(encoding="utf-8")), ref, result, proc)
                 if a.launch_installer:
                     double_click(qmp, 0.135, 0.05)  # "Install ..." desktop icon
                     for k in range(1, 7):
