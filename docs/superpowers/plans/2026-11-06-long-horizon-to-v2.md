@@ -60,15 +60,15 @@ Versions use semver pre-release tags; the ISO embeds its version and the manifes
 ### M0 - First public push (now)
 
 - [x] Licence GPL-3.0-or-later, NOTICE, SECURITY, CONTRIBUTING, CODE_OF_CONDUCT, LICENSES, README, CI + release-verify workflows, Dependabot.
-- [ ] Create public repo `timfromhcs/HSCL1`; create `main` from HEAD; push `main` and `codex/hscl1-v1` (no force).
+- [x] Create public repo `timfromhcs/HSCL1`; create `main` from HEAD; push `main` and `codex/hscl1-v1` (no force). Secret scanning + push protection, private vulnerability reporting enabled.
 - [ ] Split ISO (`scripts/release-split.sh`), create pre-release `v0.1.0-alpha.0` with parts, SHA256SUMS, manifest, notes (unsigned, VM-only).
 - [ ] CI green on GitHub (`gh run watch`); `Verify release assets` workflow green; fix failures, never weaken checks.
 - [ ] Enable on GitHub: private vulnerability reporting, secret scanning + push protection, Dependabot alerts (settings via `gh api`; report what the account permits).
 
 ### M1 - Close known defects in the image (via Workshop loop)
 
-- [ ] KDE Connect listener (`:1716`) off by default: remove/mask in the image; test: listening-sockets check in the VM shows no `*:1716`.
-- [ ] Autotune at login: user systemd unit/autostart running `hscl autotune --once`; VM test: after login the graphics profile matches `hscl graphics detect`.
+- [~] KDE Connect listener (`:1716`) off by default: autostart entry hidden (IMPLEMENTED, unit + verify-image checks); **VM listening-socket check still pending**.
+- [~] Autotune at login: XDG autostart running `hscl autotune` (idempotent via fingerprint, honours lock) IMPLEMENTED; **VM test after login pending**.
 - [ ] Aurora wallpaper redesign (ribbons); screenshots before/after; CPU cost measured and recorded (`hscl wallpaper` perf note) - or the claim stays "not measured".
 - [ ] Stale-package-list issue: image ships fresh lists or `hscl system updates --check` says "unknown, lists stale" instead of "0".
 - [ ] Refresh `docs/KNOWN_LIMITATIONS.md` and `CLAIMS.md` from evidence after each fix.

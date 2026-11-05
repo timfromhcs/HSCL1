@@ -1,0 +1,8 @@
+[Desktop Entry]
+# HSCL1: KDE Connect opens listeners on *:1716 and is off by default (opt-in: remove this file or start kdeconnect-app).
+Type=Application
+Name=KDE Connect Daemon
+Exec=/usr/lib/x86_64-linux-gnu/libexec/kdeconnectd
+Hidden=true
+NoDisplay=true
+X-KDE-autostart-phase=1
