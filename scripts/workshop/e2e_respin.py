@@ -124,7 +124,10 @@ def main() -> int:
     cmd = (f"set -e; qemu-img convert -t none -T none -O raw '{wsl_path(scratch)}' '{raw}'; mkdir -p /tmp/hscl-x; sudo mount -o loop,ro,noload '{raw}' /tmp/hscl-x; "
            f"ls /tmp/hscl-x; cp /tmp/hscl-x/HSCL1-respin-*.iso '{dst}/respun.iso'; cp /tmp/hscl-x/HSCL1-respin-*.iso.manifest.json '{dst}/respun.manifest.json'; "
            f"sudo umount /tmp/hscl-x; rm -f '{raw}'; sync; echo 3 | sudo tee /proc/sys/vm/drop_caches >/dev/null")
-    e = sh(cmd)
+    respun_exists = resume and (out / "respun.iso").exists()
+    e = subprocess.CompletedProcess([], 0, "", "") if respun_exists else sh(cmd)
+    if respun_exists:
+        report["extract_skipped"] = "respun.iso from an earlier run is reused"
     report["extract"] = {"rc": e.returncode, "out": e.stdout[-300:], "err": e.stderr[-300:]}
     respun = out / "respun.iso"
     if e.returncode != 0 or not respun.exists():
