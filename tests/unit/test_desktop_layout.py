@@ -41,3 +41,9 @@ def test_top_bar_is_slim_and_has_required_parts():
 def test_defaults_use_hcs_midnight_and_wallpaper():
     d = (PKG / "look-and-feel/org.hcs.hscl1.desktop/contents/defaults").read_text(encoding="utf-8")
     assert "ColorScheme=HCSMidnight" in d and "Image=HSCL1Midnight" in d
+
+
+def test_layout_uses_rain_wallpaper_and_keeps_the_still_image_available():
+    js = (PKG / "look-and-feel/org.hcs.hscl1.desktop/contents/layouts/org.kde.plasma.desktop-layout.js").read_text(encoding="utf-8")
+    assert "wallpaperPlugin = 'org.hcs.hscl1.rain'" in js
+    assert "wallpapers/HSCL1Midnight" in js

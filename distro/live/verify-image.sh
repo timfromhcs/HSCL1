@@ -63,6 +63,8 @@ for c in HCSMidnight HCSLight HCSNord HCSAurora; do
 done
 check "app icon control center"           test -s "$root/usr/share/icons/hicolor/scalable/apps/hscl1-control-center.svg"
 check "app icon handbook"                 test -s "$root/usr/share/icons/hicolor/scalable/apps/hscl1-handbook.svg"
+check "rain wallpaper plugin"             test -s "$root/usr/share/plasma/wallpapers/org.hcs.hscl1.rain/contents/ui/main.qml"
+check "rain wallpaper config schema"      test -s "$root/usr/share/plasma/wallpapers/org.hcs.hscl1.rain/contents/config/main.xml"
 check "logo mark svg"                     test -s "$root/usr/share/hscl/brand/hscl1-mark-dark.svg"
 check "logo wordmark svg"                 test -s "$root/usr/share/hscl/brand/hscl1-wordmark-dark.svg"
 check "hicolor icon hscl1 (scalable)"     test -s "$root/usr/share/icons/hicolor/scalable/apps/hscl1.svg"

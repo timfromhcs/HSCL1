@@ -66,6 +66,22 @@ def wallpaper_similarity(rgb: bytes, ref: bytes, w: int, h: int) -> float:
     return ok / max(tot, 1)
 
 
+def looks_like_desktop(rgb: bytes, w: int, h: int) -> bool:
+    """Plasma desktop with the HCS top bar: a dark band at the top with a few bright pixels (clock, tray icons) and a
+    non-black screen. Independent of the (animated) wallpaper."""
+    band_h = max(8, int(h * 0.04))
+    total = bright = dark = 0
+    for y in range(2, band_h, 2):
+        for x in range(0, w, 2):
+            i = (y * w + x) * 3
+            lum = (rgb[i] + rgb[i + 1] + rgb[i + 2]) // 3
+            total += 1
+            bright += lum > 170
+            dark += lum < 60
+    mid_lum = sum(rgb[(h // 2 * w + x) * 3] for x in range(0, w, 16)) / max(1, len(range(0, w, 16)))
+    return total > 0 and dark / total > 0.6 and bright >= 25 and mid_lum > 3
+
+
 def looks_like_welcome(rgb: bytes, w: int, h: int) -> bool:
     """Kubuntu live welcome: dark-blue full screen with a bright centre logo. Used only to click 'Try'."""
     hits = tot = 0
@@ -357,7 +373,7 @@ def main():
                 print("clicked 'Try' on welcome screen", flush=True)
             result["shots"].append({"n": n, "t": round(time.time() - t0), "wallpaper_match": round(frac, 3), "welcome_screen": welcome, "size": [w, h]})
             print(f"[{round(time.time() - t0):5d}s] shot-{n:03d} {w}x{h} wallpaper_match={frac:.2f} welcome={welcome}", flush=True)
-            streak = streak + 1 if frac > 0.4 else 0
+            streak = streak + 1 if (frac > 0.4 or looks_like_desktop(rgb, w, h)) else 0
             qmp.cmd("input-send-event", events=[{"type": "rel", "data": {"axis": "x", "value": 1}}])  # keep the session awake (no dimming)
             if streak >= 2:
                 result["reached_desktop"] = True
