@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
     CliBackend backend(envOr("HSCL_BIN", QStringLiteral("hscl")));
     QQmlApplicationEngine engine;
     engine.addImportPath(qmlDir);
-    engine.rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+    engine.rootContext()->setContextProperty(QStringLiteral("cli"), &backend);
     engine.load(QUrl::fromLocalFile(qmlDir + QStringLiteral("/Main.qml")));
     if (engine.rootObjects().isEmpty())
         return 1;

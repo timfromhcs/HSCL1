@@ -71,3 +71,11 @@ def test_wordmark_is_five_glyphs_wide_enough():
     shapes, width = gb.wordmark_shapes()
     assert width > 300 and len(shapes) > 20
     assert all(gb.area(s) > 0 for s in shapes)
+
+
+def test_app_glyphs_are_distinct_and_positive():
+    assert set(gb.APP_GLYPHS) == {"control-center", "handbook"}
+    shapes = {name: gb.APP_GLYPHS[name]() for name in gb.APP_GLYPHS}
+    assert shapes["control-center"] != shapes["handbook"]
+    for polys in shapes.values():
+        assert polys and all(gb.area(p) > 0 for p in polys)

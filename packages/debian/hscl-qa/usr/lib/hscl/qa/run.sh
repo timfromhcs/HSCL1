@@ -32,9 +32,10 @@ user="$(ps -o user= -C plasmashell 2>/dev/null | head -n 1 | tr -d ' ')"
   section sysctl sysctl kernel.kptr_restrict kernel.dmesg_restrict fs.protected_symlinks
   section look-and-feel-packages ls /usr/share/plasma/look-and-feel
   if [ -n "$user" ] && command -v runuser >/dev/null 2>&1; then
-    section user-lookandfeel runuser -u "$user" -- kreadconfig6 --file kdeglobals --group KDE --key LookAndFeelPackage
-    section user-colorscheme runuser -u "$user" -- kreadconfig6 --file kdeglobals --group General --key ColorScheme
-    section user-shortcuts-overview runuser -u "$user" -- kreadconfig6 --file kglobalshortcutsrc --group kwin --key Overview
+    section user-lookandfeel runuser -l "$user" -c "kreadconfig6 --file kdeglobals --group KDE --key LookAndFeelPackage"
+    section user-colorscheme runuser -l "$user" -c "kreadconfig6 --file kdeglobals --group General --key ColorScheme"
+    section user-shortcuts-overview runuser -l "$user" -c "kreadconfig6 --file kglobalshortcutsrc --group kwin --key Overview"
+    section user-panels runuser -l "$user" -c "grep -c plugin= ~/.config/plasma-org.kde.plasma.desktop-appletsrc"
   fi
   echo "== end =="
 } > "$QA_OUT"

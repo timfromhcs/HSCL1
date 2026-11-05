@@ -33,10 +33,10 @@ ApplicationWindow {
             Layout.fillWidth: true
             Layout.fillHeight: true
             currentIndex: rail.currentIndex
-            OverviewPage { backend: backend }
-            AppearancePage { backend: backend }
-            SecurityPage { backend: backend }
-            AboutPage { backend: backend }
+            OverviewPage { backend: cli }
+            AppearancePage { backend: cli }
+            SecurityPage { backend: cli }
+            AboutPage { backend: cli }
         }
     }
 }

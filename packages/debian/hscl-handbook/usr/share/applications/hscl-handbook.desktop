@@ -7,6 +7,6 @@ Comment=Offline documentation for HSCL1
 Comment[de]=Offline-Dokumentation für HSCL1
 Comment[fr]=Documentation hors ligne pour HSCL1
 Exec=hscl-handbook
-Icon=hscl1
+Icon=hscl1-handbook
 Categories=System;Documentation;
 Keywords=help;manual;handbook;hscl;

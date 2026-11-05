@@ -34,6 +34,15 @@ check "control center QML"                test -s "$root/usr/share/hscl/control-
 check "control center de translation"     test -s "$root/usr/share/hscl/control-center/i18n/hscl-cc_de.qm"
 check "control center fr translation"     test -s "$root/usr/share/hscl/control-center/i18n/hscl-cc_fr.qm"
 check "control center desktop entry"      test -s "$root/usr/share/applications/hscl-control-center.desktop"
+check "Calamares branding hscl1"          test -s "$root/etc/calamares/branding/hscl1/branding.desc"
+check "Calamares logo"                    test -s "$root/etc/calamares/branding/hscl1/logo.png"
+check "Calamares welcome image"           test -s "$root/etc/calamares/branding/hscl1/welcome.png"
+check "Calamares slideshow"               test -s "$root/etc/calamares/branding/hscl1/show.qml"
+check "Calamares uses hscl1 branding"     grep -q '^branding: *hscl1$' "$root/etc/calamares/settings.conf"
+check "installer launcher renamed"        grep -q '^Name=Install HSCL1' "$root/usr/share/applications/kubuntu-calamares.desktop"
+check "no Kubuntu installer launcher name" sh -c "! grep -E '^(Name|GenericName)(\\[[^]]*\\])?=.*Kubuntu' '$root/usr/share/applications/kubuntu-calamares.desktop'"
+check "live desktop: no Kubuntu Focus link" test ! -e "$root/etc/skel/Desktop/org.kfocus.web.howtos.desktop"
+check "live desktop: handbook link"       test -L "$root/etc/skel/Desktop/hscl-handbook.desktop"
 check "hscl CLI installed"                test -x "$root/usr/bin/hscl"
 check "release marker"                    test -f "$root/usr/share/hscl/release.json"
 for w in HSCL1Midnight HSCL1Light HSCL1Nord HSCL1Aurora; do
@@ -43,6 +52,8 @@ check "design tokens installed"           test -s "$root/usr/share/hscl/themes/t
 for c in HCSMidnight HCSLight HCSNord HCSAurora; do
   check "colour scheme $c"                test -s "$root/usr/share/color-schemes/$c.colors"
 done
+check "app icon control center"           test -s "$root/usr/share/icons/hicolor/scalable/apps/hscl1-control-center.svg"
+check "app icon handbook"                 test -s "$root/usr/share/icons/hicolor/scalable/apps/hscl1-handbook.svg"
 check "logo mark svg"                     test -s "$root/usr/share/hscl/brand/hscl1-mark-dark.svg"
 check "logo wordmark svg"                 test -s "$root/usr/share/hscl/brand/hscl1-wordmark-dark.svg"
 check "hicolor icon hscl1 (scalable)"     test -s "$root/usr/share/icons/hicolor/scalable/apps/hscl1.svg"

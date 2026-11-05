@@ -28,5 +28,15 @@ patch_file "$ROOTFS/usr/share/kubuntu-default-settings/kf5-settings/kscreenlocke
 # Make the HCS Hybrid Desktop the default look-and-feel (the Kubuntu settings file names the package)
 patch_file "$ROOTFS/usr/share/kubuntu-default-settings/kf5-settings/kdeglobals"   's/^LookAndFeelPackage=org.kubuntu.desktop$/LookAndFeelPackage=org.hcs.hscl1.desktop/; s/^DefaultDarkLookAndFeel=.*/DefaultDarkLookAndFeel=org.hcs.hscl1.desktop/'
 
+# Installer: use the HSCL1 Calamares branding and name the desktop entry after the product
+patch_file "$ROOTFS/etc/calamares/settings.conf" 's/^branding: *kubuntu$/branding: hscl1/'
+patch_file "$ROOTFS/usr/share/applications/kubuntu-calamares.desktop" \
+  '/^\(Name\|GenericName\)\(\[[^]]*\]\)\?=/ s/Kubuntu 26\.04/HSCL1/; /^\(Name\|GenericName\)\(\[[^]]*\]\)\?=/ s/Kubuntu/HSCL1/'
+
+# Replace upstream marketing shortcuts on the live desktop with HSCL1 entries
+rm -f "$ROOTFS/etc/skel/Desktop/org.kfocus.web.howtos.desktop" "$ROOTFS/etc/skel/Desktop/org.kubuntu.web.home.desktop"
+ln -sf /usr/share/applications/hscl-handbook.desktop "$ROOTFS/etc/skel/Desktop/hscl-handbook.desktop"
+ln -sf /usr/share/applications/hscl-control-center.desktop "$ROOTFS/etc/skel/Desktop/hscl-control-center.desktop"
+
 echo "010-hscl-defaults: patched $patched files"
-[ "$patched" -ge 8 ] || { echo "expected to patch at least 8 files" >&2; exit 1; }
+[ "$patched" -ge 10 ] || { echo "expected to patch at least 10 files" >&2; exit 1; }

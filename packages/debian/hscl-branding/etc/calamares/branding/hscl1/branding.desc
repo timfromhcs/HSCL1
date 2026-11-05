@@ -1,0 +1,29 @@
+---
+componentName: hscl1
+
+windowExpanding:    fullscreen
+
+strings:
+    productName:         HSCL1
+    shortProductName:    HSCL1
+    version:             0.1.0-alpha.0
+    shortVersion:        0.1
+    versionedName:       HSCL1 0.1.0-alpha.0
+    shortVersionedName:  HSCL1 0.1
+    bootloaderEntryName: HSCL1
+    productUrl:          https://github.com/timfromhcs
+    supportUrl:          https://github.com/timfromhcs
+
+images:
+    productLogo:         "logo.png"
+    productIcon:         "icon.png"
+    productWelcome:      "welcome.png"
+
+slideshow:               "show.qml"
+
+slideshowAPI:            1
+
+style:
+   SidebarBackground:    "#151a23"
+   SidebarText:          "#e8ecf3"
+   SidebarTextCurrent:   "#6c8cff"

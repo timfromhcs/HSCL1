@@ -82,6 +82,27 @@ def mark_one() -> list[Poly]:
     return [stem, foot, flag]
 
 
+def disc(cx: float, cy: float, r: float) -> Poly:
+    return oriented([(cx + r * math.cos(math.radians(30 * k)), cy + r * math.sin(math.radians(30 * k))) for k in range(12)])
+
+
+def glyph_settings() -> list[Poly]:
+    """Three sliders: HSCL1 Control Center."""
+    bars = [rect(78, y - 5, 178, y + 5) for y in (94, 128, 162)]
+    knobs = [disc(112, 94, 14), disc(148, 128, 14), disc(124, 162, 14)]
+    return bars + knobs
+
+
+def glyph_book() -> list[Poly]:
+    """Open book: HSCL1 Handbook."""
+    left = oriented([(82, 92), (124, 104), (124, 176), (82, 164)])
+    right = oriented([(174, 92), (132, 104), (132, 176), (174, 164)])
+    return [left, right]
+
+
+APP_GLYPHS = {"control-center": glyph_settings, "handbook": glyph_book}
+
+
 def wordmark_shapes(w: float = 15.0, cap: float = 100.0) -> tuple[list[Poly], float]:
     """Return outlined 'HSCL1' polygons with the top-left of the cap box at (0,0) and the total width."""
     shapes: list[Poly] = []
@@ -259,6 +280,11 @@ def main() -> int:
     wmw, wmh = wm_w + 2 * pad, 100 + 2 * pad
     wpx = 1024
     (out / "hscl1-wordmark-dark.png").write_bytes(render_layers(wpx, round(wpx * wmh / wmw), wmw, wmh, [(text, [[(px + pad, py + pad) for px, py in s] for s in wm])]))
+    for name, glyph in APP_GLYPHS.items():
+        app_layers = [(accent, mark_ring()), (text, glyph())]
+        (out / f"hscl1-app-{name}.svg").write_text(svg_doc(256, 256, app_layers, "HSCL1 " + name), encoding="utf-8")
+        for size in (16, 32, 48, 64, 128, 256):
+            (out / f"hscl1-app-{name}-{size}.png").write_bytes(render_layers(size, size, 256, 256, app_layers))
     layers, lw, lh = lockup_layers(accent, text)
     (out / "hscl1-lockup-dark.png").write_bytes(render_layers(wpx, round(wpx * lh / lw), lw, lh, layers))
     print(f"wrote {len(list(out.iterdir()))} files to {out}")

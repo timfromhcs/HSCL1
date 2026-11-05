@@ -7,6 +7,6 @@ Comment=System overview, appearance and security status
 Comment[de]=Systemübersicht, Erscheinungsbild und Sicherheitsstatus
 Comment[fr]=Aperçu du système, apparence et état de sécurité
 Exec=hscl-control-center
-Icon=hscl1
+Icon=hscl1-control-center
 Categories=Settings;System;
 Keywords=settings;control;hscl;theme;security;

@@ -27,12 +27,24 @@ python3 "$ROOT/scripts/gen_brand.py" "$brand" >/dev/null
 for s in 16 32 48 64 128 256 512; do
   install -D -m 0644 "$brand/hscl1-mark-$s.png" "$STAGE/usr/share/icons/hicolor/${s}x${s}/apps/hscl1.png"
 done
+for app in control-center handbook; do
+  for s in 16 32 48 64 128 256; do
+    install -D -m 0644 "$brand/hscl1-app-$app-$s.png" "$STAGE/usr/share/icons/hicolor/${s}x${s}/apps/hscl1-$app.png"
+  done
+  install -D -m 0644 "$brand/hscl1-app-$app.svg" "$STAGE/usr/share/icons/hicolor/scalable/apps/hscl1-$app.svg"
+done
 install -D -m 0644 "$brand/hscl1-mark-dark.svg" "$STAGE/usr/share/icons/hicolor/scalable/apps/hscl1.svg"
 install -D -m 0644 "$brand/hscl1-mark-128.png" "$STAGE/usr/share/pixmaps/hscl1.png"
 
 # design tokens (read by `hscl appearance`) and Plasma colour schemes generated from them
 install -D -m 0644 "$ROOT/themes/tokens/tokens.json" "$STAGE/usr/share/hscl/themes/tokens.json"
 python3 "$ROOT/scripts/gen_colorschemes.py" "$STAGE/usr/share/color-schemes" >/dev/null
+
+# Calamares branding images (generated from the logo family)
+cal="$STAGE/etc/calamares/branding/hscl1"
+install -D -m 0644 "$brand/hscl1-mark-128.png" "$cal/logo.png"
+install -D -m 0644 "$brand/hscl1-mark-256.png" "$cal/icon.png"
+install -D -m 0644 "$brand/hscl1-lockup-dark.png" "$cal/welcome.png"
 
 mkdir -p "$STAGE/usr/lib"
 sed "s/@VERSION@/$VERSION/g" "$STAGE/os-release.in" > "$STAGE/usr/lib/os-release"
