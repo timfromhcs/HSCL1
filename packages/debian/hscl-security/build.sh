@@ -6,3 +6,4 @@ install -D -m 0644 "$ROOT/distro/security/sysctl.d/90-hscl.conf" "$STAGE/etc/sys
 install -D -m 0755 "$ROOT/distro/security/security-baseline.sh" "$STAGE/usr/lib/hscl/security-baseline.sh"
 install -D -m 0644 "$ROOT/distro/security/systemd/hscl-security-baseline.service" "$STAGE/usr/lib/systemd/system/hscl-security-baseline.service"
 ln -sf /usr/lib/systemd/system/hscl-security-baseline.service "$STAGE/etc/systemd/system/multi-user.target.wants/hscl-security-baseline.service"
+install -D -m 0644 "$ROOT/distro/security/apt/52hscl-unattended-upgrades" "$STAGE/etc/apt/apt.conf.d/52hscl-unattended-upgrades"

@@ -9,6 +9,7 @@ mod redact;
 mod report;
 mod security;
 mod sysinfo;
+mod updates;
 
 use clap::{Parser, Subcommand};
 use serde_json::json;
@@ -116,6 +117,12 @@ enum ThemeCmd {
 enum SystemCmd {
     /// OS, kernel, CPU, memory (identifiers redacted).
     Info,
+    /// Pending APT updates (read-only simulation; installs nothing).
+    Updates {
+        /// Required: only checking is implemented.
+        #[arg(long, required = true)]
+        check: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -177,6 +184,13 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
             let s = sysinfo::collect();
             let v = serde_json::to_value(&s)?;
             print_value(j, &v, || sysinfo::render(&s));
+        }
+        Cmd::System {
+            cmd: SystemCmd::Updates { .. },
+        } => {
+            let u = updates::check()?;
+            let v = serde_json::to_value(&u)?;
+            print_value(j, &v, || updates::render(&u));
         }
         Cmd::Security {
             cmd: SecurityCmd::Status,
