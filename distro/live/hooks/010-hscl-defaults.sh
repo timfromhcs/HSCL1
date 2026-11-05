@@ -33,6 +33,8 @@ patch_file "$ROOTFS/etc/calamares/settings.conf" 's/^branding: *kubuntu$/brandin
 patch_file "$ROOTFS/usr/share/applications/kubuntu-calamares.desktop" \
   '/^\(Name\|GenericName\)\(\[[^]]*\]\)\?=/ s/Kubuntu 26\.04/HSCL1/; /^\(Name\|GenericName\)\(\[[^]]*\]\)\?=/ s/Kubuntu/HSCL1/'
 
+patch_file "$ROOTFS/usr/share/applications/calamares-launch-oem.desktop"   '/^\(Name\|GenericName\)\(\[[^]]*\]\)\?=/ s/Kubuntu 26\.04/HSCL1/; /^\(Name\|GenericName\)\(\[[^]]*\]\)\?=/ s/Kubuntu/HSCL1/'
+
 # Login screen: derive an HSCL1 SDDM theme from the installed Kubuntu one (QML stays upstream), HSCL1 artwork and avatar
 sddm="$ROOTFS/usr/share/sddm/themes"
 if [ -d "$sddm/kubuntu" ]; then
@@ -71,4 +73,4 @@ ln -sf /usr/share/applications/hscl-handbook.desktop "$ROOTFS/etc/skel/Desktop/h
 ln -sf /usr/share/applications/hscl-control-center.desktop "$ROOTFS/etc/skel/Desktop/hscl-control-center.desktop"
 
 echo "010-hscl-defaults: patched $patched files"
-[ "$patched" -ge 11 ] || { echo "expected to patch at least 11 files" >&2; exit 1; }
+[ "$patched" -ge 12 ] || { echo "expected to patch at least 12 files" >&2; exit 1; }
