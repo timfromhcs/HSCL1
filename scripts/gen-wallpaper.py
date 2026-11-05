@@ -2,7 +2,7 @@
 """Generate the original HSCL1 Midnight wallpaper (pure stdlib, deterministic).
 
 Colours come from themes/tokens/tokens.json so the wallpaper follows the design tokens.
-Usage: gen-wallpaper.py OUT.png [WIDTH HEIGHT]
+Usage: gen-wallpaper.py OUT.png [WIDTH HEIGHT [THEME]]   (THEME defaults to hcs-midnight)
 """
 import json, math, struct, sys, zlib, pathlib
 
@@ -42,7 +42,8 @@ if __name__ == "__main__":
     w = int(sys.argv[2]) if len(sys.argv) > 2 else 1920
     h = int(sys.argv[3]) if len(sys.argv) > 3 else 1080
     tok_path = pathlib.Path(__file__).resolve().parent.parent / "themes/tokens/tokens.json"
-    tok = json.loads(tok_path.read_text(encoding="utf-8"))["themes"]["hcs-midnight"]
+    theme = sys.argv[4] if len(sys.argv) > 4 else "hcs-midnight"
+    tok = json.loads(tok_path.read_text(encoding="utf-8"))["themes"][theme]
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_bytes(render(w, h, tok))
     print(f"wrote {out} ({w}x{h})")
