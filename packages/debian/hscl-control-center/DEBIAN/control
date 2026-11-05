@@ -1,0 +1,11 @@
+Package: hscl-control-center
+Version: 0.0.0
+Architecture: amd64
+Section: admin
+Priority: optional
+Depends: hscl-base, hscl-branding, libqt6quickcontrols2-6, qml6-module-qtquick-controls, qml6-module-qtquick-layouts, qml6-module-qtquick-window, qml6-module-qtquick-templates, qml6-module-qtqml-workerscript
+Maintainer: HCSMEDIA <noreply@hcsmedia.invalid>
+Description: HSCL1 Control Center (overview, appearance, security, about)
+ Qt Quick application that shows real system state from the hscl command line
+ tool. It runs unprivileged and only invokes a fixed set of hscl commands.
+ Made with love by hcsmedia.

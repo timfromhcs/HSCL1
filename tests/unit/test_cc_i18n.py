@@ -41,7 +41,7 @@ def test_every_string_is_translated_in_de_and_fr():
 
 def test_no_translation_is_left_untranslated_by_accident():
     # identical source/translation is only acceptable for product names and technical terms
-    allowed_same = {"Secure Boot", "AppArmor", "System", "Kernel", "Status", "Version", "Navigation", "Firewall", "%1 MiB", "Plan: %1"}
+    allowed_same = {"Architecture", "Secure Boot", "AppArmor", "System", "Kernel", "Status", "Version", "Navigation", "Firewall", "%1 MiB", "Plan: %1"}
     for lang in ("de", "fr"):
         for (ctx, s), t in translations(lang).items():
             if t == s:

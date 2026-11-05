@@ -25,6 +25,9 @@ const pinned = [
 if (applicationExists('hscl-handbook')) {
   pinned.push('applications:hscl-handbook.desktop');
 }
+if (applicationExists('hscl-control-center')) {
+  pinned.push('applications:hscl-control-center.desktop');
+}
 tasks.currentConfigGroup = ['General'];
 tasks.writeConfig('launchers', pinned);
 dock.addWidget('org.kde.plasma.marginsseparator');

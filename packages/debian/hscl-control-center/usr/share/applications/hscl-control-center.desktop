@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=HSCL1 Control Center
+Name[de]=HSCL1-Kontrollzentrum
+Name[fr]=Centre de contrôle HSCL1
+Comment=System overview, appearance and security status
+Comment[de]=Systemübersicht, Erscheinungsbild und Sicherheitsstatus
+Comment[fr]=Aperçu du système, apparence et état de sécurité
+Exec=hscl-control-center
+Icon=hscl1
+Categories=Settings;System;
+Keywords=settings;control;hscl;theme;security;
