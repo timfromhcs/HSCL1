@@ -121,3 +121,20 @@ labelled with its measured PSNR/SSIM, never applied silently. Needs a model runt
 **Decisions:** (D8) one **media catalog** (`ai/catalog/media.json`) generated from the APIs like the LLM catalog (file, size, sha256, licence, VRAM/RAM hint, `complete`, `warning`); downloads reuse the verified downloader; recommendations come from the same hardware profile engine (VRAM tiers). (D9) **Blender MCP and Godot MCP are custom, stdio, stdlib Python**: tools run only fixed HCS scripts through `blender -b`/`godot --headless` (scene info, import/export glTF, render preview, apply Rigify, run a project check); no tool takes script text; paths are confined to a project directory the user names; tested with fake binaries. (D10) **Pipelines** (`hscl media pipeline image->3d->rig`) are plans that name the exact tools and models per hardware tier; runtimes (stable-diffusion.cpp, TripoSR, UniRig) are listed as `runtime: planned/verified` and nothing claims a working generation until a VM/hardware run proves it.
 
 **Memory management (load / offload / save RAM / anti-overflow):** `hscl memory status|profile|apply`: (1) **zram** swap sized by RAM (zstd) via a zram-generator drop-in, (2) **vm tuning** (`swappiness`, `page-cluster=0`, `vfs_cache_pressure`) for zram, (3) **OOM protection**: `earlyoom` thresholds with the desktop shell/compositor/login manager on the avoid list, (4) a **`hscl-ai.slice`** (systemd) with `MemoryHigh`/`MemoryMax` so a model server cannot starve the desktop, (5) an **AI RAM budget** setting (percent of RAM, default 60 %) that the profile engine uses instead of raw available memory, (6) **offload**: idle model servers are stopped after a timeout and reloaded on demand. All numbers come from pure functions (tested); applying writes drop-ins and never touches other config.
+
+## 7. Addendum 3 - RSI loop for the model workflow (scope stated by what can be verified)
+
+Owner request: recursive self-improvement for the models in the automatic workflow, GGUF editing for small networks, regular training on successful runs,
+Jev/"openjev" models, everything auto-detected, tested with at least one model. **Rule from the owner: no unverified claims anywhere.** Therefore every part below
+carries the evidence needed to call it done; anything that needs GPU time or an unavailable runtime stays PLANNED until it has been run.
+
+| Part | What it is | Evidence required before it is called done |
+|---|---|---|
+| R1 run recorder | opt-in local JSONL log of agent runs (prompt, tool calls, outcome, test result), secrets/paths redacted, never uploaded | unit tests (redaction, opt-in default off, no network), a recorded run from the real smoke test |
+| R2 success curation | only runs with an objective success signal (tests passed, build green) become training examples | tests with fabricated pass/fail runs; dataset export in chat-JSONL |
+| R3 evaluation gate | a candidate model is promoted only if it beats the current one on a fixed local eval set by a stated margin; otherwise nothing changes | tests with synthetic scores; one real eval run of a catalog model |
+| R4 GGUF editing | create/modify small GGUF files directly (metadata and tensors) with the `gguf` Python package | write a tiny GGUF, read it back, compare tensors bit-for-bit; load it with llama.cpp only if llama.cpp supports that architecture (verified by running it) |
+| R5 training job | regular fine-tune (LoRA) on curated runs, merge, convert to GGUF, evaluate, then promote | **PLANNED**: needs a training runtime and hours; the plan names the tools only after a real run on the smallest catalog model succeeds |
+| R6 Jev/openjev | models the owner already runs locally (e.g. via `system-one-jev`) are discovered, not assumed: scan the configured model directory and local MCP config, list what exists | detection test against a temp directory; no claim about what Jev can do |
+
+Nothing here changes a model automatically without the gate (R3), and the loop never uses a model's own judgement as the success signal.
