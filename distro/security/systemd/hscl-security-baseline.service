@@ -1,0 +1,18 @@
+[Unit]
+Description=HSCL1 security baseline (firewall)
+ConditionPathExists=!/var/lib/hscl/security-baseline.done
+After=network-pre.target
+Before=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/hscl/security-baseline.sh
+RemainAfterExit=yes
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectKernelModules=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+
+[Install]
+WantedBy=multi-user.target

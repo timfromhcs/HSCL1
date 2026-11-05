@@ -1,0 +1,11 @@
+Package: hscl-security
+Version: 0.0.0
+Architecture: all
+Section: admin
+Priority: optional
+Depends: ufw
+Maintainer: HCSMEDIA <noreply@hcsmedia.invalid>
+Description: HSCL1 security baseline: kernel sysctl hardening and first-boot firewall
+ Conservative sysctl hardening and a one-time firewall setup (deny incoming,
+ allow outgoing). It never disables AppArmor, Secure Boot or kernel
+ mitigations. Made with love by hcsmedia.
