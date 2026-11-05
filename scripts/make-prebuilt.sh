@@ -40,7 +40,8 @@ echo "== Convert a temporary raw copy (source stays untouched) =="
 qemu-img convert -O raw "$src" "$tmp/disk.raw"
 loopdev="$(sudo losetup --find --show --read-only --partscan "$tmp/disk.raw")"
 sleep 1
-sfdisk -J "$loopdev" > "$tmp/ptable.json" 2>/dev/null || sudo sfdisk -J "$loopdev" > "$tmp/ptable.json"
+# shellcheck disable=SC2024  # the redirect target is our own temp directory
+sudo sfdisk -J "$loopdev" > "$tmp/ptable.json"
 
 echo "== Find and mount the root filesystem read-only =="
 rootpart=""
