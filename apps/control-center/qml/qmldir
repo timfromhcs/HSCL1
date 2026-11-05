@@ -1,0 +1,10 @@
+singleton Theme 1.0 Theme.qml
+Card 1.0 components/Card.qml
+Row2 1.0 components/Row2.qml
+StateText 1.0 components/StateText.qml
+Fetcher 1.0 components/Fetcher.qml
+NavRail 1.0 components/NavRail.qml
+OverviewPage 1.0 pages/OverviewPage.qml
+AppearancePage 1.0 pages/AppearancePage.qml
+SecurityPage 1.0 pages/SecurityPage.qml
+AboutPage 1.0 pages/AboutPage.qml
