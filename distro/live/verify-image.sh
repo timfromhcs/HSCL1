@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Assert that HSCL1 branding really is present inside an unpacked live rootfs (AGENTS.md: no silent patches).
-# Usage: verify-image.sh ROOTFS     Exit 0 only if every check passes.
+# Usage: verify-image.sh ROOTFS [release]   Exit 0 only if every check passes.
+#   release: additionally require that the QA channel (hscl-qa) is NOT installed.
 set -Eeuo pipefail
-root="${1:?usage: verify-image.sh ROOTFS}"
+root="${1:?usage: verify-image.sh ROOTFS [release]}"
+mode="${2:-}"
 fail=0
 check() { # description, command...
   local d="$1"; shift
@@ -72,6 +74,10 @@ if grep -rIl --exclude='*.upstream' -e 'wallpapers/Kubuntu' "$root/usr/share/pla
   echo "FAIL  stale Kubuntu default wallpaper reference remains"; fail=1
 else
   echo "ok    no stale Kubuntu default wallpaper reference"
+fi
+if [ "$mode" = release ]; then
+  check "release image has no QA channel"   test ! -e "$root/usr/lib/hscl/qa/run.sh"
+  check "release image has no QA service"   test ! -e "$root/usr/lib/systemd/system/hscl-qa.service"
 fi
 [ "$fail" -eq 0 ] && echo "verify-image: all checks passed" || echo "verify-image: FAILED"
 exit "$fail"
