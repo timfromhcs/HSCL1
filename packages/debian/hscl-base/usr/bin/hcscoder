@@ -1,0 +1,6 @@
+#!/bin/sh
+# HCS Coder: the one-word launcher for the open-source coding agent configured for HSCL1 (default: OpenCode).
+# First run writes the local-model config; then the tool starts against the local OpenAI-compatible endpoint.
+# Usage: hcscoder [arguments for the tool]
+hscl code setup >/dev/null 2>&1 || true
+exec hscl code launch -- "$@"

@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=HCS Coder
+Name[de]=HCS Coder
+Name[fr]=HCS Coder
+Comment=Agentic coding assistant with a local model (powered by OpenCode)
+Comment[de]=Agentischer Coding-Assistent mit lokalem Modell (basiert auf OpenCode)
+Comment[fr]=Assistant de codage agentique avec modèle local (basé sur OpenCode)
+Exec=hcscoder
+Icon=hscl1
+Terminal=true
+Categories=Development;
+Keywords=code;agent;ai;llm;opencode;hcs;

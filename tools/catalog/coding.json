@@ -1,0 +1,12 @@
+{
+  "_comment": "Agentic coding tools HCS Coder can manage. Licences marked confirmed:false must be verified from the upstream repository before they are installed without an explicit flag. Facts as of 2026-11-05 (npm/PyPI metadata and web roundups).",
+  "tools": [
+    {"id": "opencode", "name": "OpenCode", "licence": "MIT", "licence_confirmed": true, "install": {"kind": "npm", "package": "opencode-ai"}, "bin": "opencode", "homepage": "https://opencode.ai", "default": true, "notes": "TUI agent, any OpenAI-compatible endpoint and MCP servers; HCS Coder default."},
+    {"id": "codex", "name": "Codex CLI", "licence": "Apache-2.0", "licence_confirmed": true, "install": {"kind": "npm", "package": "@openai/codex"}, "bin": "codex", "homepage": "https://github.com/openai/codex", "default": false, "notes": "Works with local open-weight models through an OpenAI-compatible endpoint."},
+    {"id": "qwen-code", "name": "Qwen Code", "licence": "Apache-2.0 (per roundups; npm licence field empty)", "licence_confirmed": false, "install": {"kind": "npm", "package": "@qwen-code/qwen-code"}, "bin": "qwen", "homepage": "https://github.com/QwenLM/qwen-code", "default": false, "notes": "Optimised for Qwen models; OpenAI-compatible API supported."},
+    {"id": "aider", "name": "Aider", "licence": "Apache-2.0 (per roundups; PyPI licence field empty)", "licence_confirmed": false, "install": {"kind": "pipx", "package": "aider-chat"}, "bin": "aider", "homepage": "https://aider.chat", "default": false, "notes": "Git-centric pair programmer."},
+    {"id": "openhands", "name": "OpenHands", "licence": "MIT", "licence_confirmed": true, "install": {"kind": "pipx", "package": "openhands-ai"}, "bin": "openhands", "homepage": "https://github.com/All-Hands-AI/OpenHands", "default": false, "notes": "Autonomous, container-based and heavy; opt-in."},
+    {"id": "goose", "name": "Goose", "licence": "Apache-2.0 (per roundups)", "licence_confirmed": false, "install": {"kind": "manual", "package": ""}, "bin": "goose", "homepage": "https://github.com/block/goose", "default": false, "notes": "No verified package; install from the project's releases."},
+    {"id": "crush", "name": "Crush", "licence": "FSL-1.1-MIT (source-available, not OSI)", "licence_confirmed": false, "install": {"kind": "manual", "package": ""}, "bin": "crush", "homepage": "https://github.com/charmbracelet/crush", "default": false, "notes": "Listed with a licence warning."}
+  ]
+}

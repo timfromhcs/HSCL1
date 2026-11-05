@@ -5,6 +5,7 @@
 mod ai;
 mod appearance;
 mod catalog;
+mod code;
 mod doctor;
 mod download;
 mod graphics;
@@ -80,6 +81,11 @@ enum Cmd {
         #[arg(long, value_name = "PATH")]
         output: Option<std::path::PathBuf>,
     },
+    /// HCS Coder: install, configure and launch open-source coding agents for the local model.
+    Code {
+        #[command(subcommand)]
+        cmd: CodeCmd,
+    },
     /// Model Context Protocol server on stdio for local agents (read-only unless --allow-write).
     Mcp {
         /// Also expose write tools (theme set, graphics apply).
@@ -104,6 +110,34 @@ enum Cmd {
     Appearance {
         #[command(subcommand)]
         cmd: AppearanceCmd,
+    },
+}
+
+#[derive(Subcommand)]
+enum CodeCmd {
+    /// Known coding tools, licences and whether they are installed.
+    List,
+    /// Install a tool into your home directory (never system-wide).
+    Install {
+        id: String,
+        /// Install even though the licence is not yet confirmed from the upstream repository.
+        #[arg(long)]
+        accept_unconfirmed_licence: bool,
+    },
+    /// Write the OpenCode config (local provider + hscl MCP) and the HCS agent notes.
+    Setup {
+        #[arg(long, default_value_t = 8080)]
+        port: u16,
+        #[arg(long, default_value = "local model")]
+        model: String,
+    },
+    /// Start a tool against the local model server (default: opencode). Extra arguments go to the tool after `--`.
+    Launch {
+        id: Option<String>,
+        #[arg(long, default_value_t = 8080)]
+        port: u16,
+        #[arg(last = true)]
+        args: Vec<String>,
     },
 }
 
@@ -324,6 +358,7 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
                 None => println!("{}", serde_json::to_string_pretty(&r)?),
             }
         }
+        Cmd::Code { cmd } => return run_code(j, cmd),
         Cmd::Mcp { allow_write } => {
             mcp::serve(
                 allow_write,
@@ -347,6 +382,94 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
             if report.failed > 0 {
                 return Ok(exit::CHECK_FAILED);
             }
+        }
+    }
+    Ok(exit::OK)
+}
+
+fn run_code(j: bool, cmd: CodeCmd) -> anyhow::Result<u8> {
+    let tools = code::catalog()?;
+    let home = std::path::PathBuf::from(std::env::var_os("HOME").unwrap_or_default());
+    match cmd {
+        CodeCmd::List => {
+            let rows: Vec<_> = tools.iter().map(|t| json!({"id": t.id, "name": t.name, "licence": t.licence, "licence_confirmed": t.licence_confirmed, "installed": code::installed(t, &home), "install": t.install.kind, "homepage": t.homepage})).collect();
+            print_value(j, &json!({"tools": rows}), || {
+                tools
+                    .iter()
+                    .map(|t| {
+                        format!(
+                            "{} {:<10} {:<9} {}{}",
+                            if code::installed(t, &home) { "*" } else { " " },
+                            t.id,
+                            t.install.kind,
+                            t.licence,
+                            if t.licence_confirmed {
+                                ""
+                            } else {
+                                "  [licence not confirmed]"
+                            }
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            });
+        }
+        CodeCmd::Install {
+            id,
+            accept_unconfirmed_licence,
+        } => {
+            let t = code::find(&tools, &id)?;
+            code::run_install(
+                t,
+                &home,
+                accept_unconfirmed_licence,
+                &mut appearance::SystemRunner,
+            )?;
+            print_value(j, &json!({"installed": t.id}), || {
+                format!("installed {} for your user", t.name)
+            });
+        }
+        CodeCmd::Setup { port, model } => {
+            let written = code::setup(&home, port, &model)?;
+            print_value(j, &json!({"written": written}), || {
+                written
+                    .iter()
+                    .map(|p| format!("wrote {}", p.display()))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            });
+        }
+        CodeCmd::Launch { id, port, args } => {
+            let t = match &id {
+                Some(i) => code::find(&tools, i)?,
+                None => tools
+                    .iter()
+                    .find(|t| t.default)
+                    .ok_or_else(|| anyhow::anyhow!("no default tool"))?,
+            };
+            if !code::installed(t, &home) {
+                anyhow::bail!(
+                    "{} is not installed: run `hscl code install {}`",
+                    t.name,
+                    t.id
+                );
+            }
+            eprintln!("{}", code::banner(t));
+            let mut c = std::process::Command::new(&t.bin);
+            c.args(&args);
+            for (k, v) in code::tool_env(port) {
+                c.env(k, v);
+            }
+            let local_bin = home.join(".local").join("bin");
+            if let Some(p) = std::env::var_os("PATH") {
+                let mut paths = vec![local_bin];
+                paths.extend(std::env::split_paths(&p));
+                c.env("PATH", std::env::join_paths(paths)?);
+            }
+            let st = c
+                .status()
+                .map_err(|e| anyhow::anyhow!("cannot start {}: {e}", t.bin))?;
+            return Ok(st.code().unwrap_or(1) as u8);
         }
     }
     Ok(exit::OK)
