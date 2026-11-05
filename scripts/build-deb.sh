@@ -40,6 +40,10 @@ if [ "$name" = "hscl-base" ]; then
 '     "$version" > "$stage/usr/share/hscl/release.json"
 fi
 chmod 0755 "$stage/DEBIAN"
+# drvfs/NTFS checkouts report 0777; dpkg requires maintainer scripts within 0555..0775 and sane file modes
+for f in preinst postinst prerm postrm; do [ -f "$stage/DEBIAN/$f" ] && chmod 0755 "$stage/DEBIAN/$f"; done
+chmod 0644 "$stage/DEBIAN/control"
+find "$stage" -type f ! -path "$stage/DEBIAN/*" ! -perm /111 -exec chmod 0644 {} + 
 find "$stage" -type d -exec chmod 0755 {} +
 mkdir -p "$out"
 dpkg-deb --root-owner-group --build "$stage" "$out/${name}_${version//-/\~}_amd64.deb" >/dev/null

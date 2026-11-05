@@ -3,6 +3,7 @@
 //! Only commands with real implementations are exposed (AGENTS.md section 8.2).
 
 mod ai;
+mod appearance;
 mod doctor;
 mod redact;
 mod security;
@@ -65,6 +66,42 @@ enum Cmd {
     Ai {
         #[command(subcommand)]
         cmd: AiCmd,
+    },
+    /// Desktop appearance.
+    Appearance {
+        #[command(subcommand)]
+        cmd: AppearanceCmd,
+    },
+}
+
+#[derive(Subcommand)]
+enum AppearanceCmd {
+    /// HCS themes (colour scheme + wallpaper).
+    Theme {
+        #[command(subcommand)]
+        cmd: ThemeCmd,
+    },
+}
+
+#[derive(Subcommand)]
+enum ThemeCmd {
+    /// List available themes.
+    List,
+    /// Show the design tokens of one theme.
+    Show { name: String },
+    /// Print the selected theme.
+    Current,
+    /// Apply a theme (backs up the previous selection first).
+    Set {
+        name: String,
+        /// Print the plan without changing anything.
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Restore the default theme (hcs-midnight).
+    Restore {
+        #[arg(long)]
+        dry_run: bool,
     },
 }
 
@@ -146,6 +183,9 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
             let v = serde_json::to_value(&d)?;
             print_value(j, &v, || ai::render(&d));
         }
+        Cmd::Appearance {
+            cmd: AppearanceCmd::Theme { cmd },
+        } => return run_theme(j, cmd),
         Cmd::Doctor { full } => {
             let report = doctor::run(full);
             let v = serde_json::to_value(&report)?;
@@ -155,6 +195,109 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
             }
         }
     }
+    Ok(exit::OK)
+}
+
+fn run_theme(j: bool, cmd: ThemeCmd) -> anyhow::Result<u8> {
+    let catalog = appearance::load_catalog()?;
+    let cfg = appearance::config_dir();
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    match cmd {
+        ThemeCmd::List => {
+            let cur = appearance::current(&cfg);
+            let v = json!({"current": cur, "themes": catalog});
+            print_value(j, &v, || {
+                catalog
+                    .iter()
+                    .map(|t| {
+                        let mark = if cur.as_deref() == Some(&t.id) {
+                            "*"
+                        } else {
+                            " "
+                        };
+                        format!("{mark} {:<14} {}", t.id, t.title)
+                    })
+                    .collect::<Vec<_>>()
+                    .join(
+                        "
+",
+                    )
+            });
+        }
+        ThemeCmd::Current => {
+            let cur = appearance::current(&cfg);
+            let v = json!({"current": cur});
+            print_value(j, &v, || {
+                cur.clone().unwrap_or_else(|| "none selected".into())
+            });
+        }
+        ThemeCmd::Show { name } => {
+            appearance::find(&catalog, &name)?;
+            let text = std::fs::read_to_string(appearance::tokens_path())?;
+            let all: serde_json::Value = serde_json::from_str(&text)?;
+            let tokens = all["themes"][&name].clone();
+            print_value(j, &tokens, || {
+                tokens
+                    .as_object()
+                    .map(|o| {
+                        o.iter()
+                            .map(|(k, v)| format!("{k:<16} {}", v.as_str().unwrap_or("")))
+                            .collect::<Vec<_>>()
+                            .join(
+                                "
+",
+                            )
+                    })
+                    .unwrap_or_default()
+            });
+        }
+        ThemeCmd::Set { name, dry_run } => {
+            return set_theme(j, &catalog, &cfg, &name, dry_run, now)
+        }
+        ThemeCmd::Restore { dry_run } => {
+            return set_theme(j, &catalog, &cfg, appearance::DEFAULT_THEME, dry_run, now)
+        }
+    }
+    Ok(exit::OK)
+}
+
+fn set_theme(
+    j: bool,
+    catalog: &[appearance::Theme],
+    cfg: &std::path::Path,
+    name: &str,
+    dry_run: bool,
+    now: u64,
+) -> anyhow::Result<u8> {
+    let theme = appearance::find(catalog, name)?;
+    let plan = appearance::plan(theme, cfg, now);
+    if dry_run {
+        let v = json!({"dry_run": true, "plan": plan});
+        print_value(j, &v, || {
+            let cmds: Vec<String> = plan
+                .commands
+                .iter()
+                .map(|c| format!("  {}", c.join(" ")))
+                .collect();
+            format!(
+                "would apply {} (backup: {})
+{}",
+                theme.id,
+                plan.backup_file.display(),
+                cmds.join(
+                    "
+"
+                )
+            )
+        });
+        return Ok(exit::OK);
+    }
+    appearance::apply(&plan, cfg, &mut appearance::SystemRunner, now)?;
+    let v = json!({"applied": theme.id});
+    print_value(j, &v, || format!("applied {}", theme.id));
     Ok(exit::OK)
 }
 
