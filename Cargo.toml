@@ -1,0 +1,9 @@
+[workspace]
+resolver = "2"
+members = ["cli/hscl"]
+
+[workspace.package]
+version = "0.1.0-alpha.0"
+edition = "2021"
+authors = ["HCSMEDIA"]
+rust-version = "1.80"

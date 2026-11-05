@@ -1,0 +1,16 @@
+# build output and local artifacts (never commit ISOs, VM disks or secrets)
+/artifacts/
+/target/
+**/target/
+*.iso
+*.qcow2
+*.img
+*.squashfs
+*.key
+*.pem
+.env
+.env.*
+node_modules/
+.vercel/
+website/dist/
+website/.astro/
