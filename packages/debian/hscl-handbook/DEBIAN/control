@@ -1,0 +1,10 @@
+Package: hscl-handbook
+Version: 0.0.0
+Architecture: all
+Section: doc
+Priority: optional
+Depends: xdg-utils
+Maintainer: HCSMEDIA <noreply@hcsmedia.invalid>
+Description: HSCL1 handbook (offline, English, Deutsch, Français)
+ The HSCL1 handbook as offline HTML with a launcher that picks the language
+ from your locale. Made with love by hcsmedia.

@@ -1,0 +1,13 @@
+#!/bin/sh
+# Open the HSCL1 handbook in the language of the current locale (de, fr, otherwise en).
+# HSCL_HANDBOOK_DIR and HSCL_OPEN exist for tests.
+dir="${HSCL_HANDBOOK_DIR:-/usr/share/doc/hscl-handbook}"
+case "${LC_ALL:-${LC_MESSAGES:-${LANG:-en}}}" in
+  de*) lang=de ;;
+  fr*) lang=fr ;;
+  *)   lang=en ;;
+esac
+page="$dir/$lang/index.html"
+[ -n "$1" ] && [ -f "$dir/$lang/$1.html" ] && page="$dir/$lang/$1.html"
+[ -f "$page" ] || { echo "hscl-handbook: $page not found" >&2; exit 1; }
+exec ${HSCL_OPEN:-xdg-open} "$page"

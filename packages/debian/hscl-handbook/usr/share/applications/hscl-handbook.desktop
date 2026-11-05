@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=HSCL1 Handbook
+Name[de]=HSCL1-Handbuch
+Name[fr]=Manuel HSCL1
+Comment=Offline documentation for HSCL1
+Comment[de]=Offline-Dokumentation für HSCL1
+Comment[fr]=Documentation hors ligne pour HSCL1
+Exec=hscl-handbook
+Icon=hscl1
+Categories=System;Documentation;
+Keywords=help;manual;handbook;hscl;
