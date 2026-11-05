@@ -44,6 +44,11 @@ check "no Kubuntu installer launcher name" sh -c "! grep -E '^(Name|GenericName)
 check "live desktop: no Kubuntu Focus link" test ! -e "$root/etc/skel/Desktop/org.kfocus.web.howtos.desktop"
 check "live desktop: handbook link"       test -L "$root/etc/skel/Desktop/hscl-handbook.desktop"
 check "root filesystem label is hscl1_root" grep -q '"hscl1_root"' "$root/etc/calamares/modules/partition.conf"
+check "SDDM theme hscl1"                  test -s "$root/usr/share/sddm/themes/hscl1/Main.qml"
+check "SDDM theme background"             test -s "$root/usr/share/sddm/themes/hscl1/background.png"
+check "SDDM theme selected"               grep -q '^Current=hscl1$' "$root/etc/sddm.conf.d/30-hscl1.conf"
+check "SDDM theme has no Kubuntu artwork" sh -c "! ls '$root'/usr/share/sddm/themes/hscl1/ | grep -i kubuntu_"
+check "default avatar is the HSCL1 mark"  cmp -s "$root/etc/skel/.face" "$root/usr/share/hscl/brand/hscl1-mark-256.png"
 check "hscl CLI installed"                test -x "$root/usr/bin/hscl"
 check "release marker"                    test -f "$root/usr/share/hscl/release.json"
 for w in HSCL1Midnight HSCL1Light HSCL1Nord HSCL1Aurora; do

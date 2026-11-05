@@ -33,6 +33,35 @@ patch_file "$ROOTFS/etc/calamares/settings.conf" 's/^branding: *kubuntu$/brandin
 patch_file "$ROOTFS/usr/share/applications/kubuntu-calamares.desktop" \
   '/^\(Name\|GenericName\)\(\[[^]]*\]\)\?=/ s/Kubuntu 26\.04/HSCL1/; /^\(Name\|GenericName\)\(\[[^]]*\]\)\?=/ s/Kubuntu/HSCL1/'
 
+# Login screen: derive an HSCL1 SDDM theme from the installed Kubuntu one (QML stays upstream), HSCL1 artwork and avatar
+sddm="$ROOTFS/usr/share/sddm/themes"
+if [ -d "$sddm/kubuntu" ]; then
+  rm -rf "$sddm/hscl1"
+  cp -a "$sddm/kubuntu" "$sddm/hscl1"
+  rm -f "$sddm/hscl1/preview.png" "$sddm/hscl1/"kubuntu_*.png
+  install -m 0644 "$ROOTFS/usr/share/wallpapers/HSCL1Midnight/contents/images/1920x1080.png" "$sddm/hscl1/background.png"
+  install -m 0644 "$ROOTFS/usr/share/hscl/brand/hscl1-mark-dark.svg" "$sddm/hscl1/default-logo.svg"
+  cat > "$sddm/hscl1/theme.conf" <<'CONF'
+[General]
+showlogo=hidden
+showClock=true
+logo=/usr/share/sddm/themes/hscl1/default-logo.svg
+type=image
+color=#0e1117
+fontSize=10
+background=/usr/share/sddm/themes/hscl1/background.png
+needsFullUserModel=false
+CONF
+  sed -i 's/^Name=.*/Name=HSCL1/; /^Name\[/d; s/^Comment=.*/Comment=HSCL1 login theme/; /^Comment\[/d' "$sddm/hscl1/metadata.desktop"
+  printf '[Theme]
+Current=hscl1
+' > "$ROOTFS/etc/sddm.conf.d/30-hscl1.conf"
+fi
+# Default avatar of new users
+rm -f "$ROOTFS/etc/skel/.face"
+install -m 0644 "$ROOTFS/usr/share/hscl/brand/hscl1-mark-256.png" "$ROOTFS/etc/skel/.face"
+ln -sf .face "$ROOTFS/etc/skel/.face.icon"
+
 # Partition/filesystem names that end up on the installed disk
 patch_file "$ROOTFS/etc/calamares/modules/partition.conf" 's/"kubuntu_boot"/"hscl1_boot"/; s/"kubuntu_2604"/"hscl1_root"/'
 

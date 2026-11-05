@@ -291,7 +291,14 @@ def main():
     try:
         qmp = Qmp(qmp_path)
         if a.login_password:
-            time.sleep(a.boot_wait)
+            # wait until the screen is no longer black (login screen drawn), then let the greeter settle
+            t_login = time.time() + max(a.boot_wait, 300)
+            while time.time() < t_login:
+                time.sleep(10)
+                g = grab(qmp, out, "login-screen")
+                if g and sum(g[2][::997]) / max(1, len(g[2][::997])) > 25:
+                    break
+            time.sleep(12)
             grab(qmp, out, "login-screen")
             type_text(qmp, a.login_password)
             send_keys(qmp, ["ret"])
