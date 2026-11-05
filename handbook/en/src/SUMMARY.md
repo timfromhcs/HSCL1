@@ -6,6 +6,7 @@
 - [Themes](themes.md)
 - [Command line (hscl)](cli.md)
 - [Security status](security.md)
+- [Updates](updates.md)
 - [The three modes](modes.md)
 - [Troubleshooting](troubleshooting.md)
 - [Known limitations](limitations.md)

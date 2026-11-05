@@ -6,6 +6,7 @@
 - [Thèmes](themes.md)
 - [Ligne de commande (hscl)](cli.md)
 - [État de sécurité](security.md)
+- [Mises à jour](updates.md)
 - [Les trois modes](modes.md)
 - [Dépannage](troubleshooting.md)
 - [Limitations connues](limitations.md)

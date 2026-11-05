@@ -1,0 +1,22 @@
+[
+  {"keys": ["alt", "f2"]},
+  {"wait": 2},
+  {"type": "Install HSCL1"},
+  {"wait": 3},
+  {"shot": "ex-krunner"},
+  {"keys": ["ret"]},
+  {"wait": 45},
+  {"shot": "ex-welcome"},
+  {"click": [0.883, 0.903]},
+  {"wait": 6},
+  {"shot": "ex-location"},
+  {"click": [0.883, 0.903]},
+  {"wait": 4},
+  {"shot": "ex-keyboard"},
+  {"click": [0.883, 0.903]},
+  {"wait": 4},
+  {"shot": "ex-customize"},
+  {"click": [0.883, 0.903]},
+  {"wait": 8},
+  {"shot": "ex-partitions"}
+]

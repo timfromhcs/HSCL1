@@ -6,6 +6,7 @@
 - [Designs](themes.md)
 - [Kommandozeile (hscl)](cli.md)
 - [Sicherheitsstatus](security.md)
+- [Aktualisierungen](updates.md)
 - [Die drei Modi](modes.md)
 - [Fehlerbehebung](troubleshooting.md)
 - [Bekannte Einschränkungen](limitations.md)
