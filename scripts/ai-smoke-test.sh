@@ -73,22 +73,24 @@ echo "== chat completion"
 python3 - "$port" "$work" <<'PY'
 import json, sys, time, urllib.request
 port, work = sys.argv[1], sys.argv[2]
-def ask(prompt, n=48):
-    body = json.dumps({"messages": [{"role": "user", "content": prompt}], "max_tokens": n, "temperature": 0}).encode()
+def ask(prompt, n=96):
+    body = json.dumps({"messages": [{"role": "user", "content": prompt}], "max_tokens": n, "temperature": 0,
+                       "chat_template_kwargs": {"enable_thinking": False}}).encode()
     req = urllib.request.Request(f"http://127.0.0.1:{port}/v1/chat/completions", body, {"Content-Type": "application/json"})
     t0 = time.time()
     with urllib.request.urlopen(req, timeout=600) as r:
         d = json.load(r)
     return d, time.time() - t0
 d, dt = ask("Reply with exactly one word: pong")
-text = d["choices"][0]["message"]["content"]
+msg = d["choices"][0]["message"]
+text = msg.get("content") or ""
 tokens = d["usage"]["completion_tokens"]
 timings = d.get("timings", {})
 ev = {"model_reply": text.strip()[:200], "completion_tokens": tokens, "seconds": round(dt, 2),
       "tokens_per_second_wall": round(tokens / dt, 2) if dt > 0 else None,
       "predicted_per_second_server": round(timings.get("predicted_per_second", 0), 2) or None,
       "finish_reason": d["choices"][0]["finish_reason"]}
-assert text.strip(), "empty reply"
+assert text.strip(), "empty reply; raw message: " + json.dumps(msg)[:500]
 json.dump(ev, open(f"{work}/evidence.json", "w"), indent=2)
 print(json.dumps(ev, indent=2))
 PY
