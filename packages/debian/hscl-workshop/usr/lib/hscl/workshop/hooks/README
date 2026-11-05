@@ -1,0 +1,1 @@
+Workshop hooks: root-owned shell scripts executed by the run_hook operation. Empty by default.

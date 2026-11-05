@@ -1,0 +1,9 @@
+[Unit]
+Description=HSCL1 Workshop daemon (only when a hypervisor provides the hscl.api port)
+ConditionPathExists=/dev/virtio-ports/hscl.api
+After=multi-user.target
+
+[Service]
+ExecStart=/usr/bin/python3 /usr/lib/hscl/workshop/hscl_workshopd.py /dev/virtio-ports/hscl.api
+Restart=on-failure
+RestartSec=3

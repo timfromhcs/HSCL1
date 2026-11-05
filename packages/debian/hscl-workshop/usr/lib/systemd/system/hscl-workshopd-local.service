@@ -1,0 +1,7 @@
+[Unit]
+Description=HSCL1 Workshop daemon on a root-only local socket (started by hand: sudo hscl workshop start)
+
+[Service]
+RuntimeDirectory=hscl
+RuntimeDirectoryMode=0700
+ExecStart=/usr/bin/python3 /usr/lib/hscl/workshop/hscl_workshopd.py --socket /run/hscl/workshop.sock

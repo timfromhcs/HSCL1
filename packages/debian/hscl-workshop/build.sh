@@ -3,3 +3,4 @@
 set -Eeuo pipefail
 : "${STAGE:?}"
 chmod 0755 "$STAGE/usr/lib/hscl/workshop/evidence.sh"
+chmod 0755 "$STAGE/usr/lib/hscl/workshop/hscl-respin" "$STAGE/usr/lib/hscl/workshop/hscl_workshopd.py"

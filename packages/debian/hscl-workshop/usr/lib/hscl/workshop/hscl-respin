@@ -1,0 +1,165 @@
+#!/usr/bin/env python3
+"""hscl-respin: render the current live state into a new installer ISO (development snapshot).
+
+How: the pristine live filesystem from the boot ISO (/cdrom/casper/filesystem.squashfs, read-only) is the lower layer of an
+overlay; the HSCL1-owned trees you changed in this live session (allow-listed prefixes only) are copied into the upper layer
+on the OUTPUT disk; that overlay is squashed and a new ISO is written with the boot structure replayed from the source ISO.
+Casper artefacts (live user, hostname, machine-id, sudoers) are never captured because only the allow-listed trees are.
+
+Usage: hscl-respin --out-dir DIR [--dry-run] [--min-free-gb N]
+Safety: live sessions only; the output must be a real disk filesystem (not RAM/overlay/ISO); never the boot device.
+"""
+from __future__ import annotations
+
+import argparse
+import datetime
+import fnmatch
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+# Mirrors hscl_workshopd.ALLOWED_PREFIXES (directories that Workshop may change).
+INCLUDE_PREFIXES = (
+    "usr/share/hscl", "usr/share/plasma", "usr/share/color-schemes", "usr/share/sddm/themes/hscl1",
+    "usr/share/icons/hicolor", "etc/calamares/branding/hscl1", "usr/lib/hscl/workshop/hooks",
+)
+INCLUDE_GLOBS = ("usr/share/wallpapers/HSCL1*", "usr/share/applications/hscl-*")
+SECRET_PATTERNS = ("*.token", "*.key", "*.pem", "id_rsa*", "id_ed25519*", "*history*", "*.hscl-tmp", "__pycache__", "*.pyc", "authorized_keys")
+BAD_TARGET_FS = {"tmpfs", "ramfs", "overlay", "squashfs", "iso9660", "rootfs", "proc", "sysfs", "devtmpfs", "9p", "virtiofs", "fuse.sshfs"}
+GOOD_TARGET_FS = {"ext4", "xfs", "btrfs"}
+
+
+class RespinError(Exception):
+    pass
+
+
+def check_live(cmdline: str) -> None:
+    if "boot=casper" not in cmdline.split():
+        raise RespinError("not a live session (boot=casper missing); respin only runs from the live ISO")
+
+
+def check_target(fstype: str, source_dev: str, boot_dev: str, free_bytes: int, min_free_bytes: int) -> None:
+    if fstype in BAD_TARGET_FS or fstype not in GOOD_TARGET_FS:
+        raise RespinError(f"output filesystem {fstype!r} is not acceptable (need one of {sorted(GOOD_TARGET_FS)}, never RAM/overlay/ISO)")
+    if boot_dev and os.path.realpath(source_dev) == os.path.realpath(boot_dev):
+        raise RespinError("the output directory is on the boot device")
+    if free_bytes < min_free_bytes:
+        raise RespinError(f"only {free_bytes // 2**30} GiB free on the output disk, need {min_free_bytes // 2**30} GiB")
+
+
+def is_secret(name: str) -> bool:
+    return any(fnmatch.fnmatch(name, p) for p in SECRET_PATTERNS)
+
+
+def collect(root: Path) -> list[Path]:
+    """Relative paths of regular files below the include prefixes, secrets and symlinks skipped."""
+    found: list[Path] = []
+    bases = [root / p for p in INCLUDE_PREFIXES]
+    for g in INCLUDE_GLOBS:
+        bases += sorted((root / Path(g).parent).glob(Path(g).name)) if (root / Path(g).parent).is_dir() else []
+    for b in bases:
+        if b.is_symlink() or not b.exists():
+            continue
+        if b.is_file():
+            if not is_secret(b.name):
+                found.append(b.relative_to(root))
+            continue
+        for dirpath, dirnames, filenames in os.walk(b, followlinks=False):
+            dirnames[:] = [d for d in dirnames if not is_secret(d) and not (Path(dirpath) / d).is_symlink()]
+            for f in filenames:
+                p = Path(dirpath) / f
+                if p.is_symlink() or is_secret(f):
+                    continue
+                found.append(p.relative_to(root))
+    return sorted(set(found))
+
+
+def run(argv: list[str], **kw) -> subprocess.CompletedProcess:
+    r = subprocess.run(argv, capture_output=True, text=True, **kw)
+    if r.returncode != 0:
+        raise RespinError(f"{argv[0]} failed ({r.returncode}): {(r.stderr or r.stdout)[-400:]}")
+    return r
+
+
+def findmnt(field: str, target: str) -> str:
+    return run(["findmnt", "-no", field, "-T", target]).stdout.strip()
+
+
+def sha256(p: Path) -> str:
+    h = hashlib.sha256()
+    with p.open("rb") as f:
+        for c in iter(lambda: f.read(1 << 20), b""):
+            h.update(c)
+    return h.hexdigest()
+
+
+def main(argv: list[str]) -> int:
+    ap = argparse.ArgumentParser(description="Render the live state to a new installer ISO")
+    ap.add_argument("--out-dir", required=True)
+    ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--min-free-gb", type=int, default=14)
+    a = ap.parse_args(argv)
+    try:
+        check_live(Path("/proc/cmdline").read_text())
+        if os.geteuid() != 0:
+            raise RespinError("run as root (sudo)")
+        out_dir = Path(a.out_dir)
+        if not out_dir.is_dir():
+            raise RespinError(f"output directory does not exist: {out_dir}")
+        boot_src = findmnt("SOURCE", "/cdrom")
+        check_target(findmnt("FSTYPE", str(out_dir)), findmnt("SOURCE", str(out_dir)), boot_src,
+                     shutil.disk_usage(out_dir).free, a.min_free_gb * 2**30)
+        files = collect(Path("/"))
+        print(f"respin plan: boot ISO device {boot_src}; {len(files)} HSCL1-owned files from the live session; output {out_dir}")
+        if a.dry_run:
+            return 0
+        stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d-%H%M%S")
+        work = out_dir / f".hscl-respin-{stamp}"
+        lower, upper, wk, merged = (work / n for n in ("lower", "upper", "wk", "merged"))
+        for d in (lower, upper, wk, merged):
+            d.mkdir(parents=True)
+        mounts: list[Path] = []
+        try:
+            run(["mount", "-t", "squashfs", "-o", "loop,ro", "/cdrom/casper/filesystem.squashfs", str(lower)])
+            mounts.append(lower)
+            for rel in files:
+                dst = upper / rel
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(Path("/") / rel, dst, follow_symlinks=False)
+            run(["mount", "-t", "overlay", "overlay", "-o", f"lowerdir={lower},upperdir={upper},workdir={wk}", str(merged)])
+            mounts.append(merged)
+            sq = work / "filesystem.squashfs"
+            print("squashing (bounded memory)...", flush=True)
+            run(["mksquashfs", str(merged), str(sq), "-comp", "zstd", "-Xcompression-level", "3", "-b", "131072",
+                 "-noappend", "-quiet", "-processors", str(os.cpu_count() or 2), "-mem", "512M"])
+            md5 = work / "md5sum.txt"
+            sq_md5 = run(["md5sum", str(sq)]).stdout.split()[0]
+            lines = []
+            for line in Path("/cdrom/md5sum.txt").read_text().splitlines():
+                lines.append(f"{sq_md5}  ./casper/filesystem.squashfs" if line.endswith("./casper/filesystem.squashfs") else line)
+            md5.write_text("\n".join(lines) + "\n")
+            iso = out_dir / f"HSCL1-respin-{stamp}.iso"
+            run(["xorriso", "-indev", boot_src, "-outdev", str(iso), "-volid", f"HSCL1 DEV {stamp[:8]}", "-boot_image", "any", "replay",
+                 "-map", str(sq), "/casper/filesystem.squashfs", "-map", str(md5), "/md5sum.txt", "-commit"])
+            (out_dir / (iso.name + ".sha256")).write_text(f"{sha256(iso)}  {iso.name}\n")
+            (out_dir / (iso.name + ".manifest.json")).write_text(json.dumps({
+                "product": "HSCL1", "kind": "development snapshot (respin)", "created_utc": stamp, "files_from_live_session": len(files),
+                "included_prefixes": list(INCLUDE_PREFIXES) + list(INCLUDE_GLOBS), "iso_sha256": sha256(iso), "iso_bytes": iso.stat().st_size,
+                "note": "Not a release. Only HSCL1-owned trees were captured; casper state, users and secrets were not."}, indent=2) + "\n")
+            print(f"wrote {iso}")
+        finally:
+            for m in reversed(mounts):
+                subprocess.run(["umount", str(m)], capture_output=True)
+            shutil.rmtree(work, ignore_errors=True)
+        return 0
+    except RespinError as e:
+        print(f"hscl-respin: {e}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
