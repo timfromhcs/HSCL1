@@ -52,9 +52,9 @@ Presentation {
             wrapMode: Text.Wrap
             color: "#e8ecf3"
             font.pixelSize: 22
-            text: presentation.tr("Press Meta+K after installation for the shortcut overview and open the HSCL1 Handbook from the dock.",
-                                  "Drücken Sie nach der Installation Meta+K für die Tastenkürzel und öffnen Sie das HSCL1-Handbuch im Dock.",
-                                  "Après l'installation, appuyez sur Meta+K pour les raccourcis et ouvrez le manuel HSCL1 depuis le dock.")
+            text: presentation.tr("After installation, open the HSCL1 Handbook from the dock to learn the desktop.",
+                                  "Öffnen Sie nach der Installation das HSCL1-Handbuch im Dock, um den Desktop kennenzulernen.",
+                                  "Après l'installation, ouvrez le manuel HSCL1 depuis le dock pour découvrir le bureau.")
         }
     }
 }

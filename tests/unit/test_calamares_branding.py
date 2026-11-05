@@ -33,4 +33,5 @@ def test_slideshow_has_three_languages():
     qml = (BR / "show.qml").read_text(encoding="utf-8")
     assert qml.count("Slide {") == 3
     assert "Mit Liebe gemacht von hcsmedia" in qml and "Fait avec amour par hcsmedia" in qml
-    assert "Meta+K" in qml
+    assert "Meta+K" not in qml, "do not advertise shortcuts that are not bound"
+    assert "Handbook" in qml and "Handbuch" in qml and "manuel" in qml
