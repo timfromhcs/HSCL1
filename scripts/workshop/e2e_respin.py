@@ -121,9 +121,9 @@ def main() -> int:
     # ---- extract the respun ISO from the scratch disk (WSL loop mount, read-only)
     raw = "/home/tim/hscl1-build/scratch.raw" if os.name == "nt" else str(out / "scratch.raw")
     dst = wsl_path(out)
-    cmd = (f"set -e; qemu-img convert -O raw '{wsl_path(scratch)}' '{raw}'; mkdir -p /tmp/hscl-x; sudo mount -o loop,ro,noload '{raw}' /tmp/hscl-x; "
+    cmd = (f"set -e; qemu-img convert -t none -T none -O raw '{wsl_path(scratch)}' '{raw}'; mkdir -p /tmp/hscl-x; sudo mount -o loop,ro,noload '{raw}' /tmp/hscl-x; "
            f"ls /tmp/hscl-x; cp /tmp/hscl-x/HSCL1-respin-*.iso '{dst}/respun.iso'; cp /tmp/hscl-x/HSCL1-respin-*.iso.manifest.json '{dst}/respun.manifest.json'; "
-           f"sudo umount /tmp/hscl-x; rm -f '{raw}'")
+           f"sudo umount /tmp/hscl-x; rm -f '{raw}'; sync; echo 3 | sudo tee /proc/sys/vm/drop_caches >/dev/null")
     e = sh(cmd)
     report["extract"] = {"rc": e.returncode, "out": e.stdout[-300:], "err": e.stderr[-300:]}
     respun = out / "respun.iso"
@@ -136,6 +136,9 @@ def main() -> int:
             h.update(c)
     report["respun_iso"] = {"bytes": respun.stat().st_size, "sha256": h.hexdigest()}
     scratch.unlink(missing_ok=True)
+    if os.name == "nt":  # give the WSL VM memory back to Windows before the next VM boots
+        subprocess.run(["wsl", "--shutdown"], capture_output=True)
+        time.sleep(8)
 
     # ---- phase 2: boot the respun ISO and look for the proof
     mgr2 = vmmod.VmManager(out / "vm2")
