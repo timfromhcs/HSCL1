@@ -23,3 +23,13 @@ def test_autotune_runs_at_login_and_is_not_forced():
 def test_kdeconnect_daemon_hidden_by_default():
     e = entry(ROOT / "packages/debian/hscl-security/etc/xdg/autostart/org.kde.kdeconnect.daemon.desktop")
     assert e["Hidden"] == "true"
+
+
+def test_kdeconnect_file_is_diverted_not_overwritten():
+    """kdeconnect owns the file; without a dpkg diversion the image build fails ('trying to overwrite')."""
+    d = ROOT / "packages/debian/hscl-security/DEBIAN"
+    path = "/etc/xdg/autostart/org.kde.kdeconnect.daemon.desktop"
+    pre = (d / "preinst").read_text(encoding="utf-8")
+    post = (d / "postrm").read_text(encoding="utf-8")
+    assert f"--add {path}" in pre and "--package hscl-security" in pre
+    assert f"--remove {path}" in post
