@@ -121,7 +121,7 @@ def main() -> int:
     # ---- extract the respun ISO from the scratch disk (WSL loop mount, read-only)
     raw = "/home/tim/hscl1-build/scratch.raw" if os.name == "nt" else str(out / "scratch.raw")
     dst = wsl_path(out)
-    cmd = (f"set -e; qemu-img convert -O raw '{wsl_path(scratch)}' '{raw}'; mkdir -p /tmp/hscl-x; sudo mount -o loop,ro '{raw}' /tmp/hscl-x; "
+    cmd = (f"set -e; qemu-img convert -O raw '{wsl_path(scratch)}' '{raw}'; mkdir -p /tmp/hscl-x; sudo mount -o loop,ro,noload '{raw}' /tmp/hscl-x; "
            f"ls /tmp/hscl-x; cp /tmp/hscl-x/HSCL1-respin-*.iso '{dst}/respun.iso'; cp /tmp/hscl-x/HSCL1-respin-*.iso.manifest.json '{dst}/respun.manifest.json'; "
            f"sudo umount /tmp/hscl-x; rm -f '{raw}'")
     e = sh(cmd)
