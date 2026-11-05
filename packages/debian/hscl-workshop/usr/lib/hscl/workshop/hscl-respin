@@ -146,7 +146,7 @@ def main(argv: list[str]) -> int:
                 lines.append(f"{sq_md5}  ./casper/filesystem.squashfs" if line.endswith("./casper/filesystem.squashfs") else line)
             md5.write_text("\n".join(lines) + "\n")
             iso = out_dir / f"HSCL1-respin-{stamp}.iso"
-            run(["xorriso", "-indev", boot_src, "-outdev", str(iso), "-volid", f"HSCL1 DEV {stamp[:8]}", "-boot_image", "any", "replay",
+            run(["xorriso", "-indev", "stdio:" + boot_src, "-outdev", str(iso), "-volid", f"HSCL1 DEV {stamp[:8]}", "-boot_image", "any", "replay",
                  "-map", str(sq), "/casper/filesystem.squashfs", "-map", str(md5), "/md5sum.txt", "-commit"])
             (out_dir / (iso.name + ".sha256")).write_text(f"{sha256(iso)}  {iso.name}\n")
             (out_dir / (iso.name + ".manifest.json")).write_text(json.dumps({
