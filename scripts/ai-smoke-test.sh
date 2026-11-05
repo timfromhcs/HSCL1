@@ -25,7 +25,8 @@ rm -rf "$work/backend/unpacked"; mkdir -p "$work/backend/unpacked"
 tar -xzf "$tarball" -C "$work/backend/unpacked"
 server="$(find "$work/backend/unpacked" -name llama-server -type f | head -n 1)"
 [ -x "$server" ] || { echo "llama-server not found in the release archive" >&2; exit 1; }
-export LD_LIBRARY_PATH="$(dirname "$server")${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+libdir="$(dirname "$server")"
+export LD_LIBRARY_PATH="$libdir${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 "$server" --version 2>&1 | head -n 3 || true
 
 echo "== hscl"
