@@ -97,7 +97,7 @@ def main() -> int:
         report["bootstrap"] = bootstrap(vm)["stdout"].strip()
         report["diag"] = hook(vm, "diag.sh", "cat /proc/cmdline; echo; ls /cdrom | head; echo; findmnt -no SOURCE,FSTYPE /cdrom; lsblk -dno NAME,SIZE | head\n")["stdout"][-900:]
         put(vm, "/usr/share/hscl/respin-proof.txt", proof.encode())
-        h = hook(vm, "mkout.sh", "set -e\nmkfs.ext4 -q -F -L hscl-out /dev/vdb\nmkdir -p /mnt/out\nmount /dev/vdb /mnt/out\nfindmnt -no SOURCE,FSTYPE /mnt/out\n")
+        h = hook(vm, "mkout.sh", "set -e\nmkfs.ext4 -q -F -L hscl-out /dev/vda\nmkdir -p /mnt/out\nmount /dev/vda /mnt/out\nfindmnt -no SOURCE,FSTYPE /mnt/out\n")
         report["mkout"] = h
         t0 = time.time()
         r = vm.rpc("respin", {"out_dir": "/mnt/out"}, timeout=3600)
