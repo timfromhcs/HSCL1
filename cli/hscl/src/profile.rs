@@ -114,11 +114,12 @@ fn kv_factor(kv: &str) -> f64 {
     }
 }
 
-/// Does the model fit into the memory that is actually available (weights + 15 % overhead + 2048 tokens of KV)?
+/// Does the model fit the memory that is actually available? Weights + 15 % overhead + 2048 tokens of a q4_0 KV cache must
+/// stay within 90 % of the available RAM, so every "fitting" model also gets a usable context in `plan`.
 pub fn fits(hw: &Hw, m: &Model) -> bool {
     let size = mib(m.size_bytes);
-    let need = size + size * 15 / 100 + (kv_mib_per_token_f16(size) * 2048.0 * 0.53) as u64;
-    need <= hw.ram_available_mib && hw.free_disk_mib.is_none_or(|d| d > size + 512)
+    let need = size as f64 * 1.15 + kv_mib_per_token_f16(size) * 2048.0 * kv_factor("q4_0");
+    need <= hw.ram_available_mib as f64 * 0.90 && hw.free_disk_mib.map_or(true, |d| d > size + 512)
 }
 
 pub fn plan(hw: &Hw, m: &Model, caps: &BackendCaps, low_vram_forced: bool) -> Plan {
@@ -146,7 +147,10 @@ pub fn plan(hw: &Hw, m: &Model, caps: &BackendCaps, low_vram_forced: bool) -> Pl
             }
             (false, None) => {
                 ngl = 0;
-                notes.push("dedicated VRAM is unknown: no layers are offloaded until it is measured".into());
+                notes.push(
+                    "dedicated VRAM is unknown: no layers are offloaded until it is measured"
+                        .into(),
+                );
             }
         }
     } else {
@@ -205,9 +209,27 @@ pub fn plan(hw: &Hw, m: &Model, caps: &BackendCaps, low_vram_forced: bool) -> Pl
 }
 
 /// `llama-server` arguments for a plan (loopback only; no flag takes a shell string).
-pub fn server_args(p: &Plan, model_path: &str, caps: &BackendCaps, port: u16, mmproj: Option<&str>) -> Vec<String> {
-    let mut a: Vec<String> = vec!["-m".into(), model_path.into(), "--host".into(), "127.0.0.1".into(), "--port".into(), port.to_string(),
-        "-c".into(), p.ctx.to_string(), "-ngl".into(), p.ngl.to_string(), "-t".into(), p.threads.to_string()];
+pub fn server_args(
+    p: &Plan,
+    model_path: &str,
+    caps: &BackendCaps,
+    port: u16,
+    mmproj: Option<&str>,
+) -> Vec<String> {
+    let mut a: Vec<String> = vec![
+        "-m".into(),
+        model_path.into(),
+        "--host".into(),
+        "127.0.0.1".into(),
+        "--port".into(),
+        port.to_string(),
+        "-c".into(),
+        p.ctx.to_string(),
+        "-ngl".into(),
+        p.ngl.to_string(),
+        "-t".into(),
+        p.threads.to_string(),
+    ];
     if p.flash_attn {
         a.push("-fa".into());
         if caps.fa_takes_value {
@@ -215,7 +237,12 @@ pub fn server_args(p: &Plan, model_path: &str, caps: &BackendCaps, port: u16, mm
         }
     }
     if p.kv_type != "f16" {
-        a.extend(["-ctk".into(), p.kv_type.clone(), "-ctv".into(), p.kv_type.clone()]);
+        a.extend([
+            "-ctk".into(),
+            p.kv_type.clone(),
+            "-ctv".into(),
+            p.kv_type.clone(),
+        ]);
     }
     if !p.mmap {
         a.push("--no-mmap".into());
@@ -229,9 +256,44 @@ pub fn server_args(p: &Plan, model_path: &str, caps: &BackendCaps, port: u16, mm
     a
 }
 
+/// Parse `llama-server --help` text into backend capabilities (TurboQuant cache types, MTP value, `-fa` style).
+pub fn probe_caps(help: &str) -> BackendCaps {
+    let mut turbo: Vec<String> = Vec::new();
+    for w in help.split(|c: char| !(c.is_ascii_alphanumeric() || c == '_')) {
+        if (w == "turbo2" || w == "turbo3" || w == "turbo4") && !turbo.iter().any(|t| t == w) {
+            turbo.push(w.to_string());
+        }
+    }
+    turbo.sort();
+    turbo.reverse();
+    let words_have_mtp = help
+        .split(|c: char| !c.is_ascii_alphanumeric())
+        .any(|w| w == "mtp");
+    let mtp_flag = if help.contains("draft-mtp") {
+        Some("draft-mtp".to_string())
+    } else if help.contains("spec-type") && words_have_mtp {
+        Some("mtp".to_string())
+    } else {
+        None
+    };
+    let fa_takes_value = help.lines().any(|l| {
+        (l.contains("-fa,") || l.contains("--flash-attn"))
+            && (l.contains("[on|off|auto]") || l.contains("on|off"))
+    });
+    BackendCaps {
+        turboquant: turbo,
+        mtp_flag,
+        fa_takes_value,
+    }
+}
+
 /// Catalog entries that fit, best first: requested role, then largest that fits, abliterated variants first (as requested).
 pub fn recommend<'a>(hw: &Hw, models: &'a [Model], role: Option<&str>) -> Vec<&'a Model> {
-    let mut v: Vec<&Model> = models.iter().filter(|m| fits(hw, m)).filter(|m| role.is_none_or(|r| m.role == r || m.role == "chat")).collect();
+    let mut v: Vec<&Model> = models
+        .iter()
+        .filter(|m| fits(hw, m))
+        .filter(|m| role.map_or(true, |r| m.role == r || m.role == "chat"))
+        .collect();
     v.sort_by(|a, b| {
         let ra = (role.is_some_and(|r| a.role == r)) as u8;
         let rb = (role.is_some_and(|r| b.role == r)) as u8;
@@ -248,13 +310,28 @@ mod tests {
     use crate::catalog;
 
     fn hw(ram_total: u64, avail: u64, gpu: Option<HwGpu>) -> Hw {
-        Hw { ram_total_mib: ram_total, ram_available_mib: avail, cpu_threads: 16, vulkan: gpu.is_some(), gpu, free_disk_mib: Some(500_000) }
+        Hw {
+            ram_total_mib: ram_total,
+            ram_available_mib: avail,
+            cpu_threads: 16,
+            vulkan: gpu.is_some(),
+            gpu,
+            free_disk_mib: Some(500_000),
+        }
     }
     fn igpu() -> Option<HwGpu> {
-        Some(HwGpu { vendor: "AMD".into(), vram_mib: Some(512), unified_memory: true })
+        Some(HwGpu {
+            vendor: "AMD".into(),
+            vram_mib: Some(512),
+            unified_memory: true,
+        })
     }
     fn dgpu(v: Option<u64>) -> Option<HwGpu> {
-        Some(HwGpu { vendor: "NVIDIA".into(), vram_mib: v, unified_memory: false })
+        Some(HwGpu {
+            vendor: "NVIDIA".into(),
+            vram_mib: v,
+            unified_memory: false,
+        })
     }
     fn models() -> Vec<Model> {
         catalog::load().unwrap()
@@ -265,8 +342,19 @@ mod tests {
 
     #[test]
     fn tier_boundaries() {
-        for (ram, t) in [(2_000, Tier::Minimal), (3_499, Tier::Minimal), (3_500, Tier::Tiny), (5_999, Tier::Tiny), (6_000, Tier::Small),
-                         (9_999, Tier::Small), (10_000, Tier::Medium), (14_999, Tier::Medium), (15_000, Tier::Large), (29_999, Tier::Large), (30_000, Tier::Xl)] {
+        for (ram, t) in [
+            (2_000, Tier::Minimal),
+            (3_499, Tier::Minimal),
+            (3_500, Tier::Tiny),
+            (5_999, Tier::Tiny),
+            (6_000, Tier::Small),
+            (9_999, Tier::Small),
+            (10_000, Tier::Medium),
+            (14_999, Tier::Medium),
+            (15_000, Tier::Large),
+            (29_999, Tier::Large),
+            (30_000, Tier::Xl),
+        ] {
             assert_eq!(tier_for(ram), t, "{ram}");
         }
     }
@@ -274,10 +362,16 @@ mod tests {
     #[test]
     fn recommendations_never_exceed_available_memory() {
         let ms = models();
-        for avail in [2_000u64, 4_000, 6_000, 8_000, 12_000, 16_000, 24_000, 64_000] {
+        for avail in [
+            2_000u64, 4_000, 6_000, 8_000, 12_000, 16_000, 24_000, 64_000,
+        ] {
             let h = hw(avail + 2_000, avail, None);
             for m in recommend(&h, &ms, None) {
-                assert!(mib(m.size_bytes) * 115 / 100 <= avail, "{} does not fit {avail} MiB", m.id);
+                assert!(
+                    mib(m.size_bytes) * 115 / 100 <= avail,
+                    "{} does not fit {avail} MiB",
+                    m.id
+                );
             }
         }
     }
@@ -305,7 +399,10 @@ mod tests {
 
     #[test]
     fn cpu_only_has_no_offload_and_unknown_vram_is_not_guessed() {
-        let m = models().into_iter().find(|m| m.id == "qwen3.5-4b-abliterated").unwrap();
+        let m = models()
+            .into_iter()
+            .find(|m| m.id == "qwen3.5-4b-abliterated")
+            .unwrap();
         assert_eq!(plan(&hw(16_000, 12_000, None), &m, &caps(), false).ngl, 0);
         let p = plan(&hw(16_000, 12_000, dgpu(None)), &m, &caps(), false);
         assert_eq!(p.ngl, 0);
@@ -314,14 +411,26 @@ mod tests {
 
     #[test]
     fn igpu_offloads_everything_and_dgpu_with_enough_vram_too() {
-        let m = models().into_iter().find(|m| m.id == "qwen3.5-4b-abliterated").unwrap();
-        assert_eq!(plan(&hw(16_000, 12_000, igpu()), &m, &caps(), false).ngl, 99);
-        assert_eq!(plan(&hw(16_000, 12_000, dgpu(Some(8_192))), &m, &caps(), false).ngl, 99);
+        let m = models()
+            .into_iter()
+            .find(|m| m.id == "qwen3.5-4b-abliterated")
+            .unwrap();
+        assert_eq!(
+            plan(&hw(16_000, 12_000, igpu()), &m, &caps(), false).ngl,
+            99
+        );
+        assert_eq!(
+            plan(&hw(16_000, 12_000, dgpu(Some(8_192))), &m, &caps(), false).ngl,
+            99
+        );
     }
 
     #[test]
     fn small_vram_triggers_low_vram_with_partial_offload() {
-        let m = models().into_iter().find(|m| m.id == "qwen3.5-9b-abliterated").unwrap();
+        let m = models()
+            .into_iter()
+            .find(|m| m.id == "qwen3.5-9b-abliterated")
+            .unwrap();
         let p = plan(&hw(24_000, 20_000, dgpu(Some(2_048))), &m, &caps(), false);
         assert!(p.low_vram);
         assert!(p.ngl > 0 && p.ngl < 99, "partial offload, got {}", p.ngl);
@@ -329,21 +438,39 @@ mod tests {
 
     #[test]
     fn kv_cache_is_q8_0_by_default_and_turboquant_only_when_the_backend_has_it() {
-        let m = models().into_iter().find(|m| m.id == "qwen3.5-4b-abliterated").unwrap();
+        let m = models()
+            .into_iter()
+            .find(|m| m.id == "qwen3.5-4b-abliterated")
+            .unwrap();
         let h = hw(32_000, 28_000, None);
         assert_eq!(plan(&h, &m, &caps(), false).kv_type, "q8_0");
-        let tq = BackendCaps { turboquant: vec!["turbo4".into(), "turbo3".into()], ..Default::default() };
+        let tq = BackendCaps {
+            turboquant: vec!["turbo4".into(), "turbo3".into()],
+            ..Default::default()
+        };
         assert_eq!(plan(&h, &m, &tq, false).kv_type, "turbo4");
-        assert_eq!(plan(&h, &m, &tq, true).kv_type, "turbo3", "low-VRAM prefers the denser TurboQuant type");
+        assert_eq!(
+            plan(&h, &m, &tq, true).kv_type,
+            "turbo3",
+            "low-VRAM prefers the denser TurboQuant type"
+        );
     }
 
     #[test]
     fn mtp_only_for_mtp_models_on_capable_backends() {
         let mut m = models().remove(0);
-        let c = BackendCaps { mtp_flag: Some("mtp".into()), ..Default::default() };
+        let c = BackendCaps {
+            mtp_flag: Some("mtp".into()),
+            ..Default::default()
+        };
         assert!(plan(&hw(16_000, 12_000, None), &m, &c, false).mtp.is_none());
         m.mtp = true;
-        assert_eq!(plan(&hw(16_000, 12_000, None), &m, &c, false).mtp.as_deref(), Some("mtp"));
+        assert_eq!(
+            plan(&hw(16_000, 12_000, None), &m, &c, false)
+                .mtp
+                .as_deref(),
+            Some("mtp")
+        );
         let p = plan(&hw(16_000, 12_000, None), &m, &caps(), false);
         assert!(p.mtp.is_none() && p.notes.iter().any(|n| n.contains("MTP")));
     }
@@ -351,24 +478,62 @@ mod tests {
     #[test]
     fn context_is_bounded_and_infeasible_models_are_flagged() {
         let ms = models();
-        let big = ms.iter().find(|m| m.id == "qwen3-coder-30b-a3b-abliterated").unwrap();
+        let big = ms
+            .iter()
+            .find(|m| m.id == "qwen3-coder-30b-a3b-abliterated")
+            .unwrap();
         let p = plan(&hw(16_000, 12_000, None), big, &caps(), false);
         assert!(!p.feasible);
-        let small = ms.iter().find(|m| m.id == "qwen3.5-2b-abliterated").unwrap();
+        let small = ms
+            .iter()
+            .find(|m| m.id == "qwen3.5-2b-abliterated")
+            .unwrap();
         let q = plan(&hw(64_000, 60_000, None), small, &caps(), false);
         assert!(q.feasible && q.ctx <= 32_768 && q.ctx >= 2048);
     }
 
     #[test]
+    fn probe_caps_parses_help_text() {
+        let upstream = "-fa,  --flash-attn [on|off|auto]  set Flash Attention use\n-ctk, --cache-type-k TYPE  f32, f16, bf16, q8_0, q4_0";
+        let c = probe_caps(upstream);
+        assert!(c.turboquant.is_empty() && c.mtp_flag.is_none() && c.fa_takes_value);
+        let fork = "-ctk TYPE  f16, q8_0, q4_0, turbo3, turbo4\n--spec-type [none|draft-mtp|ngram]\n-fa, --flash-attn";
+        let c = probe_caps(fork);
+        assert_eq!(c.turboquant, vec!["turbo4", "turbo3"]);
+        assert_eq!(c.mtp_flag.as_deref(), Some("draft-mtp"));
+        assert!(!c.fa_takes_value);
+        assert_eq!(
+            probe_caps("--spec-type [none|mtp]").mtp_flag.as_deref(),
+            Some("mtp")
+        );
+        assert_eq!(probe_caps("").turboquant.len(), 0);
+    }
+
+    #[test]
     fn server_args_bind_loopback_and_follow_the_plan() {
-        let m = models().into_iter().find(|m| m.id == "qwen3.5-4b-abliterated").unwrap();
-        let c = BackendCaps { fa_takes_value: true, mtp_flag: Some("mtp".into()), ..Default::default() };
+        let m = models()
+            .into_iter()
+            .find(|m| m.id == "qwen3.5-4b-abliterated")
+            .unwrap();
+        let c = BackendCaps {
+            fa_takes_value: true,
+            mtp_flag: Some("mtp".into()),
+            ..Default::default()
+        };
         let p = plan(&hw(16_000, 12_000, igpu()), &m, &c, false);
         let a = server_args(&p, "/models/x.gguf", &c, 8080, Some("/models/mm.gguf"));
         let s = a.join(" ");
-        assert!(s.contains("--host 127.0.0.1") && s.contains("-ngl 99") && s.contains("-fa on") && s.contains("-ctk q8_0 -ctv q8_0"));
+        assert!(
+            s.contains("--host 127.0.0.1")
+                && s.contains("-ngl 99")
+                && s.contains("-fa on")
+                && s.contains("-ctk q8_0 -ctv q8_0")
+        );
         assert!(s.contains("--mmproj /models/mm.gguf"));
         assert!(!s.contains("0.0.0.0"));
-        assert!(!s.contains("--spec-type"), "the 4B entry is not MTP-trained");
+        assert!(
+            !s.contains("--spec-type"),
+            "the 4B entry is not MTP-trained"
+        );
     }
 }

@@ -51,7 +51,11 @@ pub fn validate(m: &Model) -> Result<()> {
     if m.sha256.len() != 64 || !m.sha256.bytes().all(|b| b.is_ascii_hexdigit()) {
         bail!("{}: sha256 must be 64 hex characters", m.id);
     }
-    if !m.file.ends_with(".gguf") || m.file.contains('/') || m.file.contains("..") || m.file.contains('\\') {
+    if !m.file.ends_with(".gguf")
+        || m.file.contains('/')
+        || m.file.contains("..")
+        || m.file.contains('\\')
+    {
         bail!("{}: file must be a plain .gguf file name", m.id);
     }
     if m.repo.matches('/').count() != 1 || m.repo.contains("..") {
@@ -68,7 +72,10 @@ pub fn validate(m: &Model) -> Result<()> {
 
 pub fn load() -> Result<Vec<Model>> {
     match std::env::var_os("HSCL_MODEL_CATALOG") {
-        Some(p) => parse(&std::fs::read_to_string(&p).with_context(|| format!("cannot read {}", std::path::Path::new(&p).display()))?),
+        Some(p) => parse(
+            &std::fs::read_to_string(&p)
+                .with_context(|| format!("cannot read {}", std::path::Path::new(&p).display()))?,
+        ),
         None => parse(EMBEDDED),
     }
 }
@@ -90,8 +97,16 @@ mod tests {
         assert!(m.len() >= 6);
         for e in &m {
             assert!(e.size_bytes > 100_000_000, "{}", e.id);
-            assert_eq!(e.licence, "apache-2.0", "licences are reviewed before an entry is added: {}", e.id);
-            assert!(e.min_ram_gb as f64 * 1e9 > e.size_bytes as f64, "{}: min_ram must exceed the file size", e.id);
+            assert_eq!(
+                e.licence, "apache-2.0",
+                "licences are reviewed before an entry is added: {}",
+                e.id
+            );
+            assert!(
+                e.min_ram_gb as f64 * 1e9 > e.size_bytes as f64,
+                "{}: min_ram must exceed the file size",
+                e.id
+            );
         }
         let ids: std::collections::BTreeSet<_> = m.iter().map(|e| &e.id).collect();
         assert_eq!(ids.len(), m.len(), "ids are unique");
@@ -114,7 +129,10 @@ mod tests {
         }
         m.variant = "original".into();
         m.warning.clear();
-        assert!(validate(&m).is_ok(), "non-abliterated entries need no warning");
+        assert!(
+            validate(&m).is_ok(),
+            "non-abliterated entries need no warning"
+        );
     }
 
     #[test]

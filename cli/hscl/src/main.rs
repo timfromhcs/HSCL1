@@ -4,7 +4,9 @@
 
 mod ai;
 mod appearance;
+mod catalog;
 mod doctor;
+mod profile;
 mod redact;
 mod report;
 mod security;
@@ -135,6 +137,36 @@ enum SecurityCmd {
 enum AiCmd {
     /// Detect CPU/RAM/GPU/Vulkan for local inference.
     Detect,
+    /// Curated small open models (GGUF) that fit this machine.
+    Model {
+        #[command(subcommand)]
+        cmd: ModelCmd,
+    },
+    /// Hardware-adapted run plan for a model (backend, offload, context, KV cache, threads).
+    Profile {
+        /// Catalog model id (default: the best recommendation for this machine).
+        model: Option<String>,
+        /// Force low-VRAM mode (partial offload, denser KV cache).
+        #[arg(long)]
+        low_vram: bool,
+        /// Path to llama-server to read its capabilities (TurboQuant, MTP); default: `llama-server` on PATH.
+        #[arg(long, value_name = "PATH")]
+        backend: Option<std::path::PathBuf>,
+    },
+}
+
+#[derive(Subcommand)]
+enum ModelCmd {
+    /// All catalog models with fit information for this machine.
+    List,
+    /// Models that fit this machine, best first.
+    Recommend {
+        /// chat or coder
+        #[arg(long)]
+        role: Option<String>,
+    },
+    /// Details, licence and warning of one model.
+    Info { id: String },
 }
 
 fn print_value(as_json: bool, v: &serde_json::Value, human: impl FnOnce() -> String) {
@@ -199,6 +231,17 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
             let v = serde_json::to_value(&sec)?;
             print_value(j, &v, || security::render(&sec));
         }
+        Cmd::Ai {
+            cmd: AiCmd::Model { cmd },
+        } => return run_model(j, cmd),
+        Cmd::Ai {
+            cmd:
+                AiCmd::Profile {
+                    model,
+                    low_vram,
+                    backend,
+                },
+        } => return run_profile(j, model, low_vram, backend),
         Cmd::Ai { cmd: AiCmd::Detect } => {
             let d = ai::detect();
             let v = serde_json::to_value(&d)?;
@@ -227,6 +270,142 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
         }
     }
     Ok(exit::OK)
+}
+
+fn home_free_disk() -> Option<u64> {
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/".into());
+    let out = std::process::Command::new("df")
+        .args(["--output=avail", "-k", &home])
+        .output()
+        .ok()?;
+    String::from_utf8_lossy(&out.stdout)
+        .lines()
+        .nth(1)?
+        .trim()
+        .parse::<u64>()
+        .ok()
+        .map(|k| k / 1024)
+}
+
+fn probe_backend(path: Option<std::path::PathBuf>) -> profile::BackendCaps {
+    let exe = path.unwrap_or_else(|| "llama-server".into());
+    match std::process::Command::new(exe).arg("--help").output() {
+        Ok(o) => profile::probe_caps(&format!(
+            "{}{}",
+            String::from_utf8_lossy(&o.stdout),
+            String::from_utf8_lossy(&o.stderr)
+        )),
+        Err(_) => profile::BackendCaps::default(),
+    }
+}
+
+fn run_model(j: bool, cmd: ModelCmd) -> anyhow::Result<u8> {
+    let models = catalog::load()?;
+    let hw = ai::to_hw(&ai::detect(), home_free_disk());
+    let tier = profile::tier_for(hw.ram_total_mib).name();
+    match cmd {
+        ModelCmd::List => {
+            let rows: Vec<_> = models
+                .iter()
+                .map(|m| json!({"id": m.id, "tier": m.tier, "role": m.role, "variant": m.variant, "size_gb": (m.size_bytes as f64 / 1e7).round() / 100.0, "fits": profile::fits(&hw, m), "mtp": m.mtp, "vision": m.mmproj.is_some()}))
+                .collect();
+            let v = json!({"machine_tier": tier, "models": rows});
+            print_value(j, &v, || {
+                let mut s = format!("machine tier: {tier}\n");
+                for m in &models {
+                    let mark = if profile::fits(&hw, m) { "+" } else { "-" };
+                    s += &format!(
+                        "{mark} {:<34} {:<7} {:<6} {:>6.2} GB  {}\n",
+                        m.id,
+                        m.tier,
+                        m.role,
+                        m.size_bytes as f64 / 1e9,
+                        m.variant
+                    );
+                }
+                s + "(+ fits this machine, - does not)"
+            });
+        }
+        ModelCmd::Recommend { role } => {
+            let rec = profile::recommend(&hw, &models, role.as_deref());
+            let items: Vec<_> = rec
+                .iter()
+                .map(|m| json!({"id": m.id, "variant": m.variant, "warning": m.warning}))
+                .collect();
+            let v = json!({"machine_tier": tier, "recommended": items, "note": "Nothing is downloaded. Abliterated variants are community derivatives - read the warning."});
+            print_value(j, &v, || {
+                if rec.is_empty() {
+                    return "no catalog model fits the available memory".to_string();
+                }
+                let mut s = String::new();
+                for m in &rec {
+                    s += &format!(
+                        "{}  ({}, {:.2} GB)\n",
+                        m.id,
+                        m.variant,
+                        m.size_bytes as f64 / 1e9
+                    );
+                }
+                if rec.iter().any(|m| m.variant == "abliterated") {
+                    s += "\nWARNING: abliterated models are community derivatives with refusal behaviour removed; quality and safety are not guaranteed.";
+                }
+                s
+            });
+        }
+        ModelCmd::Info { id } => {
+            let m = catalog::find(&models, &id)?;
+            let v = serde_json::to_value(m)?;
+            print_value(j, &v, || {
+                format!(
+                    "{}\nrepo: {}\nfile: {} ({:.2} GB, sha256 {})\nlicence: {}\nbase: {}\n{}",
+                    m.id,
+                    m.repo,
+                    m.file,
+                    m.size_bytes as f64 / 1e9,
+                    m.sha256,
+                    m.licence,
+                    m.base_model,
+                    m.warning
+                )
+            });
+        }
+    }
+    Ok(exit::OK)
+}
+
+fn run_profile(
+    j: bool,
+    model: Option<String>,
+    low_vram: bool,
+    backend: Option<std::path::PathBuf>,
+) -> anyhow::Result<u8> {
+    let models = catalog::load()?;
+    let hw = ai::to_hw(&ai::detect(), home_free_disk());
+    let caps = probe_backend(backend);
+    let m = match &model {
+        Some(id) => catalog::find(&models, id)?,
+        None => *profile::recommend(&hw, &models, None)
+            .first()
+            .ok_or_else(|| anyhow::anyhow!("no catalog model fits the available memory"))?,
+    };
+    let p = profile::plan(&hw, m, &caps, low_vram);
+    let command = profile::server_args(&p, "<MODEL_PATH>", &caps, 8080, None);
+    let v = json!({"hardware": hw, "backend_caps": caps, "plan": p, "llama_server_args": command, "speed": "not measured"});
+    print_value(j, &v, || {
+        format!(
+            "{}: backend {}, offload {}, context {}, KV {}, threads {}{}{}\n{}",
+            p.model_id,
+            p.backend,
+            p.ngl,
+            p.ctx,
+            p.kv_type,
+            p.threads,
+            if p.low_vram { ", LOW-VRAM" } else { "" },
+            if p.feasible { "" } else { " (does not fit)" },
+            p.notes.join("\n")
+        )
+    });
+    Ok(if p.feasible { exit::OK } else { exit::FAILURE })
 }
 
 fn run_theme(j: bool, cmd: ThemeCmd) -> anyhow::Result<u8> {
