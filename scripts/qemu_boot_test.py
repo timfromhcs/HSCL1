@@ -79,10 +79,16 @@ def looks_like_welcome(rgb: bytes, w: int, h: int) -> bool:
 
 class Qmp:
     def __init__(self, path: str):
-        self.s = socket.socket(socket.AF_UNIX)
-        for _ in range(100):
+        # "tcp:HOST:PORT" (Windows QEMU) or a unix socket path
+        tcp = path.startswith("tcp:")
+        for _ in range(150):
             try:
-                self.s.connect(path)
+                if tcp:
+                    host, port = path[4:].rsplit(":", 1)
+                    self.s = socket.create_connection((host, int(port)), timeout=60)
+                else:
+                    self.s = socket.socket(socket.AF_UNIX)
+                    self.s.connect(path)
                 break
             except OSError:
                 time.sleep(0.2)
@@ -108,6 +114,8 @@ def main():
     ap.add_argument("--firmware", choices=["uefi", "bios"], default="uefi")
     ap.add_argument("--secure-boot", action="store_true", help="UEFI Secure Boot with Microsoft keys enrolled (OVMF ms variant)")
     ap.add_argument("--try-live", action="store_true", help="click 'Try' on the live welcome screen once")
+    ap.add_argument("--accel", help="override accelerator (kvm|whpx|tcg)")
+    ap.add_argument("--qmp-port", type=int, default=4444, help="QMP TCP port (Windows QEMU only)")
     ap.add_argument("--mem", type=int, default=4096)
     ap.add_argument("--smp", type=int, default=4)
     ap.add_argument("--timeout", type=int, default=2400)
@@ -118,19 +126,37 @@ def main():
 
     out = Path(a.outdir)
     out.mkdir(parents=True, exist_ok=True)
-    kvm = os.access("/dev/kvm", os.W_OK)
-    accel = "kvm" if kvm else "tcg,thread=multi"
+    win = os.name == "nt"
+    kvm = (not win) and os.access("/dev/kvm", os.W_OK)
+    if win:
+        qdir = Path(os.environ.get("QEMU_DIR", r"C:\Program Files\qemu"))
+        qemu_bin = str(qdir / "qemu-system-x86_64.exe")
+        accel = a.accel or "whpx,kernel-irqchip=off"
+        cpu = "qemu64,+ssse3,+sse4.1,+sse4.2,+popcnt,+avx2" if accel.startswith("whpx") else "max"
+        qmp_arg = "tcp:127.0.0.1:%d,server=on,wait=off" % a.qmp_port
+        qmp_path = "tcp:127.0.0.1:%d" % a.qmp_port
+    else:
+        qemu_bin = "qemu-system-x86_64"
+        accel = a.accel or ("kvm" if kvm else "tcg,thread=multi")
+        cpu = "host" if kvm else "max"
+        qmp_arg = f"unix:{out}/qmp.sock,server=on,wait=off"
+        qmp_path = str(out / "qmp.sock")
     machine = "q35,smm=on" if a.secure_boot else "q35"
-    cmd = ["qemu-system-x86_64", "-machine", machine, "-accel", accel, "-cpu", "host" if kvm else "max",
+    cmd = [qemu_bin, "-machine", machine, "-accel", accel, "-cpu", cpu,
            "-m", str(a.mem), "-smp", str(a.smp), "-display", "none", "-vga", "std",
            "-device", "usb-ehci", "-device", "usb-kbd", "-device", "usb-tablet",
            "-audiodev", "none,id=a0", "-device", "intel-hda", "-device", "hda-duplex,audiodev=a0",
            "-netdev", "user,id=n0", "-device", "virtio-net-pci,netdev=n0",
            "-drive", f"file={a.iso},media=cdrom,readonly=on",
-           "-boot", "d", "-qmp", f"unix:{out}/qmp.sock,server=on,wait=off", "-no-reboot"]
+           "-boot", "d", "-qmp", qmp_arg, "-no-reboot"]
     if a.firmware == "uefi":
         vars_copy = out / "OVMF_VARS.fd"
-        if a.secure_boot:
+        if win:
+            code = str(qdir / "share" / ("edk2-x86_64-secure-code.fd" if a.secure_boot else "edk2-x86_64-code.fd"))
+            vars_src = str(qdir / "share" / "edk2-i386-vars.fd")
+            if a.secure_boot:
+                cmd += ["-global", "driver=cfi.pflash01,property=secure,value=on"]
+        elif a.secure_boot:
             code, vars_src = f"{OVMF}/OVMF_CODE_4M.secboot.fd", f"{OVMF}/OVMF_VARS_4M.ms.fd"
             cmd += ["-global", "driver=cfi.pflash01,property=secure,value=on"]
         else:
@@ -143,7 +169,7 @@ def main():
     proc = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT)
     result = {"firmware": a.firmware, "secure_boot_requested": a.secure_boot, "accel": accel, "iso": os.path.basename(a.iso), "shots": [], "reached_desktop": False}
     try:
-        qmp = Qmp(str(out / "qmp.sock"))
+        qmp = Qmp(qmp_path)
         streak, n, ref, clicked = 0, 0, None, False
         while time.time() - t0 < a.timeout and proc.poll() is None:
             time.sleep(a.interval)
