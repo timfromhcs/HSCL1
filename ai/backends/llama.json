@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "project": "ggml-org/llama.cpp",
+  "licence": "MIT",
+  "tag": "b12130",
+  "published": "2026-11-05T19:36:27Z",
+  "assets": {
+    "cpu": {
+      "name": "llama-b12130-bin-ubuntu-x64.tar.gz",
+      "size_bytes": 23082866,
+      "sha256": "cbfc3eee898336e77b6ef68996b78b36f7e04ad09069f298ab0293e5eab81b7e",
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b12130/llama-b12130-bin-ubuntu-x64.tar.gz"
+    },
+    "vulkan": {
+      "name": "llama-b12130-bin-ubuntu-vulkan-x64.tar.gz",
+      "size_bytes": 35885142,
+      "sha256": "1061f167e6d30222cd83d8baa7d3cf6c1a621b1d02ae85ceab1ebe11bc06ea89",
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b12130/llama-b12130-bin-ubuntu-vulkan-x64.tar.gz"
+    }
+  }
+}
