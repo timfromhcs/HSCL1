@@ -103,3 +103,21 @@ rain density/static, and the low-VRAM switch. Runs automatically at first login 
 **Images.** (1) Multimodal input: catalog entries list their `mmproj` file (verified in the HF tree), `model download --with-vision` fetches it, the server starts with `--mmproj`.
 (2) "JPEG as VAE": an **experimental** `hscl image` tool: lossless JPEG recompression is the default; learned VAE-latent storage is lossy by nature and therefore opt-in,
 labelled with its measured PSNR/SSIM, never applied silently. Needs a model runtime (ONNX) and is researched before it is built.
+
+## 6. Addendum 2 (game/3D dev + memory management) - research findings and decisions
+
+**Verified candidates (Hugging Face / GitHub APIs, 2026-11-05):**
+
+| Role | Candidate | Licence | Files (verified) | Runtime | Note |
+|---|---|---|---|---|---|
+| image generation | `leejet/FLUX.2-klein-4B-GGUF` | apache-2.0 | `flux-2-klein-4b-Q4_0.gguf` 2.46 GB, `Q8_0` 4.3 GB | stable-diffusion.cpp (Vulkan) | text-encoder/VAE components **not yet catalogued** -> entry is `complete:false` |
+| image generation | `city96/FLUX.1-schnell-gguf` | apache-2.0 | (to verify) | stable-diffusion.cpp | alternative |
+| image -> 3D | `stabilityai/TripoSR` | MIT | `model.ckpt` 1.68 GB | PyTorch (`tsr`), ONNX ports exist | light; loads/unloads on demand in community MCP forks |
+| image -> 3D | `tencent/Hunyuan3D-2mini` / 2.1 | "other" (Tencent community licence, restrictions) | (to verify) | PyTorch | catalogued only with a licence warning |
+| 3D -> rigged 3D | `VAST-AI/UniRig` | MIT | skeleton `articulation-xl_quantization_256/model.ckpt` 1.44 GB, skin `articulation-xl/model.ckpt` 4.38 GB | PyTorch, ONNX ports exist | Blender Rigify stays the non-AI fallback |
+| game engine | Godot 4.7.2-stable (official x86_64 zip 77.9 MB + `SHA512-SUMS.txt`) | MIT | verified by sha512 from the release | binary | **custom engine = pinned source build** (SCons, hours) is a separate opt-in job; until then the official binary + HCS templates |
+| 3D DCC | Blender (Ubuntu archive package) | GPL | apt | `blender -b --python` | headless automation only through fixed scripts |
+
+**Decisions:** (D8) one **media catalog** (`ai/catalog/media.json`) generated from the APIs like the LLM catalog (file, size, sha256, licence, VRAM/RAM hint, `complete`, `warning`); downloads reuse the verified downloader; recommendations come from the same hardware profile engine (VRAM tiers). (D9) **Blender MCP and Godot MCP are custom, stdio, stdlib Python**: tools run only fixed HCS scripts through `blender -b`/`godot --headless` (scene info, import/export glTF, render preview, apply Rigify, run a project check); no tool takes script text; paths are confined to a project directory the user names; tested with fake binaries. (D10) **Pipelines** (`hscl media pipeline image->3d->rig`) are plans that name the exact tools and models per hardware tier; runtimes (stable-diffusion.cpp, TripoSR, UniRig) are listed as `runtime: planned/verified` and nothing claims a working generation until a VM/hardware run proves it.
+
+**Memory management (load / offload / save RAM / anti-overflow):** `hscl memory status|profile|apply`: (1) **zram** swap sized by RAM (zstd) via a zram-generator drop-in, (2) **vm tuning** (`swappiness`, `page-cluster=0`, `vfs_cache_pressure`) for zram, (3) **OOM protection**: `earlyoom` thresholds with the desktop shell/compositor/login manager on the avoid list, (4) a **`hscl-ai.slice`** (systemd) with `MemoryHigh`/`MemoryMax` so a model server cannot starve the desktop, (5) an **AI RAM budget** setting (percent of RAM, default 60 %) that the profile engine uses instead of raw available memory, (6) **offload**: idle model servers are stopped after a timeout and reloaded on demand. All numbers come from pure functions (tested); applying writes drop-ins and never touches other config.

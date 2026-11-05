@@ -82,6 +82,11 @@ enum Cmd {
         #[arg(long, value_name = "PATH")]
         output: Option<std::path::PathBuf>,
     },
+    /// Low-VRAM mode for weak GPUs: caps the desktop effects and makes `ai profile` offload less.
+    LowVram {
+        /// on, off or status
+        mode: String,
+    },
     /// Wallpaper Studio: presets for the animated HSCL1 wallpaper effects.
     Wallpaper {
         #[command(subcommand)]
@@ -407,6 +412,35 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
                 }
                 None => println!("{}", serde_json::to_string_pretty(&r)?),
             }
+        }
+        Cmd::LowVram { mode } => {
+            let marker = appearance::config_dir().join("low-vram");
+            match mode.as_str() {
+                "on" => {
+                    std::fs::create_dir_all(appearance::config_dir())?;
+                    std::fs::write(
+                        &marker, "1
+",
+                    )?;
+                }
+                "off" => {
+                    let _ = std::fs::remove_file(&marker);
+                }
+                "status" => {}
+                _ => anyhow::bail!("mode must be on, off or status"),
+            }
+            let on = marker.exists();
+            print_value(j, &json!({"low_vram": on}), || {
+                format!(
+                    "low-VRAM mode is {}{}",
+                    if on { "on" } else { "off" },
+                    if mode == "status" {
+                        ""
+                    } else {
+                        " - run `hscl graphics apply --force` to re-tune the desktop"
+                    }
+                )
+            });
         }
         Cmd::Wallpaper { cmd } => return run_wallpaper(j, cmd),
         Cmd::Code { cmd } => return run_code(j, cmd),
@@ -875,6 +909,7 @@ fn run_profile(
             .first()
             .ok_or_else(|| anyhow::anyhow!("no catalog model fits the available memory"))?,
     };
+    let low_vram = low_vram || appearance::config_dir().join("low-vram").exists();
     let p = profile::plan(&hw, m, &caps, low_vram);
     let command = profile::server_args(&p, "<MODEL_PATH>", &caps, 8080, None);
     let v = json!({"hardware": hw, "backend_caps": caps, "plan": p, "llama_server_args": command, "speed": "not measured"});
