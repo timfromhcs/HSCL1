@@ -1,0 +1,13 @@
+# HSCL1 host APT policy (AGENTS.md 0.3 rule 3): pinned Ubuntu 26.04 LTS "resolute" pockets only.
+# No Kali, Debian, PPA or interim-release sources on the host; Kali tools live in OCI containers.
+Types: deb
+URIs: http://archive.ubuntu.com/ubuntu/
+Suites: resolute resolute-updates resolute-backports
+Components: main restricted universe multiverse
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
+
+Types: deb
+URIs: http://security.ubuntu.com/ubuntu/
+Suites: resolute-security
+Components: main restricted universe multiverse
+Signed-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg
