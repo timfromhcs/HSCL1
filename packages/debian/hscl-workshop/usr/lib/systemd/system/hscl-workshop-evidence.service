@@ -1,0 +1,10 @@
+[Unit]
+Description=HSCL1 Workshop evidence report (only when a hypervisor provides the hscl.qa port)
+ConditionPathExists=/dev/virtio-ports/hscl.qa
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/hscl/workshop/evidence.sh
+TimeoutStartSec=600
+

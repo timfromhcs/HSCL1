@@ -1,0 +1,12 @@
+Package: hscl-workshop
+Version: 0.0.0
+Architecture: all
+Section: admin
+Priority: optional
+Depends: hscl-base
+Maintainer: HCSMEDIA <noreply@hcsmedia.invalid>
+Description: HSCL1 Workshop: evidence channel, VM API and respin tools (opt-in)
+ Inert by default: nothing runs and nothing listens until the user enables
+ Workshop or a hypervisor provides the virtio ports "hscl.qa" / "hscl.api".
+ No TCP listener; a finite set of operations; token protected.
+ Made with love by hcsmedia.

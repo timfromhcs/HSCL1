@@ -1,0 +1,4 @@
+# HSCL1 Workshop is inert unless a hypervisor provides these virtio ports (never on real hardware by default).
+# No enable symlinks exist: udev pulls the unit in only when the port appears.
+SUBSYSTEM=="virtio-ports", ATTR{name}=="hscl.qa", TAG+="systemd", ENV{SYSTEMD_WANTS}+="hscl-workshop-evidence.service"
+SUBSYSTEM=="virtio-ports", ATTR{name}=="hscl.api", TAG+="systemd", ENV{SYSTEMD_WANTS}+="hscl-workshopd.service"

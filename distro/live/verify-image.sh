@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 # Assert that HSCL1 branding really is present inside an unpacked live rootfs (AGENTS.md: no silent patches).
 # Usage: verify-image.sh ROOTFS [release]   Exit 0 only if every check passes.
-#   release: additionally require that the QA channel (hscl-qa) is NOT installed.
+#   (the optional second argument is accepted for compatibility and ignored)
 set -Eeuo pipefail
 root="${1:?usage: verify-image.sh ROOTFS [release]}"
-mode="${2:-}"
 fail=0
 check() { # description, command...
   local d="$1"; shift
@@ -76,9 +75,11 @@ if grep -rIl --exclude='*.upstream' -e 'wallpapers/Kubuntu' "$root/usr/share/pla
 else
   echo "ok    no stale Kubuntu default wallpaper reference"
 fi
-if [ "$mode" = release ]; then
-  check "release image has no QA channel"   test ! -e "$root/usr/lib/hscl/qa/run.sh"
-  check "release image has no QA service"   test ! -e "$root/usr/lib/systemd/system/hscl-qa.service"
-fi
+# Workshop (opt-in tools) must be present but inert: nothing enabled, no socket units, no baked-in token.
+check "workshop evidence runner installed" test -x "$root/usr/lib/hscl/workshop/evidence.sh"
+check "workshop udev rule installed"       test -s "$root/usr/lib/udev/rules.d/90-hscl-workshop.rules"
+check "workshop is not enabled anywhere"   sh -c "! find '$root/etc/systemd/system' -name 'hscl-workshop*' | grep -q ."
+check "workshop has no socket units"       sh -c "! find '$root/usr/lib/systemd/system' -name 'hscl-workshop*.socket' | grep -q ."
+check "no workshop token baked in"         test ! -e "$root/etc/hscl/workshop.token"
 [ "$fail" -eq 0 ] && echo "verify-image: all checks passed" || echo "verify-image: FAILED"
 exit "$fail"

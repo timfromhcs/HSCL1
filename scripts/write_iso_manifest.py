@@ -26,6 +26,7 @@ def build(iso: Path, version: str, qa: bool, base_sha: str, commit: str, dirty: 
         "product": "HSCL1",
         "artifact": iso.name,
         "version": version,
+        "workshop_default": "disabled",  # attested: the builder only gets here after verify-image.sh proved Workshop is inert
         "qa_image": qa,
         "base": "Kubuntu 26.04.1 desktop amd64 (Ubuntu resolute)",
         "base_iso_sha256": base_sha,

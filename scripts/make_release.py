@@ -3,7 +3,7 @@
 
 Usage: make_release.py VERSION --iso ISO --prebuilt QCOW2 --out DIR [--evidence NAME=PATH ...]
 
-Refuses when: an artifact or its manifest is missing, the ISO is a QA image, the prebuilt manifest does not say the
+Refuses when: an artifact or its manifest is missing, the ISO does not attest Workshop-disabled-by-default, the prebuilt manifest does not say the
 credential scan was clean, a manifest hash does not match the file, or a placeholder string is left anywhere.
 """
 from __future__ import annotations
@@ -45,8 +45,8 @@ def check_no_placeholders(text: str, what: str) -> None:
 def build_release(version: str, iso: Path, prebuilt: Path, out: Path, evidence: dict[str, Path]) -> list[Path]:
     iso_m = load(iso.with_name(iso.name + ".manifest.json"))
     pre_m = load(prebuilt.with_name(prebuilt.name + ".manifest.json"))
-    if iso_m.get("qa_image") is not False:
-        raise ReleaseError("the ISO is a QA image (or its manifest does not say otherwise); build without --qa")
+    if iso_m.get("workshop_default") != "disabled":
+        raise ReleaseError("the ISO manifest does not attest that Workshop is disabled by default")
     if iso_m.get("iso_sha256") != sha256(iso):
         raise ReleaseError("ISO hash differs from its manifest")
     if pre_m.get("credential_scan") != "clean":

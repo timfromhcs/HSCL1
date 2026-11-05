@@ -45,12 +45,12 @@ def test_happy_path_writes_sums_manifest_notes(arts):
     assert m["signed"] is False and m["published"] is False
 
 
-def test_qa_image_is_refused(arts):
+def test_iso_without_workshop_attestation_is_refused(arts):
     tmp = arts[0]
     m = json.loads((tmp / "x.iso.manifest.json").read_text())
-    m["qa_image"] = True
+    m["workshop_default"] = "enabled"
     (tmp / "x.iso.manifest.json").write_text(json.dumps(m))
-    with pytest.raises(mr.ReleaseError, match="QA image"):
+    with pytest.raises(mr.ReleaseError, match="Workshop"):
         build(arts)
 
 

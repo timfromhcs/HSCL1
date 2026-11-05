@@ -14,13 +14,12 @@ Windows the fast path is native QEMU with WHPX (see [`TESTING.md`](TESTING.md)).
 
 ```console
 $ scripts/fetch-base-iso.sh                       # downloads and verifies kubuntu-26.04.1-desktop-amd64.iso
-$ scripts/remaster-iso.sh --out ~/hscl1-build/out/HSCL1-0.1.0-alpha.0-amd64.iso --variants release,qa --fast
+$ scripts/remaster-iso.sh --out ~/hscl1-build/out/HSCL1-0.1.0-alpha.0-amd64.iso --fast
 ```
 
 - `--fast` uses quick zstd compression (development); omit it for the xz release compression.
-- `--variants release` (default), `qa` or `release,qa`. The QA variant adds `hscl-qa` (VM evidence channel) and is written to
-  `<out>-qa.iso`; **never release it** - `make_release.py` refuses it and `verify-image.sh ... release` fails if the QA channel
-  is present in the release variant.
+- One output: the main ISO (live + installer + opt-in Workshop tools). `verify-image.sh` fails the build if Workshop is enabled or
+  exposes a socket.
 - `--force` is required to overwrite an existing output file.
 
 What the script does: verifies the base ISO checksum, builds the `hscl` binary and the HSCL1 `.deb` packages
@@ -39,7 +38,7 @@ fails**. Only then does it re-squash the filesystem and rebuild the ISO, replayi
 | `hscl-security` | sysctl hardening, first-boot firewall service |
 | `hscl-handbook` | offline handbook (EN/DE/FR) and launcher |
 | `hscl-control-center` | Qt 6 / QML Control Center |
-| `hscl-qa` | VM test evidence channel (QA images only) |
+| `hscl-workshop` | opt-in Workshop: evidence channel, VM API, respin (inert by default) |
 
 Each package is a tree under `packages/debian/<name>`; an optional `build.sh` generates files (it receives `STAGE`,
 `ROOT`, `VERSION`). Generated files are never committed.

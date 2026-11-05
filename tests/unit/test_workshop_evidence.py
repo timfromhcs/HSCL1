@@ -1,4 +1,4 @@
-"""hscl-qa: inert without the virtio port, writes a well-formed report with it, never writes outside QA_OUT."""
+"""hscl-workshop: inert without the virtio port, writes a well-formed report with it, never writes outside QA_OUT."""
 import os
 import shutil
 import subprocess
@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-RUN = ROOT / "packages/debian/hscl-qa/usr/lib/hscl/qa/run.sh"
+RUN = ROOT / "packages/debian/hscl-workshop/usr/lib/hscl/workshop/evidence.sh"
 BASH = shutil.which("bash")
 pytestmark = pytest.mark.skipif(BASH is None, reason="needs a POSIX shell")
 
@@ -40,5 +40,15 @@ def test_script_is_read_only_by_inspection():
 
 
 def test_service_is_conditional_on_the_port():
-    unit = (ROOT / "packages/debian/hscl-qa/usr/lib/systemd/system/hscl-qa.service").read_text()
+    unit = (ROOT / "packages/debian/hscl-workshop/usr/lib/systemd/system/hscl-workshop-evidence.service").read_text()
     assert "ConditionPathExists=/dev/virtio-ports/hscl.qa" in unit
+
+
+def test_workshop_is_inert_by_design():
+    base = ROOT / "packages/debian/hscl-workshop"
+    unit = (base / "usr/lib/systemd/system/hscl-workshop-evidence.service").read_text()
+    assert "[Install]" not in unit, "no enable symlinks: udev starts the unit"
+    rules = (base / "usr/lib/udev/rules.d/90-hscl-workshop.rules").read_text()
+    assert 'ATTR{name}=="hscl.qa"' in rules and 'ATTR{name}=="hscl.api"' in rules
+    assert "ListenStream" not in unit
+    assert not list(base.rglob("*.socket")), "no socket units (no network listener)"
