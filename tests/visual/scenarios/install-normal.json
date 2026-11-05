@@ -165,52 +165,28 @@
   "shot": "i10-installing"
  },
  {
-  "wait": 90
+  "wait": 240
  },
  {
   "shot": "i11-progress-1"
  },
  {
-  "wait": 90
+  "wait": 240
  },
  {
   "shot": "i11-progress-2"
  },
  {
-  "wait": 90
+  "wait": 240
  },
  {
   "shot": "i11-progress-3"
  },
  {
-  "wait": 90
- },
- {
-  "shot": "i11-progress-4"
- },
- {
-  "wait": 90
- },
- {
-  "shot": "i11-progress-5"
- },
- {
-  "wait": 90
- },
- {
-  "shot": "i11-progress-6"
- },
- {
-  "wait": 90
- },
- {
-  "shot": "i11-progress-7"
- },
- {
-  "wait": 90
- },
- {
-  "shot": "i11-progress-8"
+  "wait_disk_idle": {
+   "idle": 150,
+   "max": 2400
+  }
  },
  {
   "shot": "i12-before-finish"
@@ -228,6 +204,6 @@
   "shot": "i13-after-done"
  },
  {
-  "wait_exit": 240
+  "wait_exit": 180
  }
 ]

@@ -118,9 +118,30 @@ def type_text(qmp, text: str) -> None:
 def run_steps(qmp, out: Path, steps: list, ref, result: dict, proc=None) -> None:
     """Scenario steps: {"wait": s} {"keys": [..]} {"type": "text"} {"click": [fx, fy]} {"dclick": [fx, fy]} {"shot": "name"}."""
     shots = result.setdefault("scenario_shots", [])
+    result["_disk"] = result.get("_disk", "")
     for st in steps:
         if "wait" in st:
-            time.sleep(float(st["wait"]))
+            end, sign = time.time() + float(st["wait"]), 1
+            while time.time() < end:  # keep the guest awake: a tiny mouse move every few seconds
+                time.sleep(min(8.0, max(0.0, end - time.time())))
+                qmp.cmd("input-send-event", events=[{"type": "rel", "data": {"axis": "x", "value": sign}}])
+                sign = -sign
+        elif "wait_disk_idle" in st:
+            cfg = st["wait_disk_idle"]  # {"idle": seconds without writes, "max": seconds}
+            disk = Path(result["_disk"])
+            t_end, last, last_change = time.time() + float(cfg.get("max", 2400)), None, time.time()
+            sign = 1
+            while time.time() < t_end:
+                time.sleep(8)
+                qmp.cmd("input-send-event", events=[{"type": "rel", "data": {"axis": "x", "value": sign}}])
+                sign = -sign
+                cur = (disk.stat().st_size, disk.stat().st_mtime)
+                if cur != last:
+                    last, last_change = cur, time.time()
+                elif time.time() - last_change >= float(cfg.get("idle", 120)):
+                    break
+            result["disk_idle_after_s"] = round(time.time() - last_change)
+            print("disk idle for", result["disk_idle_after_s"], "s", flush=True)
         elif "keys" in st:
             send_keys(qmp, st["keys"])
         elif "type" in st:
@@ -266,7 +287,7 @@ def main():
     log = open(out / "qemu.log", "wb")
     t0 = time.time()
     proc = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT)
-    result = {"firmware": a.firmware, "secure_boot_requested": a.secure_boot, "accel": accel, "iso": os.path.basename(a.iso), "shots": [], "reached_desktop": False}
+    result = {"_disk": a.disk or "", "firmware": a.firmware, "secure_boot_requested": a.secure_boot, "accel": accel, "iso": os.path.basename(a.iso), "shots": [], "reached_desktop": False}
     try:
         qmp = Qmp(qmp_path)
         if a.login_password:
@@ -333,6 +354,7 @@ def main():
         except subprocess.TimeoutExpired:
             proc.kill()
         result["elapsed_s"] = round(time.time() - t0)
+        result.pop("_disk", None)
         (out / "result.json").write_text(json.dumps(result, indent=2))
     print(json.dumps({k: v for k, v in result.items() if k != "shots"}))
     return 0 if result["reached_desktop"] else 1
