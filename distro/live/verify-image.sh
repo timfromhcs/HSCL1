@@ -21,6 +21,10 @@ check "release marker"                    test -f "$root/usr/share/hscl/release.
 for w in HSCL1Midnight HSCL1Light HSCL1Nord HSCL1Aurora; do
   check "wallpaper $w"                    test -s "$root/usr/share/wallpapers/$w/contents/images/1920x1080.png"
 done
+check "design tokens installed"           test -s "$root/usr/share/hscl/themes/tokens.json"
+for c in HCSMidnight HCSLight HCSNord HCSAurora; do
+  check "colour scheme $c"                test -s "$root/usr/share/color-schemes/$c.colors"
+done
 check "logo mark svg"                     test -s "$root/usr/share/hscl/brand/hscl1-mark-dark.svg"
 check "logo wordmark svg"                 test -s "$root/usr/share/hscl/brand/hscl1-wordmark-dark.svg"
 check "hicolor icon hscl1 (scalable)"     test -s "$root/usr/share/icons/hicolor/scalable/apps/hscl1.svg"

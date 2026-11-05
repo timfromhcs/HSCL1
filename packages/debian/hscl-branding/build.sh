@@ -30,6 +30,10 @@ done
 install -D -m 0644 "$brand/hscl1-mark-dark.svg" "$STAGE/usr/share/icons/hicolor/scalable/apps/hscl1.svg"
 install -D -m 0644 "$brand/hscl1-mark-128.png" "$STAGE/usr/share/pixmaps/hscl1.png"
 
+# design tokens (read by `hscl appearance`) and Plasma colour schemes generated from them
+install -D -m 0644 "$ROOT/themes/tokens/tokens.json" "$STAGE/usr/share/hscl/themes/tokens.json"
+python3 "$ROOT/scripts/gen_colorschemes.py" "$STAGE/usr/share/color-schemes" >/dev/null
+
 mkdir -p "$STAGE/usr/lib"
 sed "s/@VERSION@/$VERSION/g" "$STAGE/os-release.in" > "$STAGE/usr/lib/os-release"
 rm -f "$STAGE/os-release.in"
