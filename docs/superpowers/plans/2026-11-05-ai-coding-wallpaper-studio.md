@@ -73,3 +73,33 @@ with `llama-bench` (nothing is claimed as a speed)**: `-ngl` (layer offload), `-
 - An MCP write tool becomes a root path -> write tools off by default, only allow-listed CLI operations, no shell argument.
 - Wallpaper presets overload weak GPUs -> numeric bounds, low-VRAM caps, reduced-motion override.
 - Abliterated models presented as safe or official -> mandatory warning on every listing and first use; no auto-selection by agents.
+
+## 5. Addendum (same day, later owner requests) - research-backed adjustments
+
+**TurboQuant / efficiency without loss.** Research: TurboQuant (ICLR 2026) compresses the KV cache to about 3-4 bits per element; in llama.cpp it exists only in
+**third-party forks** (cache types such as `turbo3`/`turbo4`, selected with `-ctk/-ctv`), not in upstream. Decision: the profile engine probes the pinned backend
+(`llama-server --help`) for TurboQuant cache types and uses `turbo4` (then `turbo3` when memory is tight) **only when the backend supports them**; otherwise it falls
+back to upstream `q8_0`. A fork build `hscl-llama-tq` (pinned commit, licence confirmed first) is an opt-in package. "Without loss" is **measured, not claimed**:
+`hscl ai quality-check MODEL` runs `llama-perplexity` with f16 KV vs the chosen KV type on a small fixed text and prints the delta; the default is only accepted when the delta
+is below a stated threshold (default +0.5 % perplexity).
+
+**MTP / speculative decoding.** Research: MTP support was merged into upstream llama.cpp in May 2026 (PR #22673); it needs **MTP-trained GGUFs** (e.g. official
+Qwen3.6 MTP builds); sources disagree on the flag (`--spec-type mtp` vs `draft-mtp`). Decision: probe `--help` for the accepted value; catalog entries carry `mtp: true/false`;
+MTP is enabled only for `mtp: true` entries on a backend that supports it; for other models the profile may add a **draft model** (`-md`, a smaller model of the same family)
+when RAM allows. Speedups are never promised; `hscl ai bench` records tokens/s on the user's machine.
+
+**HCS Coder.** `hcscoder` = a curated distribution of OpenCode (MIT) configured for HSCL1: local provider (the machine's llama-server), the `hscl mcp` server, optional third-party
+MCP servers, HCS agent prompts/commands (system knowledge of HSCL1 paths, `hscl` commands, safety rules), and the HCS terminal theme. `hscl code ...` manages tools; `hcscoder` is the
+one-word launcher. Upstream attribution stays.
+
+**Updates only through the Workshop API + respin (from now on).** The Workshop gains `put_deb` (allow-listed `/var/lib/hscl/workshop/debs/`), `respin` installs those debs into the overlay
+chroot, and `scripts/workshop/push.py PKG` builds a package on the builder and pushes it. A full ISO rebuild is reserved for changes the API cannot carry (kernel/base, boot
+structure). When something is missing the API is extended first, then used.
+
+**Adaptive graphics and autodetect.** `hscl graphics detect|profile|apply` + `hscl autotune`: detect GPU vendor/driver and **software rendering (llvmpipe)**, RAM, CPU cores, display
+resolution/scale, battery; pure function -> profile `ultra|high|balanced|low|minimal`; applies Qt Quick backend env, KWin compositing and animation speed, blur/translucency effects,
+rain density/static, and the low-VRAM switch. Runs automatically at first login and on hardware change; the user can override every value.
+
+**Images.** (1) Multimodal input: catalog entries list their `mmproj` file (verified in the HF tree), `model download --with-vision` fetches it, the server starts with `--mmproj`.
+(2) "JPEG as VAE": an **experimental** `hscl image` tool: lossless JPEG recompression is the default; learned VAE-latent storage is lossy by nature and therefore opt-in,
+labelled with its measured PSNR/SSIM, never applied silently. Needs a model runtime (ONNX) and is researched before it is built.

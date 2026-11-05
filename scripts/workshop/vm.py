@@ -100,36 +100,48 @@ class Vm:
 
     # ---- guest RPC (virtio port hscl.api via 127.0.0.1)
     def _connect(self, timeout: float):
+        """Connect to the VM's host end of the guest port. The guest may have written its hello line before we
+        connected (it is lost then), so the connection is usable immediately and no hello is awaited."""
         end = time.time() + timeout
         last = None
         while time.time() < end:
             try:
                 s = socket.create_connection(("127.0.0.1", self.api_port), timeout=5)
-                s.settimeout(timeout)
-                f = s.makefile("rwb", buffering=0)
-                hello = f.readline()
-                if hello:
-                    return s, f
-                s.close()
+                s.settimeout(min(30.0, timeout))
+                return s, s.makefile("rwb", buffering=0)
             except OSError as e:
                 last = e
-            time.sleep(2)
-        raise VmError(f"guest API not reachable (is the guest booted with hscl-workshop?): {last}")
+                time.sleep(2)
+        raise VmError(f"guest API port not reachable: {last}")
 
     def rpc(self, op: str, args: dict | None = None, timeout: float = 120) -> dict:
-        s, f = self._connect(timeout)
-        try:
-            self._rid += 1
-            f.write((json.dumps({"id": self._rid, "op": op, "args": args or {}}) + "\n").encode())
-            line = f.readline()
-            if not line:
-                raise VmError("guest closed the connection")
-            resp = json.loads(line)
-        finally:
-            s.close()
-        if not resp.get("ok"):
-            raise VmError(f"guest error: {resp.get('error')}")
-        return resp["result"]
+        """One request; the guest daemon may still be starting, so the request is re-sent until a matching reply arrives."""
+        self._rid += 1
+        rid = self._rid
+        payload = (json.dumps({"id": rid, "op": op, "args": args or {}}) + "\n").encode()
+        deadline = time.time() + timeout
+        last: Exception | None = None
+        while time.time() < deadline:
+            s, f = self._connect(max(5.0, deadline - time.time()))
+            try:
+                f.write(payload)
+                while time.time() < deadline:
+                    line = f.readline()
+                    if not line:
+                        break
+                    msg = json.loads(line)
+                    if msg.get("hello"):
+                        continue
+                    if msg.get("id") == rid:
+                        if not msg.get("ok"):
+                            raise VmError(f"guest error: {msg.get('error')}")
+                        return msg["result"]
+            except (socket.timeout, OSError) as e:
+                last = e
+            finally:
+                s.close()
+            time.sleep(3)
+        raise VmError(f"no answer from the guest Workshop daemon within {timeout:.0f}s (booted with hscl-workshop? {last})")
 
     def stop(self) -> None:
         try:
