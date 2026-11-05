@@ -8,6 +8,7 @@ mod catalog;
 mod doctor;
 mod download;
 mod graphics;
+mod mcp;
 mod profile;
 mod redact;
 mod report;
@@ -78,6 +79,12 @@ enum Cmd {
         /// Write JSON to this new file instead of stdout (never overwrites).
         #[arg(long, value_name = "PATH")]
         output: Option<std::path::PathBuf>,
+    },
+    /// Model Context Protocol server on stdio for local agents (read-only unless --allow-write).
+    Mcp {
+        /// Also expose write tools (theme set, graphics apply).
+        #[arg(long)]
+        allow_write: bool,
     },
     /// Detect the graphics hardware and tune the desktop for it (Qt Quick backend, animations, blur, rain density).
     Graphics {
@@ -316,6 +323,15 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
                 }
                 None => println!("{}", serde_json::to_string_pretty(&r)?),
             }
+        }
+        Cmd::Mcp { allow_write } => {
+            mcp::serve(
+                allow_write,
+                std::io::stdin().lock(),
+                std::io::stdout().lock(),
+                &mcp::SelfExec,
+            )?;
+            return Ok(exit::OK);
         }
         Cmd::Graphics { cmd } => return run_graphics(j, cmd),
         Cmd::Autotune { dry_run, force } => {
