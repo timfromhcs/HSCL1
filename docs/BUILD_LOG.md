@@ -120,3 +120,8 @@ Only what was run is listed; see `docs/CLAIMS.md` for the full evidence table.
 1. Finish ISO download + verification, run remaster PoC, boot in QEMU (UEFI + BIOS).
 2. Design tokens, architecture/threat-model docs, package manifests.
 3. Ask owner: repository visibility and licence.
+
+## M0/M1 session (2026-11-05, evening)
+- Public repo `timfromhcs/HSCL1` created (owner decision: public); `codex/hscl1-v1` and `main` pushed without force; default branch `main`.
+- M1: login autostart `hscl autotune` (hscl-desktop) and hidden KDE Connect daemon autostart (hscl-security); `tests/security/test_autostart.py`, two new `verify-image.sh` checks. Status IMPLEMENTED/TESTED (static); **not VM-verified** until a rebuilt/respun image shows no `*:1716` and a matching graphics profile after login.
+- Full suite: 161 passed, 11 skipped (environment-dependent, unchanged).

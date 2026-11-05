@@ -30,6 +30,8 @@ check "HCS dock template"                 test -s "$root/usr/share/plasma/layout
 check "HCS is the default look-and-feel"  grep -q '^LookAndFeelPackage=org.hcs.hscl1.desktop$' "$root/usr/share/kubuntu-default-settings/kf5-settings/kdeglobals"
 check "sysctl hardening installed"        test -s "$root/etc/sysctl.d/90-hscl.conf"
 check "security baseline service enabled" test -L "$root/etc/systemd/system/multi-user.target.wants/hscl-security-baseline.service"
+check "autotune autostart at login"        grep -q '^Exec=hscl autotune$' "$root/etc/xdg/autostart/hscl-autotune.desktop"
+check "KDE Connect daemon off by default"  grep -q '^Hidden=true$' "$root/etc/xdg/autostart/org.kde.kdeconnect.daemon.desktop"
 check "control center binary"             test -x "$root/usr/bin/hscl-control-center"
 check "control center QML"                test -s "$root/usr/share/hscl/control-center/qml/Main.qml"
 check "control center de translation"     test -s "$root/usr/share/hscl/control-center/i18n/hscl-cc_de.qm"

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=HSCL1 hardware tuning
+Comment=Re-tunes graphics for this machine when the hardware changed (no-op otherwise, respects the lock)
+Exec=hscl autotune
+OnlyShowIn=KDE;
+NoDisplay=true
+X-KDE-autostart-phase=2
+X-GNOME-Autostart-enabled=true
