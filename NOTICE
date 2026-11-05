@@ -1,0 +1,15 @@
+HSCL1
+Copyright (C) 2026 HCSMEDIA. Made with love by hcsmedia.
+
+HSCL1-owned code, artwork (logos, wallpapers, icons, themes), documentation and handbook are licensed under the
+GNU General Public License, version 3 or (at your option) any later version. See LICENSE.
+
+HSCL1 images are built from the official Kubuntu 26.04.1 (Ubuntu) live ISO and include many third-party packages under their own
+licences (GPL, LGPL, MIT, Apache-2.0 and others). Their copyright notices are preserved inside the image under /usr/share/doc.
+Corresponding source for Ubuntu packages is available from the Ubuntu archive (https://archive.ubuntu.com/ubuntu/ and
+https://launchpad.net/ubuntu); the source of HSCL1-owned components is this repository.
+
+Third-party components used or referenced by this repository are listed in docs/LICENSES.md.
+
+HSCL1 is not endorsed by Canonical, the Kubuntu/KDE projects, Offensive Security (Kali) or the Tails project. Ubuntu, Kubuntu, Kali, Tails,
+Apple, Windows and all other names are trademarks of their respective owners.

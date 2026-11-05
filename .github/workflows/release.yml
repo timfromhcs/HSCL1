@@ -1,0 +1,84 @@
+name: Verify release assets
+
+# Runs when a release is published (or by hand). The ISO is published as parts below GitHub's 2 GiB per-file limit;
+# this workflow downloads the parts, checks every part hash and the hash of the joined image WITHOUT writing a second
+# copy, and fails if anything is missing or does not match. The `bundle` job then joins the verified parts into the
+# single ISO file and stores it as a workflow artifact (a release asset cannot exceed 2 GiB, an artifact is not
+# subject to that limit; it expires after the retention period and needs a GitHub login to download).
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to verify (for example v0.1.0-alpha.0)"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify split ISO
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Free disk space (the parts alone are about 5.5 GB)
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android || true
+          df -h /
+      - name: Download parts and checksums
+        run: |
+          mkdir -p dl
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir dl --pattern '*.part*' --pattern 'SHA256SUMS'
+          ls -la dl
+      - name: Verify parts and the joined image (stream, no second copy)
+        run: bash scripts/release-join.sh dl --verify-only
+      - name: Summary
+        run: |
+          {
+            echo "### Release asset verification for \`$TAG\`"
+            echo
+            echo "All parts match \`SHA256SUMS\` and the joined image hash is correct."
+            echo
+            echo '```'
+            grep -vE '\.part[0-9]{3}$' dl/SHA256SUMS
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  bundle:
+    name: Bundle one-file ISO
+    needs: verify
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android || true
+          df -h /
+      - name: Download parts and checksums
+        run: |
+          mkdir -p dl
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir dl --pattern '*.part*' --pattern 'SHA256SUMS'
+      - name: Join and verify
+        run: |
+          bash scripts/release-join.sh dl
+          rm -f dl/*.part*
+          ls -la dl
+      - name: Upload the single ISO file
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: HSCL1-${{ env.TAG }}-iso
+          path: |
+            dl/*.iso
+            dl/SHA256SUMS
+          compression-level: 0
+          retention-days: 90
+          if-no-files-found: error
