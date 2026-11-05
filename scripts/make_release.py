@@ -1,0 +1,118 @@
+#!/usr/bin/env python3
+"""Assemble a LOCAL release set from verified artifacts. It never tags, uploads or signs anything.
+
+Usage: make_release.py VERSION --iso ISO --prebuilt QCOW2 --out DIR [--evidence NAME=PATH ...]
+
+Refuses when: an artifact or its manifest is missing, the ISO is a QA image, the prebuilt manifest does not say the
+credential scan was clean, a manifest hash does not match the file, or a placeholder string is left anywhere.
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import shutil
+import sys
+from pathlib import Path
+
+PLACEHOLDERS = ("GENERATE_FROM", "ACTUAL_", "TODO", "TBD", "PLACEHOLDER", "FIXME")
+
+
+class ReleaseError(Exception):
+    pass
+
+
+def sha256(p: Path) -> str:
+    h = hashlib.sha256()
+    with p.open("rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def load(p: Path) -> dict:
+    if not p.is_file():
+        raise ReleaseError(f"missing file: {p}")
+    return json.loads(p.read_text(encoding="utf-8"))
+
+
+def check_no_placeholders(text: str, what: str) -> None:
+    for ph in PLACEHOLDERS:
+        if ph in text:
+            raise ReleaseError(f"placeholder {ph!r} found in {what}")
+
+
+def build_release(version: str, iso: Path, prebuilt: Path, out: Path, evidence: dict[str, Path]) -> list[Path]:
+    iso_m = load(iso.with_name(iso.name + ".manifest.json"))
+    pre_m = load(prebuilt.with_name(prebuilt.name + ".manifest.json"))
+    if iso_m.get("qa_image") is not False:
+        raise ReleaseError("the ISO is a QA image (or its manifest does not say otherwise); build without --qa")
+    if iso_m.get("iso_sha256") != sha256(iso):
+        raise ReleaseError("ISO hash differs from its manifest")
+    if pre_m.get("credential_scan") != "clean":
+        raise ReleaseError("prebuilt image: credential scan is not recorded as clean")
+    if pre_m.get("image_sha256") != sha256(prebuilt):
+        raise ReleaseError("prebuilt image hash differs from its manifest")
+    if iso_m.get("git_dirty"):
+        raise ReleaseError("the ISO was built from a dirty git tree")
+    for name, path in evidence.items():
+        if not path.exists():
+            raise ReleaseError(f"evidence {name!r} not found: {path}")
+
+    out.mkdir(parents=True, exist_ok=True)
+    iso_name = f"HSCL1-{version}-amd64.iso"
+    pre_name = f"HSCL1-{version}-amd64-prebuilt.qcow2"
+    shutil.copy2(iso, out / iso_name)
+    shutil.copy2(prebuilt, out / pre_name)
+    (out / "SHA256SUMS").write_text(
+        f"{sha256(out / iso_name)}  {iso_name}\n{sha256(out / pre_name)}  {pre_name}\n", encoding="utf-8")
+    manifest = {
+        "product": "HSCL1", "version": version, "architecture": "amd64",
+        "iso": {"file": iso_name, **{k: iso_m[k] for k in ("iso_bytes", "iso_sha256", "git_commit", "built_utc", "base_iso_sha256")}},
+        "prebuilt": {"file": pre_name, **{k: pre_m[k] for k in ("image_bytes", "image_sha256", "virtual_bytes", "first_boot")}},
+        "evidence": {k: str(v) for k, v in sorted(evidence.items())},
+        "signed": False,
+        "published": False,
+        "note": "Local release set. Not tagged, signed or uploaded: repository visibility, licence and signing key are undecided.",
+    }
+    text = json.dumps(manifest, indent=2) + "\n"
+    check_no_placeholders(text, "build-manifest.json")
+    (out / "build-manifest.json").write_text(text, encoding="utf-8")
+    notes = (
+        f"# HSCL1 {version} (local pre-release set)\n\n"
+        "Pre-alpha. Verified in virtual machines only; not tested on physical hardware.\n\n"
+        f"- Live/installer ISO: `{iso_name}` (sha256 `{iso_m['iso_sha256']}`)\n"
+        f"- Prebuilt disk image (qcow2, first boot: {pre_m['first_boot']}): `{pre_name}` (sha256 `{pre_m['image_sha256']}`)\n"
+        "- Evidence recorded for this set: " + (", ".join(sorted(evidence)) or "none") + "\n\n"
+        "Not signed, not tagged, not uploaded. See `docs/KNOWN_LIMITATIONS.md` for what is not verified.\n"
+    )
+    check_no_placeholders(notes, "release-notes.md")
+    (out / "release-notes.md").write_text(notes, encoding="utf-8")
+    return [out / n for n in (iso_name, pre_name, "SHA256SUMS", "build-manifest.json", "release-notes.md")]
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("version")
+    ap.add_argument("--iso", required=True)
+    ap.add_argument("--prebuilt", required=True)
+    ap.add_argument("--out", required=True)
+    ap.add_argument("--evidence", action="append", default=[])
+    a = ap.parse_args()
+    ev = {}
+    for item in a.evidence:
+        name, _, path = item.partition("=")
+        ev[name] = Path(path)
+    try:
+        files = build_release(a.version, Path(a.iso), Path(a.prebuilt), Path(a.out), ev)
+    except ReleaseError as e:
+        print("REFUSED:", e)
+        return 1
+    for f in files:
+        print("wrote", f)
+    print("BLOCKED (owner decision needed): tag, signature, GitHub upload, Vercel deployment")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

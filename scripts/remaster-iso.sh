@@ -103,3 +103,5 @@ xorriso -indev "$base" -outdev "$out" -volid "HSCL1 ${version} amd64" \
 echo "== Result =="
 ls -l "$out"
 sha256sum "$out" | tee "$out.sha256"
+dirty=0; [ -n "$(git -C "$root" status --porcelain 2>/dev/null)" ] && dirty=1
+python3 "$root/scripts/write_iso_manifest.py" "$out" "$version" "$qa"   "$(cut -d' ' -f1 "$base.sha256")" "$(git -C "$root" rev-parse HEAD 2>/dev/null || echo unknown)" "$dirty"
