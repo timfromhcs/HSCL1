@@ -28,6 +28,11 @@ CHECKS = {
     "ai_slice": "systemctl show hscl-ai.slice -p MemoryHigh -p MemoryMax",
     "firewall": "ufw status | head -n 3",
     "listening_sockets": "ss -tulnH | awk '{print $1, $5}'",
+    "kdeconnect_listener": "ss -tulnH | grep -c ':1716' || true",
+    "kdeconnect_process": "pgrep -a kdeconnect || echo none",
+    "kdeconnect_autostart_file": "grep -H '^Hidden' /etc/xdg/autostart/org.kde.kdeconnect.daemon.desktop",
+    "autotune_autostart_file": "grep -H '^Exec' /etc/xdg/autostart/hscl-autotune.desktop",
+    "autotune_state_after_login": "cat /home/kubuntu/.config/hscl/graphics.json 2>&1",
     # CLI as the desktop user
     "hscl_version": f"{AS_USER} 'hscl version --json'",
     "memory_status": f"{AS_USER} 'hscl memory status --json'",

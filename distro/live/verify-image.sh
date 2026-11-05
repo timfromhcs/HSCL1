@@ -32,6 +32,7 @@ check "sysctl hardening installed"        test -s "$root/etc/sysctl.d/90-hscl.co
 check "security baseline service enabled" test -L "$root/etc/systemd/system/multi-user.target.wants/hscl-security-baseline.service"
 check "autotune autostart at login"        grep -q '^Exec=hscl autotune$' "$root/etc/xdg/autostart/hscl-autotune.desktop"
 check "KDE Connect daemon off by default"  grep -q '^Hidden=true$' "$root/etc/xdg/autostart/org.kde.kdeconnect.daemon.desktop"
+check "KDE Connect D-Bus activation stubbed"   grep -q "^Exec=/bin/false$" "$root/usr/share/dbus-1/services/org.kde.kdeconnect.service"
 check "control center binary"             test -x "$root/usr/bin/hscl-control-center"
 check "control center QML"                test -s "$root/usr/share/hscl/control-center/qml/Main.qml"
 check "control center de translation"     test -s "$root/usr/share/hscl/control-center/i18n/hscl-cc_de.qm"
