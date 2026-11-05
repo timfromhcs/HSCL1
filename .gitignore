@@ -14,3 +14,9 @@ node_modules/
 .vercel/
 website/dist/
 website/.astro/
+
+# local tooling and caches
+.serena/
+__pycache__/
+*.pyc
+.pytest_cache/
