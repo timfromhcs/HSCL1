@@ -1,7 +1,8 @@
 #!/bin/sh
 set -e
 if [ "$1" = remove ] || [ "$1" = abort-install ] || [ "$1" = disappear ]; then
-  rm -f /usr/lib/os-release /etc/issue
+  rm -f /usr/lib/os-release /etc/issue /etc/xdg/kcm-about-distrorc
   dpkg-divert --package hscl-branding --quiet --rename --remove /usr/lib/os-release
   dpkg-divert --package hscl-branding --quiet --rename --remove /etc/issue
+  dpkg-divert --package hscl-branding --quiet --rename --remove /etc/xdg/kcm-about-distrorc
 fi

@@ -1,0 +1,6 @@
+{
+    "KPackageStructure": "Plasma/LayoutTemplate",
+    "KPlugin": { "Authors": [{ "Name": "HCSMEDIA" }], "Id": "org.hcs.hscl1.topbar", "Name": "HSCL1 top bar", "License": "see NOTICE" },
+    "X-Plasma-APIVersion": "1",
+    "X-Plasma-ContainmentCategories": ["panel"]
+}

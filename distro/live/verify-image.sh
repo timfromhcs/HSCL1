@@ -22,6 +22,13 @@ check "handbook (de) installed"           test -s "$root/usr/share/doc/hscl-hand
 check "handbook (fr) installed"           test -s "$root/usr/share/doc/hscl-handbook/fr/index.html"
 check "handbook launcher"                 test -x "$root/usr/bin/hscl-handbook"
 check "handbook desktop entry"            test -s "$root/usr/share/applications/hscl-handbook.desktop"
+check "original kcm-about config diverted" test -f "$root/etc/xdg/kcm-about-distrorc.kubuntu"
+check "HCS look-and-feel package"         test -s "$root/usr/share/plasma/look-and-feel/org.hcs.hscl1.desktop/metadata.json"
+check "HCS top bar template"              test -s "$root/usr/share/plasma/layout-templates/org.hcs.hscl1.topbar/contents/layout.js"
+check "HCS dock template"                 test -s "$root/usr/share/plasma/layout-templates/org.hcs.hscl1.dock/contents/layout.js"
+check "HCS is the default look-and-feel"  grep -q '^LookAndFeelPackage=org.hcs.hscl1.desktop$' "$root/usr/share/kubuntu-default-settings/kf5-settings/kdeglobals"
+check "sysctl hardening installed"        test -s "$root/etc/sysctl.d/90-hscl.conf"
+check "security baseline service enabled" test -L "$root/etc/systemd/system/multi-user.target.wants/hscl-security-baseline.service"
 check "hscl CLI installed"                test -x "$root/usr/bin/hscl"
 check "release marker"                    test -f "$root/usr/share/hscl/release.json"
 for w in HSCL1Midnight HSCL1Light HSCL1Nord HSCL1Aurora; do

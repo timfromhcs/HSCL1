@@ -1,0 +1,11 @@
+Package: hscl-desktop
+Version: 0.0.0
+Architecture: all
+Section: kde
+Priority: optional
+Depends: hscl-branding, plasma-desktop
+Maintainer: HCSMEDIA <noreply@hcsmedia.invalid>
+Description: HCS Hybrid Desktop: top bar, floating dock and HSCL1 look-and-feel for Plasma
+ A slim top bar (launcher, global menu, clock, system tray) and a centred
+ floating dock on KDE Plasma 6, with the HSCL1 Midnight colour scheme.
+ Made with love by hcsmedia. Original design; no third-party artwork.

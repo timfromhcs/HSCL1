@@ -25,5 +25,8 @@ done
 patch_file "$ROOTFS/usr/share/kubuntu-default-settings/kf5-settings/kscreenlockerrc" \
   's#file:///usr/share/wallpapers/Kubuntu/\#day-night#file:///usr/share/wallpapers/HSCL1Midnight#g'
 
+# Make the HCS Hybrid Desktop the default look-and-feel (the Kubuntu settings file names the package)
+patch_file "$ROOTFS/usr/share/kubuntu-default-settings/kf5-settings/kdeglobals"   's/^LookAndFeelPackage=org.kubuntu.desktop$/LookAndFeelPackage=org.hcs.hscl1.desktop/; s/^DefaultDarkLookAndFeel=.*/DefaultDarkLookAndFeel=org.hcs.hscl1.desktop/'
+
 echo "010-hscl-defaults: patched $patched files"
-[ "$patched" -ge 7 ] || { echo "expected to patch at least 7 files" >&2; exit 1; }
+[ "$patched" -ge 8 ] || { echo "expected to patch at least 8 files" >&2; exit 1; }
