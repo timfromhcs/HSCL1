@@ -10,6 +10,7 @@ mod doctor;
 mod download;
 mod graphics;
 mod mcp;
+mod memory;
 mod profile;
 mod redact;
 mod report;
@@ -82,6 +83,11 @@ enum Cmd {
         #[arg(long, value_name = "PATH")]
         output: Option<std::path::PathBuf>,
     },
+    /// Memory status and the AI RAM budget.
+    Memory {
+        #[command(subcommand)]
+        cmd: MemoryCmd,
+    },
     /// Low-VRAM mode for weak GPUs: caps the desktop effects and makes `ai profile` offload less.
     LowVram {
         /// on, off or status
@@ -122,6 +128,14 @@ enum Cmd {
         #[command(subcommand)]
         cmd: AppearanceCmd,
     },
+}
+
+#[derive(Subcommand)]
+enum MemoryCmd {
+    /// RAM, swap, zram devices and the AI budget.
+    Status,
+    /// Show or set the share of RAM local AI may use (10-90, default 60).
+    Budget { percent: Option<u8> },
 }
 
 #[derive(Subcommand)]
@@ -411,6 +425,26 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
                     println!("report written to {}", p.display());
                 }
                 None => println!("{}", serde_json::to_string_pretty(&r)?),
+            }
+        }
+        Cmd::Memory { cmd } => {
+            let cfg = appearance::config_dir();
+            match cmd {
+                MemoryCmd::Status => {
+                    let s = memory::status(&cfg);
+                    print_value(j, &serde_json::to_value(&s)?, || {
+                        format!("RAM {} MiB total, {} MiB available; swap {} MiB ({} free); zram: {}; AI budget {} % = {} MiB", s.total_mib, s.available_mib, s.swap_total_mib, s.swap_free_mib, if s.zram_devices.is_empty() { "none".to_string() } else { s.zram_devices.join(", ") }, s.ai_budget_percent, s.ai_budget_mib)
+                    });
+                }
+                MemoryCmd::Budget { percent } => {
+                    if let Some(p) = percent {
+                        memory::write_percent(&cfg, p)?;
+                    }
+                    let p = memory::read_percent(&cfg);
+                    print_value(j, &json!({"ai_budget_percent": p}), || {
+                        format!("AI RAM budget: {p} %")
+                    });
+                }
             }
         }
         Cmd::LowVram { mode } => {
@@ -776,7 +810,8 @@ fn probe_backend(path: Option<std::path::PathBuf>) -> profile::BackendCaps {
 
 fn run_model(j: bool, cmd: ModelCmd) -> anyhow::Result<u8> {
     let models = catalog::load()?;
-    let hw = ai::to_hw(&ai::detect(), home_free_disk());
+    let mut hw = ai::to_hw(&ai::detect(), home_free_disk());
+    memory::cap_hw(&mut hw, memory::read_percent(&appearance::config_dir()));
     let tier = profile::tier_for(hw.ram_total_mib).name();
     match cmd {
         ModelCmd::List => {
@@ -901,7 +936,8 @@ fn run_profile(
     backend: Option<std::path::PathBuf>,
 ) -> anyhow::Result<u8> {
     let models = catalog::load()?;
-    let hw = ai::to_hw(&ai::detect(), home_free_disk());
+    let mut hw = ai::to_hw(&ai::detect(), home_free_disk());
+    memory::cap_hw(&mut hw, memory::read_percent(&appearance::config_dir()));
     let caps = probe_backend(backend);
     let m = match &model {
         Some(id) => catalog::find(&models, id)?,

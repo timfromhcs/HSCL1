@@ -1,0 +1,12 @@
+Package: hscl-memory
+Version: 0.0.0
+Architecture: all
+Section: admin
+Priority: optional
+Depends: earlyoom, systemd-zram-generator
+Maintainer: HCSMEDIA <noreply@hcsmedia.invalid>
+Description: HSCL1 memory protection: compressed swap in RAM, early out-of-memory killer, AI memory slice
+ Configures zram swap (zstd), a low-memory killer that spares the desktop shell,
+ and a systemd slice that caps what local AI servers may use.
+ The tuning values are common defaults and have not been benchmarked by HSCL1.
+ Made with love by hcsmedia.

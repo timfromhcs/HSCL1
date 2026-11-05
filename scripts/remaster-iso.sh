@@ -70,9 +70,11 @@ echo "== Build hscl binary + HSCL1 packages =="
 CARGO_TARGET_DIR="$work/target" cargo build --release --manifest-path "$root/Cargo.toml" -q
 debdir="$work/debs"; rm -rf "$debdir"; mkdir -p "$debdir"
 "$root/scripts/build-deb.sh" hscl-base "$debdir" --bin "$work/target/release/hscl" >/dev/null
-for p in hscl-branding hscl-handbook hscl-desktop hscl-security hscl-control-center hscl-workshop; do
+for p in hscl-branding hscl-handbook hscl-desktop hscl-security hscl-control-center hscl-workshop hscl-memory; do
   "$root/scripts/build-deb.sh" "$p" "$debdir" >/dev/null
 done
+# Third-party packages from the Ubuntu archive (signed by apt; MIT licensed): memory protection tools the image does not ship.
+( cd "$debdir" && apt-get download earlyoom systemd-zram-generator >/dev/null )
 ls -l "$debdir"/*.deb
 
 echo "== Pristine root filesystem (cached by base ISO checksum) =="

@@ -1,0 +1,6 @@
+[Unit]
+Description=HSCL1 local AI workloads (memory capped so the desktop stays responsive)
+
+[Slice]
+MemoryHigh=60%
+MemoryMax=75%

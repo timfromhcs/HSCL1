@@ -52,6 +52,12 @@ check "SDDM theme has no Kubuntu artwork" sh -c "! ls '$root'/usr/share/sddm/the
 check "default avatar is the HSCL1 mark"  cmp -s "$root/etc/skel/.face" "$root/usr/share/hscl/brand/hscl1-mark-256.png"
 check "OEM launcher renamed"              grep -q '^Name=Install HSCL1' "$root/usr/share/applications/calamares-launch-oem.desktop"
 check "OEM batch id is hscl1-*"           grep -q '^batch-identifier: hscl1-' "$root/etc/calamares/modules/oemid.conf"
+check "earlyoom installed"                test -x "$root/usr/bin/earlyoom"
+check "zram generator installed"          test -x "$root/usr/lib/systemd/system-generators/zram-generator"
+check "zram config"                       grep -q 'zram-size = min(ram / 2, 8192)' "$root/etc/systemd/zram-generator.conf"
+check "earlyoom drop-in spares the shell" grep -q 'plasmashell' "$root/etc/systemd/system/earlyoom.service.d/90-hscl.conf"
+check "AI memory slice"                   grep -q '^MemoryHigh=60%' "$root/usr/lib/systemd/system/hscl-ai.slice"
+check "memory sysctl"                     grep -q 'vm.swappiness = 100' "$root/etc/sysctl.d/91-hscl-memory.conf"
 check "hscl CLI installed"                test -x "$root/usr/bin/hscl"
 check "release marker"                    test -f "$root/usr/share/hscl/release.json"
 for w in HSCL1Midnight HSCL1Light HSCL1Nord HSCL1Aurora; do
