@@ -199,6 +199,8 @@ def main():
     ap.add_argument("--steps", help="JSON scenario file run after the desktop is reached (see tests/visual/scenarios)")
     ap.add_argument("--disk", help="attach this qcow2 as the only virtio disk (created when missing; disposable test disks only)")
     ap.add_argument("--disk-size", default="40G", help="size for a newly created --disk")
+    ap.add_argument("--login-password", help="installed-system boot: after --boot-wait seconds type this password at the login screen (single user preselected)")
+    ap.add_argument("--boot-wait", type=int, default=75)
     ap.add_argument("--accel", help="override accelerator (kvm|whpx|tcg)")
     ap.add_argument("--qmp-port", type=int, default=4444, help="QMP TCP port (Windows QEMU only)")
     ap.add_argument("--mem", type=int, default=4096)
@@ -267,6 +269,12 @@ def main():
     result = {"firmware": a.firmware, "secure_boot_requested": a.secure_boot, "accel": accel, "iso": os.path.basename(a.iso), "shots": [], "reached_desktop": False}
     try:
         qmp = Qmp(qmp_path)
+        if a.login_password:
+            time.sleep(a.boot_wait)
+            grab(qmp, out, "login-screen")
+            type_text(qmp, a.login_password)
+            send_keys(qmp, ["ret"])
+            print("typed password at the login screen", flush=True)
         streak, n, ref, ref_size, clicked = 0, 0, None, None, False
         while time.time() - t0 < a.timeout and proc.poll() is None:
             time.sleep(a.interval)
