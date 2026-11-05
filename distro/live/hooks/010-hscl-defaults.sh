@@ -64,6 +64,8 @@ rm -f "$ROOTFS/etc/skel/.face"
 install -m 0644 "$ROOTFS/usr/share/hscl/brand/hscl1-mark-256.png" "$ROOTFS/etc/skel/.face"
 ln -sf .face "$ROOTFS/etc/skel/.face.icon"
 
+patch_file "$ROOTFS/etc/calamares/modules/oemid.conf" 's/^batch-identifier: kubuntu-/batch-identifier: hscl1-/'
+
 # Partition/filesystem names that end up on the installed disk
 patch_file "$ROOTFS/etc/calamares/modules/partition.conf" 's/"kubuntu_boot"/"hscl1_boot"/; s/"kubuntu_2604"/"hscl1_root"/'
 
@@ -73,4 +75,4 @@ ln -sf /usr/share/applications/hscl-handbook.desktop "$ROOTFS/etc/skel/Desktop/h
 ln -sf /usr/share/applications/hscl-control-center.desktop "$ROOTFS/etc/skel/Desktop/hscl-control-center.desktop"
 
 echo "010-hscl-defaults: patched $patched files"
-[ "$patched" -ge 12 ] || { echo "expected to patch at least 12 files" >&2; exit 1; }
+[ "$patched" -ge 13 ] || { echo "expected to patch at least 13 files" >&2; exit 1; }

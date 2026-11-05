@@ -52,6 +52,7 @@ check "SDDM theme selected"               grep -q '^Current=hscl1$' "$root/etc/s
 check "SDDM theme has no Kubuntu artwork" sh -c "! ls '$root'/usr/share/sddm/themes/hscl1/ | grep -i kubuntu_"
 check "default avatar is the HSCL1 mark"  cmp -s "$root/etc/skel/.face" "$root/usr/share/hscl/brand/hscl1-mark-256.png"
 check "OEM launcher renamed"              grep -q '^Name=Install HSCL1' "$root/usr/share/applications/calamares-launch-oem.desktop"
+check "OEM batch id is hscl1-*"           grep -q '^batch-identifier: hscl1-' "$root/etc/calamares/modules/oemid.conf"
 check "hscl CLI installed"                test -x "$root/usr/bin/hscl"
 check "release marker"                    test -f "$root/usr/share/hscl/release.json"
 for w in HSCL1Midnight HSCL1Light HSCL1Nord HSCL1Aurora; do

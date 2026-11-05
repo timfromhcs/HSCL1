@@ -1,0 +1,174 @@
+[
+ {
+  "keys": [
+   "alt",
+   "f2"
+  ]
+ },
+ {
+  "wait": 2
+ },
+ {
+  "type": "OEM mode"
+ },
+ {
+  "wait": 3
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 10
+ },
+ {
+  "click": [
+   0.612,
+   0.575
+  ]
+ },
+ {
+  "wait": 50
+ },
+ {
+  "shot": "o01-welcome"
+ },
+ {
+  "click": [
+   0.883,
+   0.903
+  ]
+ },
+ {
+  "wait": 6
+ },
+ {
+  "shot": "o02-oem"
+ },
+ {
+  "click": [
+   0.883,
+   0.903
+  ]
+ },
+ {
+  "wait": 6
+ },
+ {
+  "shot": "o02-location"
+ },
+ {
+  "click": [
+   0.883,
+   0.903
+  ]
+ },
+ {
+  "wait": 6
+ },
+ {
+  "shot": "o02-keyboard"
+ },
+ {
+  "click": [
+   0.883,
+   0.903
+  ]
+ },
+ {
+  "wait": 6
+ },
+ {
+  "shot": "o02-customize"
+ },
+ {
+  "click": [
+   0.883,
+   0.903
+  ]
+ },
+ {
+  "wait": 6
+ },
+ {
+  "shot": "o02-partitions"
+ },
+ {
+  "click": [
+   0.161,
+   0.1375
+  ]
+ },
+ {
+  "wait": 3
+ },
+ {
+  "shot": "o03-erase"
+ },
+ {
+  "click": [
+   0.883,
+   0.903
+  ]
+ },
+ {
+  "wait": 6
+ },
+ {
+  "shot": "o04-users"
+ },
+ {
+  "click": [
+   0.883,
+   0.903
+  ]
+ },
+ {
+  "wait": 8
+ },
+ {
+  "shot": "o05-summary"
+ },
+ {
+  "click": [
+   0.883,
+   0.903
+  ]
+ },
+ {
+  "wait": 4
+ },
+ {
+  "shot": "o06-confirm"
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 20
+ },
+ {
+  "shot": "o07-installing"
+ },
+ {
+  "wait": 240
+ },
+ {
+  "shot": "o08-progress"
+ },
+ {
+  "wait_disk_idle": {
+   "idle": 150,
+   "max": 2400
+  }
+ },
+ {
+  "shot": "o09-finish"
+ },
+ {
+  "wait": 2
+ }
+]
