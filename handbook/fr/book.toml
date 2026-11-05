@@ -1,0 +1,9 @@
+[book]
+title = "Manuel HSCL1"
+authors = ["HCSMEDIA"]
+language = "fr"
+src = "src"
+
+[output.html]
+default-theme = "navy"
+preferred-dark-theme = "navy"

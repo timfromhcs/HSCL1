@@ -1,0 +1,9 @@
+[book]
+title = "HSCL1-Handbuch"
+authors = ["HCSMEDIA"]
+language = "de"
+src = "src"
+
+[output.html]
+default-theme = "navy"
+preferred-dark-theme = "navy"
