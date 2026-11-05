@@ -83,6 +83,26 @@ passes for all 4 themes. APT source policy + test added (`distro/base/apt`, `tes
 Known defects after these runs: desktop icons and the installer still show Kubuntu branding; the dock reuses the HSCL1
 mark for the handbook icon; Secure Boot state inside the guest not yet read; no physical hardware tested.
 
+## Install verification (2026-11-05) - status: VM-VERIFIED (test install, QA ISO)
+Run: `scripts/qemu_boot_test.py` + `tests/visual/scenarios/install-normal.json` on Windows QEMU 11.1 / WHPX, UEFI,
+4 GB / 4 vCPU, one 40 GB virtio qcow2 (disposable, `artifacts/install-test/`, not in git, contains a throw-away test user).
+
+| Step | Result | Evidence |
+|---|---|---|
+| Installer start | Calamares with HSCL1 branding (title "Welcome to the HSCL1 0.1.0-alpha.0 installer", HSCL1 logo, sidebar, support link) | `artifacts/inst-explore/ex-welcome.png` |
+| Disk selection | single disk `vda` 40 GiB; **no option preselected** (erase had to be chosen explicitly) | `ex-partitions.png` |
+| Summary before writing | "Erase disk /dev/vda": GPT, 300 MiB FAT32 EFI, 39.71 GiB ext4 | `install-test/i08-summary.png` |
+| Install | completed, "All done. HSCL1 0.1.0-alpha.0 has been installed"; disk idle afterwards; 1359 s total run | `install-test/i12-before-finish.png`, `result.json` |
+| Boot from the installed disk only (no ISO) | login screen with the created user, login succeeds, HCS desktop | `install-boot/` |
+| Guest report (installed system) | os-release HSCL1, hscl status/doctor JSON valid, kernel.kptr_restrict=2, firewall active (deny in / allow out), no failed hscl units, desktop session running | `install-boot/guest-report.txt`, `qa_report.py` |
+| Control Center on the installed system | shows live values: OS, kernel 7.0.0-30-generic, AppArmor yes, firewall yes, health 5 passed / 0 failed | `install-boot/cc-overview.png` |
+
+Defects found by this run and fixed in the source: Control Center pages never received the backend (self-binding), shared
+dock icon, Kubuntu filesystem labels (`kubuntu_2604` -> `hscl1_root`), Kubuntu SDDM theme and avatar (derived `hscl1`
+SDDM theme, HSCL1 default avatar), slideshow advertised an unbound shortcut, welcome image contrast, a first run cut off at
+85 % because the screen went idle (harness now keeps the guest awake and waits for the disk to go idle).
+Not yet re-verified in an image: the SDDM/avatar/label fixes (need a rebuilt ISO).
+
 ## Next safe actions
 1. Finish ISO download + verification, run remaster PoC, boot in QEMU (UEFI + BIOS).
 2. Design tokens, architecture/threat-model docs, package manifests.
