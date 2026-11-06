@@ -67,7 +67,7 @@ Versions use semver pre-release tags; the ISO embeds its version and the manifes
 
 ### M1 - Close known defects in the image (via Workshop loop)
 
-- [~] KDE Connect listener (`:1716`) off by default: autostart entry hidden (IMPLEMENTED, unit + verify-image checks); **VM listening-socket check still pending**.
+- [x] KDE Connect listener (`:1716`) off by default: VM-VERIFIED (no listener, no process) after fixing the hidden-autostart, D-Bus-activation and diverted-copy causes.
 - [~] Autotune at login: XDG autostart running `hscl autotune` (idempotent via fingerprint, honours lock) IMPLEMENTED; **VM test after login pending**.
 - [ ] Aurora wallpaper redesign (ribbons); screenshots before/after; CPU cost measured and recorded (`hscl wallpaper` perf note) - or the claim stays "not measured".
 - [x] Stale-package-list issue: `hscl system updates --check` now reports `lists_age_days`/`lists_stale` (JSON) and a WARNING "unknown, not 'up to date'" when lists are missing or >= 7 days old (TESTED, unit; VM run pending).
