@@ -9,7 +9,8 @@
   "honest": "Stand",
   "lang": "Sprache",
   "skip": "Zum Inhalt springen",
-  "security": "Sicherheit"
+  "security": "Sicherheit",
+  "vm": "In einer VM testen"
  },
  "hero": {
   "h1": "Ein System. Drei Modi.",
@@ -118,5 +119,55 @@
     "u": "https://github.com/timfromhcs/HSCL1/blob/main/SECURITY.md"
    }
   ]
+ },
+ "vm": {
+  "title": "HSCL1 in einer virtuellen Maschine testen - HSCL1",
+  "h1": "HSCL1 in einer virtuellen Maschine testen",
+  "intro": "HSCL1 wurde bisher ausschließlich in virtuellen Maschinen getestet. Das sind die genauen Einstellungen unserer automatisierten Tests. Diese frühe Vorabversion bitte nicht auf einen USB-Stick für einen echten Rechner schreiben: Sie wurde nicht auf echter Hardware getestet.",
+  "table_h": "Getestete Einstellungen (QEMU)",
+  "rows": [
+   [
+    "Hypervisor",
+    "QEMU 11.1 unter Windows mit WHPX-Beschleunigung; Software-Emulation (TCG), wo keine Beschleunigung verfügbar war (Test mit Secure-Boot-Firmware)"
+   ],
+   [
+    "Firmware",
+    "UEFI (OVMF/edk2) und klassisches BIOS (SeaBIOS) erreichten beide den Live-Desktop"
+   ],
+   [
+    "Speicher und CPUs",
+    "4 GB RAM, 4 virtuelle CPUs"
+   ],
+   [
+    "Anzeige",
+    "Standard-VGA (Software-Rendering); HSCL1 erkennt das und schaltet Animationen und Unschärfe ab"
+   ],
+   [
+    "Festplatte (für einen Installationstest)",
+    "Eine leere virtuelle virtio-Platte mit 40 GB im qcow2-Format, nur für den Test angelegt"
+   ],
+   [
+    "Netzwerk",
+    "QEMU-Benutzermodus-Netzwerk mit virtio-Netzwerkkarte"
+   ],
+   [
+    "Installationsmedium",
+    "Das ISO als schreibgeschütztes CD-ROM-Laufwerk"
+   ]
+  ],
+  "steps_h": "Was zu erwarten ist",
+  "steps": [
+   "Der Live-Desktop erscheint mit Hardware-Beschleunigung nach etwa zwei Minuten; mit Software-Emulation dauert es deutlich länger.",
+   "Der Installer (Calamares) lässt dich die Platte wählen. Nichts ist vorausgewählt, und nichts wird geschrieben, bevor du die Zusammenfassung bestätigst. Eine Wegwerf-Platte verwenden.",
+   "Eine vollständige Testinstallation dauerte in unserem Lauf etwa 23 Minuten und startete danach von der virtuellen Platte."
+  ],
+  "not_h": "Nicht getestet",
+  "not": [
+   "VirtualBox, VMware und Hyper-V: Es werden keine Einstellungen empfohlen, weil keine getestet wurden.",
+   "KVM unter Linux: Dieselben QEMU-Optionen sollten funktionieren, wir haben das aber nicht überprüft.",
+   "Verschlüsselte Installation (LUKS2): noch nicht getestet.",
+   "3D-Beschleunigung, USB-Durchreichen und gemeinsame Ordner: nicht getestet; gemeinsame Ordner ausgeschaltet lassen."
+  ],
+  "script": "Das Programm, das diese Tests ausführt, ist scripts/qemu_boot_test.py im Quellcode-Repository."
  }
 }

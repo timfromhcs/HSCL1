@@ -9,7 +9,8 @@
   "honest": "État",
   "lang": "Langue",
   "skip": "Aller au contenu",
-  "security": "Sécurité"
+  "security": "Sécurité",
+  "vm": "Essayer en VM"
  },
  "hero": {
   "h1": "Un système. Trois modes.",
@@ -118,5 +119,55 @@
     "u": "https://github.com/timfromhcs/HSCL1/blob/main/SECURITY.md"
    }
   ]
+ },
+ "vm": {
+  "title": "Essayer HSCL1 dans une machine virtuelle - HSCL1",
+  "h1": "Essayer HSCL1 dans une machine virtuelle",
+  "intro": "Jusqu'ici, HSCL1 n'a été testé que dans des machines virtuelles. Voici les réglages exacts de nos tests automatisés. N'écrivez pas cette préversion précoce sur une clé USB pour un vrai ordinateur : elle n'a pas été testée sur du matériel physique.",
+  "table_h": "Réglages testés (QEMU)",
+  "rows": [
+   [
+    "Hyperviseur",
+    "QEMU 11.1 sous Windows avec accélération WHPX ; émulation logicielle (TCG) là où l'accélération n'était pas disponible (test du micrologiciel Secure Boot)"
+   ],
+   [
+    "Micrologiciel",
+    "UEFI (OVMF/edk2) et BIOS classique (SeaBIOS) ont tous deux atteint le bureau live"
+   ],
+   [
+    "Mémoire et processeurs",
+    "4 Go de RAM, 4 processeurs virtuels"
+   ],
+   [
+    "Affichage",
+    "VGA standard (rendu logiciel) ; HSCL1 le détecte et désactive animations et flou"
+   ],
+   [
+    "Disque (pour un test d'installation)",
+    "Un disque virtio vide de 40 Go au format qcow2, créé uniquement pour le test"
+   ],
+   [
+    "Réseau",
+    "Réseau en mode utilisateur de QEMU avec une carte réseau virtio"
+   ],
+   [
+    "Support d'installation",
+    "L'ISO attaché comme lecteur CD-ROM en lecture seule"
+   ]
+  ],
+  "steps_h": "À quoi s'attendre",
+  "steps": [
+   "Le bureau live apparaît après environ deux minutes avec l'accélération matérielle ; avec l'émulation logicielle, c'est bien plus long.",
+   "L'installateur (Calamares) vous fait choisir le disque. Rien n'est présélectionné et rien n'est écrit avant que vous confirmiez le récapitulatif. Utilisez un disque jetable.",
+   "Une installation de test complète a duré environ 23 minutes lors de notre essai et a ensuite démarré depuis le disque virtuel."
+  ],
+  "not_h": "Non testé",
+  "not": [
+   "VirtualBox, VMware et Hyper-V : aucun réglage n'est recommandé car aucun n'a été testé.",
+   "KVM sous Linux : les mêmes options QEMU devraient fonctionner, mais nous ne l'avons pas vérifié.",
+   "Installation chiffrée (LUKS2) : pas encore testée.",
+   "Accélération 3D, passage USB et dossiers partagés : non testés ; laissez les dossiers partagés désactivés."
+  ],
+  "script": "Le programme qui exécute ces tests est scripts/qemu_boot_test.py dans le dépôt du code source."
  }
 }
