@@ -112,7 +112,7 @@ Versions use semver pre-release tags; the ISO embeds its version and the manifes
 - [ ] AppArmor profile for `hscl_workshopd` and the MCP servers; Workshop confined (allow-listed paths already enforced in code).
 - [~] systemd hardening of HSCL1 services: baseline option set on all units + test (IMPLEMENTED/TESTED statically; Workshop daemon intentionally without ProtectSystem, see THREAT_MODEL); **`systemd-analyze security` evidence from a booted image still pending**.
 - [ ] Listening-socket and open-service audit on the installed system; list in `docs/THREAT_MODEL.md`.
-- [x] Fuzz/property tests for the Workshop JSON-RPC parser and path allow-list (seeded, 4000+4000+1500 cases, dependency-free; checked to fail on a deliberately weakened validator); `cargo audit` in CI (added, green on main; `cargo deny` licences/bans/sources job added, first CI run pending).
+- [x] Fuzz/property tests for the Workshop JSON-RPC parser and path allow-list (seeded, 4000+4000+1500 cases, dependency-free; checked to fail on a deliberately weakened validator); `cargo audit` in CI (added, green on main; `cargo deny` licences/bans/sources job added, green in CI).
 - [ ] SBOM (SPDX) generated from the actual image and attached to releases; build manifest includes package versions.
 - [ ] Release signing: **user decision required** (create a signing key and publish its fingerprint). Until then releases stay "unsigned" in the notes.
 - [ ] CI: pin all actions by SHA (done for checkout; add for any new action), least-privilege `permissions`, Dependabot for cargo/actions.
