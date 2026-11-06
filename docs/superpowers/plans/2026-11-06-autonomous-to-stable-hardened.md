@@ -235,6 +235,7 @@ Each task lists **Gate** (the command or observation that proves it) and **Evide
 
 ### P4 - Security Lab MVP (R8)
 
+- [ ] **P4.0 Podman in the image:** `podman` is NOT in the live image (measured). Add podman and its runtime dependencies (crun, netavark/pasta or slirp4netns, uidmap, fuse-overlayfs, containers-common) through the same signed-archive mechanism used for earlyoom/zram, verify offline installability, record the size increase; `verify-image.sh` checks they are present and that no daemon is enabled.
 - [ ] **P4.1 Read the Kali Podman page** and record the exact supported flags; pin the digest read from `podman pull` (full `sha256:`).
 - [ ] **P4.2 Container spec generator (two phases, R13)** in Rust (`hscl lab ...`): typed options only; defaults = rootless, `--cap-drop=ALL`, `no-new-privileges`,
   `--read-only`+tmpfs, no host network/PID, no privileged, no socket mounts, no host home, explicit lab folder mount only, memory/CPU/PID limits.
@@ -320,7 +321,7 @@ Each task lists **Gate** (the command or observation that proves it) and **Evide
 | 2 | Does the signed GRUB in this ISO contain `luks2`/`cryptodisk`? | `strings` on `grubx64.efi` extracted from the ISO (no VM) | P2.0 |
 | 3 | Does `apt` work in the Kali container with the restricted capability set, or does it need `-o APT::Sandbox::User=root`? | one rootless container in the VM, both variants | P4.3 |
 | 4 | Does AppArmor really confine `hscl_workshopd` (the profile attaches to the interpreter path)? | `ps -Z` in the VM with a named profile | P3.4 |
-| 5 | Are unprivileged user namespaces restricted in 26.04 in a way that breaks rootless Podman? | `sysctl kernel.apparmor_restrict_unprivileged_userns` + one rootless run | P3.5/P4.3 |
+| 5 | Are unprivileged user namespaces restricted in 26.04 in a way that breaks rootless Podman? | **Partly answered 2026-11-06:** `kernel.apparmor_restrict_unprivileged_userns = 0` in the live image (unrestricted); still needs one rootless run on the installed system | P3.5/P4.3 |
 | 6 | Is the ISO reproducible, and where does it differ? | two clean builds with `SOURCE_DATE_EPOCH`, compare at 3 levels | P8 |
 | 7 | Does `ssd=off` make the WHPX VM clearly faster? | 3 boots each, same image | P1.7 |
 | 8 | Does the Windows Vulkan build of llama.cpp select the Radeon 680M? | `llama-server --list-devices` + backend log line on the owner's machine | P6.2 |
