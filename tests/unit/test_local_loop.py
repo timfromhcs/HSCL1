@@ -1,0 +1,135 @@
+"""Plan L, Task L3: bounded verify-patch loop. The model proposes whole-file blocks, tests decide."""
+import sys
+from pathlib import Path
+
+import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "tools" / "local_worker"))
+import loop  # noqa: E402
+
+GOOD = '''def parse_score(s):
+    out = {}
+    for part in s.split(","):
+        if "=" not in part:
+            raise ValueError("missing =")
+        k, v = part.split("=", 1)
+        try:
+            out[k] = int(v)
+        except ValueError:
+            out[k] = float(v)
+    return out
+'''
+BAD = GOOD.replace("int(v)", "float(v)")  # the real bug the 4B model made: ints become floats
+
+CHECK = '''import sys
+sys.path.insert(0, ".")
+from impl import parse_score
+r = parse_score("a=1,b=2.5")
+assert type(r["a"]) is int, "a must be int"
+assert type(r["b"]) is float, "b must be float"
+try:
+    parse_score("nokey")
+except ValueError:
+    pass
+else:
+    raise SystemExit("ValueError expected")
+print("ok")
+'''
+
+
+@pytest.fixture
+def proj(tmp_path):
+    (tmp_path / "impl.py").write_text("def parse_score(s):\n    raise NotImplementedError\n", encoding="utf-8")
+    (tmp_path / "check.py").write_text(CHECK, encoding="utf-8")
+    return tmp_path
+
+
+def block(path, text):
+    return f"FILE: {path}\n```python\n{text}```\n"
+
+
+class Script:
+    def __init__(self, *answers):
+        self.answers = list(answers)
+        self.calls = []
+
+    def __call__(self, messages):
+        self.calls.append(messages)
+        return self.answers.pop(0) if self.answers else ""
+
+
+def go(proj, chat, **kw):
+    return loop.run_task(chat, proj, ["impl.py"], "implement parse_score", [sys.executable, "check.py"], protected=["check.py"], **kw)
+
+
+def test_green_in_round_one_and_original_tree_is_untouched(proj):
+    r = go(proj, Script(block("impl.py", GOOD)))
+    assert r.ok and r.rounds == 1 and r.reason == "green"
+    assert "+        try:" in r.diff
+    assert "NotImplementedError" in (proj / "impl.py").read_text(encoding="utf-8")  # worker never writes into the real tree
+
+
+def test_failure_output_is_fed_back_and_round_two_can_succeed(proj):
+    chat = Script(block("impl.py", BAD), block("impl.py", GOOD))
+    r = go(proj, chat)
+    assert r.ok and r.rounds == 2
+    assert "a must be int" in chat.calls[1][-1]["content"]
+
+
+def test_stops_at_the_round_budget(proj):
+    r = go(proj, Script(block("impl.py", BAD), block("impl.py", BAD), block("impl.py", BAD), block("impl.py", GOOD)), max_rounds=3)
+    assert not r.ok and r.rounds == 3 and r.reason == "max_rounds"
+
+
+def test_empty_answer_is_a_failed_round_not_a_success(proj):
+    r = go(proj, Script("", block("impl.py", GOOD)))
+    assert r.ok and r.rounds == 2
+
+
+def test_answer_without_file_blocks_is_a_failed_round(proj):
+    chat = Script("I fixed it, trust me.", block("impl.py", GOOD))
+    r = go(proj, chat)
+    assert r.ok and r.rounds == 2 and "no FILE block" in chat.calls[1][-1]["content"]
+
+
+@pytest.mark.parametrize("bad_path", ["../evil.py", "/etc/evil.py", "C:/evil.py", "sub/../../evil.py"])
+def test_paths_outside_the_tree_are_refused(proj, bad_path):
+    r = go(proj, Script(block(bad_path, "x = 1\n")), max_rounds=1)
+    assert not r.ok and "refused" in r.last_output
+    assert not (proj.parent / "evil.py").exists()
+
+
+def test_files_not_in_the_editable_list_are_refused(proj):
+    r = go(proj, Script(block("other.py", "x = 1\n")), max_rounds=1)
+    assert not r.ok and "not editable" in r.last_output
+
+
+def test_editing_a_protected_test_file_is_refused_even_if_it_would_pass(proj):
+    r = go(proj, Script(block("check.py", 'print("ok")\n')), max_rounds=1)
+    assert not r.ok and r.reason == "max_rounds" and "protected" in r.last_output
+    assert (proj / "check.py").read_text(encoding="utf-8") == CHECK
+
+
+def test_hanging_tests_are_killed(proj):
+    (proj / "check.py").write_text("import time\ntime.sleep(30)\n", encoding="utf-8")
+    r = go(proj, Script(block("impl.py", GOOD)), max_rounds=1, timeout_s=1)
+    assert not r.ok and "timeout" in r.last_output
+
+
+def test_test_output_is_capped(proj):
+    (proj / "check.py").write_text('print("x" * 2_000_000)\nraise SystemExit(1)\n', encoding="utf-8")
+    r = go(proj, Script(block("impl.py", GOOD)), max_rounds=1, max_output=4000)
+    assert len(r.last_output) <= 4200
+
+
+def test_symlink_targets_are_not_followed(proj, tmp_path_factory):
+    outside = tmp_path_factory.mktemp("outside") / "secret.py"
+    outside.write_text("keep\n", encoding="utf-8")
+    try:
+        (proj / "impl.py").unlink()
+        (proj / "impl.py").symlink_to(outside)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlinks not permitted on this platform/user (narrow skip; Linux CI runs it)")
+    r = go(proj, Script(block("impl.py", GOOD)), max_rounds=1)
+    assert outside.read_text(encoding="utf-8") == "keep\n"
+    assert not r.ok

@@ -41,8 +41,8 @@
 ### Task L3: verify-patch loop (core)
 **Files:** Create `tools/local_worker/loop.py`, `tests/unit/test_local_loop.py`.
 **Interfaces:** `run_task(chat: Callable[[list[dict]], str], workdir: Path, files: list[str], task: str, test_cmd: list[str], max_rounds: int = 3, timeout_s: int = 120, protected: list[str] = ()) -> Result`; `Result{ok: bool, rounds: int, diff: str, last_output: str, reason: str}`.
-- [ ] Failing tests (fake `chat`): green on round 1; green on round 2 after a failing first answer; stops at `max_rounds`; empty answer counts as a failed round; path escape refused; edit of a protected test file = red; hanging test killed by timeout; output capped
-- [ ] Implement with whole-file replacement blocks (```path ... ```), copy of the tree in a temp dir, `subprocess.run` with `shell=False`
+- [x] 14 tests (red first, fake `chat`, includes the real int/float bug the 4B model made): green round 1 with untouched real tree; feedback reaches round 2; round budget; empty answer / no FILE block = failed round; 4 path-escape forms refused; non-editable and protected files refused; hanging test killed; output capped; symlink target not followed (skips on Windows without symlink rights, runs under WSL/Linux CI)
+- [x] Implemented `tools/local_worker/loop.py`: whole-file `FILE:` blocks applied to a temp copy, `subprocess.run(shell=False)`, diff returned for review; the client receives a copy of the history (found by a failing test)
 
 ### Task L4: gateway client
 **Files:** `tools/local_worker/gateway.py`.
