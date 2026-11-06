@@ -82,3 +82,13 @@ jobs:
         run: cargo install cargo-audit --locked  # unpinned on purpose: the advisory DB format moves (CVSS 4.0 broke 0.21.2)
       - name: Audit Cargo.lock (fails on known vulnerabilities, never skipped)
         run: cargo audit
+
+  licenses:
+    name: Rust licences and sources (cargo deny)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Install cargo-deny (locked)
+        run: cargo install cargo-deny --locked
+      - name: Check licences, bans and sources (never skipped)
+        run: cargo deny check licenses bans sources
