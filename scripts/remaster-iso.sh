@@ -160,6 +160,14 @@ sq_md5="$(md5sum "$new_sq" | cut -d' ' -f1)"; cfg_md5="$(md5sum "$cfg" | cut -d'
 sed -i "s#^[0-9a-f]\{32\}  ./casper/filesystem.squashfs\$#$sq_md5  ./casper/filesystem.squashfs#; s#^[0-9a-f]\{32\}  ./boot/grub/grub.cfg\$#$cfg_md5  ./boot/grub/grub.cfg#" "$md5"
 sed -i "s#^[0-9a-f]\{32\}  ./casper/initrd\$#$ird_md5  ./casper/initrd#" "$md5"
 grep -q "$ird_md5" "$md5" || { echo "md5sum.txt initrd update failed" >&2; exit 1; }
+# Live user and host name: casper takes the first word of /cdrom/.disk/info, lower-cased, as FLAVOUR (and with it USERNAME and HOST) unless
+# FLAVOUR is set in casper.conf. Setting FLAVOUR in casper.conf broke the overlay boot (r5, 2026-11-06: "cow format specified as overlay and no
+# support found"; the same image with the r4 initrd booted), so the supported route is this file. md5sum.txt lists it and must follow.
+disk_info="$work/iso-files/disk-info"
+printf 'HSCL1 %s (Ubuntu 26.04.1 base) - Release amd64 (%s)\n' "$version" "$(date -u +%Y%m%d)" > "$disk_info"
+info_md5="$(md5sum "$disk_info" | cut -d' ' -f1)"
+sed -i "s#^[0-9a-f]\{32\}  ./.disk/info\$#$info_md5  ./.disk/info#" "$md5"
+grep -q "$info_md5  ./.disk/info" "$md5" || { echo "md5sum.txt .disk/info update failed" >&2; exit 1; }
 grep -q "$sq_md5" "$md5" || { echo "md5sum.txt update failed" >&2; exit 1; }
 
 echo "== Build ISO (replaying upstream boot structure) =="
@@ -168,6 +176,7 @@ xorriso -indev "$base" -outdev "$out" -volid "HSCL1 ${version} amd64" \
   -boot_image any replay \
   -map "$new_sq" /casper/filesystem.squashfs \
   -map "$new_initrd" /casper/initrd \
+  -map "$disk_info" /.disk/info \
   -map "$cfg" /boot/grub/grub.cfg \
   -map "$md5" /md5sum.txt \
   -commit 2>&1 | grep -vE '^(xorriso : UPDATE|Writing: )' | tail -n 12
@@ -177,6 +186,11 @@ xorriso -osirrox on -indev "$out" -extract /casper/initrd "$work/iso-files/initr
 cmp -s "$work/iso-files/initrd.check" "$new_initrd" || { echo "the ISO does not contain the rebuilt initrd" >&2; exit 1; }
 rm -f "$work/iso-files/initrd.check"
 echo "ok    ISO /casper/initrd is the rebuilt initrd (md5 $ird_md5)"
+xorriso -osirrox on -indev "$out" -extract /.disk/info "$work/iso-files/disk-info.check" 2>/dev/null
+cmp -s "$work/iso-files/disk-info.check" "$disk_info" || { echo "the ISO does not contain the HSCL1 .disk/info" >&2; exit 1; }
+[ "$(cut -d' ' -f1 "$work/iso-files/disk-info.check" | tr '[:upper:]' '[:lower:]')" = "hscl1" ] || { echo ".disk/info first word is not HSCL1" >&2; exit 1; }
+rm -f "$work/iso-files/disk-info.check" "$disk_info"
+echo "ok    ISO /.disk/info starts with HSCL1 (casper flavour: live user and host hscl1)"
 rm -f "$new_sq" "$new_initrd"
 sha256sum "$out" | tee "$out.sha256"
 dirty=0

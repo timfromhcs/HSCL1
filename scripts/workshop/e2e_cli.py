@@ -38,6 +38,7 @@ CHECKS = {
     "hscl_version": f"{AS_USER} 'hscl version --json'",
     "memory_status": f"{AS_USER} 'hscl memory status --json'",
     "memory_budget": f"{AS_USER} 'hscl memory budget'",
+    "live_identity": f"{AS_USER} 'test \"$(id -un)\" = hscl1 && test \"$(hostname)\" = hscl1 && echo identity-ok'",
     "hscl1_program": f"{AS_USER} 'hscl1 version --json'",
     "hscl1_overview": f"{AS_USER} 'hscl1'",
     "hw_detect": f"{AS_USER} 'hscl hw detect --json'",

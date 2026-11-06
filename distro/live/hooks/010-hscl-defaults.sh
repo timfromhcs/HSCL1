@@ -91,9 +91,9 @@ patch_file "$ROOTFS/usr/share/applications/org.kubuntu.restore-desktop-links.des
 if [ -f "$sddm/hscl1/metadata.desktop" ]; then
   sed -i 's/^Description=.*/Description=HSCL1 login theme (based on the Breeze SDDM theme)/; s/^Theme-Id=.*/Theme-Id=hscl1/' "$sddm/hscl1/metadata.desktop"
 fi
-# Live session user and host name: casper derives them from the medium's flavour text ("kubuntu") unless FLAVOUR is set; with FLAVOUR set it
-# honours USERNAME/HOST from this file
-patch_file "$ROOTFS/etc/casper.conf" 's/^export USERNAME=.*/export USERNAME="hscl1"/; s/^export HOST=.*/export HOST="hscl1"/; s/^export BUILD_SYSTEM=.*/export BUILD_SYSTEM="HSCL1"/; s/^# export FLAVOUR=.*/export FLAVOUR="HSCL1"/'
+# Live session user and host name: do NOT touch /etc/casper.conf. Setting FLAVOUR there made the live initrd fail with
+# "cow format specified as overlay and no support found" (r5, 2026-11-06). casper derives the names from the first word of
+# /cdrom/.disk/info, which scripts/remaster-iso.sh sets to "HSCL1" on the medium.
 
 # Default avatar of new users
 rm -f "$ROOTFS/etc/skel/.face"
