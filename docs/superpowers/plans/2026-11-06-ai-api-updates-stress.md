@@ -30,8 +30,8 @@
 ### Task D3: runner loop with round budget
 **Files:** Create `cli/hscl/src/agent.rs`.
 **Interfaces:** `pub trait Chat { fn complete(&mut self, msgs: &[Msg]) -> anyhow::Result<String>; }`, `pub trait Tools { fn run(&mut self, name: &str, args: &serde_json::Value) -> anyhow::Result<String>; }`, `pub fn run(chat: &mut dyn Chat, tools: &mut dyn Tools, goal: &str, max_rounds: u32, log: &mut dyn FnMut(&Round)) -> Outcome`, `Outcome::{Finished(String), BudgetExhausted}`.
-- [ ] Tests with a scripted fake `Chat`: stops on `finish`; stops at `max_rounds`; a refused tool is logged and the loop continues; `log` is called once per round
-- [ ] Implement; commit
+- [x] Tests with a scripted fake `Chat` (4, red first): stops on `finish`; stops at `max_rounds`; a refused tool is logged and never reaches `Tools`; results capped at 64 KiB; `log` once per round
+- [x] Implemented in `cli/hscl/src/agent.rs` (cargo test 132 passed, clippy clean); `#![allow(dead_code)]` to be removed in D4
 
 ### Task D1: serve-spec generator (prints, never executes)
 **Files:** Create `cli/hscl/src/serve.rs`; `hscl ai serve --print`; `docs/CLI.md` row (drift test enforces).

@@ -243,3 +243,6 @@ Rounds: AREX harness, abliteration, updates, stress -> llama-server API (officia
 
 ## Task D2 toolcall parser (2026-11-06)
 `cli/hscl/src/toolcall.rs`: AREX-protocol parser (`<tool_call>` JSON or `<function=..><parameter=..>` body, allow-list plus built-in `finish`, 64 KiB body limit, nested/duplicate/truncated/unknown-tool refusals, 20000-string seeded fuzz). Tests written first (8 of 10 red), then implemented; cargo test 128 passed, clippy -D warnings and fmt clean. A first Python-generated edit wrote real newlines into char literals (compile error), fixed with a targeted edit. Temporary `#![allow(dead_code)]` until the runner (D3/D4) uses the module; removal is tracked in the subplan. Nothing run against a real model yet.
+
+## Task D3 agent loop (2026-11-06)
+`cli/hscl/src/agent.rs`: `Chat`/`Tools` traits, `run(...)` with round budget, refusal of non-allow-listed tools as an error response (never executed), result cap 64 KiB, one `log` call per round. 4 tests written first (all red with a `todo!()` stub), then implemented; cargo test 132 passed, clippy -D warnings clean. Still no real model or HTTP client (D4); `dead_code` allow is temporary.

@@ -2,6 +2,7 @@
 //!
 //! Only commands with real implementations are exposed (AGENTS.md section 8.2).
 
+mod agent;
 mod ai;
 mod appearance;
 mod catalog;
