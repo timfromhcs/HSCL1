@@ -46,7 +46,8 @@ chmod 0644 "$stage/DEBIAN/control"
 # Normalise every payload file by CONTENT, never by the checkout's modes (NTFS/drvfs checkouts report 0777 for everything, which
 # would ship world-writable files): scripts with a shebang and ELF binaries are 0755, everything else 0644; directories 0755.
 while IFS= read -r -d '' f; do
-  if [ "$(head -c 2 "$f")" = '#!' ] || [ "$(head -c 4 "$f" | od -An -tx1 | tr -d ' \n')" = '7f454c46' ]; then
+  magic="$(head -c 4 "$f" | od -An -tx1 | tr -d ' \n')"  # hex, so binary files never put NUL bytes into a shell string
+  if [ "${magic#2321}" != "$magic" ] || [ "$magic" = '7f454c46' ]; then  # "#!" or ELF
     chmod 0755 "$f"
   else
     chmod 0644 "$f"
