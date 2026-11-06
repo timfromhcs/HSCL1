@@ -6,9 +6,9 @@ windowExpanding:    fullscreen
 strings:
     productName:         HSCL1
     shortProductName:    HSCL1
-    version:             0.1.1-alpha.0
+    version:             0.1.2-alpha.0
     shortVersion:        0.1
-    versionedName:       HSCL1 0.1.1-alpha.0
+    versionedName:       HSCL1 0.1.2-alpha.0
     shortVersionedName:  HSCL1 0.1
     bootloaderEntryName: HSCL1
     productUrl:          https://github.com/timfromhcs
