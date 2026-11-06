@@ -192,3 +192,6 @@ Cumulative phases run as real units in the booted p2 image (`artifacts/probe-har
 
 ## CI QML job failed on main after PR #16 (2026-11-06)
 All three download attempts (3 x 180 s) stalled on the same 14.1 MB package (`cmake`, `Ign:` in the log) from `azure.archive.ubuntu.com`; retrying the same mirror does not help. The helper now switches the apt source from the runner's mirror list to `archive.ubuntu.com` before the last attempt. Same package list; tests untouched.
+
+## P2.4 LUKS2 install verified (2026-11-06)
+`tests/visual/scenarios/install-luks.json` (new) on image p2: Erase disk + Encrypt system with a unique marker passphrase; installer showed the intended layout and finished without error. `scripts/workshop/e2e_luks_boot.py` (new) booted the disk without an ISO: passphrase prompt, wrong passphrase rejected, correct one accepted, login, then in-guest checks over the Workshop API. Findings and limits are in CLAIMS. Harness additions: `--unlock-passphrase/--unlock-first-wrong/--unlock-at` in `qemu_boot_test.py`; `e2e_cli.py` checks now use the session user from the daemon status instead of `kubuntu`. Open finding: on the installed system `ufw` warns "uid is 0 but '/' is owned by 1000" (not seen in the live session) - being investigated.
