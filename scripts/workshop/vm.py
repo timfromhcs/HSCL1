@@ -99,52 +99,115 @@ class Vm:
         (q.double_click if double else q.click)(self.qmp, fx, fy)
 
     # ---- guest RPC (virtio port hscl.api via 127.0.0.1)
-    def _connect(self, timeout: float):
-        """Connect to the VM's host end of the guest port. The guest may have written its hello line before we
-        connected (it is lost then), so the connection is usable immediately and no hello is awaited."""
-        end = time.time() + timeout
-        last = None
-        while time.time() < end:
+    #
+    # One persistent TCP connection per VM, never closed or re-sent once the guest has spoken. Reason (QEMU issue 4672 and the QGA
+    # protocol notes): a guest write to a virtio-serial port that cannot be flushed to the host chardev in one call throttles the
+    # port; if the host side closes meanwhile, the guest write can hang forever and later clients are stuck too. The old code opened a
+    # new connection per call and re-sent the request every 3 s, which produced exactly that pattern (the Workshop daemon "stopped
+    # answering" after a few calls, at a different check each run).
+    def _close_rpc(self) -> None:
+        if self._rpc is not None:
             try:
-                s = socket.create_connection(("127.0.0.1", self.api_port), timeout=5)
-                s.settimeout(min(30.0, timeout))
-                return s, s.makefile("rwb", buffering=0)
+                self._rpc[0].close()
+            except OSError:
+                pass
+            self._rpc = None
+
+    def _read_line(self, sock: socket.socket, buf: bytearray, deadline: float) -> bytes | None:
+        """Next complete line from the guest, or None on timeout. A timeout never closes the connection."""
+        while True:
+            i = buf.find(b"\n")
+            if i >= 0:
+                line = bytes(buf[:i])
+                del buf[: i + 1]
+                return line
+            left = deadline - time.time()
+            if left <= 0:
+                return None
+            sock.settimeout(min(left, 5.0))
+            try:
+                chunk = sock.recv(65536)
+            except socket.timeout:
+                continue
+            if not chunk:
+                raise ConnectionError("host end of the guest port was closed")
+            buf.extend(chunk)
+
+    def _ensure_rpc(self, deadline: float) -> tuple:
+        """Connected socket plus read buffer. Until the guest has produced its first byte (hello or a reply), the daemon may not
+        have opened the port yet and anything we send is dropped, so only in that phase a connection may be dropped and retried."""
+        if self._rpc is not None:
+            return self._rpc
+        last: Exception | None = None
+        while time.time() < deadline:
+            try:
+                sock = socket.create_connection(("127.0.0.1", self.api_port), timeout=5)
             except OSError as e:
                 last = e
                 time.sleep(2)
+                continue
+            buf = bytearray()
+            # probe: the guest writes a hello line when it (re)opens the port; wait for it before sending anything
+            try:
+                line = self._read_line(sock, buf, min(deadline, time.time() + 8))
+            except (ConnectionError, OSError) as e:
+                last = e
+                sock.close()
+                time.sleep(2)
+                continue
+            if line is not None:
+                self._rpc = (sock, buf)
+                return self._rpc
+            # no hello: the guest may have written it before we connected (it is lost then) - the port can still be live.
+            # Keep this connection and let the first request find out; it is sent exactly once.
+            self._rpc = (sock, buf)
+            return self._rpc
         raise VmError(f"guest API port not reachable: {last}")
 
     def rpc(self, op: str, args: dict | None = None, timeout: float = 120) -> dict:
-        """One request; the guest daemon may still be starting, so the request is re-sent until a matching reply arrives."""
+        """One request over the persistent connection. The request is sent once; stale replies (older ids) are skipped.
+        Only while the guest has never answered on a connection are a few re-sends allowed (daemon still starting)."""
         self._rid += 1
         rid = self._rid
         payload = (json.dumps({"id": rid, "op": op, "args": args or {}}) + "\n").encode()
         deadline = time.time() + timeout
         last: Exception | None = None
+        attempts = 0
         while time.time() < deadline:
-            s, f = self._connect(max(5.0, deadline - time.time()))
-            s.settimeout(max(5.0, deadline - time.time()))   # slow operations (screenshots, respin) may take minutes
             try:
-                f.write(payload)
-                while time.time() < deadline:
-                    line = f.readline()
-                    if not line:
+                sock, buf = self._ensure_rpc(deadline)
+                heard = getattr(self, "_heard", False)
+                sock.settimeout(30)
+                sock.sendall(payload)
+                attempts += 1
+                # before the guest has ever answered, wait only a short slice per attempt; afterwards wait for the full deadline
+                slice_end = deadline if heard else min(deadline, time.time() + 20)
+                while True:
+                    line = self._read_line(sock, buf, slice_end)
+                    if line is None:
                         break
                     msg = json.loads(line)
                     if msg.get("hello"):
                         continue
                     if msg.get("id") == rid:
+                        self._heard = True
                         if not msg.get("ok"):
                             raise VmError(f"guest error: {msg.get('error')}")
                         return msg["result"]
-            except (socket.timeout, OSError) as e:
+                    # reply to an older request: ignore
+                if heard:
+                    break  # the guest has answered before; never re-send or reconnect now, that is what wedged the port
+                self._close_rpc()  # never heard anything on this connection: daemon not up yet, retry cleanly
+                time.sleep(3)
+            except (ConnectionError, OSError) as e:
                 last = e
-            finally:
-                s.close()
-            time.sleep(3)
+                self._close_rpc()
+                if getattr(self, "_heard", False):
+                    time.sleep(1)  # connection lost after the guest had spoken: reconnect once the loop comes round
         raise VmError(f"no answer from the guest Workshop daemon within {timeout:.0f}s (booted with hscl-workshop? {last})")
 
     def stop(self) -> None:
+        self._close_rpc()
         try:
             self.qmp.cmd("quit")
         except Exception:  # noqa: BLE001
