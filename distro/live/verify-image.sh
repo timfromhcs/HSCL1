@@ -119,5 +119,11 @@ check "HSCL1 Welcome Center page"               grep -q 'Welcome to HSCL1' "$roo
 check "old Calamares flavour branding removed"  test ! -e "$root/etc/calamares/branding/kubuntu"
 check "no flavour donate/tour artwork"          sh -c "! ls '$root'/usr/share/kubuntu-default-settings/ | grep -E 'kubuntu_(donate|tour)'"
 check "global themes renamed (no Kubuntu Name)" sh -c "! grep -E '\"Name\": *\"[^\"]*Kubuntu' '$root'/usr/share/plasma/look-and-feel/org.kubuntu*.desktop/metadata.json"
+# Live session starter (owner-reported: the upstream "Try or Install Kubuntu" prompt blocked the boot with the flavour logo)
+check "live starter is the HSCL1 one"         grep -q '^# HSCL1 live session starter' "$root/usr/libexec/start-kubuntu-live-env"
+check "live starter does not run the prompt"  sh -c "! grep -E '^[^#]*kubuntu-installer-prompt' '$root/usr/libexec/start-kubuntu-live-env'"
+check "live starter starts Plasma"            grep -q '^startplasma-wayland' "$root/usr/libexec/start-kubuntu-live-env"
+check "live starter keeps the OEM branch"     grep -q 'calamares-launch-oem' "$root/usr/libexec/start-kubuntu-live-env"
+check "original live starter diverted"        test -f "$root/usr/libexec/start-kubuntu-live-env.kubuntu"
 [ "$fail" -eq 0 ] && echo "verify-image: all checks passed" || echo "verify-image: FAILED"
 exit "$fail"

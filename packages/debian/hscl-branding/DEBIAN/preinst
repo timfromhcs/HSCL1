@@ -4,4 +4,5 @@ if [ "$1" = install ] || [ "$1" = upgrade ]; then
   dpkg-divert --package hscl-branding --quiet --rename --divert /usr/lib/os-release.ubuntu --add /usr/lib/os-release
   dpkg-divert --package hscl-branding --quiet --rename --divert /etc/issue.ubuntu --add /etc/issue
   dpkg-divert --package hscl-branding --quiet --rename --divert /etc/xdg/kcm-about-distrorc.kubuntu --add /etc/xdg/kcm-about-distrorc
+  dpkg-divert --package hscl-branding --quiet --rename --divert /usr/libexec/start-kubuntu-live-env.kubuntu --add /usr/libexec/start-kubuntu-live-env
 fi
