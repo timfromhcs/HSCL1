@@ -1,0 +1,21 @@
+#!/bin/sh
+# Assemble the HSCL1 Plymouth theme and make it the default. The generic dialog artwork (entry, bullet, lock, keyboard, capslock,
+# the .script) is taken from the base theme when it is installed; if it is not, the default is left untouched.
+set -e
+if [ "$1" = configure ]; then
+  base=/usr/share/plymouth/themes/kubuntu-logo
+  new=/usr/share/plymouth/themes/hscl1-logo
+  gen=/usr/share/hscl/plymouth
+  if [ -d "$base" ] && [ -f "$gen/hscl1-logo.plymouth" ] && command -v update-alternatives >/dev/null 2>&1; then
+    rm -rf "$new"
+    cp -a "$base" "$new"
+    # drop every branded file of the base theme (names, logo frames, preview, source art, GRUB variant, readme, script); the theme uses the two-step module and needs no script
+    rm -f "$new"/throbber-*.png "$new"/throbber.xcf "$new"/watermark.png "$new"/progress-00.png "$new"/preview.png \
+          "$new"/README.md "$new"/kubuntu-logo.*
+    cp "$gen"/*.png "$gen/hscl1-logo.plymouth" "$new"/
+    update-alternatives --install /usr/share/plymouth/themes/default.plymouth default.plymouth \
+      "$new/hscl1-logo.plymouth" 200
+    update-alternatives --set default.plymouth "$new/hscl1-logo.plymouth"
+  fi
+fi
+exit 0

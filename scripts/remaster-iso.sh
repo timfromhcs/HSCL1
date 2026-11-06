@@ -51,6 +51,7 @@ version="$(tr -d '\n' < "$root/VERSION")"
 pristine="$work/pristine"
 ovl="$work/overlay"; merged="$ovl/merged"
 cleanup() {
+  for m in dev sys proc; do mountpoint -q "$merged/$m" 2>/dev/null && sudo umount "$merged/$m" || true; done
   mountpoint -q "$merged" 2>/dev/null && sudo umount "$merged" || true
   sudo rm -rf "$ovl/up" "$ovl/wk" 2>/dev/null || true
 }
@@ -102,6 +103,34 @@ sudo env ROOTFS="$merged" bash "$root/distro/live/hooks/010-hscl-defaults.sh"
 echo "== Verify the image (fails the build if anything is missing or Workshop is not inert) =="
 sudo bash "$root/distro/live/verify-image.sh" "$merged"
 
+echo "== Rebuild the live initrd (the boot splash theme lives in it) =="
+# The ISO's /casper/initrd is built by the upstream image pipeline and would still show the upstream boot splash. Rebuilding it in the
+# customised root (same casper hooks, same tools) puts the HSCL1 splash into the live boot. Checked below, and by a boot test.
+for m in proc sys dev; do sudo mount --bind "/$m" "$merged/$m"; done
+kver="$(ls "$merged"/boot/vmlinuz-* | sed 's#.*/vmlinuz-##' | sort -V | tail -n 1)"
+[ -n "$kver" ] || { echo "no kernel found in the image" >&2; exit 1; }
+sudo rm -rf "$merged/tmp/initrd-out"; sudo mkdir -p "$merged/tmp/initrd-out"
+# The upstream live initrd carries conf/conf.d/default-boot-to-casper.conf (BOOT=casper unless set), added by its image pipeline. Without
+# it the initrd boots like an installed system and drops to the initramfs shell (seen in r2, 2026-11-06). The file exists ONLY while the
+# initrd is built: left in the squashfs it would make every installed system try to boot from casper.
+conf_snip="$merged/etc/initramfs-tools/conf.d/default-boot-to-casper.conf"
+printf 'if [ -z "$BOOT" ]; then
+    export BOOT=casper
+fi
+' | sudo tee "$conf_snip" >/dev/null
+sudo chroot "$merged" update-initramfs -c -k "$kver" -b /tmp/initrd-out
+sudo rm -f "$conf_snip"
+sudo chroot "$merged" lsinitramfs "/tmp/initrd-out/initrd.img-$kver" | tee "$work/initrd.list" >/dev/null || { echo "cannot list the new initrd" >&2; exit 1; }
+for m in dev sys proc; do sudo umount "$merged/$m"; done
+new_initrd="$work/iso-files/initrd.main"
+sudo cp "$merged/tmp/initrd-out/initrd.img-$kver" "$new_initrd"; sudo chown "$(id -u):$(id -g)" "$new_initrd"
+sudo rm -rf "$merged/tmp/initrd-out"
+for need in hscl1-logo.plymouth scripts/casper conf/conf.d/default-boot-to-casper.conf; do
+  grep -q "$need" "$work/initrd.list" || { echo "new initrd lacks $need" >&2; exit 1; }
+done
+if grep -q 'kubuntu-logo' "$work/initrd.list"; then echo "new initrd still carries the upstream boot splash" >&2; exit 1; fi
+[ "$(stat -c %s "$new_initrd")" -gt 30000000 ] || { echo "new initrd is suspiciously small" >&2; exit 1; }
+
 xorriso -osirrox on -indev "$base" -extract /boot/grub/grub.cfg "$work/iso-files/grub.cfg" \
   -extract /md5sum.txt "$work/iso-files/md5sum.base.txt" 2>/dev/null
 chmod u+w "$work/iso-files/grub.cfg" "$work/iso-files/md5sum.base.txt"
@@ -126,8 +155,11 @@ echo "== Patch boot menu label and checksum list =="
 cfg="$work/iso-files/grub.main.cfg"; md5="$work/iso-files/md5sum.main.txt"
 cp "$work/iso-files/grub.cfg" "$cfg"; cp "$work/iso-files/md5sum.base.txt" "$md5"
 sed -i 's/Try or Install Kubuntu/Try or Install HSCL1 (pre-alpha)/; s/"Kubuntu (safe graphics)"/"HSCL1 (safe graphics)"/' "$cfg"
+ird_md5="$(md5sum "$new_initrd" | cut -d' ' -f1)"
 sq_md5="$(md5sum "$new_sq" | cut -d' ' -f1)"; cfg_md5="$(md5sum "$cfg" | cut -d' ' -f1)"
 sed -i "s#^[0-9a-f]\{32\}  ./casper/filesystem.squashfs\$#$sq_md5  ./casper/filesystem.squashfs#; s#^[0-9a-f]\{32\}  ./boot/grub/grub.cfg\$#$cfg_md5  ./boot/grub/grub.cfg#" "$md5"
+sed -i "s#^[0-9a-f]\{32\}  ./casper/initrd\$#$ird_md5  ./casper/initrd#" "$md5"
+grep -q "$ird_md5" "$md5" || { echo "md5sum.txt initrd update failed" >&2; exit 1; }
 grep -q "$sq_md5" "$md5" || { echo "md5sum.txt update failed" >&2; exit 1; }
 
 echo "== Build ISO (replaying upstream boot structure) =="
@@ -135,10 +167,17 @@ rm -f "$out"
 xorriso -indev "$base" -outdev "$out" -volid "HSCL1 ${version} amd64" \
   -boot_image any replay \
   -map "$new_sq" /casper/filesystem.squashfs \
+  -map "$new_initrd" /casper/initrd \
   -map "$cfg" /boot/grub/grub.cfg \
   -map "$md5" /md5sum.txt \
   -commit 2>&1 | grep -vE '^(xorriso : UPDATE|Writing: )' | tail -n 12
-rm -f "$new_sq"
+# The check above only looked at the file we meant to map. Prove it is what the finished ISO contains (a missing -map once shipped the
+# upstream boot splash while every gate was green).
+xorriso -osirrox on -indev "$out" -extract /casper/initrd "$work/iso-files/initrd.check" 2>/dev/null
+cmp -s "$work/iso-files/initrd.check" "$new_initrd" || { echo "the ISO does not contain the rebuilt initrd" >&2; exit 1; }
+rm -f "$work/iso-files/initrd.check"
+echo "ok    ISO /casper/initrd is the rebuilt initrd (md5 $ird_md5)"
+rm -f "$new_sq" "$new_initrd"
 sha256sum "$out" | tee "$out.sha256"
 dirty=0
 [ -z "$(git -C "$root" status --porcelain 2>/dev/null)" ] || dirty=1

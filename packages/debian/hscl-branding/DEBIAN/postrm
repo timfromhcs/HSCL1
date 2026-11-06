@@ -1,8 +1,14 @@
 #!/bin/sh
 set -e
 if [ "$1" = remove ] || [ "$1" = abort-install ] || [ "$1" = disappear ]; then
+  if command -v update-alternatives >/dev/null 2>&1; then
+    update-alternatives --remove default.plymouth /usr/share/plymouth/themes/hscl1-logo/hscl1-logo.plymouth || true
+  fi
+  rm -rf /usr/share/plymouth/themes/hscl1-logo
+  rm -f /usr/libexec/start-kubuntu-live-env
   rm -f /usr/lib/os-release /etc/issue /etc/xdg/kcm-about-distrorc
   dpkg-divert --package hscl-branding --quiet --rename --remove /usr/lib/os-release
   dpkg-divert --package hscl-branding --quiet --rename --remove /etc/issue
   dpkg-divert --package hscl-branding --quiet --rename --remove /etc/xdg/kcm-about-distrorc
+  dpkg-divert --package hscl-branding --quiet --rename --remove /usr/libexec/start-kubuntu-live-env
 fi

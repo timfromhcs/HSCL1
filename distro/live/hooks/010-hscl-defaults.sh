@@ -59,6 +59,29 @@ CONF
 Current=hscl1
 ' > "$ROOTFS/etc/sddm.conf.d/30-hscl1.conf"
 fi
+# GRUB menu entries of installed systems are named after GRUB_DISTRIBUTOR (default: lsb_release -i -s = "Ubuntu").
+# DISTRIB_ID in /etc/lsb-release stays unchanged on purpose: unattended-upgrades and other tools key their origin patterns on it.
+patch_file "$ROOTFS/etc/default/grub" 's/^GRUB_DISTRIBUTOR=.*/GRUB_DISTRIBUTOR=HSCL1/'
+
+# Upstream flavour marketing and artwork that must not stay visible (Welcome Center page with a donation call, installer slideshow of the
+# old branding directory, tour/donate graphics, bug avatar). The HSCL1 welcome page comes from the hscl-branding package.
+rm -f "$ROOTFS/usr/share/plasma/plasma-welcome/extra-pages/01-Kubuntu.qml"
+rm -rf "$ROOTFS/etc/calamares/branding/kubuntu"
+rm -f "$ROOTFS/usr/share/kubuntu-default-settings/kubuntu_donate.svg" "$ROOTFS/usr/share/kubuntu-default-settings/kubuntu_tour.svg"       "$ROOTFS/usr/share/plasma/avatars/kubuntu-bug.png"
+# Global-theme, desktop-theme and panel-layout entries still list the upstream flavour by name in System Settings: rename the visible
+# names (Ids stay, other settings reference them).
+for md in "$ROOTFS"/usr/share/plasma/look-and-feel/org.kubuntu*.desktop/metadata.json           "$ROOTFS"/usr/share/plasma/desktoptheme/kubuntu*/metadata.json           "$ROOTFS"/usr/share/plasma/layout-templates/org.kubuntu.desktop.defaultPanel/metadata.json; do
+  patch_file "$md" 's/Kubuntu/HSCL1 Classic/g'
+done
+# Start-menu icons of the upstream flavour: same file names, HSCL1 mark inside (the panel and themes refer to these names)
+mark="$ROOTFS/usr/share/hscl/brand/hscl1-mark-dark.svg"
+if [ -f "$mark" ]; then
+  for d in "$ROOTFS"/usr/share/plasma/desktoptheme/kubuntu*/icons; do [ -d "$d" ] && gzip -9 -n -c "$mark" > "$d/start.svgz"; done
+  start_icon="$ROOTFS/usr/share/icons/breeze/places/16/start-here-kubuntu.svg"
+  if [ -e "$start_icon" ]; then install -m 0644 "$mark" "$start_icon"; fi
+  rm -f "$ROOTFS/usr/share/icons/breeze/places/16/start-here-kubuntu.svgz"
+fi
+
 # Default avatar of new users
 rm -f "$ROOTFS/etc/skel/.face"
 install -m 0644 "$ROOTFS/usr/share/hscl/brand/hscl1-mark-256.png" "$ROOTFS/etc/skel/.face"

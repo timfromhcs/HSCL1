@@ -110,6 +110,7 @@ def main() -> int:
 
     try:
         time.sleep(75)  # firmware + GRUB + initramfs; the prompt ignores keystrokes typed before it is ready
+        vm.note("LUKS boot test: unlock prompt")
         shot("1-unlock-prompt")
         if wrong:
             vm.type(wrong + chr(10))
@@ -121,6 +122,7 @@ def main() -> int:
             if not _unlock_field_visible(vm.screenshot_png()):
                 break
             report["stages"].append({"unlock_retry": attempt + 1})
+        vm.note("LUKS boot test: passphrase accepted, waiting for the login screen")
         shot("3-after-correct-passphrase")
         # wait for the login screen (screen no longer dark), then log in
         end = time.time() + 600

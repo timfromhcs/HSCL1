@@ -1,0 +1,32 @@
+#!/bin/bash
+# HSCL1 live session starter. Replaces the upstream starter of the same name (dpkg-divert, see hscl-branding preinst).
+#
+# The upstream script first runs a compiled "Try or Install Kubuntu" prompt inside a bare kwin session and only then starts Plasma. That
+# prompt carries the upstream flavour name and logo in a binary we do not build, and it blocks the boot until someone clicks. HSCL1 starts
+# the Plasma live session directly; the installer stays reachable from the "Install HSCL1" desktop icon.
+# The OEM-config branch (kernel option oem-config/enable=true) is unchanged.
+
+export XDG_SESSION_CLASS="user"
+export XDG_SESSION_DESKTOP="KDE"
+export DESKTOP_SESSION="plasma"
+export QT_QPA_PLATFORMTHEME="kde"
+
+if [[ $(cat /proc/cmdline) =~ "oem-config/enable=true" ]]; then
+    kwin_wayland --xwayland --no-lockscreen /usr/bin/calamares-launch-oem
+fi
+
+# xdg-desktop-portal must be restarted once Plasma is up, or applications stay stuck with xdg-desktop-portal-gtk (environment mix-up);
+# xdg-desktop-portal-gtk can also crash looking for an X server that does not exist. Same fix as upstream.
+mkdir -p "${HOME}/.config/autostart"
+cat <<EOF > "${HOME}/.config/autostart/portal-fix.desktop"
+[Desktop Entry]
+Name=Fix XDG desktop portals in a live session
+Exec=systemctl --user restart xdg-desktop-portal.service
+Type=Application
+Terminal=false
+EOF
+
+startplasma-wayland
+
+# Remove the helper so it does not cause a redundant restart when the user logs into Plasma directly.
+rm -f "${HOME}/.config/autostart/portal-fix.desktop"
