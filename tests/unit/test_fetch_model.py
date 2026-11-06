@@ -47,9 +47,37 @@ def test_fetch_keeps_a_file_with_matching_hash(tmp_path):
 
 
 def test_fetch_deletes_and_raises_on_hash_mismatch(tmp_path):
+    wrong = b"X" * len(DATA)  # full length, wrong content: a real integrity failure
     with pytest.raises(ValueError, match="sha256 mismatch"):
-        fetch_model.fetch("prism-ml/x-gguf", "m.gguf", tmp_path, allowed_root=tmp_path, api_get=api_ok, download=chunks(b"evil" * 2000))
+        fetch_model.fetch("prism-ml/x-gguf", "m.gguf", tmp_path, allowed_root=tmp_path, api_get=api_ok, download=chunks(wrong))
     assert not (tmp_path / "m.gguf").exists() and not (tmp_path / "m.gguf.part").exists()
+
+
+def test_truncated_stream_is_resumed_automatically(tmp_path):
+    full = chunks(DATA)
+    calls = []
+
+    def flaky(url, start):
+        calls.append(start)
+        it = full(url, start)
+        if len(calls) == 1:
+            return iter([next(it), next(it)])  # connection closes early, no error raised
+        return it
+
+    p = fetch_model.fetch("prism-ml/x-gguf", "m.gguf", tmp_path, allowed_root=tmp_path, api_get=api_ok, download=flaky)
+    assert p.read_bytes() == DATA and len(calls) == 2 and calls[1] == 1400
+
+
+def test_persistent_truncation_keeps_the_part_file_and_reports_incomplete(tmp_path):
+    full = chunks(DATA)
+
+    def always_short(url, start):
+        it = full(url, start)
+        return iter([next(it)])
+
+    with pytest.raises(ValueError, match="incomplete"):
+        fetch_model.fetch("prism-ml/x-gguf", "m.gguf", tmp_path, allowed_root=tmp_path, api_get=api_ok, download=always_short)
+    assert (tmp_path / "m.gguf.part").exists() and not (tmp_path / "m.gguf").exists()
 
 
 def test_existing_verified_file_is_not_downloaded_again(tmp_path):
