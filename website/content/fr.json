@@ -1,0 +1,46 @@
+{
+ "name": "Français",
+ "title": "HSCL1 - un système, trois modes",
+ "description": "HSCL1 est une station de travail Linux expérimentale basée sur Kubuntu 26.04 : un bureau Workstation, un Security Lab isolé et un flux de travail axé sur la vie privée. Préversion, testée uniquement dans des machines virtuelles.",
+ "nav": {"home": "Accueil", "download": "Téléchargement", "modes": "Modes", "honest": "État", "lang": "Langue", "skip": "Aller au contenu"},
+ "hero": {"h1": "Un système. Trois modes.", "sub": "HSCL1 est une station de travail Linux basée sur Kubuntu, avec son propre bureau, un outil en ligne de commande et un installateur. C'est une préversion précoce, testée uniquement dans des machines virtuelles.", "cta": "Télécharger", "cta2": "De quoi s'agit-il"},
+ "modes_h": "Trois modes aux frontières séparées",
+ "modes": [
+  {"t": "Workstation", "d": "Le bureau de tous les jours : HCS Hybrid Desktop sur KDE Plasma avec barre supérieure, dock flottant, Control Center et l'outil en ligne de commande hscl."},
+  {"t": "Security Lab", "d": "Prévu : les outils Kali dans des conteneurs sans privilèges root ou des machines virtuelles, jamais depuis les sources de paquets de l'hôte. Pas encore réalisé."},
+  {"t": "Vie privée", "d": "Prévu : un flux de travail Tor et un lanceur pour l'image Tails officielle. Aucune garantie d'anonymat n'est donnée, et aucune ne le sera sans tests."}
+ ],
+ "shots_h": "Le vrai bureau",
+ "shots": [
+  {"src": "img/desktop-rain.png", "alt": "Bureau live HSCL1 avec fond d'écran pluie, barre supérieure et dock"},
+  {"src": "img/control-center.png", "alt": "HSCL1 Control Center affichant des valeurs système réelles"}
+ ],
+ "honest_h": "Ce qui est vérifié et ce qui ne l'est pas",
+ "honest": [
+  "Démarre jusqu'au bureau live et s'installe sur un disque virtuel dans QEMU (UEFI et BIOS). Testé uniquement dans des machines virtuelles.",
+  "Non testé sur du matériel physique. Non signé. L'état de Secure Boot dans l'invité n'a pas encore été lu.",
+  "Security Lab et Vie privée sont prévus, pas livrés.",
+  "HSCL1 n'est pas un produit officiel de Kubuntu, Kali ou Tails et n'est pas soutenu par eux. Les noms tiers appartiennent à leurs propriétaires."
+ ],
+ "dl": {
+  "h1": "Téléchargement",
+  "none": "Aucune version publiée pour l'instant. Voir le dépôt du code source pour les instructions de construction.",
+  "pre": "Préversion - pas pour un usage en production",
+  "version": "Version", "released": "Publié", "size": "Taille totale", "sha": "SHA-256 de l'ISO complet", "parts": "Fichiers",
+  "parts_note": "GitHub limite un fichier de version à 2 Gio ; l'ISO est donc découpé en parties d'environ 1,5 Go. Téléchargez toutes les parties et SHA256SUMS, puis assemblez et vérifiez.",
+  "verify_h": "Assembler et vérifier",
+  "verify": [
+   "Téléchargez tous les fichiers .part et SHA256SUMS dans un même dossier (par exemple avec : gh release download TAG -R timfromhcs/HSCL1).",
+   "Exécutez scripts/release-join.sh depuis le dépôt source. Il vérifie chaque partie et l'image finale avec SHA256SUMS et s'arrête en cas d'écart.",
+   "Comparez le SHA-256 de l'ISO assemblé avec la valeur de cette page."
+  ],
+  "limits_h": "Limites connues de cette version",
+  "limits": [
+   "Machines virtuelles uniquement ; aucun matériel physique testé.",
+   "Non signé.",
+   "Dans cette image, KDE Connect écoute encore sur le port 1716 ; le correctif est dans le code source mais pas dans cette image."
+  ],
+  "all": "Tous les fichiers sur GitHub", "tag": "Page de la version"
+ },
+ "footer": {"credit": "Made with love by hcsmedia", "license": "Logiciel libre sous GPL-3.0-or-later.", "source": "Code source", "issues": "Signaler un problème"}
+}

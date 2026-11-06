@@ -1,0 +1,46 @@
+{
+  "repo": "timfromhcs/HSCL1",
+  "release": {
+    "tag": "v0.1.0-alpha.0",
+    "name": "HSCL1 0.1.0-alpha.0",
+    "prerelease": true,
+    "published_at": "2026-11-05T22:25:56Z",
+    "url": "https://github.com/timfromhcs/HSCL1/releases/tag/v0.1.0-alpha.0",
+    "assets": [
+      {
+        "name": "HSCL1-0.1.0-alpha.0-amd64.iso.manifest.json",
+        "size": 539,
+        "url": "https://github.com/timfromhcs/HSCL1/releases/download/v0.1.0-alpha.0/HSCL1-0.1.0-alpha.0-amd64.iso.manifest.json"
+      },
+      {
+        "name": "HSCL1-0.1.0-alpha.0-amd64.iso.part000",
+        "size": 1572864000,
+        "url": "https://github.com/timfromhcs/HSCL1/releases/download/v0.1.0-alpha.0/HSCL1-0.1.0-alpha.0-amd64.iso.part000"
+      },
+      {
+        "name": "HSCL1-0.1.0-alpha.0-amd64.iso.part001",
+        "size": 1572864000,
+        "url": "https://github.com/timfromhcs/HSCL1/releases/download/v0.1.0-alpha.0/HSCL1-0.1.0-alpha.0-amd64.iso.part001"
+      },
+      {
+        "name": "HSCL1-0.1.0-alpha.0-amd64.iso.part002",
+        "size": 1572864000,
+        "url": "https://github.com/timfromhcs/HSCL1/releases/download/v0.1.0-alpha.0/HSCL1-0.1.0-alpha.0-amd64.iso.part002"
+      },
+      {
+        "name": "HSCL1-0.1.0-alpha.0-amd64.iso.part003",
+        "size": 776142848,
+        "url": "https://github.com/timfromhcs/HSCL1/releases/download/v0.1.0-alpha.0/HSCL1-0.1.0-alpha.0-amd64.iso.part003"
+      },
+      {
+        "name": "SHA256SUMS",
+        "size": 512,
+        "url": "https://github.com/timfromhcs/HSCL1/releases/download/v0.1.0-alpha.0/SHA256SUMS"
+      }
+    ],
+    "whole_image": {
+      "name": "HSCL1-0.1.0-alpha.0-amd64.iso",
+      "sha256": "08649dc838e27d72f2eb5eb614a3f09f068f8c60a9b65bc78ea11cad8033fc8d"
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+ "name": "English",
+ "title": "HSCL1 - one system, three modes",
+ "description": "HSCL1 is an experimental Linux workstation based on Kubuntu 26.04: a Workstation desktop, an isolated Security Lab and a privacy workflow. Pre-release, tested in virtual machines only.",
+ "nav": {"home": "Home", "download": "Download", "modes": "Modes", "honest": "Status", "lang": "Language", "skip": "Skip to content"},
+ "hero": {"h1": "One system. Three modes.", "sub": "HSCL1 is a Kubuntu-based Linux workstation with its own desktop look, a command-line tool and an installer. It is an early pre-release that has been tested in virtual machines only.", "cta": "Download", "cta2": "What it is"},
+ "modes_h": "Three modes with separate boundaries",
+ "modes": [
+  {"t": "Workstation", "d": "The everyday desktop: HCS Hybrid Desktop on KDE Plasma with a top bar, a floating dock, a Control Center and the hscl command-line tool."},
+  {"t": "Security Lab", "d": "Planned: Kali tools in rootless containers or virtual machines, never from the host's package sources. Not implemented yet."},
+  {"t": "Privacy", "d": "Planned: a Tor workflow and a launcher for the official Tails image. No anonymity claim is made, and none will be made without tests."}
+ ],
+ "shots_h": "The real desktop",
+ "shots": [
+  {"src": "img/desktop-rain.png", "alt": "HSCL1 live desktop with the rain wallpaper, top bar and dock"},
+  {"src": "img/control-center.png", "alt": "HSCL1 Control Center showing live system values"}
+ ],
+ "honest_h": "What is verified, and what is not",
+ "honest": [
+  "Boots to a live desktop and installs to a virtual disk in QEMU (UEFI and BIOS). Tested only in virtual machines.",
+  "Not tested on physical hardware. Not signed. Secure Boot inside the guest has not been read yet.",
+  "Security Lab and Privacy are planned, not shipped.",
+  "HSCL1 is not an official Kubuntu, Kali or Tails product and is not endorsed by them. Third-party names belong to their owners."
+ ],
+ "dl": {
+  "h1": "Download",
+  "none": "Release not published yet. See the source repository for build instructions.",
+  "pre": "Pre-release - not for production use",
+  "version": "Version", "released": "Published", "size": "Total size", "sha": "SHA-256 of the complete ISO", "parts": "Files",
+  "parts_note": "GitHub limits a release file to 2 GiB, so the ISO is split into parts of about 1.5 GB. Download all parts and SHA256SUMS, then join and verify them.",
+  "verify_h": "Join and verify",
+  "verify": [
+   "Download every .part file and SHA256SUMS into one folder (for example with: gh release download TAG -R timfromhcs/HSCL1).",
+   "Run scripts/release-join.sh from the source repository. It checks every part and the final image against SHA256SUMS and refuses to continue on a mismatch.",
+   "Compare the SHA-256 of the joined ISO with the value on this page."
+  ],
+  "limits_h": "Known limits of this release",
+  "limits": [
+   "Virtual machines only; no physical hardware has been tested.",
+   "Unsigned.",
+   "This image still has KDE Connect listening on port 1716; the fix is in the source but not in this image."
+  ],
+  "all": "All files on GitHub", "tag": "Release page"
+ },
+ "footer": {"credit": "Made with love by hcsmedia", "license": "Free software under GPL-3.0-or-later.", "source": "Source code", "issues": "Report an issue"}
+}

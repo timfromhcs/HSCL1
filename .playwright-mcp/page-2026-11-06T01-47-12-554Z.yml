@@ -1,0 +1,70 @@
+- generic [active] [ref=e1]:
+  - link "Zum Inhalt springen" [ref=e2] [cursor=pointer]:
+    - /url: "#main"
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - link "HSCL1" [ref=e5] [cursor=pointer]:
+        - /url: /de/
+      - navigation "Main" [ref=e7]:
+        - list [ref=e8]:
+          - listitem [ref=e9]:
+            - link "Start" [ref=e10] [cursor=pointer]:
+              - /url: /de/
+          - listitem [ref=e11]:
+            - link "Download" [ref=e12] [cursor=pointer]:
+              - /url: /de/download/
+      - navigation "Sprache" [ref=e13]:
+        - list [ref=e14]:
+          - listitem [ref=e15]:
+            - link "EN" [ref=e16] [cursor=pointer]:
+              - /url: /
+          - listitem [ref=e17]:
+            - link "DE" [ref=e18] [cursor=pointer]:
+              - /url: /de/
+          - listitem [ref=e19]:
+            - link "FR" [ref=e20] [cursor=pointer]:
+              - /url: /fr/
+  - main [ref=e21]:
+    - generic [ref=e22]:
+      - heading "Ein System. Drei Modi." [level=1] [ref=e23]
+      - paragraph [ref=e24]: HSCL1 ist eine Linux-Workstation auf Kubuntu-Basis mit eigenem Desktop-Look, einem Kommandozeilenwerkzeug und einem Installer. Es ist eine frühe Vorabversion, die nur in virtuellen Maschinen getestet wurde.
+      - generic [ref=e25]:
+        - link "Herunterladen" [ref=e26] [cursor=pointer]:
+          - /url: /de/download/
+        - link "Was es ist" [ref=e27] [cursor=pointer]:
+          - /url: "#modes"
+    - region [ref=e28]:
+      - heading "Drei Modi mit getrennten Grenzen" [level=2] [ref=e29]
+      - generic [ref=e30]:
+        - generic [ref=e31]:
+          - heading "Workstation" [level=3] [ref=e32]
+          - paragraph [ref=e33]: "Der Alltags-Desktop: HCS Hybrid Desktop auf KDE Plasma mit oberer Leiste, schwebendem Dock, Control Center und dem Kommandozeilenwerkzeug hscl."
+        - generic [ref=e34]:
+          - heading "Security Lab" [level=3] [ref=e35]
+          - paragraph [ref=e36]: "Geplant: Kali-Werkzeuge in Rootless-Containern oder virtuellen Maschinen, nie aus den Paketquellen des Hosts. Noch nicht umgesetzt."
+        - generic [ref=e37]:
+          - heading "Datenschutz" [level=3] [ref=e38]
+          - paragraph [ref=e39]: "Geplant: ein Tor-Workflow und ein Starter für das offizielle Tails-Image. Es wird keine Anonymität versprochen, und ohne Tests wird sie auch nicht versprochen."
+    - region [ref=e40]:
+      - heading "Der echte Desktop" [level=2] [ref=e41]
+      - generic [ref=e42]:
+        - figure [ref=e43]:
+          - img "HSCL1-Live-Desktop mit Regen-Hintergrund, oberer Leiste und Dock" [ref=e44]
+        - figure [ref=e45]:
+          - img "HSCL1 Control Center mit Live-Systemwerten" [ref=e46]
+    - region [ref=e47]:
+      - heading "Was geprüft ist und was nicht" [level=2] [ref=e48]
+      - list [ref=e50]:
+        - listitem [ref=e51]: Startet bis zum Live-Desktop und installiert auf eine virtuelle Festplatte in QEMU (UEFI und BIOS). Nur in virtuellen Maschinen getestet.
+        - listitem [ref=e52]: Nicht auf echter Hardware getestet. Nicht signiert. Der Secure-Boot-Status im Gast wurde noch nicht ausgelesen.
+        - listitem [ref=e53]: Security Lab und Datenschutz sind geplant, nicht ausgeliefert.
+        - listitem [ref=e54]: HSCL1 ist kein offizielles Produkt von Kubuntu, Kali oder Tails und wird von ihnen nicht unterstützt. Fremde Namen gehören ihren Inhabern.
+  - contentinfo [ref=e55]:
+    - generic [ref=e56]:
+      - paragraph [ref=e57]: Made with love by hcsmedia · Freie Software unter GPL-3.0-or-later.
+      - paragraph [ref=e58]:
+        - link "Quellcode" [ref=e59] [cursor=pointer]:
+          - /url: https://github.com/timfromhcs/HSCL1
+        - text: ·
+        - link "Problem melden" [ref=e60] [cursor=pointer]:
+          - /url: https://github.com/timfromhcs/HSCL1/issues
