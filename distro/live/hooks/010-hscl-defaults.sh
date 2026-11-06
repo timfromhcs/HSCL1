@@ -77,7 +77,8 @@ done
 mark="$ROOTFS/usr/share/hscl/brand/hscl1-mark-dark.svg"
 if [ -f "$mark" ]; then
   for d in "$ROOTFS"/usr/share/plasma/desktoptheme/kubuntu*/icons; do [ -d "$d" ] && gzip -9 -n -c "$mark" > "$d/start.svgz"; done
-  for f in "$ROOTFS/usr/share/icons/breeze/places/16/start-here-kubuntu.svg"; do [ -e "$f" ] && install -m 0644 "$mark" "$f"; done
+  start_icon="$ROOTFS/usr/share/icons/breeze/places/16/start-here-kubuntu.svg"
+  if [ -e "$start_icon" ]; then install -m 0644 "$mark" "$start_icon"; fi
   rm -f "$ROOTFS/usr/share/icons/breeze/places/16/start-here-kubuntu.svgz"
 fi
 

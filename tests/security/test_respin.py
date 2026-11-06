@@ -106,3 +106,16 @@ def test_rebuilt_initrd_is_mapped_and_proven_in_the_iso():
     assert '-map "$new_initrd" /casper/initrd' in s
     assert 'cmp -s "$work/iso-files/initrd.check" "$new_initrd"' in s
     assert s.index('-map "$new_initrd" /casper/initrd') < s.index('initrd.check')
+
+
+def test_initrd_gets_boot_casper_default_only_while_building():
+    """r2 dropped to the initramfs shell because the rebuilt initrd lacked default-boot-to-casper.conf. The snippet must be created before
+    update-initramfs, removed right after (installed systems must not boot from casper) and required in the finished initrd."""
+    from pathlib import Path
+    s = (Path(__file__).resolve().parents[2] / "scripts" / "remaster-iso.sh").read_text(encoding="utf-8")
+    make = s.index("default-boot-to-casper.conf\"")
+    build = s.index("update-initramfs -c")
+    drop = s.index('sudo rm -f "$conf_snip"')
+    assert make < build < drop
+    assert "conf/conf.d/default-boot-to-casper.conf; do" in s
+    assert "export BOOT=casper" in s

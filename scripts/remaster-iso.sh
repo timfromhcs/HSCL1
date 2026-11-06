@@ -110,13 +110,22 @@ for m in proc sys dev; do sudo mount --bind "/$m" "$merged/$m"; done
 kver="$(ls "$merged"/boot/vmlinuz-* | sed 's#.*/vmlinuz-##' | sort -V | tail -n 1)"
 [ -n "$kver" ] || { echo "no kernel found in the image" >&2; exit 1; }
 sudo rm -rf "$merged/tmp/initrd-out"; sudo mkdir -p "$merged/tmp/initrd-out"
+# The upstream live initrd carries conf/conf.d/default-boot-to-casper.conf (BOOT=casper unless set), added by its image pipeline. Without
+# it the initrd boots like an installed system and drops to the initramfs shell (seen in r2, 2026-11-06). The file exists ONLY while the
+# initrd is built: left in the squashfs it would make every installed system try to boot from casper.
+conf_snip="$merged/etc/initramfs-tools/conf.d/default-boot-to-casper.conf"
+printf 'if [ -z "$BOOT" ]; then
+    export BOOT=casper
+fi
+' | sudo tee "$conf_snip" >/dev/null
 sudo chroot "$merged" update-initramfs -c -k "$kver" -b /tmp/initrd-out
-sudo chroot "$merged" lsinitramfs "/tmp/initrd-out/initrd.img-$kver" > "$work/initrd.list" || { echo "cannot list the new initrd" >&2; exit 1; }
+sudo rm -f "$conf_snip"
+sudo chroot "$merged" lsinitramfs "/tmp/initrd-out/initrd.img-$kver" | tee "$work/initrd.list" >/dev/null || { echo "cannot list the new initrd" >&2; exit 1; }
 for m in dev sys proc; do sudo umount "$merged/$m"; done
 new_initrd="$work/iso-files/initrd.main"
 sudo cp "$merged/tmp/initrd-out/initrd.img-$kver" "$new_initrd"; sudo chown "$(id -u):$(id -g)" "$new_initrd"
 sudo rm -rf "$merged/tmp/initrd-out"
-for need in hscl1-logo.plymouth scripts/casper; do
+for need in hscl1-logo.plymouth scripts/casper conf/conf.d/default-boot-to-casper.conf; do
   grep -q "$need" "$work/initrd.list" || { echo "new initrd lacks $need" >&2; exit 1; }
 done
 if grep -q 'kubuntu-logo' "$work/initrd.list"; then echo "new initrd still carries the upstream boot splash" >&2; exit 1; fi
