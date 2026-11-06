@@ -114,7 +114,12 @@ def run_task(
     timeout_s: int = 120,
     protected: Sequence[str] = (),
     max_output: int = 8000,
+    history: str = "last",
 ) -> Result:
+    """history="last" (default): every round sends only the task, the CURRENT content of the editable files and the latest failure,
+    so the context stays constant and the KV cache can be small. history="full": the old behaviour, every answer stays in the prompt."""
+    if history not in ("last", "full"):
+        raise ValueError(f"history must be 'last' or 'full', got {history!r}")
     workdir = Path(workdir).resolve()
     editable = {n for n in (_norm(f) for f in files) if n}
     prot = {n for n in (_norm(f) for f in protected) if n}
@@ -150,7 +155,11 @@ def run_task(
                     except subprocess.TimeoutExpired as e:
                         partial = ((e.stdout or b"") + (e.stderr or b"")).decode("utf-8", errors="replace")
                         last = _cap(f"timeout after {timeout_s}s\n{partial}", max_output)
-            messages.append({"role": "user", "content": f"The tests did not pass (round {n} of {max_rounds}). Output:\n{last}\nReply again with corrected FILE blocks."})
+            feedback = f"The tests did not pass (round {n} of {max_rounds}). Output:\n{last}\nReply again with corrected FILE blocks."
+            if history == "full":
+                messages.append({"role": "user", "content": feedback})
+            else:
+                messages = [messages[0], {"role": "user", "content": _prompt(task, tmp, sorted(editable)) + "\n\n" + feedback}]
         return Result(False, max_rounds, "", last, "max_rounds")
 
 

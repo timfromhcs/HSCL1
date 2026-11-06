@@ -43,9 +43,10 @@ def run_benchmark(
     timeout_s: int = 60,
     clock: Callable[[], float] = time.monotonic,
     limit: int | None = None,
+    history: str = "last",
 ) -> dict:
     tasks = list(bench_tasks.TASKS if tasks is None else tasks)[: limit or None]
-    out: dict = {"max_rounds": max_rounds, "tasks": [t["id"] for t in tasks], "models": {}}
+    out: dict = {"max_rounds": max_rounds, "history": history, "tasks": [t["id"] for t in tasks], "models": {}}
     for model in models:
         g = gate(model) if gate else {"ok": True, "reason": ""}
         if not g["ok"]:
@@ -59,7 +60,7 @@ def run_benchmark(
                 d = _materialize(t, Path(td))
                 t0 = clock()
                 try:
-                    r = loop.run_task(chat, d, ["impl.py"], t["prompt"], [sys.executable, "check.py"], max_rounds=max_rounds, timeout_s=timeout_s, protected=["check.py"])
+                    r = loop.run_task(chat, d, ["impl.py"], t["prompt"], [sys.executable, "check.py"], max_rounds=max_rounds, timeout_s=timeout_s, protected=["check.py"], history=history)
                 except gateway.GatewayError as e:
                     error = f"gateway_error: {e.code}"
                     break
@@ -79,7 +80,7 @@ def run_benchmark(
 
 def render_markdown(result: dict) -> str:
     lines = [
-        f"Task benchmark ({len(result['tasks'])} tasks, up to {result['max_rounds']} rounds)",
+        f"Task benchmark ({len(result['tasks'])} tasks, up to {result['max_rounds']} rounds, context mode: {result.get('history', 'last')})",
         "",
         "| model | solved | pass@1 | mean s/task |",
         "|---|---|---|---|",
@@ -102,6 +103,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", type=Path, default=DEFAULT_OUT)
     ap.add_argument("--gateway", default=gateway.DEFAULT_URL)
     ap.add_argument("--no-gate", action="store_true", help="skip the free-RAM gate (for tests)")
+    ap.add_argument("--history", choices=["last", "full"], default="last", help="context mode of the verify loop")
     a = ap.parse_args(argv)
     models = [m for m in a.models.split(",") if m]
 
@@ -111,7 +113,7 @@ def main(argv: list[str] | None = None) -> int:
     def factory(model: str) -> Callable[[list], str]:
         return lambda msgs: gateway.chat(msgs, model, max_tokens=1500, base_url=a.gateway, timeout=900)
 
-    result = run_benchmark(models, factory, gate=None if a.no_gate else gate, max_rounds=a.rounds, limit=a.limit)
+    result = run_benchmark(models, factory, gate=None if a.no_gate else gate, max_rounds=a.rounds, limit=a.limit, history=a.history)
     a.out.mkdir(parents=True, exist_ok=True)
     stamp = time.strftime("%Y%m%d-%H%M%S")
     (a.out / f"bench-tasks-{stamp}.json").write_text(json.dumps(result, indent=2), encoding="utf-8")

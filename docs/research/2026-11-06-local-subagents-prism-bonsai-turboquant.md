@@ -99,3 +99,13 @@ Observations: (1) the two ternary Bonsai models beat the larger-file Qwen3-4B Q4
 | Ternary-Bonsai-2-4B PQ2_0 | 9, 10, 9 | 8, 9, 8 | 6.3, 6.3, 7.1 |
 | Qwen3-4B abliterated Q4_K_M | 7 (one run) | 7 | 8.1 |
 Bonsai-9B is stable on this task set; Bonsai-4B varies by one task (`merge_intervals` fails in two of three runs). Still only ten tasks: the ranking Bonsai-9B > Bonsai-4B > Qwen3-4B is supported, small gaps are not.
+
+## KV-cache quantization and context sweep (Bonsai-2-9B PQ2_0, 2026-11-06, this machine)
+One temporary `llama-server` per row (`-ngl 99 -fa on -np 1 -t 8 -ub 256 --jinja -rea off`), task benchmark with up to 3 rounds, memory of the server process sampled every 2 s during the run (Windows counters), single run per row. Caveat: `loop.py` was changed (context mode `last`) while this sweep was running, so the last two rows may have used the new mode; round-1 solves are unaffected.
+| K / V cache | `-c` | solved | pass@1 | s/task | idle WS | peak WS | peak private | GPU shared | GPU dedicated |
+|---|---|---|---|---|---|---|---|---|---|
+| q8_0 / q8_0 | 8192 | 10 | 9 | 8.25 | 2828 MB | 4436 MB | 4713 MB | 2682 MB | 26 MB |
+| q4_0 / q4_0 | 8192 | 9 | 8 | 8.42 | 2780 MB | 4317 MB | 4586 MB | 2618 MB | 24 MB |
+| q8_0 / q4_0 | 4096 | 10 | 10 | 7.06 | 2755 MB | 4253 MB | 4525 MB | 2594 MB | 24 MB |
+| q4_0 / q4_0 | 4096 | 10 | 9 | 7.17 | 2687 MB | 4173 MB | 4484 MB | 2542 MB | 60 MB |
+Findings: (1) **the iGPU uses shared system memory** (dedicated GPU memory ~25 MB; GPU shared 2.5-2.7 GB), so "VRAM" here is RAM; (2) **KV quantization and context length change total memory by only ~100-260 MB (2-6 %)** for this hybrid (partly SSM) architecture; the bulk is weights plus runtime buffers: peak private memory is **4.5-4.7 GB**, about 1.2 GB more than the `hscl ai fit` estimate (3358 MiB) that was entered into `models.yaml` - that estimate was too low; (3) quality did not visibly change across these four settings (differences of one task are within the run-to-run noise measured before); (4) the measured sweet spot is `-ctk q8_0 -ctv q4_0 -c 4096` (smallest context the worker needs with `history=last`, K kept at 8 bit because K precision dominates quality per the TurboQuant/rotation literature). Where real memory can be saved is elsewhere: smaller model (Bonsai-4B), unloading idle models (`--sleep-idle-seconds`), not running two large models, and the RAM gate.

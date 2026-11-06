@@ -114,3 +114,27 @@ def test_cli_without_a_reachable_gateway_exits_cleanly(tmp_path, capsys):
     out = capsys.readouterr().out
     assert rc == 0 and "gateway_error: unavailable" in out
     assert list(tmp_path.glob("bench-tasks-*.json"))
+
+
+def test_history_mode_is_passed_to_the_loop_and_recorded(monkeypatch):
+    seen = []
+    real = bench.loop.run_task
+
+    def spy(*a, **k):
+        seen.append(k.get("history"))
+        return real(*a, **k)
+
+    monkeypatch.setattr(bench.loop, "run_task", spy)
+    r = bench.run_benchmark(["m1"], make_chat_factory(lambda t, m: t["reference"]), timeout_s=30, limit=2, history="full")
+    assert seen == ["full", "full"] and r["history"] == "full"
+    r2 = bench.run_benchmark(["m1"], make_chat_factory(lambda t, m: t["reference"]), timeout_s=30, limit=1)
+    assert r2["history"] == "last" and seen[-1] == "last"
+
+
+def test_cli_accepts_history_option(tmp_path):
+    rc = bench.main(["--models", "nope", "--out", str(tmp_path), "--gateway", "http://127.0.0.1:9/v1", "--no-gate", "--rounds", "1", "--limit", "1", "--history", "full"])
+    assert rc == 0
+    import json as _json
+
+    data = _json.loads(next(tmp_path.glob("bench-tasks-*.json")).read_text(encoding="utf-8"))
+    assert data["history"] == "full"

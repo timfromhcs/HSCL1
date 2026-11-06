@@ -133,3 +133,32 @@ def test_symlink_targets_are_not_followed(proj, tmp_path_factory):
     r = go(proj, Script(block("impl.py", GOOD)), max_rounds=1)
     assert outside.read_text(encoding="utf-8") == "keep\n"
     assert not r.ok
+
+
+# ---- context management (owner request 2026-11-06: less memory per round) ----
+
+def test_default_history_keeps_the_prompt_constant_size_across_rounds(proj):
+    chat = Script(block("impl.py", BAD), block("impl.py", BAD), block("impl.py", BAD))
+    go(proj, chat, max_rounds=3)
+    sizes = [sum(len(m["content"]) for m in call) for call in chat.calls]
+    assert [len(c) for c in chat.calls] == [2, 2, 2], "system + one user message every round"
+    assert sizes[2] <= sizes[1] * 1.15, sizes
+
+
+def test_last_mode_shows_the_current_file_and_the_latest_failure(proj):
+    chat = Script(block("impl.py", BAD), block("impl.py", GOOD))
+    go(proj, chat)
+    second = chat.calls[1][1]["content"]
+    assert "out[k] = float(v)" in second, "the model must see its own previous file content"
+    assert "a must be int" in second and "round 1 of 3" in second
+
+
+def test_full_mode_still_grows_the_history(proj):
+    chat = Script(block("impl.py", BAD), block("impl.py", BAD), block("impl.py", BAD))
+    go(proj, chat, max_rounds=3, history="full")
+    assert [len(c) for c in chat.calls] == [2, 4, 6]
+
+
+def test_unknown_history_mode_is_rejected(proj):
+    with pytest.raises(ValueError, match="history"):
+        go(proj, Script(block("impl.py", GOOD)), history="everything")
