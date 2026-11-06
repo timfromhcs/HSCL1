@@ -274,7 +274,7 @@ Each task lists **Gate** (the command or observation that proves it) and **Evide
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
-| Host runs out of memory during build or VM | high (seen 2x) | job reaped | resource policy (section 3), sequential steps, WSL cap |
+| Host runs out of memory during build or VM | high (seen 3x, also with WSL capped at 8 GB) | job reaped | resource policy (section 3), sequential steps, WSL cap 6 GB, squash with 3 procs / 512M, restart only on the owner's word |
 | Workshop wedge has a second cause besides R1 | medium | VM tests stay flaky | P0.4 three-run determinism gate before any other VM work |
 | Calamares cannot produce the R2 layout non-interactively | medium | LUKS2 gate blocked | script the layout via `partition.conf` + `unpackfs` order, or document manual partitioning and test that path |
 | Signed GRUB/shim behaviour changes in point releases | low | boot failures | pin the base ISO checksum; re-test on base updates |
