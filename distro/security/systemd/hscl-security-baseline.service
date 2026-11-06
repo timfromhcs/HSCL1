@@ -13,6 +13,11 @@ PrivateTmp=yes
 ProtectHome=yes
 ProtectKernelModules=yes
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+ProtectControlGroups=yes
+LockPersonality=yes
+RestrictRealtime=yes
+SystemCallArchitectures=native
+ProtectHostname=yes
 
 [Install]
 WantedBy=multi-user.target
