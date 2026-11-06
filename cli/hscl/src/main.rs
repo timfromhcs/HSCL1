@@ -110,6 +110,12 @@ enum Cmd {
         #[command(subcommand)]
         cmd: CodeCmd,
     },
+    /// Print a shell completion script (bash, zsh, fish, elvish, powershell) for `hscl` and `hscl1`.
+    Completions {
+        /// Target shell.
+        #[arg(value_enum)]
+        shell: clap_complete::Shell,
+    },
     /// Model Context Protocol server on stdio for local agents (read-only unless --allow-write).
     Mcp {
         /// Also expose write tools (theme set, graphics apply).
@@ -555,6 +561,13 @@ fn print_value(as_json: bool, v: &serde_json::Value, human: impl FnOnce() -> Str
     }
 }
 
+fn completions_script(shell: clap_complete::Shell, prog: &str) -> String {
+    let mut cmd = <Cli as clap::CommandFactory>::command();
+    let mut buf = Vec::new();
+    clap_complete::generate(shell, &mut cmd, prog, &mut buf);
+    String::from_utf8_lossy(&buf).into_owned()
+}
+
 fn run(cli: Cli) -> anyhow::Result<u8> {
     let j = cli.json;
     match cli.command.unwrap_or(Cmd::Overview) {
@@ -717,6 +730,11 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
                 std::io::stdout().lock(),
                 &mcp::SelfExec,
             )?;
+            return Ok(exit::OK);
+        }
+        Cmd::Completions { shell } => {
+            let prog = program_name(&std::env::args().next().unwrap_or_default());
+            print!("{}", completions_script(shell, prog));
             return Ok(exit::OK);
         }
         Cmd::Graphics { cmd } => return run_graphics(j, cmd),
@@ -1484,5 +1502,32 @@ mod doc_drift_tests {
         assert!(all.len() > 10, "command tree not walked: {all:?}");
         let missing: Vec<&String> = all.iter().filter(|p| !doc.contains(p.as_str())).collect();
         assert!(missing.is_empty(), "docs/CLI.md misses: {missing:#?}");
+    }
+}
+
+#[cfg(test)]
+mod completion_tests {
+    use super::*;
+
+    #[test]
+    fn completion_scripts_cover_every_top_level_command_for_both_program_names() {
+        let root = <Cli as clap::CommandFactory>::command();
+        for prog in ["hscl", "hscl1"] {
+            for shell in [
+                clap_complete::Shell::Bash,
+                clap_complete::Shell::Zsh,
+                clap_complete::Shell::Fish,
+            ] {
+                let s = completions_script(shell, prog);
+                for c in root.get_subcommands().filter(|c| c.get_name() != "help") {
+                    assert!(
+                        s.contains(c.get_name()),
+                        "{shell:?}/{prog} misses {}",
+                        c.get_name()
+                    );
+                }
+                assert!(s.contains(prog));
+            }
+        }
     }
 }

@@ -54,8 +54,9 @@
 
 ### Task 2: Man pages + Shell-Completions
 **Files:** Create `scripts/gen_cli_extras.py` oder `hscl completions SHELL` (clap_complete nur, wenn `cargo deny` sie erlaubt)
-- [ ] Test: Completion-Ausgabe enthaelt jeden Top-Level-Befehl; Paketliste (`packages/debian/*`) installiert sie
-- [ ] Commit
+- [x] `hscl completions SHELL` (clap_complete), Test deckt alle Top-Level-Befehle fuer hscl+hscl1 ab; build-deb.sh erzeugt bash/zsh/fish-Dateien aus dem Paket-Binaer; Test `test_package_completions.py` (WSL gruen)
+- [ ] Man pages (clap_mangen) - offen, naechster Weckruf
+- [x] Commit
 
 ### Task 3: Menue-Datei + Doc-Command-Test
 - [ ] Alle in README/docs als Codeblock genannten `hscl ...`-Befehle laufen als `--help`-Probe (Test), unbekannte Befehle = rot

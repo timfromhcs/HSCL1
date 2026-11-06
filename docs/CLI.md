@@ -85,3 +85,4 @@ See `docs/SECURITY_LAB.md`: `status`, `setup`, `toolsets`, `spec` (prints the ex
 | `hscl lab setup` | Create the lab root folder (~/SecurityLabs, mode 0700) |
 | `hscl lab toolsets` | List the toolsets and the packages each installs (inside the container only) |
 | `hscl lab spec` | Print the exact podman command for a project (nothing is executed) |
+| `hscl completions SHELL` | Print a shell completion script (bash, zsh, fish, elvish, powershell); `hscl1 completions SHELL` completes the `hscl1` name |
