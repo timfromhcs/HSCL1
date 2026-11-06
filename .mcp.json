@@ -5,6 +5,12 @@
       "args": [
         "scripts/workshop_mcp.py"
       ]
+    },
+    "localdelegate": {
+      "command": "python",
+      "args": [
+        "${CLAUDE_PROJECT_DIR:-.}/tools/local_worker/server.py"
+      ]
     }
   }
 }

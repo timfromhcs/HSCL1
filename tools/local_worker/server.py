@@ -181,10 +181,13 @@ def serve(stdin: TextIO, stdout: TextIO, deps: Deps) -> None:
 
 def make_deps(env: Mapping[str, str] | None = None) -> Deps:
     env = os.environ if env is None else env
-    raw = env.get("HSCL_WORKER_ROOT", "")
+    # HSCL_WORKER_ROOT wins; Claude Code sets CLAUDE_PROJECT_DIR in the environment of the servers it spawns; OpenCode starts the
+    # server in the workspace, so "HSCL_WORKER_ROOT": "." works there.
+    name = "HSCL_WORKER_ROOT" if env.get("HSCL_WORKER_ROOT") else "CLAUDE_PROJECT_DIR"
+    raw = env.get(name, "")
     root = Path(raw).resolve() if raw else None
     if root is None or not root.is_dir():
-        raise ValueError("HSCL_WORKER_ROOT must point to an existing project directory")
+        raise ValueError("HSCL_WORKER_ROOT (or CLAUDE_PROJECT_DIR) must point to an existing project directory")
     reserve = int(env.get("HSCL_WORKER_RESERVE_MB", memgate.DEFAULT_RESERVE_MB))
     base = env.get("HSCL_WORKER_GATEWAY", gateway.DEFAULT_URL)
 

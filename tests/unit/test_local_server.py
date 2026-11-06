@@ -172,3 +172,13 @@ def test_script_entry_point_speaks_mcp_over_real_stdio(tmp_path):
     env.pop("HSCL_WORKER_ROOT")
     bad = subprocess.run([sys.executable, str(script)], input="", capture_output=True, text=True, env=env, timeout=30)
     assert bad.returncode == 2 and "HSCL_WORKER_ROOT" in bad.stderr
+
+
+def test_make_deps_falls_back_to_claude_project_dir(tmp_path):
+    """Claude Code sets CLAUDE_PROJECT_DIR for the spawned server; HSCL_WORKER_ROOT wins when both are present."""
+    other = tmp_path / "other"
+    other.mkdir()
+    assert server.make_deps({"CLAUDE_PROJECT_DIR": str(tmp_path)}).root == tmp_path.resolve()
+    assert server.make_deps({"CLAUDE_PROJECT_DIR": str(tmp_path), "HSCL_WORKER_ROOT": str(other)}).root == other.resolve()
+    with pytest.raises(ValueError, match="CLAUDE_PROJECT_DIR"):
+        server.make_deps({"CLAUDE_PROJECT_DIR": str(tmp_path / "missing")})

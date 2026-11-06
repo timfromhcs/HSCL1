@@ -55,11 +55,12 @@
 **Interfaces:** one tool `local_code(task: str, files: list[str], test_cmd: list[str], model: str = "qwen3-4b", max_rounds: int = 3)` returning verdict + diff stat + unified diff (capped); read-only/`dry` flag; `workdir` fixed to the repository root passed in the environment.
 - [x] 26 tests (red first): `initialize`, notifications unanswered, exactly 1 tool with a closed schema, happy path (diff is a proposal, `applied` false), red verdict is a normal result, 15 invalid-argument cases (-32602: bad paths, disallowed executable, too many files, unknown fields, ...), unknown tool/method, closed RAM gate and gateway failure = tool error with code, garbage input survives, `make_deps` needs `HSCL_WORKER_ROOT`, and a process-level test over real stdio
 - [x] Implemented `tools/local_worker/server.py` (stdlib only). Executable allow-list for `test_cmd`: python, python3, py, pytest, cargo, node, npm
-- [ ] Register in `E:\hcslinux222\.mcp.json` (Claude Code, project scope) and in OpenCode config via `{env:...}`-only values: moves to L6 (needs the exact project-dir variable names from the Claude Code and OpenCode docs; unverified so far)
+- [x] Registered through L6 (verified in the official docs by a research subagent: Claude Code sets `CLAUDE_PROJECT_DIR` for spawned servers, OpenCode starts in the workspace); `make_deps` accepts `HSCL_WORKER_ROOT` or `CLAUDE_PROJECT_DIR`
 
 ### Task L6: shared agent/prompt source and generator
 **Files:** `ai-shared/AGENTS.md` (measured facts only), `ai-shared/agents/local-worker.md`, `ai-shared/mcp.json`, `scripts/sync_ai_shared.py` generating `.claude/agents/local-worker.md`, `.mcp.json`, `.opencode/agents/local-worker.md`.
-- [ ] Tests: generated files contain no secret patterns (reuse `round_log` secret regexes), no claim strings ("TurboQuant 3", "24 GB", "active on Vulkan") unless backed by `artifacts/local/` evidence file
+- [x] 10 tests (red first, YAML front matter parsed with PyYAML): `.mcp.json` keeps `hscl-workshop` and adds only `localdelegate` (6-line diff); Claude agent `tools: mcp__localdelegate__local_code`, `disallowedTools: Write, Edit, Bash`, `model: haiku`, `maxTurns: 3`; OpenCode agent denies everything first, then allows only `localdelegate_local_code*`; no secrets, no unmeasured claim strings; deterministic; `--check`/`--write` exit codes; the real repository is verified in sync by a test
+- [x] Implemented `scripts/sync_ai_shared.py`, `ai-shared/spec.json`, `ai-shared/local-worker.prompt.md`, generated `.mcp.json`, `opencode.json`, `.claude/agents/local-worker.md`, `.opencode/agents/local-worker.md`, docs `docs/LOCAL_WORKER.md`
 
 ### Task L7: benchmark harness (evidence)
 **Files:** `tools/local_worker/bench.py`, `tools/local_worker/tasks/*.json` (10 tiny tasks with hidden tests incl. the int/float parser trap), `artifacts/local/*.json`.
