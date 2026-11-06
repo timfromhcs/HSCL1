@@ -26,7 +26,7 @@ CHECKS = {
     "crypttab": "cat /etc/crypttab",
     "initrd_keyfile_gate": "n=0; for f in /boot/initrd.img-*; do echo \"== $f\"; lsinitramfs $f | grep -i -E 'keyfile|cryptroot|crypttab'; n=$((n+1)); done; echo \"initrds=$n\"; echo '== keyfile hits (must be empty):'; for f in /boot/initrd.img-*; do lsinitramfs $f | grep -i keyfile; done",
     "keyfile_in_root": "ls -l /crypto_keyfile.bin 2>&1; stat -c '%a %U' /crypto_keyfile.bin 2>&1",
-    "boot_is_unencrypted_but_has_no_keyfile": "ls -la /boot | head -20; find /boot -iname '*keyfile*' 2>/dev/null; echo 'find done'",
+    "boot_has_no_keyfile": "ls -la /boot | head -20; find /boot -iname '*keyfile*' 2>/dev/null; echo 'find done'",
     "swap": "swapon --show; cat /proc/swaps",
     "secret_scan": "grep -r -a -l 'luks-marker-4711' /var/log /var/lib /etc /root /home /boot /tmp 2>/dev/null | head -20; echo 'scan done'",
     "journal_secret": "journalctl -b --no-pager 2>/dev/null | grep -c 'luks-marker-4711'; true",
@@ -34,6 +34,59 @@ CHECKS = {
     "os_release": "grep -E '^(NAME|VERSION|HSCL1_VERSION)=' /usr/lib/os-release",
     "installed_not_live": "cat /proc/cmdline | cut -c1-200; test -e /cdrom/casper && echo LIVE || echo INSTALLED",
 }
+
+
+
+def png_pixel(png: bytes, fx: float, fy: float) -> tuple[int, int, int]:
+    """Pixel at a fractional position of an 8-bit RGB/RGBA PNG (standard library only; all five filter types)."""
+    import struct
+    import zlib
+
+    assert png[:8] == bytes([137, 80, 78, 71, 13, 10, 26, 10]), "not a PNG"
+    pos, idat, w = 8, b"", 0
+    h = ct = 0
+    while pos < len(png):
+        n, typ = struct.unpack(">I4s", png[pos:pos + 8])
+        body = png[pos + 8:pos + 8 + n]
+        if typ == b"IHDR":
+            w, h, depth, ct = struct.unpack(">IIBB", body[:10])
+            assert depth == 8 and ct in (2, 6), "unsupported PNG format"
+        elif typ == b"IDAT":
+            idat += body
+        pos += 12 + n
+    bpp = 3 if ct == 2 else 4
+    raw = zlib.decompress(idat)
+    stride = w * bpp
+    prev = bytearray(stride)
+    rows = []
+    for y in range(h):
+        f = raw[y * (stride + 1)]
+        cur = bytearray(raw[y * (stride + 1) + 1:(y + 1) * (stride + 1)])
+        for i in range(stride):
+            a_ = cur[i - bpp] if i >= bpp else 0
+            b_ = prev[i]
+            c_ = prev[i - bpp] if i >= bpp else 0
+            if f == 1:
+                cur[i] = (cur[i] + a_) & 255
+            elif f == 2:
+                cur[i] = (cur[i] + b_) & 255
+            elif f == 3:
+                cur[i] = (cur[i] + ((a_ + b_) >> 1)) & 255
+            elif f == 4:
+                pa, pb, pc = abs(b_ - c_), abs(a_ - c_), abs(a_ + b_ - 2 * c_)
+                pr = a_ if pa <= pb and pa <= pc else (b_ if pb <= pc else c_)
+                cur[i] = (cur[i] + pr) & 255
+        rows.append(cur)
+        prev = cur
+    x, y = min(w - 1, int(w * fx)), min(h - 1, int(h * fy))
+    o = x * bpp
+    return rows[y][o], rows[y][o + 1], rows[y][o + 2]
+
+
+def _unlock_field_visible(png: bytes) -> bool:
+    """True when the Plymouth passphrase field (dark-grey box, centre, ~70% down) is on screen."""
+    r, g, b = png_pixel(png, 0.5, 0.70)
+    return 40 <= r <= 80 and 40 <= g <= 80 and 40 <= b <= 80
 
 
 def main() -> int:
@@ -56,17 +109,21 @@ def main() -> int:
             report["stages"].append({"shot": name, "t": round(time.time() - t0)})
 
     try:
-        time.sleep(55)
+        time.sleep(75)  # firmware + GRUB + initramfs; the prompt ignores keystrokes typed before it is ready
         shot("1-unlock-prompt")
         if wrong:
             vm.type(wrong + chr(10))
             time.sleep(14)
             shot("2-after-wrong-passphrase")
-        vm.type(passphrase + chr(10))
-        time.sleep(10)
+        for attempt in range(3):  # retype only if the unlock field is still showing (keystrokes can be lost while it initialises)
+            vm.type(passphrase + chr(10))
+            time.sleep(20)
+            if not _unlock_field_visible(vm.screenshot_png()):
+                break
+            report["stages"].append({"unlock_retry": attempt + 1})
         shot("3-after-correct-passphrase")
         # wait for the login screen (screen no longer dark), then log in
-        end = time.time() + 300
+        end = time.time() + 600
         while time.time() < end:
             time.sleep(10)
             png = vm.screenshot_png()
