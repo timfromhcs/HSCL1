@@ -22,7 +22,7 @@ an offline trilingual handbook (English, Deutsch, Français), a conservative sec
 coding tooling, and a **Workshop**: an opt-in developer mode that lets you drive a VM, take screenshots and re-create the ISO from
 a running system.
 
-> **Status: pre-alpha (`0.1.0-alpha.0`).** It has been run **in virtual machines only**. Nothing has been tested on physical
+> **Status: pre-alpha (`0.1.1-alpha.0`).** It has been run **in virtual machines only**. Nothing has been tested on physical
 > hardware, the releases are **unsigned**, and many items in the plan are not built yet. Read
 > [Known limitations](docs/KNOWN_LIMITATIONS.md) and the [evidence table](docs/CLAIMS.md) before you try it. Do not use it for
 > anything that needs a security guarantee.
