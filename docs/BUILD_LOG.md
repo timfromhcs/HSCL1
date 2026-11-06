@@ -158,3 +158,6 @@ Only what was run is listed; see `docs/CLAIMS.md` for the full evidence table.
 ## Research + new plan (2026-11-06, after "abort, research, new plan")
 - Build for the A/B experiment was aborted on request. Research (QEMU issue 4672, QGA protocol notes, Ubuntu/Calamares LUKS2 reports, reproducible-builds.org system images, GitHub attestations, systemd/AppArmor/Podman guidance) is summarised with sources in `docs/superpowers/plans/2026-11-06-autonomous-to-stable-hardened.md` (R1-R11).
 - Hypothesis for the Workshop-daemon wedge: the host harness opened a TCP connection per RPC and re-sent after timeouts, the pattern that wedges a throttled virtio-serial port. Fix: persistent connection, send once (`scripts/workshop/vm.py`), `tests/unit/test_workshop_vm_rpc.py` (old behaviour confirmed by mutation check: 5 calls = 5 connections; new = 1). Test against the existing hardened image `cd0bf42e` is the discriminating experiment (no rebuild needed).
+
+## P0.1 result (2026-11-06)
+`e2e_cli.py` with the persistent-connection harness on image `HSCL1-dev-m1.iso` (cd0bf42e..., sandbox options present, the image that wedged in two earlier runs): 23/23 checks, no error, desktop after 110 s. Root cause = host harness (R1), not the systemd options. The A/B commit was reverted. Repeat runs 2 and 3 are in progress for the determinism gate (P0.4).
