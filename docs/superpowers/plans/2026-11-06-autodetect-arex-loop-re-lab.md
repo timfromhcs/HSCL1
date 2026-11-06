@@ -30,13 +30,13 @@
 ### Task A1: Round recorder
 **Files:** Create `scripts/round_log.py`, `tests/unit/test_round_log.py`; Produces `artifacts/auto-loop/rounds.jsonl`
 **Interfaces:** `record_round(task: str, round_no: int, score: dict[str, float|int], action: str, reflection: str, path: Path) -> dict` appends one JSON line with keys `task, round, score, action, reflection, ts`; rejects secrets (uses `scan_credentials` patterns) and absolute home paths.
-- [ ] Failing tests: appends valid JSON line; round numbers must increase per task; a planted token and `C:\Users\...` path are refused
-- [ ] Implement; run tests; commit
+- [x] Failing tests first (collection error), then `scripts/round_log.py`: valid JSON line, increasing rounds per task, planted token / private key / bearer / password and personal paths refused, numeric score, capped text (13 tests incl. exec-bit)
+- [x] Implemented; committed
 
 ### Task A2: Improvement report
 **Files:** Create `scripts/round_report.py` (+ test)
 **Interfaces:** `summarise(path: Path) -> dict` returns per task `best_round`, `delta_first_to_last`, `stalled` (no score gain for 3 rounds => stop rule from the plan).
-- [ ] Failing test with a fixture file (monotone, stalled, regressing); implement; wire into `docs/DEV_LOOP.md`
+- [x] `scripts/round_report.py` with 8 tests (improving, stalled after 3 rounds since best, 2 rounds not stalled, lower-is-better, regression, missing key, malformed line, exit code 3); documented in `docs/DEV_LOOP.md`
 - [ ] Rule: three stalled rounds => write BLOCKER into BUILD_LOG (existing stop rule), not a fourth retry
 
 ### Task A3 (later, S6): optional AI bundle candidate

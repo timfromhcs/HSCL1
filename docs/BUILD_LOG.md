@@ -246,3 +246,6 @@ Rounds: AREX harness, abliteration, updates, stress -> llama-server API (officia
 
 ## Task D3 agent loop (2026-11-06)
 `cli/hscl/src/agent.rs`: `Chat`/`Tools` traits, `run(...)` with round budget, refusal of non-allow-listed tools as an error response (never executed), result cap 64 KiB, one `log` call per round. 4 tests written first (all red with a `todo!()` stub), then implemented; cargo test 132 passed, clippy -D warnings clean. Still no real model or HTTP client (D4); `dead_code` allow is temporary.
+
+## Tasks A1/A2 round log and report (2026-11-06)
+`scripts/round_log.py` (refuses secrets and personal paths, increasing rounds per task, numeric scores) and `scripts/round_report.py` (best round, delta, regression, stall after 3 rounds since the best, exit 3). 21 tests written first (collection error as the red state). One of my own tests contradicted the stop rule ("stalled" = three or more rounds since the best value) and was corrected before implementing. Documented in `docs/DEV_LOOP.md`. The recorder is not yet wired into the automatic loop prompt.

@@ -31,3 +31,6 @@ $ python -m pytest tests -q                                                     
 
 - Non-blocking port I/O; a reply the host does not drain within 20 s makes the daemon close and reopen the port (counted in `status.port`).
 - Replies larger than 4 MiB are replaced by an error.
+
+## Round log (propose - measure - reflect - revise)
+Every fix attempt on a gate is one round: `python scripts/round_log.py TASK N --score tests_passed=132 --score clippy_warnings=0 --action "..." --reflection "..."` appends to `artifacts/auto-loop/rounds.jsonl` (secrets and personal absolute paths are refused, text is capped at 2000 characters, round numbers must increase per task). `python scripts/round_report.py --key tests_passed` prints best round, delta and `stalled`; exit code 3 means three rounds without a new best value: write a BLOCKER in `docs/BUILD_LOG.md` instead of a fourth retry. Pattern credit: AREX-2 (BAAI) test-time reflection loop; only the loop shape is used, no model.
