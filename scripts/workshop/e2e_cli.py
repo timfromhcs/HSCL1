@@ -28,6 +28,7 @@ CHECKS = {
     "ai_slice": "systemctl show hscl-ai.slice -p MemoryHigh -p MemoryMax",
     "firewall": "ufw status | head -n 3",
     "listening_sockets": "ss -tulnH | awk '{print $1, $5}'",
+    "system_tree_owner": "stat -c '%u:%g %a %n' / /etc /usr /var /boot /home",
     "kdeconnect_listener": "ss -tulnH | grep -c ':1716' || true",
     "kdeconnect_process": "pgrep -a kdeconnect || echo none",
     "kdeconnect_autostart_file": "grep -H '^Hidden' /etc/xdg/autostart/org.kde.kdeconnect.daemon.desktop",

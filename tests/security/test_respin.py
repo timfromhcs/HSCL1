@@ -75,3 +75,16 @@ def test_symlinks_are_not_followed(tmp_path):
     (tmp_path / "usr/share/hscl/link").symlink_to(tmp_path / "secret.txt")
     (tmp_path / "usr/share/plasma").symlink_to(tmp_path)
     assert rs.collect(tmp_path) == []
+
+
+def test_remaster_makes_the_squashfs_root_directory_root_owned():
+    """VM finding 2026-11-06: `/` of installed systems was owned by uid 1000 because the overlay dirs were created as the build user.
+    The script must create them as root, verify the rootfs root, and check the squashfs root owner after squashing."""
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[2]
+    sh = (root / "scripts/remaster-iso.sh").read_text(encoding="utf-8")
+    assert 'sudo install -d -o root -g root -m 0755 "$ovl" "$ovl/up" "$ovl/wk" "$merged"' in sh
+    assert "mkdir -p \"$ovl/up\"" not in sh
+    assert 'unsquashfs -n -lls "$new_sq"' in sh and 'root/root' in sh
+    vi = (root / "distro/live/verify-image.sh").read_text(encoding="utf-8")
+    assert 'stat -c %u:%g:%a "$root"' in vi and '0:0:755' in vi

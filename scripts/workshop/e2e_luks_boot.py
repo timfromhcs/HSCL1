@@ -30,6 +30,7 @@ CHECKS = {
     "swap": "swapon --show; cat /proc/swaps",
     "secret_scan": "grep -r -a -l 'luks-marker-4711' /var/log /var/lib /etc /root /home /boot /tmp 2>/dev/null | head -20; echo 'scan done'",
     "journal_secret": "journalctl -b --no-pager 2>/dev/null | grep -c 'luks-marker-4711'; true",
+    "system_tree_owner": "stat -c '%u:%g %a %n' / /etc /usr /var /boot /home; ufw status | head -2",
     "os_release": "grep -E '^(NAME|VERSION|HSCL1_VERSION)=' /usr/lib/os-release",
     "installed_not_live": "cat /proc/cmdline | cut -c1-200; test -e /cdrom/casper && echo LIVE || echo INSTALLED",
 }
