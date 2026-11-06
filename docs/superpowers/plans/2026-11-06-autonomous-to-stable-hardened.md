@@ -134,14 +134,14 @@ Each task lists **Gate** (the command or observation that proves it) and **Evide
 - [x] **P0.1 Persistent host RPC** (R1): `vm.py` one connection, send once, never re-send after the guest spoke; `tests/unit/test_workshop_vm_rpc.py`
   (fake guest, mutation-checked against the old behaviour). **Gate:** `e2e_cli.py` completes all 23 checks on image `cd0bf42e` (the one
   that wedged). **Evidence:** `artifacts/e2e-m1d/cli-report.json` - 23/23, no errors, first_error none (2026-11-06).
-- [ ] **P0.2 Guest write watchdog:** in `hscl_workshopd.py`, replies are written non-blocking with a poll timeout (e.g. 20 s); on timeout
-  close and re-open the port, log to the journal, count restarts in `status`. Test: a unit test with a pipe that never drains.
-- [ ] **P0.3 Replies bounded:** cap one reply at 1 MiB, stream big outputs (`respin`, screenshots) in <= 64 KiB lines with sequence numbers;
-  host reassembles. Test both sides.
-- [ ] **P0.4 Determinism:** `e2e_cli.py` runs 3 times in a row on one image with identical pass/fail (flake budget: 0). Record in BUILD_LOG.
+- [x] **P0.2 Guest write watchdog:** in `hscl_workshopd.py`, replies are written non-blocking with a poll timeout (e.g. 20 s); on timeout
+  close and re-open the port, log to the journal, count restarts in `status`. Test: a unit test with a pipe that never drains. Evidence: `tests/security/test_workshopd_port.py` (Linux: 206 passed, 0 skipped on the whole suite); **not yet in a booted image** (needs the next rebuild, P1.1).
+- [x] **P0.3 Replies bounded (simplified):** replies over 4 MiB are replaced by an error (`MAX_REPLY_BYTES`); streaming was judged unnecessary now that the host drains
+  over one persistent connection and writes have a deadline. Evidence: `test_oversized_reply_is_replaced_by_an_error_not_written`.
+- [x] **P0.4 Determinism:** `e2e_cli.py` runs 3 times in a row on one image with identical pass/fail (flake budget: 0). Record in BUILD_LOG. **Done:** 3 consecutive runs on `cd0bf42e`, 23/23 each, KDE Connect listener 0 each (`artifacts/e2e-m1d`, `-run2`, `-run3`).
 - [x] **P0.5 Restore the sandbox options on the Workshop units** if P0.1 passes with them present in the image (they are in `cd0bf42e`);
   remove the A/B exemption in `tests/security/test_systemd_hardening.py`. If P0.1 still wedges, return to the hypothesis step (do not guess). **Done:** P0.1 passed with the options present; the A/B commit was reverted (options restored, exemption removed, suite 189 passed). Evidence: `artifacts/e2e-m1d`, git revert of ed84913.
-- [ ] **P0.6 Dev loop doc:** one page `docs/DEV_LOOP.md` with the resource policy, commands, and the harness API (what `vm.py` guarantees).
+- [x] **P0.6 Dev loop doc:** one page `docs/DEV_LOOP.md` with the resource policy, commands, and the harness API (what `vm.py` guarantees).
 
 ### P1 - Close M1 on the real image
 
