@@ -37,3 +37,7 @@ All HSCL1 system units set `ProtectKernelModules`, `ProtectControlGroups`, `Prot
 and no `NoNewPrivileges`: it writes into allow-listed `/usr` paths and runs root hooks on request. Its protection is that it is inert unless
 a hypervisor provides the virtio port (or an admin starts the local socket variant), plus the closed operation set and path allow-list.
 Status: static check only; `systemd-analyze security` output from a booted image is **not yet collected**.
+
+**Update (2026-11-06):** the Workshop-unit sandbox options were restored. The Workshop-daemon failures that made us suspect them were caused by the host test
+harness (a TCP connection per RPC plus re-sends, which wedges a throttled virtio-serial port); with a persistent connection the image that carries the options
+completed all 23 in-guest checks. Status: one VM run; three consecutive runs are the gate.

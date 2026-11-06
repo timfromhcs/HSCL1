@@ -43,3 +43,13 @@ def test_kdeconnect_dbus_activation_is_diverted_and_stubbed():
     assert "Exec=/bin/false" in stub and "Name=org.kde.kdeconnect" in stub
     assert f"--add {svc}" in (base / "DEBIAN/preinst").read_text(encoding="utf-8")
     assert f"--remove {svc}" in (base / "DEBIAN/postrm").read_text(encoding="utf-8")
+
+
+def test_diverted_originals_live_outside_the_scanned_directories():
+    """VM run: a diverted copy kept inside /etc/xdg/autostart was still started by systemd-xdg-autostart-generator."""
+    pre = (ROOT / "packages/debian/hscl-security/DEBIAN/preinst").read_text(encoding="utf-8")
+    for line in pre.splitlines():
+        if "--divert" in line:
+            target = line.split("--divert", 1)[1].split()[0]
+            assert target.startswith("/usr/share/hscl/diverted/"), target
+    assert "mkdir -p /usr/share/hscl/diverted" in pre

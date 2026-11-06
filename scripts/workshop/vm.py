@@ -22,6 +22,9 @@ import qemu_boot_test as q  # noqa: E402  (reuses Qmp, ppm_to_png, send_keys, ty
 OVMF_LINUX = "/usr/share/OVMF"
 
 
+HELLO_WAIT_S = 60.0  # how long to wait for the guest daemon's hello before sending the first request anyway
+
+
 class VmError(Exception):
     pass
 
@@ -99,52 +102,100 @@ class Vm:
         (q.double_click if double else q.click)(self.qmp, fx, fy)
 
     # ---- guest RPC (virtio port hscl.api via 127.0.0.1)
-    def _connect(self, timeout: float):
-        """Connect to the VM's host end of the guest port. The guest may have written its hello line before we
-        connected (it is lost then), so the connection is usable immediately and no hello is awaited."""
-        end = time.time() + timeout
-        last = None
-        while time.time() < end:
+    #
+    # One persistent TCP connection per VM, never closed or re-sent once the guest has spoken. Reason (QEMU issue 4672 and the QGA
+    # protocol notes): a guest write to a virtio-serial port that cannot be flushed to the host chardev in one call throttles the
+    # port; if the host side closes meanwhile, the guest write can hang forever and later clients are stuck too. The old code opened a
+    # new connection per call and re-sent the request every 3 s, which produced exactly that pattern (the Workshop daemon "stopped
+    # answering" after a few calls, at a different check each run).
+    def _close_rpc(self) -> None:
+        if self._rpc is not None:
             try:
-                s = socket.create_connection(("127.0.0.1", self.api_port), timeout=5)
-                s.settimeout(min(30.0, timeout))
-                return s, s.makefile("rwb", buffering=0)
+                self._rpc[0].close()
+            except OSError:
+                pass
+            self._rpc = None
+
+    def _read_line(self, sock: socket.socket, buf: bytearray, deadline: float) -> bytes | None:
+        """Next complete line from the guest, or None on timeout. A timeout never closes the connection."""
+        while True:
+            i = buf.find(b"\n")
+            if i >= 0:
+                line = bytes(buf[:i])
+                del buf[: i + 1]
+                return line
+            left = deadline - time.time()
+            if left <= 0:
+                return None
+            sock.settimeout(min(left, 5.0))
+            try:
+                chunk = sock.recv(65536)
+            except socket.timeout:
+                continue
+            if not chunk:
+                raise ConnectionError("host end of the guest port was closed")
+            buf.extend(chunk)
+
+    def _ensure_rpc(self, deadline: float) -> tuple:
+        """Connected socket plus read buffer. QEMU serves ONE client per socket chardev and only notices that a client went away
+        while the guest port is open, so a connection that is dropped before the guest daemon has started stays 'connected' inside
+        QEMU and later connections pile up in the listen backlog until the port refuses everything. Therefore: connect once, never
+        close because of silence, only retry while the connect itself fails."""
+        if self._rpc is not None:
+            return self._rpc
+        last: Exception | None = None
+        while time.time() < deadline:
+            try:
+                sock = socket.create_connection(("127.0.0.1", self.api_port), timeout=5)
             except OSError as e:
                 last = e
                 time.sleep(2)
+                continue
+            self._rpc = (sock, bytearray())
+            return self._rpc
         raise VmError(f"guest API port not reachable: {last}")
 
     def rpc(self, op: str, args: dict | None = None, timeout: float = 120) -> dict:
-        """One request; the guest daemon may still be starting, so the request is re-sent until a matching reply arrives."""
+        """One request over the persistent connection, sent exactly once; stale replies (older ids) are skipped."""
         self._rid += 1
         rid = self._rid
-        payload = (json.dumps({"id": rid, "op": op, "args": args or {}}) + "\n").encode()
+        payload = (json.dumps({"id": rid, "op": op, "args": args or {}}) + chr(10)).encode()
         deadline = time.time() + timeout
         last: Exception | None = None
         while time.time() < deadline:
-            s, f = self._connect(max(5.0, deadline - time.time()))
-            s.settimeout(max(5.0, deadline - time.time()))   # slow operations (screenshots, respin) may take minutes
             try:
-                f.write(payload)
-                while time.time() < deadline:
-                    line = f.readline()
-                    if not line:
-                        break
+                sock, buf = self._ensure_rpc(deadline)
+                if not getattr(self, "_heard", False):
+                    # the daemon writes a hello line as soon as it has opened the port while we are connected; wait for it. Only a
+                    # daemon that never says hello (older image) gets the request without it, after HELLO_WAIT_S, on the same connection.
+                    line = self._read_line(sock, buf, min(deadline, time.time() + HELLO_WAIT_S))
+                    if line is not None:
+                        self._heard = True
+                        if not json.loads(line).get("hello"):
+                            buf[:0] = line + chr(10).encode()  # a reply, not a hello: process it below
+                sock.settimeout(30)
+                sock.sendall(payload)
+                while True:
+                    line = self._read_line(sock, buf, deadline)
+                    if line is None:
+                        break  # deadline: never re-send, never reconnect
                     msg = json.loads(line)
                     if msg.get("hello"):
                         continue
                     if msg.get("id") == rid:
+                        self._heard = True
                         if not msg.get("ok"):
                             raise VmError(f"guest error: {msg.get('error')}")
                         return msg["result"]
-            except (socket.timeout, OSError) as e:
+                break
+            except (ConnectionError, OSError) as e:
                 last = e
-            finally:
-                s.close()
-            time.sleep(3)
+                self._close_rpc()  # the host end really closed (QEMU quit or crashed): reconnect on the next loop turn
+                time.sleep(1)
         raise VmError(f"no answer from the guest Workshop daemon within {timeout:.0f}s (booted with hscl-workshop? {last})")
 
     def stop(self) -> None:
+        self._close_rpc()
         try:
             self.qmp.cmd("quit")
         except Exception:  # noqa: BLE001

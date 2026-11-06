@@ -92,5 +92,17 @@ check "workshop udev rule installed"       test -s "$root/usr/lib/udev/rules.d/9
 check "workshop is not enabled anywhere"   sh -c "! find '$root/etc/systemd/system' -name 'hscl-workshop*' | grep -q ."
 check "workshop has no socket units"       sh -c "! find '$root/usr/lib/systemd/system' -name 'hscl-workshop*.socket' | grep -q ."
 check "no workshop token baked in"         test ! -e "$root/etc/hscl/workshop.token"
+# Package payload permissions: nothing shipped by an HSCL1 package may be world-writable or group-writable (a build on an NTFS checkout once produced 0777 everywhere).
+bad_modes() {
+  local l f
+  for l in "$root"/var/lib/dpkg/info/hscl-*.list; do
+    while IFS= read -r f; do
+      [ -f "$root$f" ] && [ ! -L "$root$f" ] && [ -n "$(find "$root$f" -maxdepth 0 -perm /022)" ] && echo "$f"
+    done < "$l"
+  done
+  return 0
+}
+check "hscl package files are not group/world-writable" bash -c "$(declare -f bad_modes); root='$root'; test -z \"\$(bad_modes)\""
+check "diverted KDE Connect originals are outside scanned dirs" sh -c "! ls '$root'/etc/xdg/autostart | grep -q 'kdeconnect.daemon.desktop.'"
 [ "$fail" -eq 0 ] && echo "verify-image: all checks passed" || echo "verify-image: FAILED"
 exit "$fail"
