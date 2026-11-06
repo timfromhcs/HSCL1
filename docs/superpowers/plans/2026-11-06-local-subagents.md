@@ -64,8 +64,8 @@
 
 ### Task L7: benchmark harness (evidence)
 **Files:** `tools/local_worker/bench.py`, `tools/local_worker/tasks/*.json` (10 tiny tasks with hidden tests incl. the int/float parser trap), `artifacts/local/*.json`.
-- [ ] Measures per model: pass@1, pass within 3 rounds, tokens/s, wall time, peak RSS; `llama-bench` `-ngl 0` vs `-ngl 99` for the Prism build (checks issue #329 symptom: PTQ1_0 vs PQ2_0 rate)
-- [ ] Decision table written to `docs/research/` with numbers; the default executor is chosen from it
+- [x] `tools/local_worker/bench.py` + `bench_tasks.py` (19 tests, tasks self-validated): solved, pass@1, mean seconds per task, RAM gate or error recorded per model; `llama-bench -ngl 0` vs `99` done for Bonsai 4B/9B (decode 14.1 -> 30.4 and 8.9 -> 20.9 t/s, no CPU fallback). Peak RSS and Qwen3.5-9B still open
+- [x] Results table in `docs/research/2026-11-06-local-subagents-prism-bonsai-turboquant.md`: Bonsai-9B 10/10 (9 in round 1), Bonsai-4B 9/10, Qwen3-4B 7/10. Default executor candidate: **bonsai-9b**; fast helper: **bonsai-4b**. Open: Qwen3.5-9B head-to-head (needs ~9.4 GB available), repeat runs for variance
 
 ### Task L8: always-on queue ("never idle")
 - [ ] `scripts/local_queue.py`: reads `docs/superpowers/plans/*.md` unchecked steps tagged `[local]`, dispatches to `local_code`, records each round with `round_log.py`, stops when the RAM gate closes or after a wall-clock cap; results are proposals in a worktree branch, never pushed automatically
