@@ -8,6 +8,7 @@ mod catalog;
 mod code;
 mod doctor;
 mod download;
+mod gguf;
 mod graphics;
 mod hw;
 mod lab;
@@ -340,6 +341,23 @@ enum AiCmd {
         #[command(subcommand)]
         cmd: ModelCmd,
     },
+    /// Estimate RAM/VRAM for a GGUF file at a context size (reads only the metadata; an estimate, not a measurement).
+    Fit {
+        /// Path to a .gguf file.
+        path: std::path::PathBuf,
+        /// Context length in tokens.
+        #[arg(long, default_value_t = 8192)]
+        ctx: u64,
+        /// KV cache type: f16, q8_0 or q4_0.
+        #[arg(long, default_value = "f16")]
+        kv: String,
+        /// RAM budget in MiB (default: the AI budget from `hscl memory budget`).
+        #[arg(long)]
+        ram_mib: Option<u64>,
+        /// GPU memory budget in MiB (dedicated VRAM; shared memory is not counted unless you pass it).
+        #[arg(long)]
+        vram_mib: Option<u64>,
+    },
     /// Hardware-adapted run plan for a model (backend, offload, context, KV cache, threads).
     Profile {
         /// Catalog model id (default: the best recommendation for this machine).
@@ -598,6 +616,25 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
                     backend,
                 },
         } => return run_profile(j, model, low_vram, backend),
+        Cmd::Ai {
+            cmd:
+                AiCmd::Fit {
+                    path,
+                    ctx,
+                    kv,
+                    ram_mib,
+                    vram_mib,
+                },
+        } => {
+            let g = gguf::parse_file(&path)?;
+            let sum = gguf::summarize(&g)?;
+            let ram = ram_mib.or_else(|| {
+                Some(memory::status(&appearance::config_dir()).ai_budget_mib).filter(|m| *m > 0)
+            });
+            let f = gguf::fit(&sum, ctx, gguf::KvType::parse(&kv)?, ram, vram_mib);
+            let v = json!({"model": sum, "fit": f, "estimate": true});
+            print_value(j, &v, || gguf::render(&sum, &f));
+        }
         Cmd::Ai { cmd: AiCmd::Detect } => {
             let d = ai::detect();
             let v = serde_json::to_value(&d)?;
