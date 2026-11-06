@@ -293,8 +293,8 @@ Every release: draft -> verify GitHub digests -> publish as prerelease -> cloud 
 
 | Sprint | State | Evidence | Next action |
 |---|---|---|---|
-| S0 | IN PROGRESS | packaging run started 2026-11-06 | publish 0.1.2, merge plan, host parity |
-| S1 | PLANNED | - | brand v2 + CLI docs + PACKAGES + governor units |
+| S0 | IN PROGRESS | packaging+publish running; Windows 254 passed/16 skipped -> now 9 skips (release split/join moved to WSL), Linux 270 passed/0 skipped; plan v5 + SOTA scan committed | publish 0.1.2, merge PR |
+| S1 | PLANNED | PACKAGES.md generated + drift gate done; ledger report done | brand v2 + CLI docs drift + governor units + A/C1 |
 | S2 | PLANNED | - | image + VM gates + 0.1.3 |
 | S3 | PLANNED | - | egress/upgrade/keyboard/legal |
 | S4 | PLANNED | - | hardening + supply chain |
@@ -303,6 +303,11 @@ Every release: draft -> verify GitHub digests -> publish as prerelease -> cloud 
 | S7 | PLANNED | - | secure boot + rc |
 | S8 | PLANNED | - | 1.0.0 |
 | P25/P26/P27 | PLANNED | - | baselines first, stop rules apply |
+
+**Delegation reality (2026-11-06, measured):** `system-one-jev` answers in ~1.5 ms but returned `p_true=0.45` for a statement that was
+true, so it is not a gate; `subagent.*` fails at session start with "the compaction request cannot be reduced further" while
+`llama-server` is up (context 32768, output limit lowered to 2048 - no effect without a service restart); `localai-gateway.chat`
+(`qwen3-4b`, `duo`) works and is the usable delegation path until the subagent harness is fixed.
 
 ---
 
