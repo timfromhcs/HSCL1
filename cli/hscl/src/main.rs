@@ -1452,3 +1452,37 @@ mod brand_tests {
         assert_eq!(PRODUCT, "HSCL1");
     }
 }
+
+#[cfg(test)]
+mod doc_drift_tests {
+    use super::*;
+
+    fn leaves(cmd: &clap::Command, prefix: &str, out: &mut Vec<String>) {
+        let subs: Vec<&clap::Command> = cmd
+            .get_subcommands()
+            .filter(|c| c.get_name() != "help")
+            .collect();
+        if subs.is_empty() {
+            out.push(prefix.to_string());
+        }
+        for c in subs {
+            leaves(c, &format!("{prefix} {}", c.get_name()), out);
+        }
+    }
+
+    /// G12: every leaf command of the clap tree must appear in docs/CLI.md.
+    #[test]
+    fn cli_doc_lists_every_command() {
+        let doc =
+            std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/CLI.md"))
+                .expect("docs/CLI.md");
+        let mut all = Vec::new();
+        let root = <Cli as clap::CommandFactory>::command();
+        for c in root.get_subcommands().filter(|c| c.get_name() != "help") {
+            leaves(c, &format!("hscl {}", c.get_name()), &mut all);
+        }
+        assert!(all.len() > 10, "command tree not walked: {all:?}");
+        let missing: Vec<&String> = all.iter().filter(|p| !doc.contains(p.as_str())).collect();
+        assert!(missing.is_empty(), "docs/CLI.md misses: {missing:#?}");
+    }
+}
