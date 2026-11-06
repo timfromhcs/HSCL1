@@ -47,7 +47,8 @@
 ### Task L4: gateway client
 **Files:** `tools/local_worker/gateway.py`.
 **Interfaces:** `chat(messages, model, max_tokens, base_url="http://127.0.0.1:8090/v1") -> str` with `/no_think`, one retry with thinking off when content is empty, `<tool_call>`-in-reasoning fallback hook (kept off by default); loopback-only URL check.
-- [ ] Tests with a stub HTTP server on 127.0.0.1: empty content then retry; non-loopback URL refused; HTTP 5xx maps to an error code
+- [x] 16 tests (red first), incl. a real loopback stub server: 6 non-loopback/odd URLs refused, 3 loopback forms accepted, thinking off two ways without touching the caller's list, key only from env, empty answer retried once with a doubled budget, `<think>` stripped, unclosed think = empty, stable codes (`unavailable`, `http_500`, `empty`, `bad_response`), no proxy for loopback
+- [x] Implemented `tools/local_worker/gateway.py`; forge check green (pytest, bash -n, ShellCheck, secret scan)
 
 ### Task L5: MCP server `localdelegate`
 **Files:** `tools/local_worker/server.py` (stdlib JSON-RPC over stdio), tests.
