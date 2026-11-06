@@ -107,5 +107,12 @@ bad_modes() {
 }
 check "hscl package files are not group/world-writable" bash -c "$(declare -f bad_modes); root='$root'; test -z \"\$(bad_modes)\""
 check "diverted KDE Connect originals are outside scanned dirs" sh -c "! ls '$root'/etc/xdg/autostart | grep -q 'kdeconnect.daemon.desktop.'"
+# Boot splash (W21): HSCL1 theme assembled by the hscl-branding postinst, selected as default, no upstream logo frames inside it
+check "Plymouth theme hscl1-logo exists"       test -s "$root/usr/share/plymouth/themes/hscl1-logo/hscl1-logo.plymouth"
+check "Plymouth theme has the pulse frames"    test -s "$root/usr/share/plymouth/themes/hscl1-logo/throbber-0032.png"
+check "Plymouth theme keeps the dialog art"    test -s "$root/usr/share/plymouth/themes/hscl1-logo/entry.png"
+check "Plymouth default is hscl1-logo"         test "$(readlink "$root/etc/alternatives/default.plymouth")" = /usr/share/plymouth/themes/hscl1-logo/hscl1-logo.plymouth
+check "Plymouth theme has no Kubuntu text"     sh -c "! grep -ri kubuntu '$root/usr/share/plymouth/themes/hscl1-logo/'*.plymouth"
+check "GRUB distributor is HSCL1"              grep -q '^GRUB_DISTRIBUTOR=HSCL1$' "$root/etc/default/grub"
 [ "$fail" -eq 0 ] && echo "verify-image: all checks passed" || echo "verify-image: FAILED"
 exit "$fail"

@@ -59,6 +59,10 @@ CONF
 Current=hscl1
 ' > "$ROOTFS/etc/sddm.conf.d/30-hscl1.conf"
 fi
+# GRUB menu entries of installed systems are named after GRUB_DISTRIBUTOR (default: lsb_release -i -s = "Ubuntu").
+# DISTRIB_ID in /etc/lsb-release stays unchanged on purpose: unattended-upgrades and other tools key their origin patterns on it.
+patch_file "$ROOTFS/etc/default/grub" 's/^GRUB_DISTRIBUTOR=.*/GRUB_DISTRIBUTOR=HSCL1/'
+
 # Default avatar of new users
 rm -f "$ROOTFS/etc/skel/.face"
 install -m 0644 "$ROOTFS/usr/share/hscl/brand/hscl1-mark-256.png" "$ROOTFS/etc/skel/.face"

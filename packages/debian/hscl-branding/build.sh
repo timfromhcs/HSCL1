@@ -46,6 +46,10 @@ install -D -m 0644 "$brand/hscl1-mark-128.png" "$cal/logo.png"
 install -D -m 0644 "$brand/hscl1-mark-256.png" "$cal/icon.png"
 install -D -m 0644 "$brand/hscl1-lockup-light.png" "$cal/welcome.png"
 
+# Plymouth boot splash: original throbber frames + descriptor; postinst assembles the theme next to the base theme's generic
+# password-dialog artwork (entry, bullet, lock, keyboard), which carries no brand.
+python3 "$ROOT/scripts/gen_plymouth.py" "$STAGE/usr/share/hscl/plymouth" >/dev/null
+
 mkdir -p "$STAGE/usr/lib"
 sed "s/@VERSION@/$VERSION/g" "$STAGE/os-release.in" > "$STAGE/usr/lib/os-release"
 rm -f "$STAGE/os-release.in"
