@@ -86,3 +86,12 @@ Ergebnis: `docs/research/2026-11-06-arex2-autodetect-reverse-engineering.md`. **
 | 8 (C1/C2) | `docs/RE_LAB.md`, `re_capture.sh` | Doc-Gate, shellcheck |
 
 Offene MEASURE-Punkte (kein Web-Ergebnis moeglich): 680M tok/s, WebGPU in QtWebEngine, llama.cpp-Architektur der gepinnten Version (Qwen3.5/3.8), sysext auf dem Image, hwdb-postinst. Owner-Items neu: Rechtsrahmen fuer RE-Lab (O5), Freigabe einer optionalen AREX-Turbo-Bundle-Pruefung.
+
+## 7. Final master plan state after the 4-round loop (2026-11-06)
+Research: `docs/research/2026-11-06-arex2-autodetect-reverse-engineering.md` (3 rounds) and `docs/research/2026-11-06-four-round-loop-arex-api-updates-stress.md` (4 rounds). Subplans: `2026-11-06-autodetect-arex-loop-re-lab.md` (A loop, B autodetect, C RE lab) and `2026-11-06-ai-api-updates-stress.md` (D AI API and agent runner, E abliterated policy, F updates/freeze, G stress, H resilience).
+
+**Gaps closed with evidence:** AREX-2/Turbo identity and licence (Apache-2.0), harness protocol (XML tool calls, caller executes), GGUF availability, llama.cpp `qwen35` on master, llama-server API surface (official README), abliteration method plus one measured cost, bootc-on-Ubuntu status, archive availability of 23 tools.
+**Gaps left open on purpose (MEASURE):** pinned `b12130` parses Qwen3.5 XML tool calls; 680M tok/s; WebGPU in QtWebEngine; `sched_ext`/fault-injection/`dm-flakey` in the Ubuntu kernel config; sysext on the image; Calamares `@`/`@home` on btrfs; systemd-oomd for user apps.
+**Owner items added:** legal frame for the RE lab (O5); approval to evaluate AREX-Turbo / Apex-35B for the optional bundle (G39); confirmation that abliterated models stay opt-in and out of the ISO.
+
+**Execution order (S1, host-only, one PR):** Task 5 B1 modaliases -> D2 toolcall parser -> D3 runner -> A1/A2 round log -> D1 serve spec -> E1 delta-card gate -> F1 claim gate -> G1 stress script -> B3/B2 driver hints and hwdb -> C1/C2 RE lab. Then S2: one image with H, G2, G4, autodetect and completions, all VM gates, release 0.1.3-alpha.0.
