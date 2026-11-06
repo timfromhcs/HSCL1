@@ -264,6 +264,9 @@ def main():
     ap.add_argument("--disk-size", default="40G", help="size for a newly created --disk")
     ap.add_argument("--login-password", help="installed-system boot: after --boot-wait seconds type this password at the login screen (single user preselected)")
     ap.add_argument("--boot-wait", type=int, default=75)
+    ap.add_argument("--unlock-passphrase", help="encrypted install: type this LUKS passphrase at the boot prompt (screenshots before and after)")
+    ap.add_argument("--unlock-first-wrong", help="type this WRONG passphrase first and capture the rejection before the correct one")
+    ap.add_argument("--unlock-at", type=int, default=50, help="seconds after start until the passphrase prompt is expected")
     ap.add_argument("--no-mem-guard", action="store_true", help="start even when free memory is low (not recommended)")
     ap.add_argument("--accel", help="override accelerator (kvm|whpx|tcg)")
     ap.add_argument("--qmp-port", type=int, default=4444, help="QMP TCP port (Windows QEMU only)")
@@ -339,6 +342,20 @@ def main():
     result = {"_disk": a.disk or "", "firmware": a.firmware, "secure_boot_requested": a.secure_boot, "accel": accel, "iso": os.path.basename(a.iso), "shots": [], "reached_desktop": False}
     try:
         qmp = Qmp(qmp_path)
+        if a.unlock_passphrase:
+            # encrypted installed system: the initramfs asks for the LUKS passphrase before the login screen exists
+            time.sleep(a.unlock_at)
+            grab(qmp, out, "unlock-prompt")
+            if a.unlock_first_wrong:
+                type_text(qmp, a.unlock_first_wrong)
+                send_keys(qmp, ["ret"])
+                time.sleep(12)
+                grab(qmp, out, "unlock-after-wrong")
+            type_text(qmp, a.unlock_passphrase)
+            send_keys(qmp, ["ret"])
+            print("typed the unlock passphrase", flush=True)
+            time.sleep(8)
+            grab(qmp, out, "unlock-after-correct")
         if a.login_password:
             # wait until the screen is no longer black (login screen drawn), then let the greeter settle
             t_login = time.time() + max(a.boot_wait, 300)
