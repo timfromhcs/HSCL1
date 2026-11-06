@@ -334,3 +334,7 @@ def main(argv: list[str]) -> int:
                     pass
         PORT_STATS["restarts"] += 1
         time.sleep(0.5)
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

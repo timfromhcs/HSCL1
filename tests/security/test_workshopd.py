@@ -127,3 +127,12 @@ def test_oversized_reply_is_replaced_by_an_error_not_written():
     assert first["ok"] is False and "reply too large" in first["error"] and first["id"] == 1
     assert second["ok"] is True and second["id"] == 2
     assert all(len(l) < wd.MAX_REPLY_BYTES for l in lines)
+
+
+def test_script_entry_point_runs_main():
+    """VM finding 2026-11-06: an edit dropped the `__main__` guard, the service started and exited 0 without serving. Run the file as a process."""
+    import subprocess
+    import sys as _sys
+    assert 'if __name__ == "__main__":' in SRC.read_text(encoding="utf-8")
+    r = subprocess.run([_sys.executable, str(SRC), str(Path(os.devnull).parent / "no-such-port-xyz")], capture_output=True, text=True, timeout=30)
+    assert r.returncode == 1 and "no such port" in r.stderr  # only main() produces this

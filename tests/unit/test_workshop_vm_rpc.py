@@ -22,14 +22,14 @@ import vm as vmmod  # noqa: E402
 class FakeGuest:
     """Speaks the daemon protocol: hello, then one JSON reply per request line."""
 
-    def __init__(self, delay=0.0, hello=True, stale_first=False):
+    def __init__(self, delay=0.0, hello=True, stale_first=False, hello_delay=0.0):
         self.srv = socket.socket()
         self.srv.bind(("127.0.0.1", 0))
         self.srv.listen(5)
         self.port = self.srv.getsockname()[1]
         self.connections = 0
         self.requests = []
-        self.delay, self.hello, self.stale_first = delay, hello, stale_first
+        self.delay, self.hello, self.stale_first, self.hello_delay = delay, hello, stale_first, hello_delay
         self.stop = False
         threading.Thread(target=self.run, daemon=True).start()
 
@@ -47,6 +47,7 @@ class FakeGuest:
         f = conn.makefile("rwb", buffering=0)
         try:
             if self.hello:
+                time.sleep(self.hello_delay)
                 f.write(b'{"hello":"fake","version":1}\n')
             for raw in iter(f.readline, b""):
                 req = json.loads(raw)
@@ -108,7 +109,8 @@ def test_stale_reply_from_an_older_request_is_skipped(guest):
     vm._close_rpc()
 
 
-def test_works_when_the_hello_line_was_lost(guest):
+def test_works_when_the_hello_line_was_lost(guest, monkeypatch):
+    monkeypatch.setattr(vmmod, "HELLO_WAIT_S", 1.0)  # an older daemon that never says hello gets the request after this wait
     g = guest(hello=False)
     vm = make_vm(g.port)
     assert vm.rpc("a", timeout=40) == {"echo": "a"}
@@ -136,3 +138,15 @@ def test_guest_error_is_reported_not_retried(guest):
     vm._close_rpc()
     assert len(g.requests) == 1
     g.serve = orig
+
+
+def test_late_hello_is_awaited_on_one_connection_never_dropped_for_silence(guest):
+    """QEMU serves one client per socket chardev and only sees it leave while the guest port is open: dropping a quiet connection
+    while the guest daemon is still starting stacks stale connections until the port refuses everything (VM finding 2026-11-06)."""
+    g = guest(hello_delay=4.0)
+    vm = make_vm(g.port)
+    t0 = time.time()
+    assert vm.rpc("status", timeout=30) == {"echo": "status"}
+    assert time.time() - t0 >= 3.5
+    vm._close_rpc()
+    assert g.connections == 1 and [r["op"] for r in g.requests] == ["status"]

@@ -22,6 +22,9 @@ import qemu_boot_test as q  # noqa: E402  (reuses Qmp, ppm_to_png, send_keys, ty
 OVMF_LINUX = "/usr/share/OVMF"
 
 
+HELLO_WAIT_S = 60.0  # how long to wait for the guest daemon's hello before sending the first request anyway
+
+
 class VmError(Exception):
     pass
 
@@ -134,8 +137,10 @@ class Vm:
             buf.extend(chunk)
 
     def _ensure_rpc(self, deadline: float) -> tuple:
-        """Connected socket plus read buffer. Until the guest has produced its first byte (hello or a reply), the daemon may not
-        have opened the port yet and anything we send is dropped, so only in that phase a connection may be dropped and retried."""
+        """Connected socket plus read buffer. QEMU serves ONE client per socket chardev and only notices that a client went away
+        while the guest port is open, so a connection that is dropped before the guest daemon has started stays 'connected' inside
+        QEMU and later connections pile up in the listen backlog until the port refuses everything. Therefore: connect once, never
+        close because of silence, only retry while the connect itself fails."""
         if self._rpc is not None:
             return self._rpc
         last: Exception | None = None
@@ -146,46 +151,34 @@ class Vm:
                 last = e
                 time.sleep(2)
                 continue
-            buf = bytearray()
-            # probe: the guest writes a hello line when it (re)opens the port; wait for it before sending anything
-            try:
-                line = self._read_line(sock, buf, min(deadline, time.time() + 8))
-            except (ConnectionError, OSError) as e:
-                last = e
-                sock.close()
-                time.sleep(2)
-                continue
-            if line is not None:
-                self._rpc = (sock, buf)
-                return self._rpc
-            # no hello: the guest may have written it before we connected (it is lost then) - the port can still be live.
-            # Keep this connection and let the first request find out; it is sent exactly once.
-            self._rpc = (sock, buf)
+            self._rpc = (sock, bytearray())
             return self._rpc
         raise VmError(f"guest API port not reachable: {last}")
 
     def rpc(self, op: str, args: dict | None = None, timeout: float = 120) -> dict:
-        """One request over the persistent connection. The request is sent once; stale replies (older ids) are skipped.
-        Only while the guest has never answered on a connection are a few re-sends allowed (daemon still starting)."""
+        """One request over the persistent connection, sent exactly once; stale replies (older ids) are skipped."""
         self._rid += 1
         rid = self._rid
-        payload = (json.dumps({"id": rid, "op": op, "args": args or {}}) + "\n").encode()
+        payload = (json.dumps({"id": rid, "op": op, "args": args or {}}) + chr(10)).encode()
         deadline = time.time() + timeout
         last: Exception | None = None
-        attempts = 0
         while time.time() < deadline:
             try:
                 sock, buf = self._ensure_rpc(deadline)
-                heard = getattr(self, "_heard", False)
+                if not getattr(self, "_heard", False):
+                    # the daemon writes a hello line as soon as it has opened the port while we are connected; wait for it. Only a
+                    # daemon that never says hello (older image) gets the request without it, after HELLO_WAIT_S, on the same connection.
+                    line = self._read_line(sock, buf, min(deadline, time.time() + HELLO_WAIT_S))
+                    if line is not None:
+                        self._heard = True
+                        if not json.loads(line).get("hello"):
+                            buf[:0] = line + chr(10).encode()  # a reply, not a hello: process it below
                 sock.settimeout(30)
                 sock.sendall(payload)
-                attempts += 1
-                # before the guest has ever answered, wait only a short slice per attempt; afterwards wait for the full deadline
-                slice_end = deadline if heard else min(deadline, time.time() + 20)
                 while True:
-                    line = self._read_line(sock, buf, slice_end)
+                    line = self._read_line(sock, buf, deadline)
                     if line is None:
-                        break
+                        break  # deadline: never re-send, never reconnect
                     msg = json.loads(line)
                     if msg.get("hello"):
                         continue
@@ -194,16 +187,11 @@ class Vm:
                         if not msg.get("ok"):
                             raise VmError(f"guest error: {msg.get('error')}")
                         return msg["result"]
-                    # reply to an older request: ignore
-                if heard:
-                    break  # the guest has answered before; never re-send or reconnect now, that is what wedged the port
-                self._close_rpc()  # never heard anything on this connection: daemon not up yet, retry cleanly
-                time.sleep(3)
+                break
             except (ConnectionError, OSError) as e:
                 last = e
-                self._close_rpc()
-                if getattr(self, "_heard", False):
-                    time.sleep(1)  # connection lost after the guest had spoken: reconnect once the loop comes round
+                self._close_rpc()  # the host end really closed (QEMU quit or crashed): reconnect on the next loop turn
+                time.sleep(1)
         raise VmError(f"no answer from the guest Workshop daemon within {timeout:.0f}s (booted with hscl-workshop? {last})")
 
     def stop(self) -> None:
