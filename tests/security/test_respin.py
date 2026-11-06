@@ -88,3 +88,11 @@ def test_remaster_makes_the_squashfs_root_directory_root_owned():
     assert 'unsquashfs -n -lls "$new_sq"' in sh and 'root/root' in sh
     vi = (root / "distro/live/verify-image.sh").read_text(encoding="utf-8")
     assert 'stat -c %u:%g:%a "$root"' in vi and '0:0:755' in vi
+
+
+def test_the_squashfs_root_owner_check_does_not_close_the_pipe_early():
+    """Seen 2026-11-06: `awk ... exit` made unsquashfs die with SIGPIPE (exit 141) and `set -o pipefail` aborted a finished build."""
+    from pathlib import Path
+    sh = (Path(__file__).resolve().parents[2] / "scripts/remaster-iso.sh").read_text(encoding="utf-8")
+    line = next(l for l in sh.splitlines() if l.startswith("root_owner="))
+    assert "exit" not in line and "head" not in line and "!done" in line

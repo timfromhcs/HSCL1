@@ -117,7 +117,8 @@ if [ "$fast" -eq 1 ]; then
 else
   sudo mksquashfs "$merged" "$new_sq" -comp xz -b 131072 -Xbcj x86 -noappend -quiet -processors "$sq_procs" -mem "$sq_mem"
 fi
-root_owner="$(sudo unsquashfs -n -lls "$new_sq" 2>/dev/null | awk '$NF=="squashfs-root"{print $2; exit}')"
+# awk must read all input: an early `exit` closes the pipe, unsquashfs gets SIGPIPE and pipefail aborts the build (seen 2026-11-06, exit 141)
+root_owner="$(sudo unsquashfs -n -lls "$new_sq" 2>/dev/null | awk '$NF=="squashfs-root" && !done {print $2; done=1}')"
 [ "$root_owner" = "root/root" ] || { echo "squashfs root directory is owned by ${root_owner:-unknown}, expected root/root" >&2; exit 1; }
 sudo chown "$(id -u):$(id -g)" "$new_sq"
 
