@@ -31,9 +31,13 @@ signed `SHA256SUMS`), leaked secrets (planned: secret scan in CI; `.gitignore` e
 Everything not listed under "Evidence today". This file is updated as tests are added.
 
 ## systemd sandboxing of HSCL1 units (2026-11-06)
-All HSCL1 system units set `ProtectKernelModules`, `ProtectControlGroups`, `ProtectHostname`, `LockPersonality`, `RestrictRealtime` and
+All HSCL1 system units except the three Workshop units (see the note below) set `ProtectKernelModules`, `ProtectControlGroups`, `ProtectHostname`, `LockPersonality`, `RestrictRealtime` and
 `SystemCallArchitectures=native` (enforced by `tests/security/test_systemd_hardening.py`). The security-baseline unit additionally has
 `NoNewPrivileges`, `PrivateTmp`, `ProtectHome` and `RestrictAddressFamilies`. The Workshop daemon deliberately has **no** `ProtectSystem`
 and no `NoNewPrivileges`: it writes into allow-listed `/usr` paths and runs root hooks on request. Its protection is that it is inert unless
 a hypervisor provides the virtio port (or an admin starts the local socket variant), plus the closed operation set and path allow-list.
 Status: static check only; `systemd-analyze security` output from a booted image is **not yet collected**.
+
+**Correction (2026-11-06):** the sandbox options were removed again from the three Workshop units as an A/B experiment: in two VM runs the Workshop
+daemon stopped answering mid-run on images that had them, and did not on the earlier image without them. Whether the options are the cause is
+not proven yet; they come back if the experiment shows they are not.
