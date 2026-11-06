@@ -28,15 +28,15 @@
 ### Task L1: model fetcher with hash verification
 **Files:** Create `tools/local_worker/fetch_model.py`, `tests/unit/test_fetch_model.py`.
 **Interfaces:** `expected_sha256(repo: str, filename: str, api_get=...) -> str` (reads the LFS oid from the Hugging Face tree API), `fetch(repo, filename, dest_dir, opener=...) -> Path` (resumable, verifies, deletes on mismatch).
-- [ ] Tests with a fake opener: matching hash keeps the file; mismatch deletes it and raises; existing verified file is not re-downloaded; destination outside `C:\LocalAIBACKEND\models` refused
-- [ ] Implement; then fetch (owner approved install on C:): `prism-ml/Ternary-Bonsai-2-9B-gguf` PQ2_0-MTP-Q8_0, `prism-ml/Ternary-Bonsai-2-4B-gguf` PQ2_0, Qwen3.5-9B Q4 (repo id from the model card, hash from the API)
+- [x] Tests with a fake opener (18, red first): matching hash keeps the file; mismatch deletes it and raises; verified file not re-downloaded; resume from `.part`; destination outside the allowed root, bad file names and repo ids refused
+- [x] Implemented `tools/local_worker/fetch_model.py` (default root is `C:\LocalAIBACKEND`, where the gateway resolves models). Downloads started in the background (log `artifacts/local/fetch.log`): then fetch (owner approved install on C:): `prism-ml/Ternary-Bonsai-2-9B-gguf` PQ2_0-MTP-Q8_0, `prism-ml/Ternary-Bonsai-2-4B-gguf` PQ2_0, Qwen3.5-9B Q4 (repo id from the model card, hash from the API)
 - [ ] Register the models in `C:\LocalAIBACKEND\models.yaml` (backup first; est_mem_mb from `hscl ai fit`)
 
 ### Task L2: memory gate
 **Files:** Create `tools/local_worker/memgate.py`, tests.
 **Interfaces:** `can_start(model_mb: int, kv_mb: int, free_mb: int, reserve_mb: int = 3000) -> bool`; `free_mb() -> int` (Windows `GlobalMemoryStatusEx` via ctypes, fallback `/proc/meminfo`).
-- [ ] Tests: boundary values, reserve respected, unknown platform raises
-- [ ] Implement
+- [x] Tests (11, red first): boundary values, configurable reserve, negative inputs, meminfo parsing, plausible live value
+- [x] Implemented `tools/local_worker/memgate.py` (ctypes `GlobalMemoryStatusEx`, `/proc/meminfo` fallback, CLI exit 0/1). Live smoke: 5237 MiB available refused a 3600+600 MiB start (need 7200)
 
 ### Task L3: verify-patch loop (core)
 **Files:** Create `tools/local_worker/loop.py`, `tests/unit/test_local_loop.py`.
