@@ -22,12 +22,12 @@ hardware, trademark review, native-speaker review, key policy, production deploy
 | Published prereleases: `v0.1.0-alpha.0` (notes now carry a warning about two security defects), `v0.1.1-alpha.0` (4 parts of 1500 MiB, SHA256SUMS, manifest, SBOM of the Rust CLI); workflow "Verify release assets": split verify and **Bundle one-file ISO** both green | release page, run 42222161027 |
 | Release candidate `0.1.2-alpha.0` (full xz build from clean clone at `d20f557`, sha256 `56e4cafb...9d3d`, 5 026 480 128 B): 3 x 27/27 live checks, fresh LUKS2 install, installed boot to desktop in 188 s, `/` = `0:0 755`, no keyfile, secret scan clean, installer fully HSCL1 | `artifacts/e2e-rel2-run*`, `artifacts/luks-rel2`, `artifacts/luks-boot-rel2` |
 | **That candidate is NOT released.** Content scan found visible upstream leftovers (installer donate link to kubuntu.org, "Kubuntu Website" and "Kubuntu Focus" menu entries, wrong SDDM description, live user/host named `kubuntu`, Plymouth message overlapping the logo). Fixed in commit `e6ee0d4` (+ gates, + tests) | `docs/BUILD_LOG.md` |
-| Dev image `r5` (contains those fixes) built, gates green; boot + 27 checks running in the background at the time of writing | `artifacts/remaster-r5.log`, `artifacts/chain-r5.log` |
+| Dev image `r5` failed to boot ("cow format specified as overlay and no support found"): setting `FLAVOUR` in `/etc/casper.conf` was the cause (same image with the r4 initrd booted in 90 s; initrd trees differ only in `casper.conf`, `os-release`, Plymouth descriptor, font caches). Fixed in `35ba640`: live user/host now come from `/.disk/info` on the medium. Dev image `r6` VM-VERIFIED: desktop after 90 s without a click, 28/28 checks incl. `live_identity` (user and host `hscl1`), `/` `0:0 755` | `artifacts/boot-r5`, `artifacts/boot-r5b`, `artifacts/boot-r6`, `artifacts/e2e-r6` |
 | Rebrand boot tests r1-r4 found and fixed four real defects the gates had not seen (missing initrd `-map`, missing `BOOT=casper`, blocking upstream Try/Install prompt, ShellCheck findings) | BUILD_LOG "Rebrand round" |
 | Live view of VM runs (`watch.py` + Tk viewer) implemented, frames written during real runs; screenshot of the window itself not captured | `artifacts/e2e-r1/vm/*/live.png` |
 | Not done at all: Secure Boot state in the guest, Security Lab runtime, Privacy features, AI on a real GPU, website deployment, SBOM of the ISO package list, reproducibility, attestation, maintainer signature, any physical hardware | CLAIMS.md |
 
-**Next three actions (in this order):** (1) read r5 results, fix whatever they show; (2) full release build of the fixed commit and all
+**Next three actions (in this order):** (1) PR the branch (green CI) and merge; (2) full release build of the fixed commit and all
 release gates on that exact artefact; (3) publish 0.1.2-alpha.0 through the draft flow of section 7 and run the cloud merge.
 
 ---
@@ -251,6 +251,18 @@ done:** physical hardware, trademark review, native-speaker review, maintainer s
 ### P14 - Later product work (pointers; see the expansion plan)
 W1 hardware detect + drivers | W2 AI fit/estimate | W3 GPU/RAM bridges (experimental) | W4 GEMM simulator | W5 shortcuts/KRunner | W6 wallpaper maker | W8 coding tools | W15-W19 HCS shell, image/video viewers, office, pentest API/MCP, desktop MCP | W20 hardening reports. Each gets an entry here only when it is scheduled, with its own gate.
 
+### P15 - Freeze, dev mode, bake (detail: `2026-11-06-freeze-devmode-memory-tiering.md`)
+- [ ] E1 `systemd-sysext` on our image (merge/unmerge, `extension-release` match, effect on dpkg) | [ ] E2 live upperdir anatomy after a normal session | [ ] E3 freeze-plan prototype with exclusion mutation test (planted fake secret must make the export refuse)
+- [ ] D1 `hscl dev` status + `freeze plan` (read-only) | [ ] D2 freeze export as a reviewable repository patch (allow-list, hard exclusions, root:root, manifest) | [ ] D3 `qa_image`-only private image path stays out of releases
+
+### P16 - Memory tiering, speed test, KV cache (detail: same file, section 3)
+- [ ] T-core pure functions in Rust (roofline ceiling, fit cross-check, KV type choice) with synthetic-hardware tests | [ ] T-bench bounded RAM and SSD speed tests, labelled when the page cache affects them | [ ] T-flags only flags the pinned llama.cpp lists in `--help`
+- [ ] T-kv quality gate (perplexity/KLD f16 vs candidate) before any compressed KV type is recommended; default f16, q8_0 only when the context would not fit, q4_x opt-in | [ ] T-ttm advise-only TTM/GTT snippet, applied only through the narrow helper after confirmation, with cap and revert
+- [ ] T-owner Windows-host Vulkan smoke test on the Radeon 680M; Linux-on-metal GTT test (owner boots the image) - **no claim before these**
+
+### P17 - Safe RSI guard (detail: same file, section 4)
+- [ ] S-protected `scripts/protected_paths.json` + `scripts/protected_paths.py` + test + CI step: a branch must not change the files that judge it without a human-review label | [ ] S-archive variant archive file (branch, parent, results) | [ ] S-sandbox candidates run in disposable VMs without secrets
+
 ---
 
 ## 5. Hardening, verification and testing improvements (cross-cutting, new)
@@ -284,6 +296,11 @@ W1 hardware detect + drivers | W2 AI fit/estimate | W3 GPU/RAM bridges (experime
 | Q15 | Trademark review of the derivative naming | owner/legal | **yes** |
 | Q16 | Native-speaker review DE/FR | owner | **yes** |
 | Q17 | Physical-hardware tests, NVIDIA/Venus | owner machines | **yes** |
+| Q18 | Is `systemd-sysext` usable as the dev-mode layer on this image (D1/D3 of the freeze plan) | E1 | no |
+| Q19 | `ttm.` vs `amdttm.` prefix, default GTT share and the effect on the Radeon 680M under Linux | owner boots the image on the machine | **yes** |
+| Q20 | Real NVMe streaming tokens/s for our model sizes | bounded speed test + one real run | no |
+| Q21 | Perplexity/KLD tool in the pinned llama.cpp build and an acceptable quality threshold for compressed KV | pinned `--help`, calibrate on the 2B model | no |
+| Q22 | Complete protected-path list for the RSI guard | review with the owner once | **yes** |
 
 ---
 
