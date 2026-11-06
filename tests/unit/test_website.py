@@ -61,7 +61,8 @@ def dist(tmp_path_factory):
 
 def pages(dist):
     return [dist / "index.html", dist / "download/index.html", dist / "de/index.html", dist / "de/download/index.html",
-            dist / "fr/index.html", dist / "fr/download/index.html"]
+            dist / "fr/index.html", dist / "fr/download/index.html",
+            dist / "security/index.html", dist / "de/security/index.html", dist / "fr/security/index.html"]
 
 
 def test_all_pages_exist_with_one_h1_and_correct_lang(dist):
@@ -129,3 +130,10 @@ def test_canonical_and_hreflang_only_with_site_url(tmp_path, dist):
     out = build(tmp_path, "https://example.test")
     assert sorted(scan(out / "de/download/index.html").hreflang) == ["de", "en", "fr", "x-default"]
     assert "https://example.test/fr/download/" in (out / "sitemap.xml").read_text(encoding="utf-8")
+
+
+def test_security_page_states_the_limits_and_links_the_private_reporting_page(dist):
+    for lang, prefix in [("en", ""), ("de", "de/"), ("fr", "fr/")]:
+        text = (dist / prefix / "security/index.html").read_text(encoding="utf-8")
+        assert "https://github.com/timfromhcs/HSCL1/security" in text
+        assert "SHA256SUMS" in text and "Tails" in text

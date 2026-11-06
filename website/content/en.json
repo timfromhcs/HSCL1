@@ -2,18 +2,46 @@
  "name": "English",
  "title": "HSCL1 - one system, three modes",
  "description": "HSCL1 is an experimental Linux workstation based on Kubuntu 26.04: a Workstation desktop, an isolated Security Lab and a privacy workflow. Pre-release, tested in virtual machines only.",
- "nav": {"home": "Home", "download": "Download", "modes": "Modes", "honest": "Status", "lang": "Language", "skip": "Skip to content"},
- "hero": {"h1": "One system. Three modes.", "sub": "HSCL1 is a Kubuntu-based Linux workstation with its own desktop look, a command-line tool and an installer. It is an early pre-release that has been tested in virtual machines only.", "cta": "Download", "cta2": "What it is"},
+ "nav": {
+  "home": "Home",
+  "download": "Download",
+  "modes": "Modes",
+  "honest": "Status",
+  "lang": "Language",
+  "skip": "Skip to content",
+  "security": "Security"
+ },
+ "hero": {
+  "h1": "One system. Three modes.",
+  "sub": "HSCL1 is a Kubuntu-based Linux workstation with its own desktop look, a command-line tool and an installer. It is an early pre-release that has been tested in virtual machines only.",
+  "cta": "Download",
+  "cta2": "What it is"
+ },
  "modes_h": "Three modes with separate boundaries",
  "modes": [
-  {"t": "Workstation", "d": "The everyday desktop: HCS Hybrid Desktop on KDE Plasma with a top bar, a floating dock, a Control Center and the hscl command-line tool."},
-  {"t": "Security Lab", "d": "Planned: Kali tools in rootless containers or virtual machines, never from the host's package sources. Not implemented yet."},
-  {"t": "Privacy", "d": "Planned: a Tor workflow and a launcher for the official Tails image. No anonymity claim is made, and none will be made without tests."}
+  {
+   "t": "Workstation",
+   "d": "The everyday desktop: HCS Hybrid Desktop on KDE Plasma with a top bar, a floating dock, a Control Center and the hscl command-line tool."
+  },
+  {
+   "t": "Security Lab",
+   "d": "Planned: Kali tools in rootless containers or virtual machines, never from the host's package sources. Not implemented yet."
+  },
+  {
+   "t": "Privacy",
+   "d": "Planned: a Tor workflow and a launcher for the official Tails image. No anonymity claim is made, and none will be made without tests."
+  }
  ],
  "shots_h": "The real desktop",
  "shots": [
-  {"src": "img/desktop-rain.png", "alt": "HSCL1 live desktop with the rain wallpaper, top bar and dock"},
-  {"src": "img/control-center.png", "alt": "HSCL1 Control Center showing live system values"}
+  {
+   "src": "img/desktop-rain.png",
+   "alt": "HSCL1 live desktop with the rain wallpaper, top bar and dock"
+  },
+  {
+   "src": "img/control-center.png",
+   "alt": "HSCL1 Control Center showing live system values"
+  }
  ],
  "honest_h": "What is verified, and what is not",
  "honest": [
@@ -26,7 +54,11 @@
   "h1": "Download",
   "none": "Release not published yet. See the source repository for build instructions.",
   "pre": "Pre-release - not for production use",
-  "version": "Version", "released": "Published", "size": "Total size", "sha": "SHA-256 of the complete ISO", "parts": "Files",
+  "version": "Version",
+  "released": "Published",
+  "size": "Total size",
+  "sha": "SHA-256 of the complete ISO",
+  "parts": "Files",
   "parts_note": "GitHub limits a release file to 2 GiB, so the ISO is split into parts of about 1.5 GB. Download all parts and SHA256SUMS, then join and verify them.",
   "verify_h": "Join and verify",
   "verify": [
@@ -40,7 +72,51 @@
    "Unsigned.",
    "This image still has KDE Connect listening on port 1716; the fix is in the source but not in this image."
   ],
-  "all": "All files on GitHub", "tag": "Release page"
+  "all": "All files on GitHub",
+  "tag": "Release page"
  },
- "footer": {"credit": "Made with love by hcsmedia", "license": "Free software under GPL-3.0-or-later.", "source": "Source code", "issues": "Report an issue"}
+ "footer": {
+  "credit": "Made with love by hcsmedia",
+  "license": "Free software under GPL-3.0-or-later.",
+  "source": "Source code",
+  "issues": "Report an issue"
+ },
+ "sec": {
+  "title": "Security and limits - HSCL1",
+  "h1": "Security and limits",
+  "intro": "HSCL1 is early pre-alpha software. Do not use it for anything that needs a security guarantee. This page says what we do and what we do not claim.",
+  "report_h": "Report a vulnerability",
+  "report": "Use GitHub's private vulnerability reporting on the source repository (Security tab, Report a vulnerability). Please do not open a public issue for a security problem. Include the version (hscl version), what you did, what happened and what you expected. There is no service-level promise at this stage.",
+  "report_link": "Open the repository's security page",
+  "integrity_h": "Release integrity",
+  "integrity": [
+   "Releases are published with SHA256SUMS; verify every download against it.",
+   "Release signing is not in place yet. No signing key has been created, so treat releases as unsigned."
+  ],
+  "claims_h": "What we do not claim",
+  "claims": [
+   "No anonymity: HSCL1 is not Tails, and the Privacy mode is planned, not shipped.",
+   "No guarantee against attacks, no certification, no claim that it is hard to hack.",
+   "No support for physical hardware: no device has been tested.",
+   "Secure Boot: the image boots under Secure Boot firmware in a virtual machine, but the Secure Boot state inside the guest has not been read, so no Secure Boot claim is made."
+  ],
+  "dev_h": "Developer tool: the Workshop",
+  "dev": "The Workshop is a developer tool that is inactive by default: no enabled service, no socket and no network listener. It starts only when a hypervisor provides a dedicated virtual port, or when an administrator starts it by hand. Whoever controls that port already controls the virtual machine, and its hooks run as root by design. Do not enable it on a machine you do not control.",
+  "docs_h": "Details",
+  "docs": "The full, maintained lists are in the source repository.",
+  "docs_links": [
+   {
+    "t": "Known limitations",
+    "u": "https://github.com/timfromhcs/HSCL1/blob/main/docs/KNOWN_LIMITATIONS.md"
+   },
+   {
+    "t": "Threat model",
+    "u": "https://github.com/timfromhcs/HSCL1/blob/main/docs/THREAT_MODEL.md"
+   },
+   {
+    "t": "Security policy",
+    "u": "https://github.com/timfromhcs/HSCL1/blob/main/SECURITY.md"
+   }
+  ]
+ }
 }

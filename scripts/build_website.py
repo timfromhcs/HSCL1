@@ -109,6 +109,7 @@ def page(lang: str, c: dict, path: str, title: str, body: str, site: str | None)
 <nav aria-label="Main"><ul>
 <li><a href="{home}"{cur("/")}>{e(n["home"])}</a></li>
 <li><a href="{dl}"{cur("/download/")}>{e(n["download"])}</a></li>
+<li><a href="{prefix(lang)}/security/"{cur("/security/")}>{e(n["security"])}</a></li>
 </ul></nav>
 <nav aria-label="{e(n["lang"])}"><ul>{langs}</ul></nav>
 </div></header>
@@ -159,6 +160,19 @@ def download(lang: str, c: dict, rel: dict | None) -> str:
 <section aria-labelledby="limits"><h2 id="limits">{e(d["limits_h"])}</h2><div class="note"><ul>{lim}</ul></div></section>"""
 
 
+def security(lang: str, c: dict) -> str:
+    x = c["sec"]
+    lst = lambda items: "<ul>" + "".join(f"<li>{e(i)}</li>" for i in items) + "</ul>"  # noqa: E731
+    links = "".join(f'<li><a href="{e(l["u"])}">{e(l["t"])}</a></li>' for l in x["docs_links"])
+    return f"""<section class="hero"><h1>{e(x["h1"])}</h1><p class="lead">{e(x["intro"])}</p></section>
+<section aria-labelledby="report"><h2 id="report">{e(x["report_h"])}</h2><p>{e(x["report"])}</p>
+<p><a class="btn ghost" href="https://github.com/{REPO}/security">{e(x["report_link"])}</a></p></section>
+<section aria-labelledby="integrity"><h2 id="integrity">{e(x["integrity_h"])}</h2>{lst(x["integrity"])}</section>
+<section aria-labelledby="claims"><h2 id="claims">{e(x["claims_h"])}</h2><div class="note">{lst(x["claims"])}</div></section>
+<section aria-labelledby="dev"><h2 id="dev">{e(x["dev_h"])}</h2><p>{e(x["dev"])}</p></section>
+<section aria-labelledby="docs"><h2 id="docs">{e(x["docs_h"])}</h2><p>{e(x["docs"])}</p><ul>{links}</ul></section>"""
+
+
 def build(out: Path, site: str | None) -> list[str]:
     tokens = json.loads((ROOT / "themes/tokens/tokens.json").read_text(encoding="utf-8"))
     meta = json.loads((WEB / "data/release.json").read_text(encoding="utf-8"))
@@ -178,7 +192,8 @@ def build(out: Path, site: str | None) -> list[str]:
     urls = []
     for lang in LANGS:
         c = json.loads((WEB / f"content/{lang}.json").read_text(encoding="utf-8"))
-        for path, body, title in [("/", home(lang, c, rel), c["title"]), ("/download/", download(lang, c, rel), f'{c["dl"]["h1"]} - HSCL1')]:
+        for path, body, title in [("/", home(lang, c, rel), c["title"]), ("/download/", download(lang, c, rel), f'{c["dl"]["h1"]} - HSCL1'),
+                            ("/security/", security(lang, c), c["sec"]["title"])]:
             target = out / (prefix(lang).lstrip("/")) / path.strip("/") / "index.html"
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(page(lang, c, path, title, body, site), encoding="utf-8")
