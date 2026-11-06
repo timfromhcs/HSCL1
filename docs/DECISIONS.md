@@ -25,3 +25,58 @@ session token. `verify-image.sh` fails the build if Workshop is enabled or expos
 `workshop_default: disabled`; `make_release.py` refuses an ISO without that attestation.
 Consequences: Workshop is documented in the threat model and limitations; respin output is labelled a development snapshot.
 This replaces the earlier "no QA in release" rule.
+
+## ADR-005 Flatpak is an opt-in component, not a default (2026-11-06) - ACCEPTED
+Context: Canonical asked the official Ubuntu flavours to stop shipping Flatpak, and Kubuntu 26.04 does not ship it; Flatpak itself
+installs cleanly from the archive and works under Plasma 6.6 Wayland. Shipping it by default would both ignore the base
+distribution's policy and add a second software source we do not audit.
+Decision: the ISO is apt-only. The Control Center offers one explicit switch that installs `flatpak`, adds Flathub and displays the
+source/trust of every application. Off by default; documented as opt-in, not as a feature of the base system.
+Consequences: no Flatpak app can be a dependency of HSCL1 itself; the website and README must not list Flatpak among default
+features; the sandbox claim is only made for apps the user installed themselves.
+Refs: <https://lwn.net/Articles/927262/>, <https://itsfoss.com/news/ubuntu-flavor-drops-flatpak/>.
+
+## ADR-006 Tiling presets are HSCL-owned files, KWin does not persist layouts (2026-11-06) - ACCEPTED
+Context: KWin's custom tiling editor does not save layouts (KDE bug 466019, CONFIRMED, last activity 2026-10) and layouts are lost on
+monitor changes. Promising "saved layouts" would be a claim the desktop cannot keep.
+Decision: `hscl appearance layout list|show|set NAME|reset` writes a reviewed `[Tiling]` fragment into `kwinrc` and re-applies it after
+a monitor change; the UI says "apply layout" and documents the re-apply, never "remembered".
+Consequences: no "layout" entries in the Start menu; the shortcut reference documents only bindings that exist.
+Refs: <https://bugs.kde.org/show_bug.cgi?id=466019>.
+
+## ADR-007 Snapshot pinning is build-only (2026-11-06) - ACCEPTED
+Context: `snapshot.ubuntu.com` covers `resolute` and `apt --snapshot <id>` works; pinning an installed system would freeze security
+updates, which contradicts the "security updates by default" baseline.
+Decision: the *build host* pins a snapshot ID (recorded in `build-manifest.json`, gate G21). Installed systems use the live archive
+plus `unattended-upgrades` on the security pockets. Overrides for unattended-upgrades live in a file sorting after
+`50unattended-upgrades` and `#clear` the shipped origins first.
+Consequences: reproducibility is a property of the artefact, not of the user's machine; two builds of one commit can still differ if
+the snapshot ID is not recorded - hence the gate.
+Refs: <https://ubuntu.com/server/docs/how-to/software/snapshot-service/>,
+<https://github.com/mvo5/unattended-upgrades/blob/main/README.md>.
+
+## ADR-008 Trademark wording is enforced by a script (2026-11-06) - ACCEPTED
+Context: OffSec's trademark policy requires the first mention to carry the symbol and the sentence "KALI LINUX ™ is a trademark of
+OffSec.", forbids abbreviating or combining the mark, and forbids the mark in domain names.
+Decision: `docs/TRADEMARKS.md` states the rules; `scripts/check_trademarks.py` scans tracked text files and fails when the
+attribution sentence is missing on a file that mentions the mark, when a forbidden pattern appears ("HSCL1 Kali Edition",
+"Kali-based HSCL1", a Kali logo file), or when a Tails sentence implies equivalence. Runs in the unit suite and in CI. <!-- trademark-ok: quoted as a forbidden example -->
+Consequences: legal review by the owner is still required (F12/F14), but the mechanical part can no longer regress.
+Refs: <https://www.kali.org/docs/policy/trademark/>.
+
+## ADR-009 UI capture uses spectacle in background mode (2026-11-06) - ACCEPTED
+Context: `grim` cannot capture KWin Wayland sessions; `spectacle` is the supported tool and its background mode is scriptable
+(`-b -n -o FILE -d MS -e -S`).
+Decision: every automated screenshot (visual gates, docs, website) uses spectacle inside the VM at a fixed resolution with animations
+off and a fixed clock; the harness is `scripts/capture_ui.py`, and an image that the harness cannot reproduce is not published.
+Consequences: screenshots are tied to the VM image, not to a developer desktop; the comparison baselines must be regenerated when the
+image changes.
+Refs: <https://forum.endeavouros.com/t/having-problems-to-take-screenshot-on-plasma-wayland/76740>.
+
+## ADR-010 Model bundle ships as GitHub release assets (2026-11-06) - ACCEPTED
+Context: GitHub caps a release asset at 2 GiB; the largest planned model is ~1.5 GB quantised; the product rule forbids requiring a
+cloud account.
+Decision: models are opt-in assets on the same release as the ISO, each with card, licence, sha256 and measured tok/s; the ISO ships
+only the < 1 MB NCA checkpoint we trained ourselves. No bucket, no third-party host.
+Consequences: a model download follows the same trust path as the ISO (checksum published in `SHA256SUMS`), and "no model weights in
+the ISO" stays testable.

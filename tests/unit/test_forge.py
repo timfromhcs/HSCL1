@@ -10,11 +10,46 @@ import forge  # noqa: E402
 
 
 def test_plan_has_the_expected_steps_and_skips_shellcheck_without_wsl():
-    steps = forge.plan_check(ROOT, have_wsl=False)
+    steps = forge.plan_check(ROOT, have_wsl=False, changed=["tests/unit/test_x.py"])
     names = [s.name for s in steps]
-    assert names == ["pytest", "bash -n", "shellcheck (WSL)", "secret scan"]
-    sc = steps[2]
+    assert names == ["pytest", "pytest (WSL, changed tests)", "bash -n", "shellcheck (WSL)", "secret scan"]
+    assert steps[1].argv is None and "WSL" in steps[1].skip_reason
+    sc = steps[3]
     assert sc.argv is None and "WSL" in sc.skip_reason
+
+
+def test_changed_tests_step_runs_the_changed_files_under_linux():
+    """Four CI-only failures on 2026-11-06 (exec bit x3, a Windows-only path normalization) came from tests that only ran on Windows."""
+    steps = forge.plan_check(ROOT, have_wsl=True, changed=["tests/unit/test_a.py", "tests/unit/test b.py"])
+    st = next(s for s in steps if s.name == "pytest (WSL, changed tests)")
+    cmd = st.argv[-1]
+    assert st.argv[:4] == ["wsl", "-d", "Ubuntu", "--"] and "python3 -m pytest" in cmd
+    assert "tests/unit/test_a.py" in cmd and "'tests/unit/test b.py'" in cmd
+
+
+def test_changed_tests_step_is_skipped_when_no_test_file_changed():
+    st = next(s for s in forge.plan_check(ROOT, have_wsl=True, changed=[]) if s.name == "pytest (WSL, changed tests)")
+    assert st.argv is None and "no changed test files" in st.skip_reason
+
+
+def test_changed_test_files_finds_modified_and_untracked_tests_only(tmp_path):
+    def git(*a):
+        subprocess.run(["git", *a], cwd=tmp_path, check=True, capture_output=True)
+
+    git("init", "-q")
+    git("config", "user.email", "t@example.invalid")
+    git("config", "user.name", "t")
+    (tmp_path / "tests" / "unit").mkdir(parents=True)
+    (tmp_path / "tests" / "unit" / "test_a.py").write_text("x = 1\n", encoding="utf-8")
+    (tmp_path / "tests" / "unit" / "test_b.py").write_text("x = 1\n", encoding="utf-8")
+    (tmp_path / "tests" / "conftest.py").write_text("x = 1\n", encoding="utf-8")
+    git("add", "-A")
+    git("commit", "-qm", "init")
+    (tmp_path / "tests" / "unit" / "test_a.py").write_text("x = 2\n", encoding="utf-8")  # modified
+    (tmp_path / "tests" / "unit" / "test_new.py").write_text("x = 1\n", encoding="utf-8")  # untracked
+    (tmp_path / "tests" / "conftest.py").write_text("x = 2\n", encoding="utf-8")  # changed but not a test file
+    (tmp_path / "notes.txt").write_text("n\n", encoding="utf-8")
+    assert forge.changed_test_files(tmp_path) == ["tests/unit/test_a.py", "tests/unit/test_new.py"]
 
 
 def test_plan_with_wsl_builds_a_shellcheck_command_for_the_known_scripts():

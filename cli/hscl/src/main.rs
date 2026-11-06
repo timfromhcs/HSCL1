@@ -2,6 +2,7 @@
 //!
 //! Only commands with real implementations are exposed (AGENTS.md section 8.2).
 
+mod agent;
 mod ai;
 mod appearance;
 mod catalog;
@@ -18,7 +19,9 @@ mod profile;
 mod redact;
 mod report;
 mod security;
+mod serve;
 mod sysinfo;
+mod toolcall;
 mod updates;
 mod wallpaper;
 
@@ -109,6 +112,12 @@ enum Cmd {
     Code {
         #[command(subcommand)]
         cmd: CodeCmd,
+    },
+    /// Print a shell completion script (bash, zsh, fish, elvish, powershell) for `hscl` and `hscl1`.
+    Completions {
+        /// Target shell.
+        #[arg(value_enum)]
+        shell: clap_complete::Shell,
     },
     /// Model Context Protocol server on stdio for local agents (read-only unless --allow-write).
     Mcp {
@@ -373,6 +382,29 @@ enum AiCmd {
         #[arg(long, value_name = "PATH")]
         backend: Option<std::path::PathBuf>,
     },
+    /// Print the exact llama-server command for a local model (loopback only, API key as a file, measured defaults). Nothing is started.
+    Serve {
+        /// Model file (.gguf) inside the model storage directory (see `hscl ai model path`); not needed with --router-dir.
+        model: Option<std::path::PathBuf>,
+        /// TCP port on 127.0.0.1 (1024 or higher).
+        #[arg(long, default_value_t = 8081)]
+        port: u16,
+        /// Context length in tokens (512 to 262144).
+        #[arg(long, default_value_t = 4096)]
+        ctx: u32,
+        /// File with the API key, one line (default: ai-server.key in the hscl config directory). The key is never put on the command line.
+        #[arg(long, value_name = "PATH")]
+        api_key_file: Option<std::path::PathBuf>,
+        /// Router mode: serve the models in this directory (must be inside the model storage), loaded on demand.
+        #[arg(long, value_name = "DIR")]
+        router_dir: Option<std::path::PathBuf>,
+        /// Router mode only: models kept in memory at the same time (1 or 2).
+        #[arg(long)]
+        models_max: Option<u32>,
+        /// Also expose the Prometheus /metrics endpoint.
+        #[arg(long)]
+        metrics: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -555,6 +587,13 @@ fn print_value(as_json: bool, v: &serde_json::Value, human: impl FnOnce() -> Str
     }
 }
 
+fn completions_script(shell: clap_complete::Shell, prog: &str) -> String {
+    let mut cmd = <Cli as clap::CommandFactory>::command();
+    let mut buf = Vec::new();
+    clap_complete::generate(shell, &mut cmd, prog, &mut buf);
+    String::from_utf8_lossy(&buf).into_owned()
+}
+
 fn run(cli: Cli) -> anyhow::Result<u8> {
     let j = cli.json;
     match cli.command.unwrap_or(Cmd::Overview) {
@@ -571,11 +610,11 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
             let v = json!({
                 "product": PRODUCT, "expansion": EXPANSION, "version": env!("CARGO_PKG_VERSION"),
                 "publisher": "HCSMEDIA", "credit": CREDIT,
-                "notice": "HSCL1 is not Tails and not an official Kali release."
+                "notice": "HSCL1 is not Tails and not an official Kali release. KALI LINUX™ is a trademark of OffSec. HSCL1 is not affiliated with or endorsed by the Tails project."
             });
             print_value(j, &v, || {
                 format!(
-                    "{PRODUCT} {}\n{CREDIT}\nHSCL1 is not Tails and not an official Kali release.",
+                    "{PRODUCT} {}\n{CREDIT}\nHSCL1 is not Tails and not an official Kali release.\nKALI LINUX™ is a trademark of OffSec. HSCL1 is not affiliated with or endorsed by the Tails project.",
                     env!("CARGO_PKG_VERSION")
                 )
             });
@@ -613,6 +652,32 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
             let sec = security::collect();
             let v = serde_json::to_value(&sec)?;
             print_value(j, &v, || security::render(&sec));
+        }
+        Cmd::Ai {
+            cmd:
+                AiCmd::Serve {
+                    model,
+                    port,
+                    ctx,
+                    api_key_file,
+                    router_dir,
+                    models_max,
+                    metrics,
+                },
+        } => {
+            let o = serve::ServeOpts {
+                model: model.unwrap_or_default(),
+                port,
+                ctx,
+                api_key_file: api_key_file
+                    .unwrap_or_else(|| appearance::config_dir().join("ai-server.key")),
+                router_dir,
+                models_max,
+                metrics,
+            };
+            let argv = serve::serve_argv(&o, &download::models_dir())?;
+            let v = json!({"argv": argv, "executed": false, "note": "Printed only. Create the key file yourself (one random line, mode 0600) before starting the server."});
+            print_value(j, &v, || serve::render(&argv));
         }
         Cmd::Ai {
             cmd: AiCmd::Model { cmd },
@@ -717,6 +782,11 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
                 std::io::stdout().lock(),
                 &mcp::SelfExec,
             )?;
+            return Ok(exit::OK);
+        }
+        Cmd::Completions { shell } => {
+            let prog = program_name(&std::env::args().next().unwrap_or_default());
+            print!("{}", completions_script(shell, prog));
             return Ok(exit::OK);
         }
         Cmd::Graphics { cmd } => return run_graphics(j, cmd),
@@ -1370,7 +1440,7 @@ Start here:
     }
     s.push_str(
         "
-`hscl` and `hscl1` are the same program. HSCL1 is not Tails and not an official Kali release.",
+`hscl` and `hscl1` are the same program. HSCL1 is not Tails and not an official Kali release.\n\nKALI LINUX™ is a trademark of OffSec. HSCL1 is not affiliated with or endorsed by the Tails project.",
     );
     s
 }
@@ -1450,5 +1520,66 @@ mod brand_tests {
     fn expansion_is_the_exact_owner_given_text() {
         assert_eq!(EXPANSION, "Hypercharged Supreme Computing Layout 1");
         assert_eq!(PRODUCT, "HSCL1");
+    }
+}
+
+#[cfg(test)]
+mod doc_drift_tests {
+    use super::*;
+
+    fn leaves(cmd: &clap::Command, prefix: &str, out: &mut Vec<String>) {
+        let subs: Vec<&clap::Command> = cmd
+            .get_subcommands()
+            .filter(|c| c.get_name() != "help")
+            .collect();
+        if subs.is_empty() {
+            out.push(prefix.to_string());
+        }
+        for c in subs {
+            leaves(c, &format!("{prefix} {}", c.get_name()), out);
+        }
+    }
+
+    /// G12: every leaf command of the clap tree must appear in docs/CLI.md.
+    #[test]
+    fn cli_doc_lists_every_command() {
+        let doc =
+            std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/CLI.md"))
+                .expect("docs/CLI.md");
+        let mut all = Vec::new();
+        let root = <Cli as clap::CommandFactory>::command();
+        for c in root.get_subcommands().filter(|c| c.get_name() != "help") {
+            leaves(c, &format!("hscl {}", c.get_name()), &mut all);
+        }
+        assert!(all.len() > 10, "command tree not walked: {all:?}");
+        let missing: Vec<&String> = all.iter().filter(|p| !doc.contains(p.as_str())).collect();
+        assert!(missing.is_empty(), "docs/CLI.md misses: {missing:#?}");
+    }
+}
+
+#[cfg(test)]
+mod completion_tests {
+    use super::*;
+
+    #[test]
+    fn completion_scripts_cover_every_top_level_command_for_both_program_names() {
+        let root = <Cli as clap::CommandFactory>::command();
+        for prog in ["hscl", "hscl1"] {
+            for shell in [
+                clap_complete::Shell::Bash,
+                clap_complete::Shell::Zsh,
+                clap_complete::Shell::Fish,
+            ] {
+                let s = completions_script(shell, prog);
+                for c in root.get_subcommands().filter(|c| c.get_name() != "help") {
+                    assert!(
+                        s.contains(c.get_name()),
+                        "{shell:?}/{prog} misses {}",
+                        c.get_name()
+                    );
+                }
+                assert!(s.contains(prog));
+            }
+        }
     }
 }

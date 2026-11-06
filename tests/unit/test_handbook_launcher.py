@@ -1,15 +1,16 @@
-"""hscl-handbook launcher picks the handbook language from the locale (sh, run via bash)."""
-import os
-import shutil
-import subprocess
+"""hscl-handbook launcher picks the handbook language from the locale (sh, run via bash).
+
+Runs on Linux CI, in WSL and with Git Bash on Windows through tests/shellutil.py.
+"""
 from pathlib import Path
 
 import pytest
 
+import shellutil
+
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "packages/debian/hscl-handbook/usr/bin/hscl-handbook"
-BASH = shutil.which("bash")
-pytestmark = pytest.mark.skipif(BASH is None, reason="needs a POSIX shell (bash/sh) to run the launcher")
+pytestmark = pytest.mark.skipif(not shellutil.usable(), reason="needs a POSIX shell (native bash or WSL)")
 
 
 @pytest.fixture()
@@ -22,16 +23,23 @@ def docs(tmp_path):
 
 
 def run(docs, lang, *args):
-    env = {**os.environ, "HSCL_HANDBOOK_DIR": str(docs), "HSCL_OPEN": "echo", "LANG": lang}
-    env.pop("LC_ALL", None)
-    env.pop("LC_MESSAGES", None)
-    return subprocess.run([BASH, str(SCRIPT), *args], capture_output=True, text=True, env=env)
+    return shellutil.run_script(
+        SCRIPT,
+        *args,
+        env_overrides={
+            "HSCL_HANDBOOK_DIR": docs,
+            "HSCL_OPEN": "echo",
+            "LANG": lang,
+            "LC_ALL": None,
+            "LC_MESSAGES": None,
+        },
+    )
 
 
 @pytest.mark.parametrize("loc,lang", [("de_DE.UTF-8", "de"), ("fr_FR.UTF-8", "fr"), ("en_US.UTF-8", "en"), ("ja_JP.UTF-8", "en"), ("C", "en")])
 def test_language_selection(docs, loc, lang):
     r = run(docs, loc)
-    assert r.returncode == 0
+    assert r.returncode == 0, r.stderr
     assert r.stdout.strip().replace("\\", "/").endswith(f"/{lang}/index.html")
 
 

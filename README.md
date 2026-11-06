@@ -30,6 +30,9 @@ a running system.
 HSCL1 is **not Tails**, **not an official Kali release**, and not endorsed by Canonical, the KDE/Kubuntu projects, Offensive Security
 or the Tails project. It makes **no anonymity claim**.
 
+KALI LINUX™ is a trademark of OffSec. HSCL1 is not affiliated with or endorsed by the Tails project; where strong anonymity matters,
+use the official Tails release. See [Trademarks](docs/TRADEMARKS.md).
+
 ## Screenshots
 
 All screenshots are real captures from QEMU virtual machines.

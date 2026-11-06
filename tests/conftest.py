@@ -1,0 +1,10 @@
+"""Make `tests/` helper modules importable from every test module (there is no tests/__init__.py)."""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+_TESTS = Path(__file__).resolve().parent
+if str(_TESTS) not in sys.path:
+    sys.path.insert(0, str(_TESTS))

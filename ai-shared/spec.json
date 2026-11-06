@@ -1,0 +1,13 @@
+{
+  "server": {
+    "name": "localdelegate",
+    "script": "tools/local_worker/server.py",
+    "tool": "local_code"
+  },
+  "agent": {
+    "name": "local-worker",
+    "description": "Delegates one small, test-verified coding task to a local model through the localdelegate MCP server and returns the verdict and diff. Use it for routine edits that have a runnable test; it reports ESCALATE when the local model fails.",
+    "claude": {"model": "haiku", "maxTurns": 3},
+    "opencode": {"steps": 4}
+  }
+}

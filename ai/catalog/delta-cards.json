@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "cards": {
+    "qwen3.5-2b-abliterated": {"measured_by": "none", "refusal_rate": null, "tool_overcall_rate": null, "kl_vs_stock": null, "date": "2026-11-07", "source": "", "note": "Not measured. Community-derived; do not assume tool-calling quality equals the stock model."},
+    "gemma4-e2b-abliterated": {"measured_by": "none", "refusal_rate": null, "tool_overcall_rate": null, "kl_vs_stock": null, "date": "2026-11-07", "source": "", "note": "Not measured. Community-derived; do not assume tool-calling quality equals the stock model."},
+    "qwen3.5-4b-abliterated": {"measured_by": "none", "refusal_rate": null, "tool_overcall_rate": null, "kl_vs_stock": null, "date": "2026-11-07", "source": "", "note": "Not measured. Community-derived; do not assume tool-calling quality equals the stock model."},
+    "qwen3.5-9b-abliterated": {"measured_by": "none", "refusal_rate": null, "tool_overcall_rate": null, "kl_vs_stock": null, "date": "2026-11-07", "source": "", "note": "Not measured. Community-derived; do not assume tool-calling quality equals the stock model."},
+    "gemma4-12b-heretic-abliterated": {"measured_by": "none", "refusal_rate": null, "tool_overcall_rate": null, "kl_vs_stock": null, "date": "2026-11-07", "source": "", "note": "Not measured. Community-derived (heretic method); do not assume tool-calling quality equals the stock model."},
+    "qwen3-coder-30b-a3b-abliterated": {"measured_by": "none", "refusal_rate": null, "tool_overcall_rate": null, "kl_vs_stock": null, "date": "2026-11-07", "source": "", "note": "Not measured. Community-derived; do not assume tool-calling quality equals the stock model."}
+  }
+}
