@@ -19,6 +19,7 @@ mod redact;
 mod report;
 mod security;
 mod sysinfo;
+mod toolcall;
 mod updates;
 mod wallpaper;
 

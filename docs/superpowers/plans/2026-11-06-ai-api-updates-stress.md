@@ -24,8 +24,8 @@
 ### Task D2: AREX-protocol parser (first)
 **Files:** Create `cli/hscl/src/toolcall.rs`; register in `main.rs`.
 **Interfaces:** `pub enum Call { Tool { name: String, args: serde_json::Value }, Finish { answer: String } }`; `pub fn parse(text: &str, allow: &[&str]) -> Result<Vec<Call>, ParseError>`; `ParseError::{Incomplete, UnknownTool(String), Duplicate(String), TooLarge, Nested}`. Accepts `<tool_call>` blocks with a JSON body or `<function=NAME><parameter=KEY>VAL</parameter></function>`; body limit 64 KiB.
-- [ ] Failing tests: JSON form; XML form; unknown tool refused; truncated block gives `Incomplete`; nested `<tool_call>` gives `Nested`; seeded 20000-string fuzz never panics
-- [ ] Implement; fmt, clippy, test; commit
+- [x] Failing tests first (8 of 10 red), then implemented: JSON form; XML form; unknown tool refused; truncated block gives `Incomplete`; nested gives `Nested`; duplicate parameter; oversize; 20000-string fuzz never panics (cargo test 128 passed)
+- [x] fmt, clippy, test; commit. NOTE: `#![allow(dead_code)]` in `toolcall.rs` is temporary and must be removed in D4 when `hscl agent run` uses the module
 
 ### Task D3: runner loop with round budget
 **Files:** Create `cli/hscl/src/agent.rs`.
