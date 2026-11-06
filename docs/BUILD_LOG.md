@@ -132,3 +132,6 @@ Only what was run is listed; see `docs/CLAIMS.md` for the full evidence table.
 ## M1 VM run (2026-11-06)
 - Image `HSCL1-dev-m1.iso` (commit 20bf9b7, built with a dirty tree because untracked logs existed; sha256 3088717a...4d21b9) passed `verify-image.sh` (0 FAIL) after fixing a dpkg conflict the build itself caught (kdeconnect owns the autostart file -> dpkg-divert).
 - In-guest run (`scripts/workshop/e2e_cli.py`, 23 checks, desktop after 111 s): autotune and stale-list reporting VM-VERIFIED; KDE Connect still listening -> root cause D-Bus activation by the tray applet (`scripts/workshop/e2e_probe.py`, read-only). Fix committed (fb6565d) but the rebuild + re-run was stopped by the host for low memory; **pending**, not restarted automatically.
+
+## M6 item: Workshop fuzz tests (2026-11-06)
+`tests/security/test_workshopd_fuzz.py` (seeded, no new dependencies): request parser never raises and always answers; path allow-list never accepts a normalised path outside the allow-list or a target outside the root; real `put_file`/`run_hook` handlers with hostile arguments stay inside a temp root. Mutation check: a validator without the `..`/`//` rule is detected. Status TESTED (unit/fuzz, host Python); not a proof of absence of bugs. Suite: 166 passed, 11 skipped.
