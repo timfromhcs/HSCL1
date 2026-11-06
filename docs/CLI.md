@@ -86,3 +86,4 @@ See `docs/SECURITY_LAB.md`: `status`, `setup`, `toolsets`, `spec` (prints the ex
 | `hscl lab toolsets` | List the toolsets and the packages each installs (inside the container only) |
 | `hscl lab spec` | Print the exact podman command for a project (nothing is executed) |
 | `hscl completions SHELL` | Print a shell completion script (bash, zsh, fish, elvish, powershell); `hscl1 completions SHELL` completes the `hscl1` name |
+| `hscl ai serve [MODEL]` | Print the exact `llama-server` command for a local model (host fixed to 127.0.0.1, port 1024 or higher, API key only as a key file, thinking off, K q8_0 / V q4_0, small prompt cache, idle sleep; `--router-dir DIR --models-max 1\|2` for router mode; `--metrics` optional). Nothing is started |

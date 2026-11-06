@@ -1,4 +1,5 @@
 """Plan L, Task L3: bounded verify-patch loop. The model proposes whole-file blocks, tests decide."""
+import json
 import sys
 from pathlib import Path
 
@@ -137,20 +138,52 @@ def test_symlink_targets_are_not_followed(proj, tmp_path_factory):
 
 # ---- context management (owner request 2026-11-06: less memory per round) ----
 
-def test_default_history_keeps_the_prompt_constant_size_across_rounds(proj):
-    chat = Script(block("impl.py", BAD), block("impl.py", BAD), block("impl.py", BAD))
-    go(proj, chat, max_rounds=3)
+def test_default_window_keeps_the_context_constant_from_round_two_on(proj):
+    chat = Script(block("impl.py", BAD), block("impl.py", BAD), block("impl.py", BAD), block("impl.py", BAD))
+    go(proj, chat, max_rounds=4)
     sizes = [sum(len(m["content"]) for m in call) for call in chat.calls]
-    assert [len(c) for c in chat.calls] == [2, 2, 2], "system + one user message every round"
-    assert sizes[2] <= sizes[1] * 1.15, sizes
+    assert [len(c) for c in chat.calls] == [2, 4, 4, 4], "system, task, ONLY the latest answer, latest feedback"
+    assert sizes[3] <= sizes[2] * 1.15 and sizes[2] <= sizes[1] * 1.15, sizes
 
 
-def test_last_mode_shows_the_current_file_and_the_latest_failure(proj):
+def test_window_round_two_prompt_is_identical_to_the_full_history_prompt(proj, tmp_path_factory):
+    """Regression for the discarded 'last' mode (2026-11-06): it re-sent the task and the file as a fresh message, so the model saw
+    the same prompt again and repeated its answer word for word (word_count: 0 of 6 solved, versus 6 of 6 with the chat history).
+    The window must show round 2 exactly like the full history does: system, task, the model's own answer, the failure."""
+    a = Script(block("impl.py", BAD), block("impl.py", GOOD))
+    b = Script(block("impl.py", BAD), block("impl.py", GOOD))
+    go(proj, a, history="window")
+    other = tmp_path_factory.mktemp("proj2")
+    (other / "impl.py").write_text("def parse_score(s):\n    raise NotImplementedError\n", encoding="utf-8")
+    (other / "check.py").write_text(CHECK, encoding="utf-8")
+    go(other, b, history="full")
+    norm = lambda s: json.dumps(s).replace("hscl-local-", "X")  # noqa: E731 - temp dir names differ in the traceback path
+    import re as _re
+
+    clean = lambda c: _re.sub(r"[A-Za-z]:\\\\[^\"]*?tree", "TREE", norm(c))  # noqa: E731
+    assert clean(a.calls[1]) == clean(b.calls[1])
+
+
+def test_a_word_for_word_repeated_answer_is_called_out_in_the_feedback(proj):
+    chat = Script(block("impl.py", BAD), block("impl.py", BAD), block("impl.py", GOOD))
+    go(proj, chat, max_rounds=3)
+    assert "identical" not in chat.calls[1][-1]["content"]  # first failure: nothing repeated yet
+    third = chat.calls[2][-1]["content"]
+    assert "identical to your previous answer" in third and "change your approach" in third
+
+
+def test_window_shows_the_models_latest_answer_and_the_latest_failure(proj):
     chat = Script(block("impl.py", BAD), block("impl.py", GOOD))
     go(proj, chat)
-    second = chat.calls[1][1]["content"]
-    assert "out[k] = float(v)" in second, "the model must see its own previous file content"
-    assert "a must be int" in second and "round 1 of 3" in second
+    second = chat.calls[1]
+    assert [m["role"] for m in second] == ["system", "user", "assistant", "user"]
+    assert "out[k] = float(v)" in second[2]["content"], "the model must see its own previous answer"
+    assert "a must be int" in second[3]["content"] and "round 1 of 3" in second[3]["content"]
+
+
+def test_the_discarded_last_mode_is_no_longer_accepted(proj):
+    with pytest.raises(ValueError, match="history"):
+        go(proj, Script(block("impl.py", GOOD)), history="last")
 
 
 def test_full_mode_still_grows_the_history(proj):

@@ -19,6 +19,7 @@ mod profile;
 mod redact;
 mod report;
 mod security;
+mod serve;
 mod sysinfo;
 mod toolcall;
 mod updates;
@@ -381,6 +382,29 @@ enum AiCmd {
         #[arg(long, value_name = "PATH")]
         backend: Option<std::path::PathBuf>,
     },
+    /// Print the exact llama-server command for a local model (loopback only, API key as a file, measured defaults). Nothing is started.
+    Serve {
+        /// Model file (.gguf) inside the model storage directory (see `hscl ai model path`); not needed with --router-dir.
+        model: Option<std::path::PathBuf>,
+        /// TCP port on 127.0.0.1 (1024 or higher).
+        #[arg(long, default_value_t = 8081)]
+        port: u16,
+        /// Context length in tokens (512 to 262144).
+        #[arg(long, default_value_t = 4096)]
+        ctx: u32,
+        /// File with the API key, one line (default: ai-server.key in the hscl config directory). The key is never put on the command line.
+        #[arg(long, value_name = "PATH")]
+        api_key_file: Option<std::path::PathBuf>,
+        /// Router mode: serve the models in this directory (must be inside the model storage), loaded on demand.
+        #[arg(long, value_name = "DIR")]
+        router_dir: Option<std::path::PathBuf>,
+        /// Router mode only: models kept in memory at the same time (1 or 2).
+        #[arg(long)]
+        models_max: Option<u32>,
+        /// Also expose the Prometheus /metrics endpoint.
+        #[arg(long)]
+        metrics: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -628,6 +652,32 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
             let sec = security::collect();
             let v = serde_json::to_value(&sec)?;
             print_value(j, &v, || security::render(&sec));
+        }
+        Cmd::Ai {
+            cmd:
+                AiCmd::Serve {
+                    model,
+                    port,
+                    ctx,
+                    api_key_file,
+                    router_dir,
+                    models_max,
+                    metrics,
+                },
+        } => {
+            let o = serve::ServeOpts {
+                model: model.unwrap_or_default(),
+                port,
+                ctx,
+                api_key_file: api_key_file
+                    .unwrap_or_else(|| appearance::config_dir().join("ai-server.key")),
+                router_dir,
+                models_max,
+                metrics,
+            };
+            let argv = serve::serve_argv(&o, &download::models_dir())?;
+            let v = json!({"argv": argv, "executed": false, "note": "Printed only. Create the key file yourself (one random line, mode 0600) before starting the server."});
+            print_value(j, &v, || serve::render(&argv));
         }
         Cmd::Ai {
             cmd: AiCmd::Model { cmd },

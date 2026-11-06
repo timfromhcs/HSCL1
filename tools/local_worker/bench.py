@@ -43,7 +43,7 @@ def run_benchmark(
     timeout_s: int = 60,
     clock: Callable[[], float] = time.monotonic,
     limit: int | None = None,
-    history: str = "last",
+    history: str = "window",
 ) -> dict:
     tasks = list(bench_tasks.TASKS if tasks is None else tasks)[: limit or None]
     out: dict = {"max_rounds": max_rounds, "history": history, "tasks": [t["id"] for t in tasks], "models": {}}
@@ -80,7 +80,7 @@ def run_benchmark(
 
 def render_markdown(result: dict) -> str:
     lines = [
-        f"Task benchmark ({len(result['tasks'])} tasks, up to {result['max_rounds']} rounds, context mode: {result.get('history', 'last')})",
+        f"Task benchmark ({len(result['tasks'])} tasks, up to {result['max_rounds']} rounds, context mode: {result.get('history', 'window')})",
         "",
         "| model | solved | pass@1 | mean s/task |",
         "|---|---|---|---|",
@@ -103,7 +103,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", type=Path, default=DEFAULT_OUT)
     ap.add_argument("--gateway", default=gateway.DEFAULT_URL)
     ap.add_argument("--no-gate", action="store_true", help="skip the free-RAM gate (for tests)")
-    ap.add_argument("--history", choices=["last", "full"], default="last", help="context mode of the verify loop")
+    ap.add_argument("--history", choices=["window", "full"], default="window", help="context mode of the verify loop")
     a = ap.parse_args(argv)
     models = [m for m in a.models.split(",") if m]
 

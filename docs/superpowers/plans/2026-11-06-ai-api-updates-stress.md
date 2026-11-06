@@ -36,8 +36,8 @@
 ### Task D1: serve-spec generator (prints, never executes)
 **Files:** Create `cli/hscl/src/serve.rs`; `hscl ai serve --print`; `docs/CLI.md` row (drift test enforces).
 **Interfaces:** `pub fn serve_argv(o: &ServeOpts) -> anyhow::Result<Vec<String>>`; `ServeOpts { model: PathBuf, port: u16, ctx: u32, router_dir: Option<PathBuf>, models_max: Option<u32>, metrics: bool }`.
-- [ ] Failing tests: default argv has `--host 127.0.0.1`, passes the key by file or env (never the key text), no `--metrics`, no `--tools`, no `--webui-mcp-proxy`; port < 1024 rejected; router dir must lie inside the model storage path; fuzz of paths (traversal, spaces, option smuggling)
-- [ ] Implement; commit
+- [x] 8 tests, red first (6 failed against the stub): default argv carries the measured settings (`-ctk q8_0 -ctv q4_0 -c 4096 -rea off --reasoning-format deepseek -cram 1024 --sleep-idle-seconds 600 -np 1`), key only via `--api-key-file`, `--metrics` only when asked, ports < 1024 and contexts outside 512..262144 refused, model must be a `.gguf` inside the model storage (traversal, other roots, leading `-`, control characters, shell metacharacters refused), router mode with `--models-dir` inside storage and at most 2 resident models, 5000-case seeded fuzz never yields `--tools`/MCP-proxy/`--api-key`/foreign host
+- [x] Implemented `cli/hscl/src/serve.rs` + `hscl ai serve [MODEL] [--port] [--ctx] [--api-key-file] [--router-dir] [--models-max] [--metrics]` (prints the command, never executes; `-t` deliberately omitted so llama.cpp uses the physical core count); doc row in `docs/CLI.md` (drift test green); cargo test 140 passed, clippy -D warnings clean; manual run: valid command printed, `/etc/passwd.gguf` and port 80 refused. Windows test fix: expected paths are built with `join`, not literal `/`
 
 ### Task D4 (S6): HTTP client `hscl agent run` against the local server, tested with a loopback stub server.
 

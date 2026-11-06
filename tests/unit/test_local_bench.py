@@ -128,7 +128,7 @@ def test_history_mode_is_passed_to_the_loop_and_recorded(monkeypatch):
     r = bench.run_benchmark(["m1"], make_chat_factory(lambda t, m: t["reference"]), timeout_s=30, limit=2, history="full")
     assert seen == ["full", "full"] and r["history"] == "full"
     r2 = bench.run_benchmark(["m1"], make_chat_factory(lambda t, m: t["reference"]), timeout_s=30, limit=1)
-    assert r2["history"] == "last" and seen[-1] == "last"
+    assert r2["history"] == "window" and seen[-1] == "window"
 
 
 def test_cli_accepts_history_option(tmp_path):
