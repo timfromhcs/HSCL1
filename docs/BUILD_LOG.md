@@ -189,3 +189,6 @@ Cumulative phases run as real units in the booted p2 image (`artifacts/probe-har
 
 ## P4.2 Security Lab spec generator (2026-11-06)
 `hscl lab status|setup|toolsets|spec` (new `cli/hscl/src/lab.rs`). Typed options -> `podman` argv, printed not executed. Tests: safe defaults, install-phase caps exactly the fixed set, no forbidden flag for any valid input, image digest pin, project/workspace validation (traversal, volume-option smuggling, hidden/credential folders, symlinks on unix), bounded limits, destroy only touches the named project, seeded 20000-string fuzz. cargo test 98 passed, clippy clean. Windows-specific: absolute-path check is textual so tests behave the same on both OSes; Git Bash rewrites `/etc` arguments to Windows paths (cosmetic when trying the CLI by hand).
+
+## CI QML job failed on main after PR #16 (2026-11-06)
+All three download attempts (3 x 180 s) stalled on the same 14.1 MB package (`cmake`, `Ign:` in the log) from `azure.archive.ubuntu.com`; retrying the same mirror does not help. The helper now switches the apt source from the runner's mirror list to `archive.ubuntu.com` before the last attempt. Same package list; tests untouched.
