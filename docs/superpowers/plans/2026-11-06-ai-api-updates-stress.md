@@ -49,7 +49,7 @@
 - [x] Implemented `scripts/check_delta_cards.py` (`--report`), `ai/catalog/delta-card.schema.json`, `ai/catalog/delta-cards.json` (path corrected: the catalog lives in `ai/catalog/`). Honest state of the real catalog: **6 abliterated models, 0 measured by us, 0 third-party, 6 unmeasured**; none appears in `distro/` or `packages/`. Not done: showing "unmeasured" in `hscl ai model info` / `list` (small follow-up)
 
 ## Track F - updates and image freeze
-- [ ] F1 honesty gate: a test fails when README/docs/website say "atomic", "boot into snapshot" or "immutable" outside an explicit negation allow-list
+- [x] F1 honesty gate: `scripts/check_update_claims.py` + 25 tests (red first). Flags "atomic", "immutable" (also DE `atomar`/`unveränderlich`, FR `atomique`/`immuable`) and "boot into a snapshot" in README, `docs/` (not `docs/research`, `docs/superpowers`), `handbook/` and `website/` unless the same clause negates it (not, no, never, without, nicht, kein, pas, jamais, ...). Negation after the term counts ("booting into a snapshot is not available"); a negation in another clause does not ("Atomic updates, no downtime" is flagged). Real repository: no hits, and a test proves the gate scans README, docs and website (more than 20 files). Limitation: the check is word-based, a creative phrasing ("updates that never half-apply") is not caught
 - [ ] F2 (S4) `packages/debian/hscl-snapshots`: apt hook active only on a btrfs root, depends on `snapper`; VM test on a btrfs install (MEASURE: Calamares creates `@` and `@home`)
 - [ ] F3 (S5) minimal `systemd-sysext` image: merge/unmerge in the VM, `SYSEXT_LEVEL` match test
 
