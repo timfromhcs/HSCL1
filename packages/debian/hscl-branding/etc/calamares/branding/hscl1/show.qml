@@ -26,7 +26,7 @@ Presentation {
             wrapMode: Text.Wrap
             color: "#e8ecf3"
             font.pixelSize: 26
-            text: "HSCL1\n" + presentation.tr("Made with love by hcsmedia", "Mit Liebe gemacht von hcsmedia", "Fait avec amour par hcsmedia")
+            text: "HSCL1\nHypercharged Supreme Computing Layout 1\n" + presentation.tr("Made with love by hcsmedia", "Mit Liebe gemacht von hcsmedia", "Fait avec amour par hcsmedia")
         }
     }
     Slide {

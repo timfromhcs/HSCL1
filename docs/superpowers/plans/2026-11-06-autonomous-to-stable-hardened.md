@@ -201,7 +201,7 @@ Each task lists **Gate** (the command or observation that proves it) and **Evide
   Gate: the P2.4 install boots.
 - [ ] **P2.2 Installer branding EN/DE/FR + slideshow**, no unbound shortcuts; screenshots at 1366x768 and 1920x1080.
 - [ ] **P2.3 Plain install:** disposable 40 GB qcow2, install, reboot, login; run the in-guest check set on the installed system.
-- [ ] **P2.4 LUKS2 install (+ keyfile gate):** after the install, `lsinitramfs /boot/initrd.img-*` must contain no LUKS keyfile and `/etc/crypttab` must name no key file for the root volume (the `luksbootkeyfile` module is in the stock sequence; with an unencrypted `/boot` a keyfile in the initrd would void the encryption). Then: same, plus reboot, unlock prompt, **wrong passphrase refused**, correct one unlocks; `cryptsetup luksDump` shows
+- [x] **P2.4 LUKS2 install (+ keyfile gate) - VM-VERIFIED on image p2 (2026-11-06)**: automated Erase-disk + Encrypt install completed (~16 min, no installer failure) with ESP / unencrypted 4 GiB `/boot` / LUKS2 root; boot asks for the passphrase, a wrong one is rejected and the prompt returns, the correct one boots to the desktop (81 s after unlock); `luksDump`: LUKS 2, aes-xts-plain64 512-bit, argon2id, one keyslot; `crypttab` key field `none`, no `/crypto_keyfile.bin`, no keyfile in the initrd; unique marker passphrase not found in /var/log, /var/lib, /etc, /root, /home, /boot, /tmp or the journal. Evidence: `artifacts/luks-install`, `artifacts/luks-boot`. Limits: leak scan did not cover swap, the raw device or the live session's logs; keyboard layout at the prompt was US only. Original text:  after the install, `lsinitramfs /boot/initrd.img-*` must contain no LUKS keyfile and `/etc/crypttab` must name no key file for the root volume (the `luksbootkeyfile` module is in the stock sequence; with an unencrypted `/boot` a keyfile in the initrd would void the encryption). Then: same, plus reboot, unlock prompt, **wrong passphrase refused**, correct one unlocks; `cryptsetup luksDump` shows
   LUKS2 and the PBKDF; `grep` of installer logs and journal finds no passphrase or key material (test uses a unique marker passphrase).
 - [ ] **P2.5 Recovery key flow:** `luksAddKey` with a generated key shown once; unlock with it in the VM; never stored in logs.
 - [ ] **P2.6 Fault injection:** kill the installer mid-copy, fill the target disk, no network, power-off at 50%; each leaves the virtual disk
@@ -281,6 +281,14 @@ Each task lists **Gate** (the command or observation that proves it) and **Evide
 - [ ] **P7.7 Website:** remaining pages (install/USB only after a physical test - until then none, privacy, changelog), axe/pa11y-ci + Lighthouse CI
   with budgets (R10), link check, hreflang/canonical with the real `SITE_URL`, Vercel **preview** deployment; **production only with the owner's go**.
 
+- [ ] **P7.x Live-Ansicht bei VM-Laeufen (Owner-Wunsch 2026-11-06, gilt ab dem NAECHSTEN Lauf; laufende Laeufe nicht aendern).**
+  Jeder visuelle/automatische VM-QA-Lauf (`qemu_boot_test.py`, `workshop/e2e_*.py`, `vm.py`) oeffnet waehrend des Laufs ein Popup-Fenster mit dem Gastbildschirm,
+  damit der Owner zuschauen kann. Umsetzung: Flag `--watch` (Standard an bei interaktiver Sitzung, `--no-watch` fuer CI/headless). Option A: QEMU `-display gtk`
+  bzw. `sdl` zusaetzlich zu QMP (Screenshots/Eingabe laufen unveraendert ueber QMP). Option B (falls GUI-Display die WHPX/OVMF-Laeufe stoert):
+  `-display none` beibehalten und ein kleines Viewer-Fenster (Python/Tk oder `ffplay`), das periodisch QMP `screendump` zeigt (~2 fps), mit Statuszeile
+  (Szenario, Schritt, verstrichene Zeit). Anforderungen: Fenster stoert keine Tastatur-/Maus-Injektion, schliesst sich am Ende selbst, Absturz des Viewers
+  bricht den Test nicht ab, CI nutzt immer `--no-watch`. Test: Unit-Test fuer Argument-/QEMU-Kommandozeilenbau (watch an/aus) + ein manueller Lauf mit Beleg.
+
 ### P8 - Reproducibility (R3)
 
 - [ ] **P8.1 Build twice** from the same commit in the same builder with `SOURCE_DATE_EPOCH` set to the commit time; `xorriso --modification-date`;
@@ -355,3 +363,13 @@ Each task lists **Gate** (the command or observation that proves it) and **Evide
 Per task: set `[x]` only with an evidence line `Evidence: <path or run URL>`; `[~]` while partial. Update `docs/BUILD_LOG.md` after every loop (what
 was tried, what failed, what the next safe action is) and `docs/CLAIMS.md` for every claim whose status changed. Commit on `codex/hscl1-v1`,
 open a PR, merge into `main` when CI is green; never force-push; tag releases only per P9/P10.
+
+
+---
+
+## Addendum 2026-11-06 (pointer)
+
+The expansion plan `2026-11-06-ux-ai-hardware-expansion.md` now also covers: the full product name (HSCL1 = Hypercharged Supreme Computing Layout 1) and the `hscl1` program (W13), the release path incl. the online single-file merger and README/screenshot overhaul (W14), the HCS shell, viewers, office/creative suite (W15-W17), the pentest tool registry with scope enforcement, job API and MCP (W18), the desktop API/MCP (W19) and measured hardening with `kernel-hardening-checker` and `lynis` (W20). New items for THIS plan:
+
+- [ ] **P1.8 Release `v0.1.1-alpha.0`** supersedes P1.4's "publish a fixed release": see W14.1 for the gate list. The published `v0.1.0-alpha.0` gets a warning in its notes (two measured defects: world-writable HSCL1 payload files, `/` owned by uid 1000).
+- [ ] **P3.11 Measured hardening report**: W20.1-W20.3.

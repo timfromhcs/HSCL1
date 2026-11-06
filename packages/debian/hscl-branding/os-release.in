@@ -11,4 +11,5 @@ LOGO=hscl1
 VARIANT="HSCL1"
 VARIANT_ID=hscl1
 HSCL1_VERSION="@VERSION@"
+HSCL1_NAME_LONG="Hypercharged Supreme Computing Layout 1"
 HSCL1_CREDIT="Made with love by hcsmedia"

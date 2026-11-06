@@ -14,7 +14,7 @@ Windows the fast path is native QEMU with WHPX (see [`TESTING.md`](TESTING.md)).
 
 ```console
 $ scripts/fetch-base-iso.sh                       # downloads and verifies kubuntu-26.04.1-desktop-amd64.iso
-$ scripts/remaster-iso.sh --out ~/hscl1-build/out/HSCL1-0.1.0-alpha.0-amd64.iso --fast
+$ scripts/remaster-iso.sh --out ~/hscl1-build/out/HSCL1-0.1.1-alpha.0-amd64.iso --fast
 ```
 
 - `--fast` uses quick zstd compression (development); omit it for the xz release compression.

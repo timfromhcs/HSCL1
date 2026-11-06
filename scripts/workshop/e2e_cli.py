@@ -18,7 +18,7 @@ sys.path.insert(0, str(HERE.parent))
 import e2e_respin as base  # noqa: E402
 import vm as vmmod  # noqa: E402
 
-AS_USER = "runuser -l kubuntu -c"
+AS_USER = "runuser -l {USER} -c"   # {USER} is replaced by the session user the daemon reports (kubuntu live, the created user when installed)
 CHECKS = {
     # system-level state created by the packages
     "earlyoom_active": "systemctl is-active earlyoom",
@@ -28,15 +28,19 @@ CHECKS = {
     "ai_slice": "systemctl show hscl-ai.slice -p MemoryHigh -p MemoryMax",
     "firewall": "ufw status | head -n 3",
     "listening_sockets": "ss -tulnH | awk '{print $1, $5}'",
+    "system_tree_owner": "stat -c '%u:%g %a %n' / /etc /usr /var /boot /home",
     "kdeconnect_listener": "ss -tulnH | grep -c ':1716' || true",
     "kdeconnect_process": "pgrep -a kdeconnect || echo none",
     "kdeconnect_autostart_file": "grep -H '^Hidden' /etc/xdg/autostart/org.kde.kdeconnect.daemon.desktop",
     "autotune_autostart_file": "grep -H '^Exec' /etc/xdg/autostart/hscl-autotune.desktop",
-    "autotune_state_after_login": "cat /home/kubuntu/.config/hscl/graphics.json 2>&1",
+    "autotune_state_after_login": "cat /home/{USER}/.config/hscl/graphics.json 2>&1",
     # CLI as the desktop user
     "hscl_version": f"{AS_USER} 'hscl version --json'",
     "memory_status": f"{AS_USER} 'hscl memory status --json'",
     "memory_budget": f"{AS_USER} 'hscl memory budget'",
+    "hscl1_program": f"{AS_USER} 'hscl1 version --json'",
+    "hscl1_overview": f"{AS_USER} 'hscl1'",
+    "hw_detect": f"{AS_USER} 'hscl hw detect --json'",
     "graphics_detect": f"{AS_USER} 'hscl graphics detect --json'",
     "ai_model_list": f"{AS_USER} 'hscl ai model list --json'",
     "ai_profile": f"{AS_USER} 'hscl ai profile --json'",
@@ -61,7 +65,10 @@ def main() -> int:
         report["desktop_after_s"] = base.wait_desktop(vm)
         report["status"] = vm.rpc("status", timeout=180)
         time.sleep(20)  # let the session settle (services, plasma)
+        user = (report["status"] or {}).get("session_user") or "kubuntu"
+        report["session_user"] = user
         for name, cmd in CHECKS.items():
+            cmd = cmd.replace("{USER}", user)
             script = f"({cmd}) 2>&1 | head -c 6000; echo; echo \"__exit=$?\"\n"
             try:
                 r = base.hook(vm, f"chk-{name.replace('_', '-')}.sh", script, timeout=180)

@@ -34,10 +34,15 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Tools
         run: |
-          fetch() { # download with a hard per-attempt limit: a stalled mirror connection never times out by itself
+          fetch() { # download with a hard per-attempt limit; the last attempt leaves the Azure mirror (it stalled on the same package 3 times)
             for i in 1 2 3; do
               if sudo timeout 180 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 install -y --download-only --no-install-recommends "$@"; then return 0; fi
-              echo "download attempt $i failed or stalled; retrying (partial files are resumed)"
+              echo "download attempt $i failed or stalled; partial files are resumed on the next attempt"
+              if [ "$i" = 2 ]; then
+                echo "switching the apt source from the mirror list to archive.ubuntu.com for the last attempt"
+                sudo sed -i 's#mirror+file:/etc/apt/apt-mirrors.txt#http://archive.ubuntu.com/ubuntu/#; s#http://azure.archive.ubuntu.com/ubuntu/#http://archive.ubuntu.com/ubuntu/#' /etc/apt/sources.list /etc/apt/sources.list.d/*.sources /etc/apt/sources.list.d/*.list 2>/dev/null || true
+                sudo timeout 120 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 update || true
+              fi
             done
             return 1
           }
@@ -67,10 +72,15 @@ jobs:
       - name: Qt 6
         timeout-minutes: 10
         run: |
-          fetch() { # download with a hard per-attempt limit: a stalled mirror connection never times out by itself
+          fetch() { # download with a hard per-attempt limit; the last attempt leaves the Azure mirror (it stalled on the same package 3 times)
             for i in 1 2 3; do
               if sudo timeout 180 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 install -y --download-only --no-install-recommends "$@"; then return 0; fi
-              echo "download attempt $i failed or stalled; retrying (partial files are resumed)"
+              echo "download attempt $i failed or stalled; partial files are resumed on the next attempt"
+              if [ "$i" = 2 ]; then
+                echo "switching the apt source from the mirror list to archive.ubuntu.com for the last attempt"
+                sudo sed -i 's#mirror+file:/etc/apt/apt-mirrors.txt#http://archive.ubuntu.com/ubuntu/#; s#http://azure.archive.ubuntu.com/ubuntu/#http://archive.ubuntu.com/ubuntu/#' /etc/apt/sources.list /etc/apt/sources.list.d/*.sources /etc/apt/sources.list.d/*.list 2>/dev/null || true
+                sudo timeout 120 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 update || true
+              fi
             done
             return 1
           }

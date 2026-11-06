@@ -33,3 +33,15 @@ Only implemented commands are listed. `hscl --help` is authoritative. Every comm
 - `appearance theme set` runs only the fixed programs `plasma-apply-colorscheme` and `plasma-apply-wallpaperimage`
   with validated arguments; no shell is involved. If a command fails, the recorded selection is not changed.
 - Environment overrides for development: `HSCL_TOKENS` (token file), `HSCL_CONFIG_DIR` (state directory).
+
+
+## `hscl hw detect` (IMPLEMENTED, unit-tested with fixture trees; VM run pending)
+
+Read-only hardware inventory from `/sys` and `/proc` (no root, no external tool): CPU model/threads/feature flags (`sse4_2 avx avx2 fma avx512f avx512_vnni amx_tile`),
+memory, firmware (`uefi`/`bios`, Secure Boot `enabled`/`disabled`/`not_reported` from the EFI variable), PCI devices with class, driver in use and names from the system's
+`pci.ids` (numeric IDs when it is missing), and GPUs with render nodes and, for amdgpu, dedicated VRAM and GTT (system RAM the GPU may map), reported separately and never combined.
+`--json` prints the same data. It installs and changes nothing. Driver suggestions (`hscl hw suggest`) and the install action are separate, later steps.
+
+## `hscl lab` (IMPLEMENTED, unit-tested; no container started yet)
+
+See `docs/SECURITY_LAB.md`: `status`, `setup`, `toolsets`, `spec` (prints the exact rootless `podman` command, executes nothing).

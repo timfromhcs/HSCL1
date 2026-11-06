@@ -169,5 +169,6 @@
    "3D acceleration, USB passthrough and shared folders: not tested; keep shared folders off."
   ],
   "script": "The harness that runs these tests is scripts/qemu_boot_test.py in the source repository."
- }
+ },
+ "expansion": "Hypercharged Supreme Computing Layout 1"
 }

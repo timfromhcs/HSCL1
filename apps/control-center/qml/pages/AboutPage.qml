@@ -15,6 +15,7 @@ Item {
         Text { text: qsTr("About"); color: Theme.textPrimary; font.pixelSize: Theme.font2xl; font.bold: true; Accessible.role: Accessible.Heading; Accessible.name: text }
         Card {
             title: "HSCL1"
+            Text { text: "Hypercharged Supreme Computing Layout 1"; color: Theme.textSecondary; font.pixelSize: Theme.fontMd; wrapMode: Text.Wrap; Layout.fillWidth: true; Accessible.name: text }
             Row2 { label: qsTr("Version"); value: verFetch.result ? verFetch.result.version : "" }
             Row2 { label: qsTr("Publisher"); value: "HCSMEDIA" }
             Text {

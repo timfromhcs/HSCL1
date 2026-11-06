@@ -1,0 +1,242 @@
+[
+ {
+  "keys": [
+   "alt",
+   "f2"
+  ]
+ },
+ {
+  "wait": 2
+ },
+ {
+  "type": "Install HSCL1"
+ },
+ {
+  "wait": 3
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 45
+ },
+ {
+  "shot": "i01-welcome"
+ },
+ {
+  "click": [
+   0.883,
+   0.903
+  ]
+ },
+ {
+  "wait": 6
+ },
+ {
+  "shot": "i02-location"
+ },
+ {
+  "click": [
+   0.883,
+   0.903
+  ]
+ },
+ {
+  "wait": 4
+ },
+ {
+  "shot": "i03-keyboard"
+ },
+ {
+  "click": [
+   0.883,
+   0.903
+  ]
+ },
+ {
+  "wait": 4
+ },
+ {
+  "shot": "i04-customize"
+ },
+ {
+  "click": [
+   0.883,
+   0.903
+  ]
+ },
+ {
+  "wait": 8
+ },
+ {
+  "shot": "i05-partitions"
+ },
+ {
+  "click": [
+   0.161,
+   0.1375
+  ]
+ },
+ {
+  "wait": 3
+ },
+ {
+  "shot": "i06-erase-selected"
+ },
+ {
+  "click": [
+   0.162,
+   0.656
+  ]
+ },
+ {
+  "wait": 2
+ },
+ {
+  "click": [
+   0.367,
+   0.656
+  ]
+ },
+ {
+  "type": "luks-marker-4711-hscl1"
+ },
+ {
+  "click": [
+   0.61,
+   0.656
+  ]
+ },
+ {
+  "type": "luks-marker-4711-hscl1"
+ },
+ {
+  "wait": 3
+ },
+ {
+  "shot": "i06c-luks-filled"
+ },
+ {
+  "click": [
+   0.883,
+   0.903
+  ]
+ },
+ {
+  "wait": 6
+ },
+ {
+  "type": "Tester"
+ },
+ {
+  "keys": [
+   "tab"
+  ]
+ },
+ {
+  "keys": [
+   "tab"
+  ]
+ },
+ {
+  "keys": [
+   "tab"
+  ]
+ },
+ {
+  "type": "hscl1-test-pass-2026"
+ },
+ {
+  "keys": [
+   "tab"
+  ]
+ },
+ {
+  "type": "hscl1-test-pass-2026"
+ },
+ {
+  "wait": 2
+ },
+ {
+  "shot": "i07-users-filled"
+ },
+ {
+  "click": [
+   0.883,
+   0.903
+  ]
+ },
+ {
+  "wait": 8
+ },
+ {
+  "shot": "i08-summary"
+ },
+ {
+  "click": [
+   0.883,
+   0.903
+  ]
+ },
+ {
+  "wait": 4
+ },
+ {
+  "shot": "i09-confirm"
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 20
+ },
+ {
+  "shot": "i10-installing"
+ },
+ {
+  "wait": 240
+ },
+ {
+  "shot": "i11-progress-1"
+ },
+ {
+  "wait": 240
+ },
+ {
+  "shot": "i11-progress-2"
+ },
+ {
+  "wait": 240
+ },
+ {
+  "shot": "i11-progress-3"
+ },
+ {
+  "wait_disk_idle": {
+   "idle": 150,
+   "max": 2400
+  }
+ },
+ {
+  "shot": "i12-before-finish"
+ },
+ {
+  "click": [
+   0.883,
+   0.903
+  ]
+ },
+ {
+  "wait": 3
+ },
+ {
+  "shot": "i13-after-done"
+ },
+ {
+  "wait_exit": 180
+ }
+]
