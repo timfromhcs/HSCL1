@@ -161,3 +161,6 @@ Only what was run is listed; see `docs/CLAIMS.md` for the full evidence table.
 
 ## P0.1 result (2026-11-06)
 `e2e_cli.py` with the persistent-connection harness on image `HSCL1-dev-m1.iso` (cd0bf42e..., sandbox options present, the image that wedged in two earlier runs): 23/23 checks, no error, desktop after 110 s. Root cause = host harness (R1), not the systemd options. The A/B commit was reverted. Repeat runs 2 and 3 are in progress for the determinism gate (P0.4).
+
+## CI: recurring QML job hang (2026-11-06)
+Three PR runs had the `QML tests` job stuck for 15+ minutes; the job log shows the stuck step is "Qt 6" (apt update/install, before any test). Root cause class: runner/mirror network stall. Fix: job-level `timeout-minutes: 20`, a 10-minute step timeout for the Qt install, apt `Acquire::Retries=3` and 30 s request timeouts, non-interactive install. Package lists unchanged; no test was touched. A hang now fails fast and visibly instead of blocking a PR.
