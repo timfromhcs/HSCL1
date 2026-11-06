@@ -53,8 +53,9 @@
 ### Task L5: MCP server `localdelegate`
 **Files:** `tools/local_worker/server.py` (stdlib JSON-RPC over stdio), tests.
 **Interfaces:** one tool `local_code(task: str, files: list[str], test_cmd: list[str], model: str = "qwen3-4b", max_rounds: int = 3)` returning verdict + diff stat + unified diff (capped); read-only/`dry` flag; `workdir` fixed to the repository root passed in the environment.
-- [ ] Tests: `initialize`, `tools/list` (exactly 1 tool), `tools/call` happy path with injected fake loop, invalid arguments rejected
-- [ ] Register in `E:\hcslinux222\.mcp.json` (Claude Code, project scope) and in OpenCode config via `{env:...}`-only values
+- [x] 26 tests (red first): `initialize`, notifications unanswered, exactly 1 tool with a closed schema, happy path (diff is a proposal, `applied` false), red verdict is a normal result, 15 invalid-argument cases (-32602: bad paths, disallowed executable, too many files, unknown fields, ...), unknown tool/method, closed RAM gate and gateway failure = tool error with code, garbage input survives, `make_deps` needs `HSCL_WORKER_ROOT`, and a process-level test over real stdio
+- [x] Implemented `tools/local_worker/server.py` (stdlib only). Executable allow-list for `test_cmd`: python, python3, py, pytest, cargo, node, npm
+- [ ] Register in `E:\hcslinux222\.mcp.json` (Claude Code, project scope) and in OpenCode config via `{env:...}`-only values: moves to L6 (needs the exact project-dir variable names from the Claude Code and OpenCode docs; unverified so far)
 
 ### Task L6: shared agent/prompt source and generator
 **Files:** `ai-shared/AGENTS.md` (measured facts only), `ai-shared/agents/local-worker.md`, `ai-shared/mcp.json`, `scripts/sync_ai_shared.py` generating `.claude/agents/local-worker.md`, `.mcp.json`, `.opencode/agents/local-worker.md`.
