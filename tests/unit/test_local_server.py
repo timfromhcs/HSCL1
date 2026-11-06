@@ -182,3 +182,11 @@ def test_make_deps_falls_back_to_claude_project_dir(tmp_path):
     assert server.make_deps({"CLAUDE_PROJECT_DIR": str(tmp_path), "HSCL_WORKER_ROOT": str(other)}).root == other.resolve()
     with pytest.raises(ValueError, match="CLAUDE_PROJECT_DIR"):
         server.make_deps({"CLAUDE_PROJECT_DIR": str(tmp_path / "missing")})
+
+
+def test_gate_sizes_are_not_below_the_measured_peak_memory():
+    """Measured 2026-11-06 (peak private memory of the server process, K q8_0 / V q4_0, c 4096): Bonsai-9B 4.5-4.9 GB, Bonsai-4B 3.8 GB,
+    gateway Qwen3-4B about 4.1 GB resident. The gate used file-size guesses (3000 / 1500) and let a run through that the system then reaped."""
+    assert server.MODEL_MB["bonsai-9b"] >= 4900
+    assert server.MODEL_MB["bonsai-4b"] >= 3900
+    assert server.MODEL_MB["qwen3-4b"] >= 4200

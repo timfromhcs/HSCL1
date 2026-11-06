@@ -29,8 +29,11 @@ MAX_FILES = 8
 MAX_CMD = 16
 MAX_DIFF = 20000
 MAX_OUT = 2000
-# rough resident sizes (MiB) of the models registered in the gateway; unknown models use DEFAULT_MODEL_MB
-MODEL_MB = {"qwen3-4b": 3600, "jev-1.5b": 0, "bonsai-27b": 9000, "bonsai-9b": 3000, "bonsai-4b": 1500, "qwen3.5-9b": 6000}
+# Resident sizes (MiB) of the models registered in the gateway; unknown models use DEFAULT_MODEL_MB.
+# MEASURED peak private memory of the server process on 2026-11-06 (K q8_0 / V q4_0, c 4096): bonsai-9b 4.5-4.9 GB, bonsai-4b 3.8 GB,
+# qwen3-4b about 4.1 GB resident in the gateway. The file sizes (2.7 / 1.3 / 2.5 GB) are NOT the memory cost: runtime buffers live in
+# shared system memory. bonsai-27b and qwen3.5-9b are estimates (not measured yet).
+MODEL_MB = {"qwen3-4b": 4300, "jev-1.5b": 0, "bonsai-27b": 9000, "bonsai-9b": 4900, "bonsai-4b": 3900, "qwen3.5-9b": 6800}
 DEFAULT_MODEL_MB = 6000
 KV_MB = 600
 
