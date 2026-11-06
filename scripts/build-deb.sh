@@ -33,6 +33,7 @@ if [ -f "$stage/build.sh" ]; then
 fi
 if [ -n "$bin" ]; then
   install -D -m 0755 "$bin" "$stage/usr/bin/hscl"
+  ln -sf hscl "$stage/usr/bin/hscl1"   # the name HSCL1 is also a program (same binary; usage text shows the name used)
 fi
 if [ "$name" = "hscl-base" ]; then
   mkdir -p "$stage/usr/share/hscl"

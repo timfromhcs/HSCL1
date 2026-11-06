@@ -1,5 +1,7 @@
 # Einführung
 
+**HSCL1** steht für **Hypercharged Supreme Computing Layout 1**.
+
 HSCL1 ist eine Linux-Workstation auf Basis von **Ubuntu 26.04 LTS** und **KDE Plasma**. Herausgeber ist HCSMEDIA.
 *Mit Liebe gemacht von hcsmedia.*
 

@@ -49,6 +49,7 @@ nav a[aria-current=page]{{color:var(--text-primary);font-weight:600}}
 .hero{{padding:4rem 0 3rem}}
 h1{{font-size:clamp(2rem,6vw,3.5rem);line-height:1.1;margin:0 0 1rem}}
 h2{{font-size:1.6rem;margin:3rem 0 1rem}} h3{{margin:.25rem 0}}
+.eyebrow{{margin:0 0 .5rem;color:var(--accent);font-weight:600;letter-spacing:.04em}}
 .lead{{font-size:1.2rem;color:var(--text-secondary);max-width:42rem}}
 .btns{{display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1.5rem}}
 .btn{{display:inline-block;padding:.75rem 1.25rem;border-radius:.6rem;background:var(--accent);color:var(--text-inverse);font-weight:600;text-decoration:none;min-height:2.75rem}}
@@ -118,6 +119,7 @@ def page(lang: str, c: dict, path: str, title: str, body: str, site: str | None)
 {body}
 </main>
 <footer class="site"><div class="wrap">
+<p><strong>HSCL1</strong> = {e(c["expansion"])}</p>
 <p>{e(c["footer"]["credit"])} &middot; {e(c["footer"]["license"])}</p>
 <p><a href="https://github.com/{REPO}">{e(c["footer"]["source"])}</a> &middot; <a href="https://github.com/{REPO}/issues">{e(c["footer"]["issues"])}</a></p>
 </div></footer>
@@ -132,7 +134,7 @@ def home(lang: str, c: dict, rel: dict | None) -> str:
     modes = "".join(f'<div class="card"><h3>{e(m["t"])}</h3><p>{e(m["d"])}</p></div>' for m in c["modes"])
     shots = "".join(f'<figure><img src="/{e(s["src"])}" alt="{e(s["alt"])}" loading="lazy" width="1280" height="800"></figure>' for s in c["shots"])
     honest = "".join(f"<li>{e(x)}</li>" for x in c["honest"])
-    return f"""<section class="hero"><h1>{e(h["h1"])}</h1><p class="lead">{e(h["sub"])}</p>
+    return f"""<section class="hero"><p class="eyebrow">HSCL1 &middot; {e(c["expansion"])}</p><h1>{e(h["h1"])}</h1><p class="lead">{e(h["sub"])}</p>
 <div class="btns">{cta}<a class="btn ghost" href="#modes">{e(h["cta2"])}</a></div></section>
 <section aria-labelledby="modes"><h2 id="modes">{e(c["modes_h"])}</h2><div class="grid">{modes}</div></section>
 <section aria-labelledby="shots"><h2 id="shots">{e(c["shots_h"])}</h2><div class="grid">{shots}</div></section>

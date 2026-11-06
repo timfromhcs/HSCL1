@@ -169,5 +169,6 @@
    "Accélération 3D, passage USB et dossiers partagés : non testés ; laissez les dossiers partagés désactivés."
   ],
   "script": "Le programme qui exécute ces tests est scripts/qemu_boot_test.py dans le dépôt du code source."
- }
+ },
+ "expansion": "Hypercharged Supreme Computing Layout 1"
 }

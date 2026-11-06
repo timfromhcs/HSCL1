@@ -169,5 +169,6 @@
    "3D-Beschleunigung, USB-Durchreichen und gemeinsame Ordner: nicht getestet; gemeinsame Ordner ausgeschaltet lassen."
   ],
   "script": "Das Programm, das diese Tests ausführt, ist scripts/qemu_boot_test.py im Quellcode-Repository."
- }
+ },
+ "expansion": "Hypercharged Supreme Computing Layout 1"
 }

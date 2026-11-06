@@ -145,3 +145,8 @@ def test_vm_page_lists_only_tested_hypervisor_settings_and_marks_the_rest_untest
         text = (dist / prefix / "install/vm/index.html").read_text(encoding="utf-8")
         assert "WHPX" in text and ("40 GB" in text or "40 Go" in text) and "VirtualBox" in text
         assert "/dev/sd" not in text  # never a guessed block device
+
+
+def test_every_page_states_the_full_product_name(dist):
+    for p in pages(dist):
+        assert "Hypercharged Supreme Computing Layout 1" in p.read_text(encoding="utf-8"), p

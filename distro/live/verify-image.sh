@@ -12,6 +12,8 @@ check() { # description, command...
 sudo_cat() { sudo cat "$@"; }
 
 check "rootfs root directory is root:root 0755" test "$(stat -c %u:%g:%a "$root")" = "0:0:755"
+check "os-release HSCL1_NAME_LONG (full product name)" grep -q '^HSCL1_NAME_LONG="Hypercharged Supreme Computing Layout 1"$' "$root/usr/lib/os-release"
+check "hscl1 program (symlink to hscl)"  test "$(readlink "$root/usr/bin/hscl1")" = hscl
 check "os-release NAME=HSCL1"             grep -q '^NAME="HSCL1"' "$root/usr/lib/os-release"
 check "os-release keeps ID=ubuntu"        grep -q '^ID=ubuntu$' "$root/usr/lib/os-release"
 check "os-release HSCL1_VERSION set"      grep -q '^HSCL1_VERSION="[0-9]' "$root/usr/lib/os-release"

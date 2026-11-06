@@ -2,6 +2,8 @@
 
 # HSCL1
 
+**HSCL1 = Hypercharged Supreme Computing Layout 1**
+
 **One system. Three modes. Your machine, your rules.**
 
 *Made with love by hcsmedia* · Publisher: HCSMEDIA

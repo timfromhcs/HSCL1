@@ -298,10 +298,10 @@ Interpretation notes (stated so they can be corrected): "HCS taste mit Menue und
 
 ### W13 - Brand and the program `hscl1`
 
-- [~] **W13.1 Full name everywhere (S).** `EXPANSION` constant, `hscl about`/`version --json`, overview, `os-release` `HSCL1_NAME_LONG`, README, website (EN/DE/FR), handbook intro, installer slideshow first slide, Control Center About page. **Gate:** a test greps each user-visible place for the exact string; translation parity test stays green. *CLI part implemented and tested; other places in progress.*
-- [~] **W13.2 `hscl1` is a program (S).** Same binary; bare invocation prints the overview; `/usr/bin/hscl1 -> hscl` shipped by `hscl-base`; usage text shows the name actually used; `verify-image.sh` checks the symlink; a VM check runs `hscl1` and `hscl1 version --json`.
+- [x] **W13.1 Full name everywhere (S) - DONE in source, covered by `tests/unit/test_brand_name.py` and the website test (image/VM check pending in the next build).** `EXPANSION` constant, `hscl about`/`version --json`, overview, `os-release` `HSCL1_NAME_LONG`, README, website (EN/DE/FR), handbook intro, installer slideshow first slide, Control Center About page. **Gate:** a test greps each user-visible place for the exact string; translation parity test stays green. *CLI part implemented and tested; other places in progress.*
+- [~] **W13.2 `hscl1` is a program (S) - implemented + unit-tested (argv0 detection, overview), package symlink and image check added; VM run pending.** Same binary; bare invocation prints the overview; `/usr/bin/hscl1 -> hscl` shipped by `hscl-base`; usage text shows the name actually used; `verify-image.sh` checks the symlink; a VM check runs `hscl1` and `hscl1 version --json`.
 - [ ] **W13.3 `HSCL1` app entry (S).** A desktop entry named "HSCL1" (the Control Center) with the HSCL1 icon, so the name is also a launcher entry, a start-menu item and a KRunner result.
-- [ ] **W13.4 Brand rules doc (S).** `docs/BRAND.md`: how the name is written (`HSCL1`), the long form, tagline, what is never claimed (not Tails, not official Kali, not Microsoft/Apple), logo usage.
+- [x] **W13.4 Brand rules doc (S) - `docs/BRAND.md`.** `docs/BRAND.md`: how the name is written (`HSCL1`), the long form, tagline, what is never claimed (not Tails, not official Kali, not Microsoft/Apple), logo usage.
 
 ### W14 - Release path and README
 
