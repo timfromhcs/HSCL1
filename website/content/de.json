@@ -2,18 +2,46 @@
  "name": "Deutsch",
  "title": "HSCL1 - ein System, drei Modi",
  "description": "HSCL1 ist eine experimentelle Linux-Workstation auf Basis von Kubuntu 26.04: ein Workstation-Desktop, ein isoliertes Security Lab und ein Datenschutz-Workflow. Vorabversion, nur in virtuellen Maschinen getestet.",
- "nav": {"home": "Start", "download": "Download", "modes": "Modi", "honest": "Stand", "lang": "Sprache", "skip": "Zum Inhalt springen"},
- "hero": {"h1": "Ein System. Drei Modi.", "sub": "HSCL1 ist eine Linux-Workstation auf Kubuntu-Basis mit eigenem Desktop-Look, einem Kommandozeilenwerkzeug und einem Installer. Es ist eine frühe Vorabversion, die nur in virtuellen Maschinen getestet wurde.", "cta": "Herunterladen", "cta2": "Was es ist"},
+ "nav": {
+  "home": "Start",
+  "download": "Download",
+  "modes": "Modi",
+  "honest": "Stand",
+  "lang": "Sprache",
+  "skip": "Zum Inhalt springen",
+  "security": "Sicherheit"
+ },
+ "hero": {
+  "h1": "Ein System. Drei Modi.",
+  "sub": "HSCL1 ist eine Linux-Workstation auf Kubuntu-Basis mit eigenem Desktop-Look, einem Kommandozeilenwerkzeug und einem Installer. Es ist eine frühe Vorabversion, die nur in virtuellen Maschinen getestet wurde.",
+  "cta": "Herunterladen",
+  "cta2": "Was es ist"
+ },
  "modes_h": "Drei Modi mit getrennten Grenzen",
  "modes": [
-  {"t": "Workstation", "d": "Der Alltags-Desktop: HCS Hybrid Desktop auf KDE Plasma mit oberer Leiste, schwebendem Dock, Control Center und dem Kommandozeilenwerkzeug hscl."},
-  {"t": "Security Lab", "d": "Geplant: Kali-Werkzeuge in Rootless-Containern oder virtuellen Maschinen, nie aus den Paketquellen des Hosts. Noch nicht umgesetzt."},
-  {"t": "Datenschutz", "d": "Geplant: ein Tor-Workflow und ein Starter für das offizielle Tails-Image. Es wird keine Anonymität versprochen, und ohne Tests wird sie auch nicht versprochen."}
+  {
+   "t": "Workstation",
+   "d": "Der Alltags-Desktop: HCS Hybrid Desktop auf KDE Plasma mit oberer Leiste, schwebendem Dock, Control Center und dem Kommandozeilenwerkzeug hscl."
+  },
+  {
+   "t": "Security Lab",
+   "d": "Geplant: Kali-Werkzeuge in Rootless-Containern oder virtuellen Maschinen, nie aus den Paketquellen des Hosts. Noch nicht umgesetzt."
+  },
+  {
+   "t": "Datenschutz",
+   "d": "Geplant: ein Tor-Workflow und ein Starter für das offizielle Tails-Image. Es wird keine Anonymität versprochen, und ohne Tests wird sie auch nicht versprochen."
+  }
  ],
  "shots_h": "Der echte Desktop",
  "shots": [
-  {"src": "img/desktop-rain.png", "alt": "HSCL1-Live-Desktop mit Regen-Hintergrund, oberer Leiste und Dock"},
-  {"src": "img/control-center.png", "alt": "HSCL1 Control Center mit Live-Systemwerten"}
+  {
+   "src": "img/desktop-rain.png",
+   "alt": "HSCL1-Live-Desktop mit Regen-Hintergrund, oberer Leiste und Dock"
+  },
+  {
+   "src": "img/control-center.png",
+   "alt": "HSCL1 Control Center mit Live-Systemwerten"
+  }
  ],
  "honest_h": "Was geprüft ist und was nicht",
  "honest": [
@@ -26,7 +54,11 @@
   "h1": "Download",
   "none": "Noch kein Release veröffentlicht. Bauanleitung im Quellcode-Repository.",
   "pre": "Vorabversion - nicht für den Produktiveinsatz",
-  "version": "Version", "released": "Veröffentlicht", "size": "Gesamtgröße", "sha": "SHA-256 des vollständigen ISO", "parts": "Dateien",
+  "version": "Version",
+  "released": "Veröffentlicht",
+  "size": "Gesamtgröße",
+  "sha": "SHA-256 des vollständigen ISO",
+  "parts": "Dateien",
   "parts_note": "GitHub erlaubt pro Release-Datei höchstens 2 GiB, daher ist das ISO in Teile von etwa 1,5 GB aufgeteilt. Alle Teile und SHA256SUMS laden, dann zusammensetzen und prüfen.",
   "verify_h": "Zusammensetzen und prüfen",
   "verify": [
@@ -40,7 +72,51 @@
    "Nicht signiert.",
    "In diesem Image lauscht KDE Connect noch auf Port 1716; die Korrektur steckt im Quellcode, aber nicht in diesem Image."
   ],
-  "all": "Alle Dateien auf GitHub", "tag": "Release-Seite"
+  "all": "Alle Dateien auf GitHub",
+  "tag": "Release-Seite"
  },
- "footer": {"credit": "Made with love by hcsmedia", "license": "Freie Software unter GPL-3.0-or-later.", "source": "Quellcode", "issues": "Problem melden"}
+ "footer": {
+  "credit": "Made with love by hcsmedia",
+  "license": "Freie Software unter GPL-3.0-or-later.",
+  "source": "Quellcode",
+  "issues": "Problem melden"
+ },
+ "sec": {
+  "title": "Sicherheit und Grenzen - HSCL1",
+  "h1": "Sicherheit und Grenzen",
+  "intro": "HSCL1 ist frühe Pre-Alpha-Software. Nicht für Dinge verwenden, die eine Sicherheitsgarantie brauchen. Diese Seite sagt, was wir tun und was wir nicht behaupten.",
+  "report_h": "Sicherheitslücke melden",
+  "report": "Bitte die private Meldefunktion von GitHub im Quellcode-Repository nutzen (Reiter Security, Report a vulnerability). Bitte kein öffentliches Issue für ein Sicherheitsproblem öffnen. Angeben: Version (hscl version), was getan wurde, was passiert ist und was erwartet wurde. Es gibt in diesem Stadium keine Zusage zu Antwortzeiten.",
+  "report_link": "Sicherheitsseite des Repositorys öffnen",
+  "integrity_h": "Integrität der Releases",
+  "integrity": [
+   "Releases erscheinen mit SHA256SUMS; jeden Download damit prüfen.",
+   "Eine Signatur der Releases gibt es noch nicht. Es wurde kein Signaturschlüssel erzeugt, Releases gelten daher als unsigniert."
+  ],
+  "claims_h": "Was wir nicht behaupten",
+  "claims": [
+   "Keine Anonymität: HSCL1 ist nicht Tails, und der Datenschutz-Modus ist geplant, nicht ausgeliefert.",
+   "Keine Garantie gegen Angriffe, keine Zertifizierung, keine Aussage, dass es schwer zu hacken sei.",
+   "Keine Unterstützung für echte Hardware: Es wurde kein Gerät getestet.",
+   "Secure Boot: Das Image startet in einer virtuellen Maschine unter Secure-Boot-Firmware, der Secure-Boot-Status im Gast wurde aber nicht ausgelesen, daher wird keine Secure-Boot-Aussage gemacht."
+  ],
+  "dev_h": "Entwicklerwerkzeug: der Workshop",
+  "dev": "Der Workshop ist ein Entwicklerwerkzeug, das standardmäßig inaktiv ist: kein aktivierter Dienst, kein Socket und kein Netzwerk-Listener. Er startet nur, wenn ein Hypervisor einen eigenen virtuellen Port bereitstellt oder ein Administrator ihn von Hand startet. Wer diesen Port kontrolliert, kontrolliert bereits die virtuelle Maschine, und seine Hooks laufen absichtlich als root. Nicht auf einem Rechner aktivieren, den man nicht selbst kontrolliert.",
+  "docs_h": "Details",
+  "docs": "Die vollständigen, gepflegten Listen liegen im Quellcode-Repository.",
+  "docs_links": [
+   {
+    "t": "Bekannte Einschränkungen",
+    "u": "https://github.com/timfromhcs/HSCL1/blob/main/docs/KNOWN_LIMITATIONS.md"
+   },
+   {
+    "t": "Bedrohungsmodell",
+    "u": "https://github.com/timfromhcs/HSCL1/blob/main/docs/THREAT_MODEL.md"
+   },
+   {
+    "t": "Sicherheitsrichtlinie",
+    "u": "https://github.com/timfromhcs/HSCL1/blob/main/SECURITY.md"
+   }
+  ]
+ }
 }
