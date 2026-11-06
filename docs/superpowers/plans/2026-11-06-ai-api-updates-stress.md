@@ -45,8 +45,8 @@
 ### Task E1: delta-card gate
 **Files:** Create `ai/model-catalog/delta-card.schema.json`, `scripts/check_delta_cards.py`, `tests/unit/test_delta_cards.py`.
 **Interfaces:** every catalog entry with `abliterated: true` references a card with `refusal_rate`, `tool_overcall_rate`, `kl_vs_stock`, `measured_by` (`own` or `third-party`), `date`; the gate fails on a missing field or when a shipped entry has only a third-party card.
-- [ ] Failing tests: missing field; third-party-only shipped entry; valid card passes
-- [ ] Implement; fix existing catalog entries honestly; commit
+- [x] 22 tests (red first): unmeasured / own / third-party cards valid; missing card, orphan card, bad `measured_by`, missing or out-of-range numbers, booleans as numbers, missing evidence file, non-https third-party source, non-null numbers on an unmeasured card, bad date, and an abliterated id or file name found in `distro/` or `packages/` are all errors; plain models need no card; the schema file lists the same required fields as the checker; the real repository passes
+- [x] Implemented `scripts/check_delta_cards.py` (`--report`), `ai/catalog/delta-card.schema.json`, `ai/catalog/delta-cards.json` (path corrected: the catalog lives in `ai/catalog/`). Honest state of the real catalog: **6 abliterated models, 0 measured by us, 0 third-party, 6 unmeasured**; none appears in `distro/` or `packages/`. Not done: showing "unmeasured" in `hscl ai model info` / `list` (small follow-up)
 
 ## Track F - updates and image freeze
 - [ ] F1 honesty gate: a test fails when README/docs/website say "atomic", "boot into snapshot" or "immutable" outside an explicit negation allow-list
