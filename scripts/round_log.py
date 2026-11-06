@@ -55,6 +55,11 @@ def _last_round(path: Path, task: str) -> int:
     return last
 
 
+def next_round(path: Path, task: str) -> int:
+    """The round number to use next for this task (1 when the task is new)."""
+    return _last_round(Path(path), task) + 1
+
+
 def record_round(task: str, round_no: int, score: dict, action: str, reflection: str, path: Path = DEFAULT) -> dict:
     """Append one round; raises ValueError (nothing written) on secrets, paths, bad score or a non-increasing round."""
     task = _check_text("task", task)

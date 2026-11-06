@@ -68,7 +68,7 @@
 - [x] Results table in `docs/research/2026-11-06-local-subagents-prism-bonsai-turboquant.md`: Bonsai-9B 10/10 (9 in round 1), Bonsai-4B 9/10, Qwen3-4B 7/10. Default executor candidate: **bonsai-9b**; fast helper: **bonsai-4b**. Open: Qwen3.5-9B head-to-head (needs ~9.4 GB available), repeat runs for variance
 
 ### Task L8: always-on queue ("never idle")
-- [ ] `scripts/local_queue.py`: reads `docs/superpowers/plans/*.md` unchecked steps tagged `[local]`, dispatches to `local_code`, records each round with `round_log.py`, stops when the RAM gate closes or after a wall-clock cap; results are proposals in a worktree branch, never pushed automatically
+- [x] `scripts/local_queue.py` (13 tests, red first): reads unchecked `- [ ] [local] {json spec} :: task` steps, validates them with the MCP server's validator, runs them through the verify-patch loop behind the gateway, records each run with `round_log.py` (new `next_round`), stops on a closed RAM gate, gateway error, wall-clock or item limit; remembers finished items; **results are diff files in `artifacts/local/proposals/` with a `git apply --check` verdict, never applied, committed or pushed, and plan boxes are never ticked by it** (deviation from the original idea of a worktree branch: diff files are simpler and cannot touch history). Dry run on the real plans: 0 items (no step is tagged yet)
 
 ## Order
 L1 (fetch, in background) -> L2 -> L3 -> L4 -> L5 -> L6 -> L7 -> L8. Owner items: rotate the two plaintext secrets; confirm DE/EN prompt wording; decide whether OpenCode runs as autostart service with a password from the environment.

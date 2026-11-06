@@ -91,3 +91,11 @@ Harness `tools/local_worker/bench.py`, ten tasks in `bench_tasks.py` (each task 
 | Ternary-Bonsai-2-9B | PQ2_0, 2.5 GiB | own `llama-server`, port 18081, stopped afterwards | **10/10** | 9/10 | 7.2 |
 | Qwen3.5-9B | Q4_K_M, 5.7 GB | not measured: RAM gate closed while the gateway held Qwen3-4B (needs ~9.4 GB available) | - | - | - |
 Observations: (1) the two ternary Bonsai models beat the larger-file Qwen3-4B Q4 on this task set, including the int/float trap (`parse_score` solved in round 1 by both Bonsai models, failed by Qwen3-4B in all 3 rounds); (2) Qwen3-4B's failures are capability, not harness: for `slugify` round 1 had a syntax error that the feedback fixed in round 2, but the logic stayed wrong (`replace(" ", "-")` instead of a regex); (3) Bonsai-4B fails `merge_intervals` (sorting) in all rounds; (4) the verify loop rescued one task each for the Bonsai models (`slugify`, round 2). Raw JSON in `artifacts/local/` (not committed). Models `bonsai-9b` and `bonsai-4b` were added to the gateway's `models.yaml` (backup `models.yaml.bak-20261106-pre-bonsai`) with `-rea off --reasoning-format deepseek`; memory figures there are `hscl ai fit` estimates (3358 MiB and 2022 MiB), not measurements. The running gateway needs a restart to list them.
+
+### Variance (same harness, temporary server on port 18081, three runs per model in total)
+| Model | solved per run | pass@1 per run | s/task per run |
+|---|---|---|---|
+| Ternary-Bonsai-2-9B PQ2_0 | 10, 10, 10 | 9, 9, 9 | 7.2, 7.0, 7.7 |
+| Ternary-Bonsai-2-4B PQ2_0 | 9, 10, 9 | 8, 9, 8 | 6.3, 6.3, 7.1 |
+| Qwen3-4B abliterated Q4_K_M | 7 (one run) | 7 | 8.1 |
+Bonsai-9B is stable on this task set; Bonsai-4B varies by one task (`merge_intervals` fails in two of three runs). Still only ten tasks: the ranking Bonsai-9B > Bonsai-4B > Qwen3-4B is supported, small gaps are not.
