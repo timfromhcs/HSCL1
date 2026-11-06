@@ -24,7 +24,7 @@ Item {
                 font.pixelSize: Theme.fontMd
             }
             Text {
-                text: qsTr("HSCL1 is not Tails and not an official Kali release. It is pre-alpha software.")
+                text: qsTr("HSCL1 is not Tails and not an official Kali release. It is pre-alpha software.\nKALI LINUX™ is a trademark of OffSec. HSCL1 is not affiliated with or endorsed by the Tails project.")
                 color: Theme.textSecondary
                 font.pixelSize: Theme.fontSm
                 wrapMode: Text.Wrap

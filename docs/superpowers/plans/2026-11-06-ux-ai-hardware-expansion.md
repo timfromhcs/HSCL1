@@ -405,3 +405,39 @@ Research (2026-11-06), sources: casper stacks every squashfs under `/casper` as 
 - [x] Boot splash: HSCL1 theme in the live boot (screenshot `artifacts/boot-r3/shot-010.png`), GRUB menu "Try or Install HSCL1 (pre-alpha)".
 - [ ] **W21.5 Live "Try / Install" welcome screen still says Kubuntu** (full-screen logo, "Try Kubuntu", "Install Kubuntu", seen in `artifacts/boot-r3/shot-073.png`). Find the program that draws it (live VM `ps`, package owner), then replace text and artwork; add it to the content scanner (W24.6) and a screenshot gate.
 - [ ] **W21.6 Installed-system boot menu and EFI directory** (the EFI folder is named after Ubuntu): `GRUB_DISTRIBUTOR=HSCL1` is set, to verify in an install; change the EFI directory name only after a Secure Boot check.
+
+## Addendum 2026-11-06 (5): design constraints from the research round
+
+These are UX rules that follow from measured behaviour, not taste. Each one prevents a promise the desktop cannot keep.
+
+### U5.1 Tiling: "apply a layout", never "remember a layout"
+KWin does not save custom tile layouts (KDE bug 466019, confirmed 2026-10). So the Control Center exposes **presets** (Focus,
+Trio, Quad, Wide) with a preview; applying one writes `kwinrc [Tiling]` through `hscl appearance layout set NAME` and shows a
+one-line note: *"Layouts are re-applied after a monitor change."* There is always a visible "reset to default". No screenshot or
+marketing text may show a "saved layouts" list.
+
+### U5.2 Software sources: one toggle, honest consequences
+Privacy/Software screen gets a single switch "Enable Flatpak (Flathub)" with the exact truth: it installs `flatpak` + Flathub, it is
+not part of the base system, and each app then shows source and trust level. Off by default. This replaces any "Flatpak support"
+bullet in the feature list.
+
+### U5.3 Installer: two warnings that come from real bugs
+Before the disk step, if more than one LUKS device would be touched, the installer must refuse and explain (upstream Calamares
+cannot finish that case). If the network is down, the software-db step is expected to warn instead of crashing (LP #2143847) - the
+offline path is the *primary* tested path, not the fallback.
+
+### U5.4 Neural Lab workspace: a folder, not a launcher full of buttons
+`~/Projects/NeuralLab/{models,games,specs,notebooks,README.md}` is created once, never overwritten. In the Start menu it is one entry
+("Neural Lab") that opens the folder plus one entry per demo. Each demo window carries, in its own header, the measured FPS and the
+sentence that says what it is *not* (e.g. "toy next-frame predictor, not a game engine"). The Game Studio is a single dialog:
+prompt field, template preview, "Create" -> file in `games/`, "Open" -> isolated viewer. If the local model is missing, the dialog
+says so and offers the template without AI instead of a disabled button.
+
+### U5.5 Screenshot and documentation surfaces
+All product screenshots come from `spectacle -b -n -o` inside the VM at 1920x1080 and 1366x768 with animations disabled and a fixed
+locale, named `<screen>-<locale>-<w>x<h>.png`. A screenshot that cannot be reproduced by `scripts/capture_ui.py` is not published.
+
+### U5.6 Trademark surfaces
+First mention of the mark in any UI page, README section or website page carries the symbol and the attribution sentence; the
+Security Lab page says "Kali Linux™ tools in isolated containers" and never uses a Kali logo or the word "Kali" inside an HSCL1
+product name. Same rule for Tails.

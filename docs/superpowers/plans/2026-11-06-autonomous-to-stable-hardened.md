@@ -691,3 +691,65 @@ GRUB theme for the live ISO menu; BIOS boot test of the new images; second langu
 
 ## 10. Tracking
 Every working session ends with: BUILD_LOG entry (what ran, hashes, results, dead ends), CLAIMS rows updated, plan boxes ticked with evidence links, commit + push, PR merged on green CI, a short German summary to the owner.
+
+## Addendum 2026-11-06 (5): research answers that change a decision
+
+Source: `docs/research/2026-11-06-sota-scan.md` (SOTA) and the F1-F24 answer table in
+`docs/superpowers/plans/2026-11-06-finish-line-self-heal.md` §13a. Only the items that change something are repeated here.
+
+### A5.1 Flatpak is not part of the default install any more (ADR-005)
+Canonical asked the official flavours to stop shipping Flatpak (LWN 2023, still the rule in 26.04; Flatpak installs fine from the
+archive). Consequence: the ISO ships **apt-only** software sources; the Control Center gets a "Software sources" toggle that installs
+`flatpak`, adds Flathub and shows the source/trust of every app. Discover stays apt-first. This also kills the plan line
+"Flatpak where appropriate" as a *default* - it is a documented opt-in now.
+
+### A5.2 KWin does not persist custom tiling layouts (KDE bug 466019, still CONFIRMED in 2026-10)
+So HSCL1 must not promise "saved window layouts" as a KWin feature. Decision: tiling presets are **HSCL-owned files** written by
+`hscl appearance layout` and applied into `kwinrc [Tiling]`, with a re-apply step after monitor hotplug (KWin drops them on
+resolution change). The UI wording is "apply layout" + a visible "reset to default", never "remembered layout". ADR-006.
+
+### A5.3 Calamares in resolute = 3.3.14, with two defects that touch us
+`calamares 3.3.14-0ubuntu25.26.04.1` is in `resolute-updates`. Known: install does not finish with **multiple LUKS devices**;
+software-db step can crash when an apt source is unreachable (LP #2143847). Both are added to the installer fault-injection gate
+(P2.6) and to `docs/KNOWN_LIMITATIONS.md`; the offline-install case (source unreachable by design) is explicitly tested.
+
+### A5.4 Snapshot pinning is a *build-host* tool, not a user feature (ADR-007)
+`snapshot.ubuntu.com` covers `resolute` and `apt --snapshot` / `APT::Snapshot` works, but pinning an installed system freezes
+security updates. Decision: pin the build to a snapshot ID for reproducibility (G21), ship end-user systems on the live archive
+with `unattended-upgrades` on security pockets.
+
+### A5.5 Screenshot path for Track E is spectacle, not grim
+`grim` needs wlr-screencopy, which KWin does not implement ("compositor doesn't support the screen capture protocol").
+`spectacle -b -n -o file.png -d 800 [-e -S]` is the supported, scriptable path (KWin `ScreenShot2` behind it). Determinism comes from
+fixed resolution + animations off + fixed clock + explicit delay, not from the tool.
+
+### A5.6 9p is present on the host, virtio transport is not yet proven
+`/proc/filesystems` in the WSL2 host shows `nodev 9p`, so the client exists; the virtio transport and the guest-side mount are
+still unverified. E1 step 1 is therefore a **mount test** (share -> guest reads a known file), with virtiofs as the fallback and a
+serial-console screenshot harness as the last resort.
+
+### A5.7 Trademark rules are mechanical and now gated (ADR-008)
+OffSec requires: first mention carries ™/® **and** the sentence "KALI LINUX ™ is a trademark of OffSec."; do not abbreviate or
+combine the mark; no OffSec mark in a domain name. New `docs/TRADEMARKS.md` + `scripts/check_trademarks.py` fail the build when the
+attribution sentence is missing wherever the mark appears, or when a forbidden pattern ("HSCL1 Kali Edition", "Kali-based HSCL1",
+the Kali logo file names) shows up. Tails stays "the official Tails ISO, launched by HSCL1", never "HSCL1 Tails".
+
+### A5.8 casper supports layered squashfs - C3 stays an option, not a plan
+Ubuntu 26.04 splits its own root into layered squashfs parts merged by overlayfs, so splitting our root by change frequency is
+technically possible. It stays behind a boot test: single layer + caches is the default until a split image passes the full VM gate.
+
+### A5.9 GitHub API limits force token use in CI
+5000/h authenticated vs 60/h anonymous. `gh` in workflows must use `GITHUB_TOKEN`; any unauthenticated call is cached or made
+conditional, and `fetch_release_meta.py` treats rate-limit errors as "retry later", not as "no release".
+
+### A5.10 unattended-upgrades override pattern
+Overrides go in a file that sorts after `50unattended-upgrades` and must `#clear` the shipped list before adding our own, otherwise
+our origins are appended to Canonical's. The `hscl-security` package config is re-checked against this before the 1.0 tag.
+
+### A5.11 Models fit on GitHub release assets
+2 GiB per asset; the largest planned artefact is ~1.5 GB. No bucket, no cloud account, no new dependency. ADR-010.
+
+### Consequence for the sprint ladder
+S3 gains the Flatpak-toggle work, S5 gains the tiling-preset CLI + the honest wording, S2 gains the two Calamares fault cases and
+the snapshot-pinned build, S6 gains the model-asset upload path, S7 gains the trademark gate in CI. Nothing here moves a gate; it
+only makes four of them stricter.

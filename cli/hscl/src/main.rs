@@ -571,11 +571,11 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
             let v = json!({
                 "product": PRODUCT, "expansion": EXPANSION, "version": env!("CARGO_PKG_VERSION"),
                 "publisher": "HCSMEDIA", "credit": CREDIT,
-                "notice": "HSCL1 is not Tails and not an official Kali release."
+                "notice": "HSCL1 is not Tails and not an official Kali release. KALI LINUX™ is a trademark of OffSec. HSCL1 is not affiliated with or endorsed by the Tails project."
             });
             print_value(j, &v, || {
                 format!(
-                    "{PRODUCT} {}\n{CREDIT}\nHSCL1 is not Tails and not an official Kali release.",
+                    "{PRODUCT} {}\n{CREDIT}\nHSCL1 is not Tails and not an official Kali release.\nKALI LINUX™ is a trademark of OffSec. HSCL1 is not affiliated with or endorsed by the Tails project.",
                     env!("CARGO_PKG_VERSION")
                 )
             });
@@ -1370,7 +1370,7 @@ Start here:
     }
     s.push_str(
         "
-`hscl` and `hscl1` are the same program. HSCL1 is not Tails and not an official Kali release.",
+`hscl` and `hscl1` are the same program. HSCL1 is not Tails and not an official Kali release.\n\nKALI LINUX™ is a trademark of OffSec. HSCL1 is not affiliated with or endorsed by the Tails project.",
     );
     s
 }

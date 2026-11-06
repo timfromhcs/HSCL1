@@ -472,6 +472,38 @@ Each is one line of evidence so the answer can be audited later.
     whether Game Studio constrains during decoding or validates after generation.
 24. Licence/provenance of any pre-trained demo checkpoint - default is "train it ourselves" (G2) to avoid the question entirely.
 
+### 13a. Answers (research round 2026-11-06, second pass)
+
+Status key: **ANSWERED** (evidence below, decision changed where needed), **OWNER** (cannot be closed by the agent),
+**MEASURE** (only the machine can answer; the sprint that needs it runs the measurement first).
+
+| # | Status | Answer | Evidence / decision |
+|---|---|---|---|
+| F1 | MEASURE | not answerable from docs; the remaster keeps upstream shim/GRUB/kernel, so the chain *should* validate, but "should" is not evidence | S7 runs OVMF+MS keys, `mokutil --sb-state` in-guest; no claim before that |
+| F2 | ANSWERED | casper merges **multiple** squashfs layers through overlayfs; Ubuntu 26.04 itself ships the root split into layered parts | <https://askubuntu.com/questions/1322661>, <https://www.linkedin.com/posts/linuxbaskar_ubuntu2604-overlayfs-squashfs-activity-7457645926728495106-to0a>; C3 stays *possible*, single layer stays default until a boot test proves the split |
+| F3 | ANSWERED | `zsync` 0.6.2-9 in the 26.04 archive (`zsyncmake` not installed); GitHub serves Range requests (`206`, `Accept-Ranges: bytes`) | `apt-cache policy zsync`; `curl -sIL -H "Range: bytes=0-99"` on a `v0.1.1-alpha.0` asset |
+| F4 | ANSWERED | `snapshot.ubuntu.com` covers `resolute` (`snapshot-3` published); pin with `APT::Snapshot` / `apt --snapshot`; **build hosts only** - pinning an installed system freezes security updates | <https://ubuntu.com/server/docs/how-to/software/snapshot-service/>, <https://discourse.ubuntu.com/t/resolute-snapshot-3-released/75832>; ADR-007 |
+| F5 | ANSWERED | config is still `/etc/apt/apt.conf.d/{20auto-upgrades,50unattended-upgrades}`; override in a file sorting **later** (`52hscl-unattended-upgrades`) and `#clear` the shipped list first, otherwise our origins are *added* to the stock ones; ESM origins are `UbuntuESMApps`/`UbuntuESM` | <https://github.com/mvo5/unattended-upgrades/blob/main/README.md>, <https://ubuntu.com/server/docs/how-to/software/automatic-updates/>; `hscl-security` must be re-checked against this |
+| F6 | ANSWERED | `grim` cannot work on KWin Wayland ("compositor doesn't support the screen capture protocol"); `spectacle -b -n -o FILE [-d ms] [-p] [-e] [-S]` is the supported path, KWin `ScreenShot2` underneath | `spectacle -h` output (Plasma 6), <https://forum.endeavouros.com/t/having-problems-to-take-screenshot-on-plasma-wayland/76740>; Track E step 1 |
+| F7 | ANSWERED | Calamares **3.3.14-0ubuntu25.26.04.1** is in `resolute-updates` (universe); two known defects are relevant to us: install does not finish with **multiple LUKS devices**, and the software-db step can crash when an apt source is unreachable | <https://www.ubuntuupdates.org/package/core/resolute/universe/updates/calamares>, <https://bugs.launchpad.net/bugs/2143847>; both become installer fault-injection cases + KNOWN_LIMITATIONS rows |
+| F8 | ANSWERED | Flatpak is **not** in the Ubuntu/Kubuntu 26.04 default install and Canonical asked the flavours to stop shipping it; it still installs cleanly from the archive | <https://lwn.net/Articles/927262/>, <https://itsfoss.com/news/ubuntu-flavor-drops-flatpak/>; ADR-005: opt-in component, apt-first Discover |
+| F9 | ANSWERED (host) / MEASURE (guest) | the WSL2 kernel has the 9p client (`/proc/filesystems` -> `nodev 9p`); virtio transport and guest-side auto-mount are still unproven, and virtiofs is the fallback | `grep 9p /proc/filesystems` in WSL; E1 step 1 is a real mount test before the harness depends on it |
+| F10 | ANSWERED | 5000 requests/h authenticated, 60/h anonymous; `gh` in CI must use `GITHUB_TOKEN`; unauthenticated calls are cached or made conditional | `gh api rate_limit` -> `4988/5000` (authenticated) |
+| F11 | ANSWERED | GitHub release assets cap at 2 GiB per file, which fits every model we would ship (largest planned: ~1.5 GB quantised); no bucket, no account | ADR-010 |
+| F12 | OWNER | NOTICE wording for an Apache-2.0 derivative needs a human; the agent drafts, the owner signs | owner item |
+| F13 | MEASURE | held-out eval set must be built from *prompts*, not from training trajectories; measured once Track B step 3 exists | S6 |
+| F14 | ANSWERED (rules) / OWNER (review) | OffSec requires the first mention to carry ™/® **and** the sentence "KALI LINUX ™ is a trademark of OffSec.", forbids abbreviating/modifying the mark and forbids the mark in domain names; never "HSCL1 Kali Edition" | <https://www.kali.org/docs/policy/trademark/>; `docs/TRADEMARKS.md` + `scripts/check_trademarks.py` gate |
+| F15 | OWNER | hardware matrix needs the owner's machines | unchanged |
+| F16 | MEASURE | `nftables` counters + `tcpdump` on the vNIC for a full session, diff against an allow-list of base-OS contacts | S3, gate G17 |
+| F17 | DESIGN | local journal export only; upload is a separate, explicit action with a preview of the payload | S4 |
+| F18 | ANSWERED (direction) | image-based delta updates (OSTree static deltas: 0.09 MB vs 129 MB) are a 2.x architecture change; v1 keeps APT + `.zsync` | <https://ostreedev.github.io/ostree/copying-deltas/>, <https://rugix.org/blog/efficient-delta-updates/> |
+| F19 | OWNER | production deploy of the website | unchanged, never autonomous |
+| F20 | OWNER | DE/FR native-speaker review | unchanged |
+| F21 | MEASURE | check `WebGL`/`WebGPU` in the shipped QtWebEngine before choosing the NCA renderer; fall back to WebGL/CPU-WASM | G2, gate G42 |
+| F22 | MEASURE | NCA at 512x512 on the 680M; if < 30 FPS the demo renders 256x256 and says so | G2 |
+| F23 | MEASURE | probe `llama-server` for a `grammar` field on `/v1/chat/completions`; if absent, validate after generation instead of constraining during decoding | G3 |
+| F24 | ANSWERED | train it ourselves (`scripts/train_nca.py`, < 1 MB checkpoint, no third-party licence) | G2 |
+
 ## 13b. Track G - Neural Lab: neural games, LLM-written artefacts, premade models, custom workspace
 
 Research basis: `docs/research/2026-11-06-sota-scan.md` (GameNGen/Genie 3 are TPU/hosted-scale; NCA is the shippable end; small models
