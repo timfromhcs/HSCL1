@@ -570,3 +570,6 @@ Gates:
 | S6 | lab/privacy/AI **+ B-step6-8 (ship model), G39/G40, G3/G4 (studio + workspace)** |
 | S7 | secure boot + rc **+ G32-G46 all green in CI** |
 | S8 | 1.0.0 **+ ledger + benchmark report in release notes** |
+
+### Addendum (2026-11-06, research rounds R1-R3)
+Open questions F21/F23/Q18/Q21 re-checked; AREX-2 identified (BAAI agent model, pattern adopted, model not shipped). New tracks A/B/C in `2026-11-06-autodetect-arex-loop-re-lab.md`; they run inside S1 (host-only) and feed S2 (autodetect in the image) and S6 (optional AI bundle check G39). Details: `docs/research/2026-11-06-arex2-autodetect-reverse-engineering.md`.

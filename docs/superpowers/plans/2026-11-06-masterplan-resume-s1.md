@@ -74,3 +74,15 @@
 
 ## 5. Owner-Entscheidungen (offen, nicht geraten)
 Dependabot-Merges #1/#3/#4 (+#2 spaeter), Signing-Key fuer `SHA256SUMS`, Hardware-Testgeraete, Merge von PR #22.
+
+## 6. Research rounds (3 rounds, 2026-11-06) und neue Tasks
+Ergebnis: `docs/research/2026-11-06-arex2-autodetect-reverse-engineering.md`. **AREX-2 = 27B-Agentenmodell der BAAI (Apache-2.0), kein Chip**; wir uebernehmen das Muster *propose-measure-reflect-revise* mit pruefbarem Score, nicht das Modell. Subplan: `2026-11-06-autodetect-arex-loop-re-lab.md` (Tracks A Loop, B Autodetect v2 modalias, C RE-Lab).
+
+| Task | Inhalt | Gate |
+|---|---|---|
+| 5 (B1) | `hw.rs` modaliases + Report-Felder | cargo test, JSON stabil |
+| 6 (B3/B2) | Treiberhinweise + hwdb-Generator | Fixtures, `test_gen_hwdb` |
+| 7 (A1/A2) | `round_log.py`, `round_report.py` | pytest |
+| 8 (C1/C2) | `docs/RE_LAB.md`, `re_capture.sh` | Doc-Gate, shellcheck |
+
+Offene MEASURE-Punkte (kein Web-Ergebnis moeglich): 680M tok/s, WebGPU in QtWebEngine, llama.cpp-Architektur der gepinnten Version (Qwen3.5/3.8), sysext auf dem Image, hwdb-postinst. Owner-Items neu: Rechtsrahmen fuer RE-Lab (O5), Freigabe einer optionalen AREX-Turbo-Bundle-Pruefung.
