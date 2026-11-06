@@ -1,376 +1,537 @@
-# HSCL1 autonomous plan: from 0.1.0-alpha to a stable, hardened v2.0.0 (revision 2, 2026-11-06)
+# HSCL1 master plan v3: fast loop, honest evidence, stable hardened v2.0.0 (rewrite of 2026-11-06, revision 3)
 
-> **For the autonomous agent:** this file supersedes `2026-11-06-long-horizon-to-v2.md` (kept for history). Work the phases in order, in
-> self-healing loops (section 2). A box is ticked only with evidence recorded in `docs/CLAIMS.md` or `docs/BUILD_LOG.md`.
-> Status words: PLANNED, IMPLEMENTED, TESTED, VM-VERIFIED, HARDWARE-VERIFIED, EXPERIMENTAL, BLOCKED. Never upgrade without evidence.
+> **For the autonomous agent.** This file replaces revision 2 of itself (still in git history) and supersedes
+> `2026-11-06-long-horizon-to-v2.md`. The sibling plans stay valid for their scope: `2026-11-06-ux-ai-hardware-expansion.md` (product work W0-W24)
+> and `2026-11-06-forge-loop.md` (the control script and release loop in detail). **When two plans disagree, this file wins.**
+> A box is ticked only with evidence in `docs/CLAIMS.md` or `docs/BUILD_LOG.md`. Status words: PLANNED, IMPLEMENTED, TESTED, VM-VERIFIED,
+> HARDWARE-VERIFIED, EXPERIMENTAL, BLOCKED, UNVERIFIED (a research claim not yet checked against a primary source). Never upgrade without evidence.
+> The 30-minute loop ping points here by path: keep the path.
 
-**Goal.** A v2.0.0 ISO that is VM-verified end to end (live, install, LUKS2 install, update), hardened against the documented threat
-model with measured evidence, trilingual (EN/DE/FR), reproducibly documented, attested, and published with an honest limitations list.
-If a gate needs something only the owner can supply (physical hardware, trademark review, native-speaker review, production
-deployment consent), v2.0.0 states exactly that gap instead of claiming it.
+**Goal.** A v2.0.0 ISO that is VM-verified end to end (live, install, LUKS2 install, update), hardened against the documented threat model
+with measured evidence, trilingual (EN/DE/FR), reproducibly documented, attested, and published with an honest limitations list - reached by a
+development rhythm that is an order of magnitude faster than today without giving up a single gate. Where a gate needs the owner (physical
+hardware, trademark review, native-speaker review, key policy, production deployment, repository settings), v2.0.0 states exactly that gap.
 
 ---
 
-## 0. Verified baseline (2026-11-06)
+## 0. Where we are right now (2026-11-06, evening)
 
 | Fact | Evidence |
 |---|---|
-| Public repo `timfromhcs/HSCL1`, GPL-3.0-or-later, CI green (rust, python/shell, qml, cargo audit, cargo deny) | GitHub Actions on `main` |
-| Pre-release `v0.1.0-alpha.0` (4 parts of 1.5 GB, SHA256SUMS, manifest) published; the verify workflow joined and hash-checked it | release verify run |
-| That ISO was built from an NTFS checkout: payload files in the image were `rwxrwxrwx` (world-writable) | BUILD_LOG "M1 VM run 2" |
-| Image `cd0bf42e...` (commit 9d1a9ec, clean, WSL-local build): KDE Connect listener gone (VM-VERIFIED), autotune at login matches `graphics detect` (VM-VERIFIED), stale apt lists reported as unknown (VM-VERIFIED), package files not group/world-writable (checked at image build) | `artifacts/e2e-m1c`, `remaster-m1d.log` |
-| Open defect: the Workshop daemon "stops answering" mid-run. **Root cause now identified from research, fix under test** (section 1, R1) | BUILD_LOG, `scripts/workshop/vm.py`, `tests/unit/test_workshop_vm_rpc.py` |
-| Not done: LUKS2, Secure Boot state in the guest, Security Lab, Privacy, AI on a real GPU, website deployment, SBOM wiring, reproducibility, signing/attestation, any physical hardware | CLAIMS.md |
+| Public repo `timfromhcs/HSCL1`, GPL-3.0-or-later, `main` at the merge of PR #20 (version 0.1.2-alpha.0), CI green | `gh run list` |
+| Published prereleases: `v0.1.0-alpha.0` (notes now carry a warning about two security defects), `v0.1.1-alpha.0` (4 parts of 1500 MiB, SHA256SUMS, manifest, SBOM of the Rust CLI); workflow "Verify release assets": split verify and **Bundle one-file ISO** both green | release page, run 42222161027 |
+| Release candidate `0.1.2-alpha.0` (full xz build from clean clone at `d20f557`, sha256 `56e4cafb...9d3d`, 5 026 480 128 B): 3 x 27/27 live checks, fresh LUKS2 install, installed boot to desktop in 188 s, `/` = `0:0 755`, no keyfile, secret scan clean, installer fully HSCL1 | `artifacts/e2e-rel2-run*`, `artifacts/luks-rel2`, `artifacts/luks-boot-rel2` |
+| **That candidate is NOT released.** Content scan found visible upstream leftovers (installer donate link to kubuntu.org, "Kubuntu Website" and "Kubuntu Focus" menu entries, wrong SDDM description, live user/host named `kubuntu`, Plymouth message overlapping the logo). Fixed in commit `e6ee0d4` (+ gates, + tests) | `docs/BUILD_LOG.md` |
+| Dev image `r5` failed to boot ("cow format specified as overlay and no support found"): setting `FLAVOUR` in `/etc/casper.conf` was the cause (same image with the r4 initrd booted in 90 s; initrd trees differ only in `casper.conf`, `os-release`, Plymouth descriptor, font caches). Fixed in `35ba640`: live user/host now come from `/.disk/info` on the medium. Dev image `r6` VM-VERIFIED: desktop after 90 s without a click, 28/28 checks incl. `live_identity` (user and host `hscl1`), `/` `0:0 755` | `artifacts/boot-r5`, `artifacts/boot-r5b`, `artifacts/boot-r6`, `artifacts/e2e-r6` |
+| Rebrand boot tests r1-r4 found and fixed four real defects the gates had not seen (missing initrd `-map`, missing `BOOT=casper`, blocking upstream Try/Install prompt, ShellCheck findings) | BUILD_LOG "Rebrand round" |
+| Live view of VM runs (`watch.py` + Tk viewer) implemented, frames written during real runs; screenshot of the window itself not captured | `artifacts/e2e-r1/vm/*/live.png` |
+| Not done at all: Secure Boot state in the guest, Security Lab runtime, Privacy features, AI on a real GPU, website deployment, SBOM of the ISO package list, reproducibility, attestation, maintainer signature, any physical hardware | CLAIMS.md |
+
+**Next three actions (in this order):** (1) PR the branch (green CI) and merge; (2) full release build of the fixed commit and all
+release gates on that exact artefact; (3) publish 0.1.2-alpha.0 through the draft flow of section 7 and run the cloud merge.
 
 ---
 
-## 1. Research findings that change the plan (each has a source and a consequence)
+## 1. Operating principles (distilled from what went wrong today)
 
-**R1 - virtio-serial hang (explains the Workshop daemon failures).** QEMU issue 4672: a guest write to a virtio-serial port that the
-host chardev cannot take in one call throttles the port; if the host side closes meanwhile, the guest write can hang forever and later
-clients get stuck too. The QEMU guest-agent notes add: data is queued/throttled whether or not a reader is connected, and neither side can
-tell whether the other reconnected. Our harness opened a new TCP connection per call and re-sent the request after every timeout - exactly
-that pattern, which also explains "a different check fails in every run" and why the first, lucky run passed. *Consequence:* persistent
-host connection, request sent once, never closed after the guest has spoken (implemented, tested with a fake guest incl. mutation check);
-guest daemon gets a write watchdog (P0); the systemd sandbox options are NOT the suspect and are restored once the next full VM run passes.
-Sources: <https://gitlab.com/qemu-project/qemu/-/work_items/4672>, <https://wiki.qemu.org/Features/GuestAgent>. A fix patch for QEMU
-(Sept 2026, patchew) exists upstream but is not in the QEMU 11.1 we run, so the workaround stays.
+1. **Prove it from the finished artefact.** A gate that inspects the file we meant to ship is worthless when the shipped file differs (the
+   rebuilt initrd was never mapped into the ISO while every gate was green). Extract from the ISO / installed disk and compare.
+2. **A boot is a gate.** No claim about an image without booting that exact image; boot failures are classified from a serial log, not guessed
+   from a screenshot.
+3. **Look at content, not only paths.** The Kubuntu prompt and the donate link were found by screenshots and config text, not by path scans.
+4. **Run the cheapest discriminating experiment first** (unit test < hot patch in a live VM < layer image < full dev image < release build).
+5. **Never idle during a build.** While WSL builds, research, write docs, tests and plans (host-only work). While a VM runs, do not build.
+   (The user asked for this explicitly: "let the other run in the background".)
+6. **Commit only after an explicit exit-code check.** `pytest | tail` hides failures (a red test was committed once).
+7. **Write files with the file tool or from a script file.** The tool layer re-interprets backslash escapes inside inline code (PNG header, regex, printf); use `chr(92)`, files, or the Write tool.
+8. **One truth per number.** Versions, hashes and sizes are written by scripts into manifests; prose copies them, never the other way round.
+9. **Honest limits are part of the product.** Every release note lists what was not verified.
 
-**R2 - LUKS2 on Kubuntu 26.04 + Calamares.** The signed GRUB EFI binary in Kubuntu 26.04 cannot open LUKS2/Argon2id; an encrypted root
-with encrypted `/boot` drops to the GRUB rescue shell (Ubuntu Discourse "Fixing a broken FDE on (K)ubuntu 26.04"). Calamares also fails at
-the end when there is more than one LUKS volume, e.g. an encrypted swap (Calamares issue 2517). Replacing the signed GRUB with the unsigned
-one defeats Secure Boot. Ubuntu's supported FDE path is the TPM-backed one, still experimental. *Consequence:* our supported layout is
-ESP + **unencrypted `/boot`** (ext4) + **one LUKS2 root** (the initramfs unlocks it, GRUB never opens LUKS), swap only as zram or a swap
-file inside the encrypted root, never a second LUKS volume. Honest limits to publish: `/boot` and the initrd are not secret and not
-integrity-protected by LUKS (the kernel is signed under Secure Boot; the initrd is not). TPM unlock is not offered. Sources:
-<https://discourse.ubuntu.com/t/fixing-a-broken-fde-encrypted-boot-on-k-ubuntu-26-04/82326>,
-<https://codeberg.org/Calamares/calamares/issues/2517>, GRUB manual `cryptomount` (PBKDF2 only for LUKS2 in older GRUB).
-
-**R3 - Reproducible images.** reproducible-builds.org (System images): set `SOURCE_DATE_EPOCH`; pass it to `xorriso --modification-date`;
-`mksquashfs` >= 4.5.1 honours it and clamps timestamps; clamp rootfs mtimes before squashing; initramfs and package-manager caches are the
-usual leaks; filesystems must be created in one go. *Consequence:* build twice, compare at three levels (package list, rootfs file
-list+hashes, ISO hash) and publish exactly what differs; no "reproducible" claim unless the ISO hashes match. Source:
-<https://reproducible-builds.org/docs/system-images/>.
-
-**R4 - Release integrity without a private key.** GitHub artifact attestations (Sigstore, keyless, `actions/attest-build-provenance`,
-verified with `gh attestation verify`, needs gh >= 2.49) give signed provenance from CI without the owner creating a key; SBOMs can be
-attested with `actions/attest-sbom`. A detached GPG/minisign signature stays optional and is an owner decision. *Consequence:* P9 adds an
-attestation job; the notes say "provenance attested by GitHub (keyless)" and still "no maintainer signature" until a key exists. Source:
-<https://www.mankier.com/1/gh-attestation-verify>. (Exact action inputs must be checked against the action's README at implementation time.)
-
-**R5 - Secure Boot state must be cross-checked.** `mokutil --sb-state` alone can mislead (Launchpad bugs 1817950, 1776068). Read three
-sources in the guest: `mokutil --sb-state`, the `SecureBoot-*` EFI variable under `/sys/firmware/efi/efivars`, and the kernel log line.
-Claim only when all agree; also record the firmware (OVMF secboot with Microsoft keys). Source: <https://bugs.launchpad.net/bugs/1817950>.
-
-**R6 - systemd sandboxing.** Use `systemd-analyze security UNIT` as the measurement; harden in phases and test after each phase; do not
-put `ReadWritePaths=/usr` on a unit (it nullifies `ProtectSystem`). The Workshop daemon writes into allow-listed `/usr` paths, so its
-confinement comes from being inert by default, the closed op set, the path allow-list, and an AppArmor profile (R7). Sources:
-<https://www.ctrl.blog/entry/systemd-service-hardening/>, <https://roguesecurity.dev/blog/systemd-hardening>.
-
-**R7 - AppArmor for a Python daemon.** A profile keyed to the script path may never attach because the process is `/usr/bin/python3`;
-use a named profile referenced by `AppArmorProfile=` in the unit and verify attachment with `ps -Z`/`aa-status`; build the profile with
-`aa-genprof` in complain mode, then enforce. Source: <https://lists.launchpad.net/touch-packages/msg37052.html> (discussion), man
-`apparmor.d`. *Consequence:* P3 verifies "confined, not unconfined" in the VM, not just that a profile file exists.
-
-**R8 - Rootless Podman defaults for the Security Lab.** `--cap-drop=ALL`, `--security-opt no-new-privileges`, `--read-only` with tmpfs
-for writable paths, user namespace mapping, no host network, explicit mounts only. Pin the Kali image by the full digest read from
-`podman pull`/`image inspect` at pin time (`kalilinux/kali-rolling` is refreshed weekly; `kali-last-release` follows the last release).
-Sources: <https://www.kali.org/docs/containers/official-kalilinux-docker-images/>, Podman hardening guides. The Kali Podman page itself
-must be read before implementing (not retrieved yet).
-
-**R9 - Tor Browser verification.** Verify the download with the Tor Browser developers' signing key
-(fingerprint `EF6E286DDA85EA2A4BA7DE684E2C6E8793298290` as listed on support.torproject.org; re-check on the official site at
-implementation time) using `gpgv` with a pinned keyring; refuse on any failure. Source: <https://support.torproject.org/tbb>.
-
-**R10 - Website accessibility in CI.** Combine axe-core/pa11y-ci (hard failures per violation, URLs from the sitemap) with Lighthouse CI
-(score budgets); a Lighthouse score alone can hide individual failures. Sources: pa11y-ci and Lighthouse CI READMEs (verify config keys
-at implementation time).
-
-**R11 - Ubuntu 26.04 hardening baseline is not documented authoritatively.** No official sysctl/boot-parameter baseline was found;
-third-party guides disagree. *Consequence:* derive the baseline by measuring the booted image (`sysctl -a`, `aa-status`, `lsmod`,
-listening sockets), keep only settings we can show do something, and cite no one else's claims. AppArmor restricts unprivileged user
-namespaces via `kernel.apparmor_restrict_unprivileged_userns`; rootless Podman needs a profile or a deliberate exception (test in P4).
-
-**R12 - Calamares layout for LUKS2 + unencrypted `/boot` (concrete).** Upstream `partition.conf`: `luksGeneration` defaults to `luks1` because GRUB
-did not support LUKS2+Argon2id; `luks2` is allowed (PBKDF2 works in GRUB). `partitionLayout` entries take `mountPoint`, `size`, `filesystem` and
-`noEncrypt: true`, so `/boot` (ext4, about 1 GiB) can be exempted while `/` is encrypted; the ESP is prepended automatically; `initialPartitioningChoice: none`
-already matches our "nothing preselected" rule; `showNotEncryptedBootMessage` controls the "boot not encrypted" warning (we show our own, localised).
-Calamares' LUKS deployment doc says the keyfile modules and `GRUB_ENABLE_CRYPTODISK` are only needed when `/boot` is encrypted, so with an unencrypted
-`/boot` the initramfs simply asks for the passphrase. Launchpad bug 2064909 (Kubuntu 24.04 failing to decrypt) must be read before P2.1.
-Sources: <https://github.com/calamares/calamares/blob/calamares/src/modules/partition/partition.conf>, <https://calamares.euroquis.nl/docs/deploy-luks>.
-
-**R13 - Official Kali Podman guidance.** The Kali images ship **without** the default metapackage (`apt update && apt install kali-linux-headless` etc.),
-have no systemd, and resolve through the containers shortnames list (`kali-rolling` -> `docker.io/kalilinux/kali-rolling`). *Consequence:* the Security Lab
-has two phases: an **install phase** (network on, only the capabilities apt needs to drop to its `_apt` user, namespaced by the rootless user namespace:
-CHOWN, DAC_OVERRIDE, FOWNER, SETUID, SETGID; a hypothesis to test, alternative `-o APT::Sandbox::User=root`) that produces a local image, and a **run phase**
-with `--cap-drop=ALL`, `no-new-privileges`, read-only root, no network unless chosen. Source: <https://www.kali.org/docs/containers/using-kali-podman-images/>.
-
-**R14 - Attestation action.** `actions/attest-build-provenance` v4 is now only a wrapper around `actions/attest`; new workflows should call `actions/attest`
-directly (pin by SHA, read its README for the subject and SBOM inputs at implementation time). Public repo -> public-good Sigstore; permissions needed:
-`id-token: write`, `attestations: write`. Verify with `gh attestation verify FILE -R timfromhcs/HSCL1`. Sources: <https://github.com/actions/attest-build-provenance>,
-<https://github.com/actions/attest>.
-
-**R15 - llama.cpp Vulkan check.** Prebuilt Windows Vulkan binaries exist in the ggml-org/llama.cpp releases; the real test is `llama-server --list-devices`
-(device names look like `Vulkan0: AMD Radeon Graphics (RADV RENOIR)` on Linux/RADV) plus the backend log line of the selected device; `GGML_VK_VISIBLE_DEVICES`
-selects devices. Integrated GPUs report shared memory as device memory (large totals), which confirms our rule to show dedicated and shared memory separately.
-
-**R16 - QEMU WHPX facts.** `-accel whpx,ssd=off` disables the "separate security domain" (branch-predictor flush on VM entry/exit): a large MMIO speed-up at the
-cost of mitigations. WHPX has no SMM, so Secure Boot firmware tests stay on TCG. Legacy VGA modes are slow under WHPX. Source:
-<https://www.qemu.org/docs/master/system/whpx.html>. *Consequence:* optional benchmark P1.7; adopt `ssd=off` only for our own disposable test VMs and only if it
-is clearly faster; never for anything that runs untrusted code (Security Lab VMs).
-
-**R17 - CI runner mirror stalls.** The Azure Ubuntu mirror intermittently stalls a package download without erroring; `Acquire::Retries` cannot help. Fixed in CI
-with a download-only loop under `timeout` and an offline install (done 2026-11-06).
-
----
-
-## 2. Self-healing loop protocol (applies to every task)
-
+### 1.1 Self-healing loop (unchanged protocol, tightened)
 ```
-OBSERVE   run the gate command; save stdout, exit code, timestamp, artefact paths under artifacts/<task>/
-CLASSIFY  code defect | test defect | harness defect | environment/capacity | upstream bug | flaky | missing feature
-HYPOTHESE state the cause as a falsifiable sentence; list what would disprove it
-EXPERIMENT cheapest discriminating experiment first (host-only unit test < existing image + new harness < rebuild image < new VM install)
-FIX       smallest patch at the root cause; add a test that fails without it (mutation check) 
-VERIFY    targeted test -> subsystem tests -> full suite -> gate on the real artefact (VM) when the claim concerns the image
-RECORD    CLAIMS.md (claim + evidence + status), BUILD_LOG.md (what happened incl. dead ends), commit, push, PR, merge on green CI
+OBSERVE   run the gate; save stdout, exit code, timestamp, artefact paths under artifacts/<task>/
+CLASSIFY  code | test | harness | environment/capacity | upstream | flaky | missing feature | GATE BUG (gate green, reality red)
+HYPOTHESIS falsifiable sentence + what would disprove it
+EXPERIMENT cheapest discriminating experiment (principle 4)
+FIX       smallest patch at the root cause + a test that fails without it (mutation check)
+VERIFY    targeted -> subsystem -> full suite -> the real artefact (VM) when the claim is about the image
+RECORD    CLAIMS.md, BUILD_LOG.md, commit (after exit-code check), push, PR, merge on green CI
 ```
+At most **3 attempts per distinct failure**, then BLOCKED with evidence. Never weaken a test, skip a gate, lower a threshold, disable AppArmor,
+firewall, Secure Boot, encryption or sandboxing for a pass. A flaky result is repeated 3 times before it is called flaky. A GATE BUG is fixed
+before the product bug it hid, and gets a test of its own.
 
-Rules: at most **3 fix attempts per distinct failure**, then mark BLOCKED with evidence and move on. Never weaken a test, skip a gate,
-lower a threshold, or disable AppArmor/firewall/Secure Boot/encryption/sandboxing to get a pass. A flaky result is repeated 3 times
-before it is called flaky and recorded as such. When two hypotheses fit, run the experiment that separates them before building anything.
-A failure found while verifying something else gets its own record and its own test; fix it in the same loop if small, otherwise add it
-to the backlog (section 6).
+### 1.2 Stop-and-ask list (needs the owner, never guess)
+signing-key policy; production deployment of the website; physical-hardware tests; trademark review; native-speaker translation review;
+anything that writes to a physical disk; changing repository visibility **or repository settings (e.g. immutable releases, branch rules)**;
+replacing network defaults of the base system (NTP, mirrors, update checks).
 
-**Stop-and-ask list (needs the owner, do not guess):** signing-key policy; production deployment of the website; physical-hardware
-tests; trademark review; native-speaker translation review; anything that writes to a physical disk; changing repo visibility.
-
-## 3. Resource policy (learned the hard way: the host reaped two builds)
-
-- Host: 19.8 GB RAM, `.wslconfig` memory=8GB swap=8GB processors=6 (backup `~/.wslconfig.bak-20261106`).
-- **Never** run an image build and a VM at the same time. Order: build in WSL -> copy ISO out -> `wsl --shutdown` -> VM test.
-- Build from a **WSL-local clone** (`~/hscl1-src`, `git pull` from `/mnt/e/...`), never from `/mnt/e` (9p overhead, 0777 modes).
-- Before any heavy step: free memory >= 9 GB host-side, no `qemu`/`vmmem` process left over. After: shut WSL down.
-- If the host reaps a job, do not restart blindly: record it, shrink the job (fewer threads, smaller guest) or ask.
-- Each VM test records its image sha256 + commit and writes to `artifacts/<name>/` (not in git). Disposable disks only.
+### 1.3 Resource policy
+- Host: 19.8 GB RAM, Ryzen 7 7735HS (8C/16T), `E:` has been the scarce resource (49-64 GB free at times). `.wslconfig`: memory 6-8 GB cap.
+- **Never** an image build and a VM at the same time. Order: build in WSL -> copy ISO out -> `wsl --shutdown` -> VM tests.
+- Build from the **WSL-local clone** `~/hscl1-src` (ext4 inside the VHDX), never from `/mnt/e` (9p overhead, 0777 modes).
+- Before a heavy step: host free memory >= 9 GB, no `qemu`/`vmmem` left over, disk >= 25 GB free on `E:`. After: `wsl --shutdown`.
+- Delete only my own disposable artefacts (dev ISOs of older runs) when space is short; never user data, never releases.
+- If the host reaps a job, do not restart blindly: record, shrink the job, or ask.
 
 ---
 
-## 4. Phases
+## 2. Research digest (sources; UNVERIFIED marks what must be checked before relying on it)
 
-Each task lists **Gate** (the command or observation that proves it) and **Evidence** (where it is recorded). `[x]` done, `[~]` partial.
+### 2.1 Carried over from revision 2 (still valid; details live in the cited sources)
+R1 virtio-serial hang (QEMU issue 4672, persistent host connection: done) | R2 LUKS2 on Kubuntu 26.04: signed GRUB cannot open LUKS2/Argon2id, so
+unencrypted `/boot` + one LUKS2 root, no encrypted swap volume | R3 reproducible images (SOURCE_DATE_EPOCH, xorriso, squashfs clamp) | R4 keyless
+attestation via `actions/attest` | R5 Secure Boot state must be cross-checked in three places | R6 systemd sandboxing measured with
+`systemd-analyze security` | R7 AppArmor for a Python daemon needs a named profile and an attachment check | R8/R13 rootless Podman defaults and the
+two-phase Kali container | R9 Tor Browser signature check | R10 axe/pa11y + Lighthouse | R11 no authoritative Ubuntu 26.04 hardening baseline: measure
+the booted image | R12 Calamares layout keys (`noEncrypt`, `luksGeneration`) | R14 `actions/attest` inputs | R15 llama.cpp Vulkan device check | R16 WHPX
+`ssd=off` trade-off, no SMM so Secure Boot on TCG | R17 CI mirror stalls (download-only loop, done).
 
-### P0 - Make the test infrastructure trustworthy (blocks everything that needs a VM)
+### 2.2 New in revision 3
+| # | Finding | Source | Consequence |
+|---|---|---|---|
+| R18 | QEMU can boot a kernel directly (`-kernel`, `-initrd`, `-append`, `-nographic` sends the serial console to stdout). Extracting kernel+initrd from the ISO's casper directory and booting with `boot=casper` would skip UEFI+GRUB (about 40-45 s of our ~100 s to desktop). **UNVERIFIED** that casper finds the medium when the ISO is attached as a CD in this mode | QEMU linuxboot docs (https://github.com/qemu/qemu/blob/v8.2.1/docs/system/linuxboot.rst), forum answers | Experiment F2.1: measure; use only as a fast smoke tier, never as the boot gate (GRUB/UEFI path stays gate S1) |
+| R19 | Whether GitHub-hosted `ubuntu-24.04` runners expose `/dev/kvm`: sources disagree (a user issue says yes for 2-vCPU Linux runners; an older article and a maintainer comment say nested virtualization is not supported) | https://github.com/jonaswre/boxlite-quick/issues/4 , https://actuated.com/blog/kvm-in-github-actions | Do not assume. Probe workflow `test -c /dev/kvm; ls -l /dev/kvm` (C5). Cloud boot tests only with measured KVM, otherwise TCG as a slow smoke or not at all |
+| R20 | squashfs-zstd trade-off (2017 benchmark on an Ubuntu desktop tree, 128 KiB blocks, 2 cores): zstd level 1 ratio about 2.7 at about 96 MB/s, level 15 about 3.1 at about 11 MB/s, level 16 with 256 KiB blocks about 3.2 at about 8 MB/s. Flags `-Xcompression-level`, `-b 1M`, `-processors` and tmpfs effects were **not** covered | https://lore.kernel.org/patchwork/patch/819672/ | Dev images: zstd low level (already `zstd-fast`). Release: measure xz vs zstd 15-19 on our tree (size, build time, boot time) before changing; no guess |
+| R21 | WSL `.wslconfig`: `autoMemoryReclaim` (experimental, `gradual`/`drop`, requires cgroups v1 off), `sparseVhd=true` (only new VHDs; existing ones need `Optimize-VHD`), fixed `memory` cap; keep project files on the Linux filesystem. The 9p-vs-ext4 speed numbers were **not** found | Microsoft WSL release notes (via https://www.elevenforum.com/t/windows-subsystem-for-linux-wsl-2-0-0-september-2023-update-released.18072/) | Keep builds on ext4 (already). Measure `drop` reclaim vs our `wsl --shutdown` habit; try sparse VHD for the build distro (owner's disk, low risk, reversible) |
+| R22 | openQA identifies screen states with "needles" (PNG + JSON areas, OCR through Tesseract); an OCR-only needle feature was requested but not available | https://progress.opensuse.org/projects/openqa-improvement/wiki/T03_Remove_the_MD5_approach_and_create_a_new_API_semantic | Add a small OCR gate: Tesseract over our boot/installer/desktop screenshots, fail on banned strings (`Kubuntu`, `Ubuntu` outside an allow-list) - the check that would have found the Try/Install prompt and the donate link in minutes |
+| R23 | GitHub **immutable releases** (GA 2025-10-28): when enabled in repo/org settings, new releases lock assets and protect tags, and an attestation is created automatically; recommended flow = draft, attach all assets, publish; tags of immutable releases cannot be reused even after repo deletion | https://github.blog/changelog/2025-10-28-immutable-releases-are-now-generally-available/ , https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases | Our release flow is already draft-first. Enabling it is an **owner decision** (repo setting); recommend it, because a wrong asset would otherwise be fixable only by a new tag |
+| R24 | Ubuntu 26.04: `sudo-rs` is the default sudo (GNU sudo remains as fallback), `uutils` Rust coreutils replace GNU coreutils by default (GNU remains available), GNOME 50 is Wayland-only; Kubuntu ships Plasma 6.6 with a Wayland session by default, X11 session package unmaintained by the Kubuntu team (sources differ on KDE X11 status) | https://debugpoint.com/ubuntu-26-04-lts , https://linuxconfig.org/ubuntu-26-04-release-date-and-new-features-in-resolute-raccoon | Our hooks run bash with coreutils flags: record `coreutils --version` and `sudo --version` in the baseline; run the 27 checks once with GNU coreutils selected to catch flag drift; document sudo-rs in the threat model |
+| R25 | Reproducible ISOs: xorriso honours SOURCE_DATE_EPOCH for metadata (`--modification-date`, `--set_all_file_dates` default); payload timestamps must be normalised first; Tails patched mksquashfs for the same purpose. `mksquashfs -mkfs-time/-all-time` behaviour **UNVERIFIED** | https://reproducible-builds.org/docs/system-images/ , https://lists.reproducible-builds.org/pipermail/rb-general/2017-October/000656.html | P8: read `man mksquashfs` of our version first; compare at three levels; no "reproducible" word without matching ISO hashes |
+| R26 | Compliance/hardening tooling: OpenSCAP + ComplianceAsCode have Ubuntu 24.04 CIS workstation/server profiles, but `ssg-base` on 24.04 does not ship the datastream XML (needs the upstream release zip); `oscap xccdf eval` produces results usable in a gate; **offline rootfs scan UNVERIFIED** (documented path is containers). Lynis audits a live host, reports `hardening_index` in `/var/log/lynis-report.dat`; third-party blogs put a fresh Ubuntu at 50s-60s (anecdotal). kernel-hardening-checker and `systemd-analyze security` were not covered by the search | https://sources.debian.org/src/scap-security-guide/0.1.78-1/docs/workshop/lab2_openscap.adoc , https://richard-sebos.github.io/sebostechnology/posts/OpenSCAP , https://oneuptime.com/blog/post/2026-03-02-verify-security-hardening-lynis-ubuntu/view | Run Lynis and OpenSCAP **inside a booted VM** (live host, no offline tricks), store the index/score as evidence, fail on regression only after a baseline exists; read kernel-hardening-checker's README before use |
+| R27 | SBOM + vulnerabilities: `syft dir:<rootfs>` then `grype sbom:<file>` (or `trivy sbom`) with `--fail-on` severity gating; reading squashfs/ISO directly **UNVERIFIED** | https://github.com/anchore/grype , https://lucaberton.com/blog/trivy-vs-grype-2026/ | Extract the finished squashfs with `unsquashfs`, scan the directory; keep ignore rules in a reviewed file; SBOM of the ISO package list attached to the release (P9.1) |
+| R28 | Secure Boot/TPM test automation: QEMU + OVMF (Secure Boot variants) + swtpm; `aegis-hwsim` is a reference harness (signed Ubuntu chain scenario skipped in its own CI); UEFI menu automation is fragile (LAVA) | https://docs.rs/crate/aegis-hwsim/latest/source/README.md | P2.7 on TCG with the Microsoft-keys OVMF variant; no menu driving, read state in the guest; swtpm only if TPM is ever claimed |
+| R29 | Calamares has no documented unattended/headless mode or module-skip-by-name; `calamares -d` is the debug mode; `prompt-install` is in `settings.conf` | https://sources.debian.org/src/calamares/3.4.2-1/settings.conf | Keep screenshot-driven installer tests, but **do not reinstall for every boot test**: install once per build, then boot qcow2 overlays of the installed disk (F4) |
+| R30 | casper disabled the unattended-upgrades security origin in live sessions (2016 fix) because it can fill the live environment | https://bugs.launchpad.net/bugs/1619188 | Check that our remastered live root still has it disabled; installed systems keep their updates (P2.8) |
+| R31 | QEMU WHPX snapshots: a 2022 patch added savevm/loadvm (XSAVE state saved as-is, migration blockers for some CPU features, multi-vCPU restore caveat); current status **UNVERIFIED**; internal `savevm` needs the disk holding RAM state attached on restore | https://lore.kernel.org/all/002301d8672f$b65a88a0$230f99e0$@sysprogs.com/T/ , https://qemu.googlesource.com/qemu/+/2d22b18f77ab0a488762e9216575b8582f1adb7d%5E%21/savevm.c | Experiment only (F2.4): snapshot a booted live desktop and measure restore time; if it works reliably it replaces the 100 s boot in most tests, otherwise forget it |
+| R32 | Task runners: `just` (recipes, parameters, `--list`), Taskfile (YAML, watch), Make (file dependencies). Command runners are ergonomics, not logic | https://spin.atomicobject.com/just-task-runner/ | Logic stays in `scripts/forge.py` (stdlib); an optional `justfile` only forwards to it |
+| R33 | README terminal demos: charmbracelet VHS (tape files render GIFs, reproducible, needs ttyd+ffmpeg), asciinema + `agg` (GIF under about 5 MB for GitHub) | VHS and asciinema pages (search results) | CLI demos for `hscl`/`forge` as tape files checked into `docs/demos/`; real OS screenshots stay harness-generated |
+| R34 | CI speed: `Swatinem/rust-cache` caches `~/.cargo` and `target`, 10 GB repo cache limit with eviction (from forks' READMEs, upstream wording **UNVERIFIED**); `concurrency: cancel-in-progress` and `pytest-xdist` not covered | https://github.com/Swatinem/rust-cache | Add rust-cache and `concurrency` to CI, `pytest -n auto` locally; verify upstream docs when editing the workflow |
+| R35 | Large release assets: 2 GiB limit per asset (one report of a 500 error at exactly 2 GiB), `--clobber` can delete old assets before a failed upload, per-release asset count limit **UNVERIFIED** (1 000 reported) | https://github.com/orgs/community/discussions/61733 , https://github.com/orgs/community/discussions/165616 | Parts of 1500 MiB (already), draft first, no `--clobber`, download back and compare hashes before publishing |
+| R36 | GHCR (OCI artifact via ORAS) limits for a 5.5 GB blob were **not found** | search result gap | Measure with a real push in a throwaway workflow before documenting it as a mirror |
+| R37 | Serial console capture: `console=ttyS0` plus a file-backed serial device catches early boot output; `panic=-1` ends a panicking VM; kernel-panic grep is general practice, not sourced | https://gitlab.archlinux.org/archlinux/arch-boxes/-/issues/129 | F3: serial log + classifier on dev images |
+| R38 | `kubuntu-installer-prompt` is a small package (rebrand of the Lubuntu prompt): shows Try/Install after boot, launches Calamares or Plasma | https://code.launchpad.net/ubuntu/noble/+package/kubuntu-installer-prompt | Done: replaced by an HSCL1 starter; own prompt with language/network is W23.1 |
 
-- [x] **P0.1 Persistent host RPC** (R1): `vm.py` one connection, send once, never re-send after the guest spoke; `tests/unit/test_workshop_vm_rpc.py`
-  (fake guest, mutation-checked against the old behaviour). **Gate:** `e2e_cli.py` completes all 23 checks on image `cd0bf42e` (the one
-  that wedged). **Evidence:** `artifacts/e2e-m1d/cli-report.json` - 23/23, no errors, first_error none (2026-11-06).
-- [x] **P0.2 Guest write watchdog:** in `hscl_workshopd.py`, replies are written non-blocking with a poll timeout (e.g. 20 s); on timeout
-  close and re-open the port, log to the journal, count restarts in `status`. Test: a unit test with a pipe that never drains. Evidence: `tests/security/test_workshopd_port.py` (Linux: 206 passed, 0 skipped on the whole suite); **not yet in a booted image** (needs the next rebuild, P1.1).
-- [x] **P0.3 Replies bounded (simplified):** replies over 4 MiB are replaced by an error (`MAX_REPLY_BYTES`); streaming was judged unnecessary now that the host drains
-  over one persistent connection and writes have a deadline. Evidence: `test_oversized_reply_is_replaced_by_an_error_not_written`.
-- [x] **P0.4 Determinism:** `e2e_cli.py` runs 3 times in a row on one image with identical pass/fail (flake budget: 0). Record in BUILD_LOG. **Done:** 3 consecutive runs on `cd0bf42e`, 23/23 each, KDE Connect listener 0 each (`artifacts/e2e-m1d`, `-run2`, `-run3`).
-- [x] **P0.5 Restore the sandbox options on the Workshop units** if P0.1 passes with them present in the image (they are in `cd0bf42e`);
-  remove the A/B exemption in `tests/security/test_systemd_hardening.py`. If P0.1 still wedges, return to the hypothesis step (do not guess). **Done:** P0.1 passed with the options present; the A/B commit was reverted (options restored, exemption removed, suite 189 passed). Evidence: `artifacts/e2e-m1d`, git revert of ed84913.
-- [x] **P0.6 Dev loop doc:** one page `docs/DEV_LOOP.md` with the resource policy, commands, and the harness API (what `vm.py` guarantees).
-- [x] **P0.7 Harness typing:** `vm.type()` drops `;` and `|` (seen when typing a command line into the guest terminal); extend the key map; test by typing a line with
-  every printable ASCII character into a guest `cat` and reading it back. **Done (host side):** SHIFTED/QCODES maps + `tests/unit/test_typing.py` (every printable ASCII char maps to a chord); a guest read-back is still to be run once.
-- [ ] **P0.8 Guest-terminal diagnostics:** commit the scratch `diag_term.py` as `scripts/workshop/e2e_term.py` (open the terminal via the dock, type lines, screenshot).
-  It found the missing `__main__` guard while the API was down.
-- [x] **P0.9 Process-level tests:** every shipped daemon/CLI entry point has a test that starts it as a process (found by the p1 image failure). Evidence:
-  `test_script_entry_point_runs_main`.
+---
 
-### P1 - Close M1 on the real image
+## 3. Speed architecture (the core of this revision)
 
-- [x] **P1.1 Rebuild + full in-guest check** with everything from P0 in the image; 23/23 checks, 3 consecutive runs. Evidence: image `HSCL1-dev-p2.iso` (sha256 0eb7acb7...63ff, clean commit 3d89a43): `artifacts/e2e-p2-run1..3` all 23/23, KDE Connect 0 listeners, `status.port` restarts 0 / write_timeouts 0.
-- [x] **P1.2 File modes inside the VM:** `find` over files owned by `hscl-*` packages: none group/world-writable; record the count checked. **Done:** 304 files, 0 bad (`artifacts/probe-baseline2`, image p2).
-- [ ] **P1.3 `systemd-analyze security`** for every HSCL1 unit saved as evidence (feeds P3).
-- [ ] **P1.4 Published image:** inspect `v0.1.0-alpha.0`'s squashfs for world-writable HSCL1 files; if confirmed, publish `v0.1.1-alpha` built
-  from the fixed pipeline and add a **warning to the old release notes** (do not delete the old release without the owner's approval).
-- [ ] **P1.5 Aurora wallpaper redesign** (ribbons) with before/after screenshots and a CPU-cost measurement; otherwise "not measured".
-- [ ] **P1.6 Autotune on a different virtual GPU** (virtio-gpu) to see another fingerprint/profile: `graphics detect` vs state.
-- [ ] **P1.7 Optional WHPX speed-up (R16):** boot-to-desktop time with and without `ssd=off` (3 runs each, same image); adopt for our own test VMs only if clearly
-  faster; record the security trade-off.
+### 3.1 Where the time goes today (measured this session, one machine)
+| Step | Time | Notes |
+|---|---|---|
+| Dev image build (`--fast`, zstd) | about 25-30 min | squashfs of 16 GB rootfs on 3 processors and 512 MB buffers; plus ISO check hash of the 6 GB base |
+| Release image build (xz) | about 45-60 min | measured once (0.1.2-alpha.0) |
+| ISO copy WSL -> E: and hash | 3-6 min | 5.5 GB over 9p |
+| Boot to desktop (UEFI, WHPX) | 100-150 s | GRUB timeout and UEFI included |
+| 27 in-guest checks | about 60 s after desktop | |
+| LUKS2 install | about 16-20 min | the biggest single test |
+| Installed boot to login | about 190 s | |
+| CI | about 3-4 min | 5 jobs |
 
-### P2 - Installer, encryption, Secure Boot (R2, R5)
+### 3.2 Ladders (cheapest first). A change goes only as far up as its risk requires.
+**Build ladder**
+| Tier | What | Target time | Allowed for |
+|---|---|---|---|
+| T0 | unit tests, `bash -n`, ShellCheck, exec-bit, QML syntax | seconds | everything |
+| T1 | `forge check` (pytest -n auto, ShellCheck in WSL, secret scan) | < 1 min | every commit (pre-push) |
+| T2 | hot patch into a running live VM (Workshop put_file/hook/restart_shell, screenshot) | seconds | QML, desktop files, theme, session scripts |
+| T3 | **delta layer image** (`--layer`): squash only `$ovl/up` into an extra `/casper/*.squashfs` stacked by casper (https://manpages.ubuntu.com/manpages/kinetic/man7/casper.7.html) | 2-5 min (to be measured) | branding, configs, packages without boot impact; **dev only** (installer copies one squashfs) |
+| T4 | full dev image (`--fast`) | 25-30 min | anything touching boot, initrd, packages' maintainer scripts, installer, ownership |
+| T5 | release image (xz or measured alternative) from a clean clone of `main` | 45-60 min | releases only |
+Rule: boot/initrd/cmdline/ownership/maintainer-script/installer changes always need T4 before they are called verified; T3 results are never quoted as release evidence.
 
-- [x] **P2.0 Offline facts first:** from the ISO read the Kubuntu Calamares config (`/etc/calamares/modules/partition.conf`, `settings.conf`,
-  `grubcfg.conf`), the GRUB version, and whether the signed `grubx64.efi` contains `luks2`/`cryptodisk` (strings); read Launchpad bug 2064909. Record in `docs/INSTALLER_FACTS.md`. **Done** (read inside a booted VM): the stock Kubuntu `partition.conf` already has LUKS2 + unencrypted 4 GiB `/boot` + swap file; signed GRUB has `luks2`, `cryptodisk`, `pbkdf2`, no `argon`.
-- [~] **P2.1 Calamares config (R12) - no layout change needed, only the notice:** the image's `partition.conf` already matches the target layout (INSTALLER_FACTS). Remaining: our own localised "/boot is not encrypted" notice (`showNotEncryptedBootMessage` is false). Original text: `partition.conf` with `luksGeneration: luks2`, `partitionLayout`: `/boot` ext4 1 GiB `noEncrypt: true`, `/` encrypted, ESP
-  automatic, `initialPartitioningChoice: none`, our own localised not-encrypted-boot notice; no second LUKS volume; zram/swap-file only. Document why (R2).
-  Gate: the P2.4 install boots.
-- [ ] **P2.2 Installer branding EN/DE/FR + slideshow**, no unbound shortcuts; screenshots at 1366x768 and 1920x1080.
-- [ ] **P2.3 Plain install:** disposable 40 GB qcow2, install, reboot, login; run the in-guest check set on the installed system.
-- [x] **P2.4 LUKS2 install (+ keyfile gate) - VM-VERIFIED on image p2 (2026-11-06)**: automated Erase-disk + Encrypt install completed (~16 min, no installer failure) with ESP / unencrypted 4 GiB `/boot` / LUKS2 root; boot asks for the passphrase, a wrong one is rejected and the prompt returns, the correct one boots to the desktop (81 s after unlock); `luksDump`: LUKS 2, aes-xts-plain64 512-bit, argon2id, one keyslot; `crypttab` key field `none`, no `/crypto_keyfile.bin`, no keyfile in the initrd; unique marker passphrase not found in /var/log, /var/lib, /etc, /root, /home, /boot, /tmp or the journal. Evidence: `artifacts/luks-install`, `artifacts/luks-boot`. Limits: leak scan did not cover swap, the raw device or the live session's logs; keyboard layout at the prompt was US only. Original text:  after the install, `lsinitramfs /boot/initrd.img-*` must contain no LUKS keyfile and `/etc/crypttab` must name no key file for the root volume (the `luksbootkeyfile` module is in the stock sequence; with an unencrypted `/boot` a keyfile in the initrd would void the encryption). Then: same, plus reboot, unlock prompt, **wrong passphrase refused**, correct one unlocks; `cryptsetup luksDump` shows
-  LUKS2 and the PBKDF; `grep` of installer logs and journal finds no passphrase or key material (test uses a unique marker passphrase).
-- [ ] **P2.5 Recovery key flow:** `luksAddKey` with a generated key shown once; unlock with it in the VM; never stored in logs.
-- [ ] **P2.6 Fault injection:** kill the installer mid-copy, fill the target disk, no network, power-off at 50%; each leaves the virtual disk
-  in a state the installer reports honestly; the host is untouched.
-- [ ] **P2.7 Secure Boot state (R5):** boot with OVMF Secure Boot (TCG, slow) and read all three sources in the guest; claim only on agreement.
-  Also test: a tampered kernel/shim is refused (negative test) if the harness can do it cheaply, otherwise state "not tested".
-- [ ] **P2.8 Offline install** (no network) and networked install; first-boot update path (`apt update` against the real archive, then
-  `hscl system updates --check` shows fresh lists).
-- [ ] **P2.9 OEM/prebuilt disk path** only if time allows; not a stable gate.
+**Test ladder**
+| Tier | What | Target time |
+|---|---|---|
+| S0 | direct kernel boot with serial log (R18), headless, no UEFI/GRUB | about 40-60 s (to be measured) - smoke only |
+| S1 | UEFI boot to desktop with screenshots, no click | 100-150 s - **the boot gate** |
+| S2 | 27 in-guest checks (`e2e_cli`) | + 60 s |
+| S2b | OCR banned-string scan over S1/S2 screenshots (R22) | seconds |
+| S3 | LUKS2 install once per T4/T5 build, then **boot qcow2 overlays of the installed disk** for every later check (R29) | 20 min once, then about 4 min per boot |
+| S4 | Secure Boot on TCG (slow) | 15+ min, once per release candidate |
+| S5 | snapshot/restore experiment (R31) | experiment |
 
-### P3 - Hardening with measurements (R6, R7, R11)
+### 3.3 This machine
+- Keep every build tree on ext4 in WSL (done). Try `sparseVhd` for the build distro and `autoMemoryReclaim=dropcache`-style reclaim only if measured better than `wsl --shutdown` (R21); both reversible, both after a backup of `.wslconfig` (the existing backup stays).
+- Squash resources: the host reaped builds three times at 6 processors / 1 GB; current defaults 3 processors / 512 MB are safe. Measure 4 processors / 768 MB when no browser is open (F1.3); never change without a record.
+- Disk: keep `E:` above 25 GB free. Dev ISOs of older runs are deleted after the next one passes; the last release candidate and published parts stay until the release is verified online.
+- **Parallel work while a build runs** (principle 5): research, plan edits, docs, host-only tests, offline inspection of the previous ISO with `unsquashfs` (not while a VM runs if memory < 9 GB).
 
-- [ ] **P3.1 Baseline measurement of the booted image:** `sysctl -a`, `aa-status`, `ss -tulnp`, `lsmod`, `systemd-analyze security`, `ufw status verbose`,
-  `nft list ruleset`; stored under `artifacts/baseline-<date>/`; `docs/THREAT_MODEL.md` lists every listening socket with owner and reason.
-- [ ] **P3.2 Listening-socket allow-list test** in the VM: only the documented sockets exist (mDNS, CUPS on loopback, resolver/NTP loopback).
-  Anything new fails the gate. Decide per item: keep, bind to loopback, or disable (CUPS browsing, avahi).
-- [~] **P3.3 Per-unit sandboxing - security-baseline unit done in source (predicted exposure 7.6 -> 2.5, ufw works under it in a VM); in-image first-boot verification pending the next rebuild; Workshop units stay the documented exception (8.6). Original text:** for all HSCL1 units to a target `systemd-analyze security` exposure (<= 5.0 where function allows), measured
-  before/after, applied in phases with a VM test after each phase; the Workshop daemon stays the documented exception.
-- [ ] **P3.4 AppArmor (R7):** named profiles for `hscl_workshopd`, the `hscl mcp` server, and `hscl` helpers; complain-mode run through the
-  full e2e set, then enforce; gate: `ps -Z` shows the profile (not unconfined) and the e2e set still passes enforced.
-- [ ] **P3.5 Kernel/userland knobs** proven by measurement (R11): keep the current sysctl file; add only settings that change an observed value;
-  test that unprivileged userns behaviour matches the documented choice and that Podman still works (P4).
-- [ ] **P3.6 Firewall tests:** inbound denied by default (probe from the host through the QEMU user-net forward), outbound allowed; profile switch tests.
-- [ ] **P3.7 Privileged helper / Polkit:** if any Polkit action or helper exists, audit its rules; if none, state so (no hidden root path from the UI).
-- [ ] **P3.8 Fuzz depth:** property/fuzz tests for the Rust CLI parsers that read untrusted input (model catalog, JSON from the backend,
-  theme files); `cargo test` with seeded generators; no new dependencies unless audited by `cargo deny`.
-- [ ] **P3.9 CI security gates stay on:** cargo audit, cargo deny, secret scan on every push, ShellCheck, pinned action SHAs (Dependabot PRs
-  are reviewed, never auto-merged without green CI).
-- [ ] **P3.10 Dependabot PRs open now:** triage each (checkout 7.x, upload-artifact 7.x, thiserror 2.x, sha2 0.11): merge only with green CI and a
-  look at the changelog; record the decision.
+### 3.4 Cloud (GitHub Actions)
+| Job | Status | Notes |
+|---|---|---|
+| `ci` (rust, python/shell, qml, cargo audit, cargo deny) | exists, green | add `concurrency` cancel-in-progress and rust-cache (R34) |
+| `verify` split ISO | exists, proven | |
+| `bundle` one-file ISO (online merger) | exists, proven (artifact 90 days) | |
+| `attest` (provenance of parts + merged ISO via `actions/attest`; optional keyless cosign of SHA256SUMS) | PLANNED | failure must fail the workflow loudly |
+| `kvm-probe` (`test -c /dev/kvm`) | PLANNED, tiny | decides whether any cloud boot test is realistic (R19) |
+| `smoke` boot of the merged ISO | PLANNED, depends on kvm-probe | else not done and said so |
+| `mirror` of the merged ISO to GHCR/ORAS | PLANNED, **measure first** (R36) | only after a real 5.5 GB push works |
+| Full ISO build in Actions | NOT planned | runner disk about 14 GB in community reports (not confirmed against current docs); revisit with a larger runner |
 
-### P4 - Security Lab MVP (R8)
+### 3.5 Control: `scripts/forge.py` (one command; spec in `2026-11-06-forge-loop.md`)
+`forge check | build [--full|--layer] [--serial] | boot ISO | test ISO | install ISO [--luks] | diff A B | cycle | release TAG`. Each prints what it will do,
+stops on the first failure, writes `artifacts/forge/<run>/summary.json`, never runs build and VM together, supports `--dry-run` and `--no-watch`.
 
-- [ ] **P4.0 Podman in the image:** `podman` is NOT in the live image (measured). Add podman and its runtime dependencies (crun, netavark/pasta or slirp4netns, uidmap, fuse-overlayfs, containers-common) through the same signed-archive mechanism used for earlyoom/zram, verify offline installability, record the size increase; `verify-image.sh` checks they are present and that no daemon is enabled.
-- [~] **P4.1 Read the Kali Podman page - read (R13); digest recorded in `containers/kali/image.pin` from the Docker Hub API (not yet pull-verified).** Original: **Read the Kali Podman page** and record the exact supported flags; pin the digest read from `podman pull` (full `sha256:`).
-- [x] **P4.2 Container spec generator (two phases, R13) - IMPLEMENTED + unit-tested (`cli/hscl/src/lab.rs`, `hscl lab`, docs/SECURITY_LAB.md); not run in a VM, execution not wired (P4.3).** in Rust (`hscl lab ...`): typed options only; defaults = rootless, `--cap-drop=ALL`, `no-new-privileges`,
-  `--read-only`+tmpfs, no host network/PID, no privileged, no socket mounts, no host home, explicit lab folder mount only, memory/CPU/PID limits.
-  Unit tests assert the generated argv for the safe default and reject every unsafe override (privileged, `--net=host`, `/`, `/etc`, `/run`,
-  `$SSH_AUTH_SOCK`, gpg-agent, browser profile paths, `~`).
-- [ ] **P4.3 VM run:** rootless podman in the live/installed VM pulls the pinned image (needs guest network), runs `nmap --version`, and the
-  inspect output matches the spec; `podman ps` after `lab destroy` is empty; user-selected evidence folder survives destroy.
-- [ ] **P4.4 Authorization reminder** shown before enabling attack tooling (EN/DE/FR); stored locally, no telemetry.
-- [ ] **P4.5 Toolset install/remove** for the basic group only (nmap, tcpdump, tshark, whois, dnsutils) inside the container; others PLANNED.
-- [ ] **P4.6 Host APT sources contain no Kali repo** (existing test) and the image check stays.
+---
 
-### P5 - Privacy workflows (R9)
+## 4. Phases (IDs kept for traceability with BUILD_LOG/CLAIMS; status as of today)
 
-- [ ] **P5.1 Tor Browser launcher:** download from the official URL, verify with `gpgv` + pinned keyring (fingerprint checked against the
-  official page at implementation time), fail closed on any mismatch (unit tests with tampered files), never run unverified.
-- [ ] **P5.2 `hscl privacy tor status`** from the real daemon/control port; clear message when Tor is unavailable, no direct fallback in the launcher.
-- [ ] **P5.3 Tails ISO verify/launch:** `hscl privacy tails verify IMAGE SIG` against the official key; launch in QEMU only after success.
-- [ ] **P5.4 Decide the ephemeral Privacy session** against AGENTS.md 6.5 tests (swap off, no internal disk automount, journal volatile, DNS
-  leak capture, IPv6 handling, fail closed). If not all pass: label **Experimental**; the stable release makes no anonymity claim either way.
-- [ ] **P5.5 Docs** `docs/PRIVACY_MODE.md` with exact behaviour and gaps; website privacy page (EN/DE/FR).
+### P0 - Trustworthy test infrastructure
+- [x] P0.1 persistent host RPC (R1) | [x] P0.2 guest write watchdog | [x] P0.3 bounded replies | [x] P0.4 determinism (3 identical runs, repeated on 0.1.1 and 0.1.2 images) | [x] P0.5 sandbox options restored | [x] P0.6 `docs/DEV_LOOP.md` | [x] P0.7 harness typing | [x] P0.9 process-level tests
+- [ ] P0.8 guest-terminal diagnostics script (`e2e_term.py`)
+- [x] P0.10 live view of VM runs (IMPLEMENTED; window itself not yet captured)
+- [x] P0.11 LUKS harness robustness (retype when the unlock field is still visible, short hook names, stdlib PNG reader)
 
-### P6 - Local AI, coding and media tooling (verify before listing as working)
+### P1 - Close M1 on the real image / first releases
+- [x] P1.1 full in-guest check on the rebuilt image (now 27 checks) | [x] P1.2 file modes inside the VM | [ ] P1.3 `systemd-analyze security` for every HSCL1 unit as evidence
+- [x] P1.8 release `v0.1.1-alpha.0` published and cloud-verified (supersedes P1.4); warning added to `v0.1.0-alpha.0` notes
+- [ ] P1.5 Aurora wallpaper ribbons | [ ] P1.6 autotune on virtio-gpu | [ ] P1.7 WHPX `ssd=off` benchmark (R16)
 
-- [ ] **P6.1 CPU path** re-verified on the current image with the pinned llama.cpp and the 2B model (already VM-adjacent on the builder); record tokens/s as one measured sample, not a benchmark.
-- [ ] **P6.2 Vulkan on real hardware (R15):** the owner's machine has a Radeon 680M. A Windows-host llama.cpp Vulkan smoke test is possible without
-  rebooting (backend log shows the device); the Linux claim needs a physical boot -> owner task, otherwise "not verified on Linux".
-- [ ] **P6.3 MTP / TurboQuant:** enable only if the pinned backend's `--help` advertises it; measure before/after on the same model.
-- [ ] **P6.4 HCS Coder:** run the generated OpenCode config against the real tool; licence gate stays.
-- [ ] **P6.5 Media AI catalogue and RSI loop:** only entries with licence + sha256 + one real run; everything else stays PLANNED (do not
-  start before P1-P5 are done).
+### P2 - Installer, encryption, Secure Boot
+- [x] P2.0 offline facts | [~] P2.1 Calamares layout (no change needed, notice only)
+- [~] P2.2 installer branding: HSCL1 logo/text in English verified; DE/FR and 1366x768 views open; donate link removed in `e6ee0d4` (to verify in r5)
+- [ ] P2.3 plain (unencrypted) install | [x] P2.4 LUKS2 install + unlock + wrong passphrase + no keyfile (three times: p2, 0.1.1, 0.1.2 candidate)
+- [ ] P2.5 recovery key flow | [ ] P2.6 fault injection | [ ] P2.7 Secure Boot state on TCG (R5, R28) | [ ] P2.8 offline + networked install, first-boot update path | [ ] P2.9 OEM path (optional)
+- [ ] P2.10 installed system branding: boot menu entries (`GRUB_DISTRIBUTOR=HSCL1` set), EFI directory name (still upstream; change only after a Secure Boot check), SDDM and Plymouth on the installed system (unlock prompt and logo verified on the candidate)
+
+### P3 - Hardening with measurements (R6, R7, R11, R24, R26)
+- [ ] P3.1 baseline of the booted image (`sysctl -a`, `aa-status`, `ss -tulnp`, `lsmod`, `systemd-analyze security`, `ufw status`, **plus** `coreutils --version`, `sudo --version`) | [ ] P3.2 listening-socket allow-list test | [~] P3.3 per-unit sandboxing (baseline unit done, 7.6 -> 2.5) | [ ] P3.4 AppArmor named profiles + attachment check | [ ] P3.5 kernel/userland knobs only when measured | [ ] P3.6 firewall tests from the host through QEMU user-net | [ ] P3.7 polkit/helper audit | [ ] P3.8 fuzz depth for Rust parsers | [ ] P3.9 CI security gates stay on | [ ] P3.10 Dependabot PRs triage (owner-visible)
+- [ ] P3.11 **measured hardening report**: Lynis `hardening_index` (booted VM), OpenSCAP CIS workstation profile result (datastream from the upstream release zip), `systemd-analyze security` table, kernel-hardening-checker run (after reading its README), each stored as evidence with the image hash; a score is a baseline for regression, never a marketing number
+- [ ] P3.12 casper unattended-upgrades check in the live root (R30)
+
+### P4 - Security Lab MVP (R8, R13)
+- [ ] P4.0 podman in the image | [~] P4.1 Kali Podman page read, digest pinned from the API (not pull-verified) | [x] P4.2 container spec generator (`hscl lab`, unit-tested) | [ ] P4.3 VM run of the pinned image | [ ] P4.4 authorization reminder EN/DE/FR | [ ] P4.5 toolset install/remove (basic group) | [ ] P4.6 no Kali repo on the host (test + image check stay)
+
+### P5 - Privacy workflows
+- [ ] P5.1 Tor Browser launcher with signature check (R9) | [ ] P5.2 `hscl privacy tor status` | [ ] P5.3 Tails ISO verify/launch | [ ] P5.4 decide the ephemeral Privacy session against AGENTS.md 6.5 | [ ] P5.5 docs
+
+### P6 - Local AI, coding and media tooling
+- [ ] P6.1 CPU path on the current image | [ ] P6.2 Vulkan on the owner's Radeon 680M (Windows-host smoke test first) | [ ] P6.3 MTP/TurboQuant only if advertised | [ ] P6.4 HCS Coder against the real tool | [ ] P6.5 media catalogue entries only with licence + sha256 + one real run
+- [ ] P6.6 hybrid-model (`qwen35`) KV/recurrent-state support in `hscl ai fit` from measured llama.cpp buffer logs (the first probe produced no output: rerun when no VM/build runs)
 
 ### P7 - UI/UX, accessibility, localisation, visual QA
+- [ ] P7.1 Control Center pages from `hscl ... --json` | [ ] P7.2 first-run | [ ] P7.3 launcher keyboard test | [ ] P7.4 accessibility | [ ] P7.5 visual QA matrix | [ ] P7.6 translation gate | [ ] P7.7 website (axe/pa11y + Lighthouse, R10)
+- [ ] P7.8 OCR banned-string gate over screenshots (R22): Tesseract in WSL, allow-list file reviewed by the owner
 
-- [ ] **P7.1 Control Center pages** for Graphics, Memory, Wallpaper Studio, AI/Models, Security, Updates: every value from `hscl ... --json`.
-- [ ] **P7.2 First-run:** short, skippable, contextual hints; restartable from Help.
-- [ ] **P7.3 Launcher:** `Meta+Space` focus, `Esc` closes and restores focus, tested by key injection.
-- [ ] **P7.4 Accessibility:** keyboard-only path through installer + Control Center; accessible names; QML colours checked against tokens;
-  targets >= 24 px; reduced-motion switch stops all animation.
-- [ ] **P7.5 Visual QA matrix** {1366x768, 1920x1080} x {Midnight, Light} x {EN, DE, FR} x {Control Center, launcher, installer, lock screen};
-  fix at the token/component, recapture; curated screenshots into `docs/img`.
-- [ ] **P7.6 Translation completeness gate** for critical strings (installer, security, privacy, recovery) in CI; **native-speaker review is an
-  owner task** - until then DE/FR are labelled "machine-assisted, not reviewed" on the website and in the handbook.
-- [ ] **P7.7 Website:** remaining pages (install/USB only after a physical test - until then none, privacy, changelog), axe/pa11y-ci + Lighthouse CI
-  with budgets (R10), link check, hreflang/canonical with the real `SITE_URL`, Vercel **preview** deployment; **production only with the owner's go**.
+### P8 - Reproducibility (R3, R25)
+- [ ] P8.1 build twice with `SOURCE_DATE_EPOCH` and compare at three levels | [ ] P8.2 publish the diff verbatim | [ ] P8.3 fix the largest sources (initramfs, caches); the word "reproducible" only with matching ISO hashes; read `man mksquashfs` for time-clamp flags first
 
-- [~] **P7.x Live-Ansicht bei VM-Laeufen (Owner-Wunsch 2026-11-06, gilt ab dem NAECHSTEN Lauf; laufende Laeufe nicht aendern).**
-  Jeder visuelle/automatische VM-QA-Lauf (`qemu_boot_test.py`, `workshop/e2e_*.py`, `vm.py`) oeffnet waehrend des Laufs ein Popup-Fenster mit dem Gastbildschirm,
-  damit der Owner zuschauen kann. Umsetzung: Flag `--watch` (Standard an bei interaktiver Sitzung, `--no-watch` fuer CI/headless). Option A: QEMU `-display gtk`
-  bzw. `sdl` zusaetzlich zu QMP (Screenshots/Eingabe laufen unveraendert ueber QMP). Option B (falls GUI-Display die WHPX/OVMF-Laeufe stoert):
-  `-display none` beibehalten und ein kleines Viewer-Fenster (Python/Tk oder `ffplay`), das periodisch QMP `screendump` zeigt (~2 fps), mit Statuszeile
-  (Szenario, Schritt, verstrichene Zeit). Anforderungen: Fenster stoert keine Tastatur-/Maus-Injektion, schliesst sich am Ende selbst, Absturz des Viewers
-  bricht den Test nicht ab, CI nutzt immer `--no-watch`. Test: Unit-Test fuer Argument-/QEMU-Kommandozeilenbau (watch an/aus) + ein manueller Lauf mit Beleg.
-  **Stand 2026-11-06: IMPLEMENTED (Option B), nicht VM-verifiziert.** `scripts/workshop/watch.py` (Frame-Thread, `HSCL_WATCH`, CI aus) + `viewer.py` (Tk), in `vm.py` eingehaengt (QMP-Lock, `--no-watch`), alle `e2e_*`-Skripte ueber `VmManager`; Unit-Tests `tests/unit/test_watch.py`; Viewer-Smoke-Test ok (Fenster startet). Offen: erster echter VM-Lauf mit sichtbarem Fenster (Beleg), `qemu_boot_test.py` (eigene QMP-Verbindung, Installer-Szenarien) hat noch keine Live-Ansicht.
+### P9 - Release engineering (R4, R14, R23, R35)
+- [ ] P9.1 SBOM of the final rootfs (`var/lib/dpkg/status`) + `Cargo.lock` + vulnerability scan (syft/grype, R27) | [ ] P9.2 attestation job (`actions/attest`) + documented `gh attestation verify` | [ ] P9.3 optional maintainer signature (owner key policy) | [~] P9.4 release workflow dry run (verify + merge proven on a real prerelease; attestation not yet) | [ ] P9.5 RC process: freeze, clean-clone build, full VM matrix on the exact artefact | [ ] P9.6 docs match the artefact (every command executed once)
+- [ ] P9.7 **owner decision: enable immutable releases** (R23) | [ ] P9.8 draft-first release flow scripted in `forge release` with download-back hash comparison
 
-### P8 - Reproducibility (R3)
+### P10 - Stable gates (all ticked with evidence, or the gap is written in the release notes)
+Unchanged in meaning from AGENTS.md section 20: boots in UEFI and BIOS, Secure Boot state documented, installer works, LUKS2 works, desktop usable,
+EN/DE/FR critical strings complete, `hscl doctor` truthful, no Kali repo on the host, lab defaults safe, privacy claims match tests, SBOM +
+checksums + signatures or limitations, README/docs match, website built, release assets verified, limitations published. **Not claimed until
+done:** physical hardware, trademark review, native-speaker review, maintainer signature.
 
-- [ ] **P8.1 Build twice** from the same commit in the same builder with `SOURCE_DATE_EPOCH` set to the commit time; `xorriso --modification-date`;
-  `mksquashfs -all-time/-mkfs-time` per the installed squashfs-tools version (check `--help`); clamp rootfs mtimes.
-- [ ] **P8.2 Compare** package manifest, rootfs file list + sha256, squashfs hash, ISO hash; publish the diff verbatim in
-  `docs/REPRODUCIBILITY.md` (what matches, what differs and why: initramfs, caches, dpkg databases).
-- [ ] **P8.3 Fix the largest sources of difference** found (initramfs, mime/font caches) with the smallest patches; re-compare. The word
-  "reproducible" appears only if the ISO hashes are equal across two clean builds.
+### P11 - Fast loop (new; details in `2026-11-06-forge-loop.md` and W24)
+- [ ] F1 `scripts/forge.py` with `check`, `build`, `boot` (+ unit tests) | [ ] F1.3 squash resource measurement (4 procs / 768 MB when idle) | [ ] F1.4 `.wslconfig`/sparse-VHD experiment with backup
+- [ ] F2.1 direct kernel boot smoke (S0, R18) | [ ] F2.2 serial log + failure classifier `scripts/boot_classify.py` (tested on r2's initramfs-shell case and a synthetic panic) | [ ] F2.3 `forge diff A B` (initrd/squashfs/package lists) | [ ] F2.4 snapshot experiment (R31)
+- [ ] F3 delta layer image `--layer` (T3) with VM test of layer order and whiteouts | [ ] F4 installed-disk overlays for S3 | [ ] F5 offline inspection `scripts/inspect_iso.py` (extract from the finished ISO; used by gates) | [ ] F6 content scanner `docs/BRAND_INVENTORY.md` (replaces the path-only inventory)
+- [ ] F7 pre-push script (`pytest -n auto`, ShellCheck in WSL, bash -n, exec bits) | [ ] F8 CI: concurrency + rust-cache (R34)
+- [ ] F9 MCP audit of `scripts/workshop/mcp_server.py` (explicit annotations, `structuredContent`, scope enforced in our layer, no dangerous tool combination)
 
-### P9 - Release engineering (R4)
+### P12 - Branding completion (W21, owner request "remove all Kubuntu logos")
+- [x] B1 boot splash (HSCL1 theme in live and installed boot) | [x] B2 live session starts Plasma directly (Try/Install prompt replaced) | [x] B3 GRUB menu entries (live) | [x] B4 installer branding, slideshow of the old branding directory removed
+- [x] B5 content-scan fixes in `e6ee0d4`: installer donate link, website launchers, SDDM metadata, live user/host `hscl1`, Plymouth overlap (verify in r5: VM) 
+- [ ] B6 remaining visible names: Konsole profile names, `kubuntu-manage-software`/driver-manager display names, Plasma look-and-feel entries' preview images, package-owned strings in binaries (OCR/screenshot-driven)
+- [ ] B7 own welcome app (language, network, Try/Install, no cloud account) - W23.1 | [ ] B8 base statement in text everywhere (README, About, website): built on Ubuntu 26.04 LTS packages with KDE Plasma, not an official Canonical/Kubuntu product
+- [ ] B9 decide the network defaults inherited from the base (NTP `ntp.ubuntu.com`, `geoip.ubuntu.com` mirror lookup, `changelogs.ubuntu.com` release check, kde.org connectivity check): **owner decision**; until then they are disclosed in KNOWN_LIMITATIONS
 
-- [ ] **P9.1 SBOM wired in:** `gen_sbom.py` run on the final rootfs (`var/lib/dpkg/status`) and `Cargo.lock`; attached to the release.
-- [ ] **P9.2 Attestations (R14, `actions/attest`):** CI job attests the release files (provenance) and the SBOM; `gh attestation verify` documented on the download page.
-- [ ] **P9.3 Optional maintainer signature:** only after the owner decides the key policy; until then "unsigned by a maintainer" stays in the notes.
-- [ ] **P9.4 Release workflow dry run** on a prerelease tag; the verify workflow downloads, joins, hashes, checks attestations.
-- [ ] **P9.5 RC process:** feature freeze, RC image built from a clean clone, full VM matrix on the exact artefact, hashes in BUILD_LOG.
-- [ ] **P9.6 Docs match the artefact:** README, docs/*, website, handbook; every command in the docs executed as written once in a VM.
+### P13 - README and command simplification (new)
+- [ ] D1 README restructure: 3-command quick start per audience (user: download, verify, boot a VM; developer: `python scripts/forge.py cycle`; reviewer: `forge check`), status table with honest columns (VM-VERIFIED / not verified), screenshots only from harness runs, link map to docs
+- [ ] D2 `docs/CLI.md` and `docs/DEV_LOOP.md` regenerated from `--help` output so they cannot drift; a test compares them
+- [ ] D3 CLI demos as VHS tape files (`docs/demos/*.tape`), GIFs under about 5 MB (R33), regenerated by one command
+- [ ] D4 `docs/RELEASING.md`: the draft -> verify -> publish -> cloud merge flow in one page with the exact commands
+- [ ] D5 every documented command executed once as written (P9.6); stale statements removed
 
-### P10 - Stable gates (all must be ticked with evidence, or the gap is stated in the release notes)
+### P14 - Later product work (pointers; see the expansion plan)
+W1 hardware detect + drivers | W2 AI fit/estimate | W3 GPU/RAM bridges (experimental) | W4 GEMM simulator | W5 shortcuts/KRunner | W6 wallpaper maker | W8 coding tools | W15-W19 HCS shell, image/video viewers, office, pentest API/MCP, desktop MCP | W20 hardening reports. Each gets an entry here only when it is scheduled, with its own gate.
 
-1. ISO built from repository scripts; hash, manifest, SBOM, attestation published; verify workflow green.
-2. Boots in QEMU UEFI and BIOS; Secure Boot state read and cross-checked; **a physical boot report exists** or the stable claim is restricted to "VM-verified".
-3. Plain and LUKS2 install + boot + unlock repeated on the release artefact; fault-injection cases pass.
-4. In-guest check set passes 3 times in a row; `systemd-analyze security`, AppArmor attachment, listening-socket allow-list recorded.
-5. Security Lab runs one real pinned container with the safe defaults; Privacy features limited to what the tests show.
-6. Visual QA matrix and keyboard-only path done; EN/DE/FR critical strings complete; DE/FR review status stated honestly.
-7. Reproducibility result published exactly as measured.
-8. No unresolved critical/high finding in HSCL1-owned code; dependency audit green; every accepted residual risk written down.
-9. Known limitations and trademark-review status published; maintainer signature present or absent as stated.
+### P15 - Freeze, dev mode, bake (detail: `2026-11-06-freeze-devmode-memory-tiering.md`)
+- [ ] E1 `systemd-sysext` on our image (merge/unmerge, `extension-release` match, effect on dpkg) | [ ] E2 live upperdir anatomy after a normal session | [ ] E3 freeze-plan prototype with exclusion mutation test (planted fake secret must make the export refuse)
+- [ ] D1 `hscl dev` status + `freeze plan` (read-only) | [ ] D2 freeze export as a reviewable repository patch (allow-list, hard exclusions, root:root, manifest) | [ ] D3 `qa_image`-only private image path stays out of releases
+
+### P16 - Memory tiering, speed test, KV cache (detail: same file, section 3)
+- [ ] T-core pure functions in Rust (roofline ceiling, fit cross-check, KV type choice) with synthetic-hardware tests | [ ] T-bench bounded RAM and SSD speed tests, labelled when the page cache affects them | [ ] T-flags only flags the pinned llama.cpp lists in `--help`
+- [ ] T-kv quality gate (perplexity/KLD f16 vs candidate) before any compressed KV type is recommended; default f16, q8_0 only when the context would not fit, q4_x opt-in | [ ] T-ttm advise-only TTM/GTT snippet, applied only through the narrow helper after confirmation, with cap and revert
+- [ ] T-owner Windows-host Vulkan smoke test on the Radeon 680M; Linux-on-metal GTT test (owner boots the image) - **no claim before these**
+
+### P17 - Safe RSI guard (detail: same file, section 4)
+- [x] S-protected `scripts/protected_paths.json` + `scripts/protected_paths.py` + CI step: IMPLEMENTED and TESTED in `e073724` (9 unit tests incl. a real git round trip where an `rsi/` branch weakening a test fails, human override via `HSCL_PROTECTED_OK=1`, CI wiring without script injection). **Not yet exercised on a real `rsi/` pull request; the protected list awaits the owner's review (Q22)** | [ ] S-archive variant archive file (branch, parent, results) | [ ] S-sandbox candidates run in disposable VMs without secrets
+
+### P18 - Telemetry and egress audit (AGENTS.md rule 9: "no silent telemetry"; found missing from the plan)
+Research: whoopsie (crash reports to Ubuntu's Error Tracker), apport, ubuntu-report, popularity-contest, snapd store traffic, motd-news and Ubuntu Pro nags are the usual Ubuntu-side contacts. Sources disagree on opt-in vs opt-out and on flavour defaults ("the *buntu flavours are opt-in" is a single user's claim, **UNVERIFIED**), and cover releases up to 18.04 (https://ostechnix.com/ubuntu-telemetry/ , https://www.howtogeek.com/349844/how-to-stop-ubuntu-from-collecting-data-about-your-pc/). No source covers snapd, motd-news or the 26.04 defaults. **So we measure, we do not trust blogs.**
+- [ ] N1 inventory from the image: which of `whoopsie`, `apport`, `ubuntu-report`, `popularity-contest`, `snapd`, `ubuntu-advantage-tools`/`ubuntu-pro-client`, `update-notifier`, `update-manager-core`, `motd-news` are installed, enabled, timers active (`dpkg -l`, `systemctl list-unit-files`, `list-timers`); the Firefox **snap** and `snapd` refresh behaviour
+- [ ] N2 **idle egress capture**: QEMU user-net with `-object filter-dump` (pcap), live session idle 15 min and installed system idle 15 min, then first-boot with network; list DNS names, hosts and bytes; compare against a reviewed allow-list; unknown hosts fail the gate
+- [ ] N3 decide per component (purge / disable upload / keep and disclose) and write it into KNOWN_LIMITATIONS and the privacy docs; changing inherited network defaults stays an **owner decision** (stop-and-ask)
+- [ ] N4 gate in `verify-image.sh` for the decided state (packages absent, units masked, config files) + the capture as evidence for the release notes
+
+### P19 - Customisations must survive package upgrades (found missing)
+Problem: our build hook edits files owned by other packages (`/etc/calamares/modules/welcome.conf`, `/etc/default/grub`, `.desktop` files, theme metadata). Package upgrades can overwrite non-conffiles silently (branding comes back), and a **modified conffile can make unattended-upgrades fail for that package** because of the conffile prompt (Launchpad bug 2063268, https://bugs.launchpad.net/bugs/2063268). `--force-confold` alone leaves even unmodified files untouched; it is normally paired with `--force-confdef` (https://raphaelhertzog.com/2010/09/21/debian-conffile-configuration-file-manag). Whether an apt post-invoke hook or `dpkg-divert`/`dpkg-statoverride` is the better tool was **not** covered by the search.
+- [ ] U1 inventory: every file our hook modifies or deletes, classified: conffile of which package / plain file of which package / our own (`dpkg-query -S`, `${Conffiles}`, `dpkg -V` baseline) - this list is also the **documented deviation list** of HSCL1 from its base
+- [ ] U2 move edits out of foreign conffiles where possible (drop-ins in `/etc/*.d/`, package-owned replacement via `dpkg-divert`, `Dpkg::Options` set deliberately: `--force-confdef` + `--force-confold`) and say which ones remain
+- [ ] U3 an idempotent **re-apply** step (apt post-invoke) for branding that cannot be diverted, with its own test
+- [ ] U4 VM test: `apt-get install --reinstall` of the packages that own our edited files (plasma-welcome, calamares-settings-kubuntu, kubuntu-settings-desktop, grub-common, sddm themes) and an unattended-upgrade dry run; the image gates must still pass afterwards
+
+### P20 - Keyboard layout and language correctness (found missing)
+- LUKS prompt keymap is baked into the initramfs from `/etc/default/keyboard` and the console-setup cache at **initramfs build time**; Ubuntu's own installer once generated the initramfs before the chosen layout was applied (https://github.com/canonical/subiquity/pull/1411); fix pattern = update the keyboard files, then `update-initramfs -u -k all` (single-person notes, **UNVERIFIED** for 26.04). Our Calamares path is untested with a non-US layout; a wrong keymap means a user who cannot type their own passphrase.
+- [ ] K1 install with the German layout and a passphrase containing `y`, `z`, `-`, `ß`-free symbols that differ between US and DE; boot, unlock; compare with the US case (the harness needs a typing map for DE: planned) | [ ] K2 the unlock screen tells the user which layout is active (we currently show `us` in the keyboard indicator) | [ ] K3 same test for FR
+- [ ] K4 live session language: the replaced Try/Install prompt used to offer a language choice; provide one (boot menu `locale=`/`lang=` entries or the HSCL1 welcome of W23.1) and test that DE/FR strings appear in the live desktop
+- [ ] K5 Plymouth `_Title`/`_SubTitle` strings (update screens) are English only: translate or document
+
+### P21 - Hypervisors and boot media (found missing)
+- Hyper-V Generation 2: community guides say Linux ISOs boot with the **Microsoft UEFI Certificate Authority** Secure Boot template; the default Windows template often refuses (https://www.thomasmaurer.ch/2018/06/how-to-install-ubuntu-in-a-hyper-v-generation-2-virtual-machine/); nothing found for 26.04, VirtualBox or VMware.
+- USB: Rufus guides recommend DD mode; Ventoy needs its own Secure Boot key enrolment (a guide claims this since 1.1.14, **UNVERIFIED**); casper's multi-layer loop-boot needs `layerfs-path` on 23.04+ desktop ISOs (https://lists.ubuntu.com/archives/ubuntu-devel-discuss/2023-June/019562.html) - our image has one `filesystem.squashfs`, so whether loop boot works is unknown.
+- [ ] H1 QEMU: boot the ISO as a **USB mass-storage** device under UEFI (hybrid image check) | [ ] H2 BIOS/legacy boot of the ISO (is it even offered by the base?) | [ ] H3 Hyper-V Gen2 with the Microsoft UEFI CA template on the owner's Windows host (owner machine) | [ ] H4 VirtualBox and VMware: document **only** settings that were tested | [ ] H5 Ventoy: test or document "not supported/untested" | [ ] H6 memory floor: live boot at 2 GB and 3 GB (AGENTS.md says 4 GB; measure, then state)
+
+### P22 - Legal and source compliance (found missing; owner review needed)
+- **Trademark/derivative policy.** Canonical's page says redistribution of modified versions of Ubuntu must be approved, certified or provided by Canonical if it is associated with the trademarks; strict readings (Matthew Garrett) say a modified distribution must be approved **or have all trademarks removed and everything rebuilt**; the unmodified-binary question was not answered by any source we found (https://canonical.com/legal/intellectual-property-policy , https://mjg59.dreamwidth.org/35969.html). We removed logos and visible names from the image, but package names (`kubuntu-*`), `ID=ubuntu`, apt sources and many strings remain. **Risk statement for the owner:** public ISO distribution of a modified Ubuntu derivative may need Canonical's approval or a full trademark-free rebuild; until reviewed, every release stays a prerelease with "trademark review pending" in the notes (already the case).
+- **GPL source obligations.** Debian's CD-vendor page: a distributor of GPL binaries must give a written offer for the complete corresponding source valid at least three years, to **anyone**, and pointing to a third party such as the Debian archive is **not** sufficient (https://www.debian.org/CD/vendors/legal.en.html). Our ISO and release assets carry no such offer today.
+- [ ] G1 `docs/SOURCE_OFFER.md` + the same text inside the ISO and as a release asset: valid 3 years, covers every GPL/LGPL package in the image (package list with versions from the manifest) and our own packages (this repository at the tagged commit) | [ ] G2 a script that fetches the corresponding source packages for a given manifest (`apt source` against the pinned archive/snapshot) and a statement of where we keep them | [ ] G3 `docs/LICENSES.md`/`NOTICE` generated from package copyright files (no licence audit claimed) | [ ] G4 **owner:** legal review of G1 and of the trademark position (Q15) | [ ] G5 third-party font/icon/artwork licences listed (Ubuntu font stays from the base; our own art is GPL-3.0-or-later)
+
+### P23 - How users get updates for HSCL1's own packages (found missing)
+Today `hscl-*` debs exist only inside an ISO; a user cannot update them without a new ISO. AGENTS.md allows a separately signed HCS repository "only if truly needed".
+- [ ] A1 decide the delivery path: (a) new ISO only, documented honestly; (b) debs as release assets with a verify script; (c) a signed apt repository (key policy = owner decision Q13) | [ ] A2 version/compat rule between hscl packages and the base (`Depends` ranges, what breaks when Kubuntu updates `plasma-welcome` etc.) | [ ] A3 `hscl doctor` reports installed hscl package versions vs the release manifest | [ ] A4 rollback story: previous deb kept, documented command
+
+### P24 - Local-model agent harness (detail: `2026-11-06-local-agent-harness.md`)
+Research (second round): the Mythos system card describes its harness only generically (tools, think tool, tool-call/token budgets, containerised GPU task), shows no scaffold source, and has `[redacted]` markers without a stated reason; RSI is defined there as automating or dramatically accelerating top-tier AI research (RSP substitute-the-researchers or about 2x pace). So **only the pattern can be rebuilt**, with local models, and nothing in HSCL1 claims parity (PRIMARY extraction of the PDF; later METR/S-1 material is SECONDARY).
+- [ ] A1 in-repo task set (15-20 tasks, 5 held out, real pass/fail commands) | [ ] A2 baseline: 2-3 local models that fit 24 GB, one scaffold | [ ] A3 scaffold comparison (OpenCode vs mini-SWE-agent vs Aider) | [ ] A4 context-budget sweep | [ ] A5 think tool on/off | [ ] A6 sandbox escape suite | [ ] A7 tool-call reliability layer | [ ] A8 separate evaluator vs self-evaluation
+- [ ] A9 own small time-horizon measure per local model (50 % task length, spread) | [ ] A10 K-rollout + execution verifier judged per wall-clock minute | [ ] A11 context hygiene sweep (tool-result clearing, notes, compaction on 8k-32k windows) | [ ] A12 evaluator-run tests vs worker claims, `passes`-only feature list enforced by a script
+- Third research round: Anthropic's own engineering pages read directly (long-running harness: same harness, initializer prompt creates `init.sh`, progress file, JSON feature list; SWE-bench scaffold: two tools, absolute paths; context engineering; multi-agent: tokens explain 80 % of variance; think tool; context management). Guesses G1-G10 about how such work operates are **hypotheses with research for/against, not facts**, and each maps to an experiment (section 8-9 of the harness plan).
+- [ ] build-vs-adopt decision recorded with licences and pinned versions | [ ] `hcs-agent` CLI only after A1-A8 numbers exist; no model or scaffold is called good without three-run medians
 
 ---
 
-## 4b. Open questions and how each gets answered
+## 5. Hardening, verification and testing improvements (cross-cutting, new)
+1. **Content-aware gates**: OCR screenshot gate (P7.8), content scanner (F6), artefact-extraction gates (F5).
+2. **Boot gates with causes**: serial log classifier (F2.2), diff against the last good ISO (F2.3).
+3. **Measured hardening, not claimed**: P3.11 (Lynis, OpenSCAP, systemd, kernel checker) run in a booted VM; scores stored with the image hash; regression gates only after a baseline.
+4. **Supply chain**: SBOM + grype gate (P9.1), attestation (P9.2), immutable releases (P9.7), SHA-pinned actions (Dependabot PRs triaged), download-back hash comparison in the release script (P9.8).
+5. **Test depth**: mutation check for every new gate (the gate must fail on a broken input), fuzz for parsers (P3.8), process-level tests for every entry point (P0.9), a hook-name/daemon-rule test (done), CRLF/Windows pitfalls covered by byte-level test inputs.
+6. **Windows-host hygiene**: tests that call `bash` must pass script text as bytes on stdin (Git-bash vs WSL launcher, CRLF) - pattern already in `test_live_starter.py`.
+7. **Security of the dev tooling itself**: Workshop daemon stays inert by default in release images (gate), MCP tools annotated and scoped (F9), test passphrases are markers, the live view never shows secrets typed by the harness.
 
-| # | Question | Cheapest discriminating experiment | Where |
+---
+
+## 6. Open questions register (how each gets answered; owner items marked)
+| # | Question | How to answer | Owner? |
 |---|---|---|---|
-| 1 | Does the Kubuntu Calamares accept a `noEncrypt` `/boot` + LUKS2 root layout non-interactively, and does the installed system boot and unlock? | P2.0 offline config read, then P2.4 install in a VM | P2 |
-| 2 | Does the signed GRUB in this ISO contain `luks2`/`cryptodisk`? | `strings` on `grubx64.efi` extracted from the ISO (no VM) | P2.0 |
-| 3 | Does `apt` work in the Kali container with the restricted capability set, or does it need `-o APT::Sandbox::User=root`? | one rootless container in the VM, both variants | P4.3 |
-| 4 | Does AppArmor really confine `hscl_workshopd` (the profile attaches to the interpreter path)? | `ps -Z` in the VM with a named profile | P3.4 |
-| 5 | Are unprivileged user namespaces restricted in 26.04 in a way that breaks rootless Podman? | **Partly answered 2026-11-06:** `kernel.apparmor_restrict_unprivileged_userns = 0` in the live image (unrestricted); still needs one rootless run on the installed system | P3.5/P4.3 |
-| 6 | Is the ISO reproducible, and where does it differ? | two clean builds with `SOURCE_DATE_EPOCH`, compare at 3 levels | P8 |
-| 7 | Does `ssd=off` make the WHPX VM clearly faster? | 3 boots each, same image | P1.7 |
-| 8 | Does the Windows Vulkan build of llama.cpp select the Radeon 680M? | `llama-server --list-devices` + backend log line on the owner's machine | P6.2 |
-| 9 | Do the Dependabot majors (checkout 7, thiserror 2, sha2 0.11) change behaviour we rely on? | CI incl. tests; read changelogs | P3.10 |
-| 10 | Is the DE/FR text acceptable to native speakers? | **owner** review | P7.6 |
-| 11 | Does the image boot on a physical PC (UEFI, Secure Boot on/off)? | **owner** boot report | P10 |
-| 12 | May the website go to production on Vercel, and under which domain? | **owner** decision; preview first | P7.7 |
+| Q1 | Does casper find the medium with direct kernel boot (S0)? | F2.1 experiment on the exact ISO | no |
+| Q2 | Does a GitHub-hosted runner expose KVM? | `kvm-probe` workflow | no |
+| Q3 | Layer order and whiteouts in casper for `--layer` on the 26.04 ISO | F3 VM test | no |
+| Q4 | GHCR limits for a 5.5 GB blob | throwaway ORAS push in a workflow | no |
+| Q5 | xz vs zstd for the release squashfs (size, build time, boot time) | measure on our tree | no |
+| Q6 | Which mksquashfs flags clamp timestamps in our squashfs-tools version | `man mksquashfs`, then P8.1 | no |
+| Q7 | Does an offline-rootfs OpenSCAP scan work, or must it run in a VM | try; fall back to the VM (planned) | no |
+| Q8 | Do the 27 checks pass with GNU coreutils selected instead of uutils | one run with `update-alternatives` | no |
+| Q9 | Does the live user `hscl1` (casper `FLAVOUR` set) work in every flow (autologin, installer, our autostarts) | r5 VM run | no |
+| Q10 | Is WHPX snapshot restore reliable enough to replace boots | F2.4 experiment | no |
+| Q11 | Enable immutable releases on the repository? | recommend; **owner decides** | **yes** |
+| Q12 | Replace inherited network defaults (NTP, GeoIP mirror, release check, connectivity check)? | present options with consequences | **yes** |
+| Q13 | Maintainer signing key policy | present options | **yes** |
+| Q14 | Dependabot major bumps (#1 checkout 7.x, #3 sha2, #4 thiserror, #2 upload-artifact) | triage with CI evidence; merging majors needs a go | **yes** |
+| Q15 | Trademark review of the derivative naming | owner/legal | **yes** |
+| Q16 | Native-speaker review DE/FR | owner | **yes** |
+| Q17 | Physical-hardware tests, NVIDIA/Venus | owner machines | **yes** |
+| Q18 | Is `systemd-sysext` usable as the dev-mode layer on this image (D1/D3 of the freeze plan) | E1 | no |
+| Q19 | `ttm.` vs `amdttm.` prefix, default GTT share and the effect on the Radeon 680M under Linux | owner boots the image on the machine | **yes** |
+| Q20 | Real NVMe streaming tokens/s for our model sizes | bounded speed test + one real run | no |
+| Q21 | Perplexity/KLD tool in the pinned llama.cpp build and an acceptable quality threshold for compressed KV | pinned `--help`, calibrate on the 2B model | no |
+| Q22 | Complete protected-path list for the RSI guard | review with the owner once | **yes** |
 
-## 5. Risk register
+## 6b. Open questions register v2 (everything I could think of, grouped; "gate" = what it can block)
+Legend: **meas** = answered by a measurement on this machine/VM, **src** = answered by reading a primary source, **own** = answered by a code/design decision, **owner** = needs the owner. Priority: H (can invalidate a release claim), M, L.
 
+### Image and build (B)
+| # | Question | Answer by | Pri | Gate |
+|---|---|---|---|---|
+| B1 | Which files does the build hook change that belong to other packages (conffile or not)? | meas: `dpkg-query -S`, `${Conffiles}`, `dpkg -V` (P19 U1) | H | upgrades |
+| B2 | Is the base ISO checksum check (6 GB hash each build) needed every time, or cacheable by file mtime+size+recorded hash? | own | L | speed |
+| B3 | Can the pristine-rootfs cache be shared between builds without trusting a stale cache (key = base sha256 + builder script hash)? | own | M | speed |
+| B4 | Does a build from the same commit twice give the same package list, file list, squashfs, ISO hash? | meas P8 | M | reproducibility claim |
+| B5 | What is the smallest ISO we can ship without removing things users expect (LibreOffice language packs, snaps, firmware)? Size now 5.0 GB (xz), dev 5.5 GB | meas: package size table from the manifest | M | download size |
+| B6 | Does xz vs zstd (level 15/19) change size, build time and boot time enough to switch? | meas | L | speed/size |
+| B7 | Do `mksquashfs` timestamp flags in our squashfs-tools version make output deterministic? | src: `man mksquashfs` | M | P8 |
+| B8 | Is `update-initramfs` output deterministic (cpio order, timestamps, font caches differ between r4/r5)? | meas P8 | M | P8 |
+| B9 | Does the remaster depend on host state (WSL kernel, locale, umask, clock)? | meas: build in a clean container once | M | reproducibility |
+| B10 | What happens if the base ISO is replaced by a newer 26.04.x point release: does the hook fail loudly on missing/moved files? | own: gates exist; add a "patched count" assertion per file | M | maintenance |
+| B11 | Does the hook's "patched >= N files" threshold hide a silent no-op for one important edit? | own: per-edit assertions instead of a count | M | gate bug class |
+| B12 | Are all generated assets (wallpapers, Plymouth frames, logos) deterministic bytewise? | meas | L | P8 |
+| B13 | Is the 2.4 GB `artifacts/` directory growth under control (old ISOs, VM disks)? | own: prune script with allow-list | M | disk |
+
+### Boot and installer (I)
+| # | Question | Answer by | Pri | Gate |
+|---|---|---|---|---|
+| I1 | Does the ISO boot via BIOS/legacy at all? | meas H2 | M | AGENTS 20 |
+| I2 | Does it boot as a USB device under UEFI (hybrid)? | meas H1 | H | USB guide |
+| I3 | Secure Boot: do shim, GRUB, kernel verify with our replaced `grub.cfg`/initrd/squashfs, and what do the three sources in the guest say? | meas P2.7 (TCG, slow) | H | SB claim |
+| I4 | After install, does the installed GRUB menu say HSCL1 and what is the EFI directory name; does renaming it break Secure Boot? | meas P2.10 | M | branding |
+| I5 | Does a plain (unencrypted) install work as well as the LUKS one? | meas P2.3 | H | AGENTS 20 |
+| I6 | Does the installer work at 1366x768 without clipped buttons? | meas P7.5 | M | UX |
+| I7 | What happens when the target disk is smaller than 25 GB, or has existing partitions/Windows? (no dual-boot claim until tested) | meas, disposable disks | H | safety |
+| I8 | Does the installer survive killing it mid-copy, a full disk, no network? | meas P2.6 | H | safety |
+| I9 | Does the installed system come up with the HSCL1 Plymouth theme, SDDM theme, wallpaper, welcome page, dock? (unlock + logo verified; rest to check) | meas | M | claims |
+| I10 | Does the Calamares "Donate" link disappear (config changed, not yet seen on screen)? | meas: installer screenshot of the next candidate | M | brand |
+| I11 | Does Calamares use the live user name `hscl1` anywhere that breaks (users module, autologin cleanup)? | meas: install on r6+ image | H | install |
+| I12 | Is `/boot` 4 GiB (unencrypted) acceptable on small disks? | own/meas | L | layout |
+| I13 | Recovery key flow: can we generate and show once a second LUKS key and unlock with it? | meas P2.5 | M | claim |
+| I14 | Does the live session survive 2 GB / 3 GB RAM (AGENTS says 4 GB)? | meas H6 | M | spec |
+| I15 | What does the OEM install entry do now that the session starter was replaced (OEM branch kept)? | meas | M | regression |
+
+### Security and hardening (S)
+| # | Question | Answer by | Pri | Gate |
+|---|---|---|---|---|
+| S1 | Which services listen on which sockets in live and installed systems? | meas P3.2 | H | hardening |
+| S2 | Is AppArmor enforcing for our daemon(s) and is the profile actually attached (`ps -Z`)? | meas P3.4 | H | claim |
+| S3 | Does the firewall deny inbound by default in the installed system (probe from the host)? | meas P3.6 | H | claim |
+| S4 | Is the Workshop daemon inert in the release image under every boot path (live, installed, OEM)? | meas gate exists for live; add installed | H | safety |
+| S5 | `sudo-rs` and `uutils`: do any of our scripts or hooks depend on GNU behaviour (R24)? | meas Q8 | M | regressions |
+| S6 | Does the live session still disable unattended-upgrades' security origin (casper hook)? | meas P3.12 | M | live stability |
+| S7 | Are kernel mitigations on (no `mitigations=off`) in the live and installed command line? | meas | M | claim |
+| S8 | Is the initrd integrity-protected under Secure Boot? (No: say so; unified kernel image is out of scope) | src/doc | M | threat model |
+| S9 | Does `apt` verify our added debs? (They are installed with `dpkg -i` at build time, signed by nobody; users cannot update them) | own P23 | M | supply chain |
+| S10 | Are there world-writable files anywhere outside `/tmp` in the installed system (not only ours)? | meas `find` | M | hardening |
+| S11 | Do the polkit actions of the base allow the live user passwordless admin? (live session: yes by design; installed: no) | meas | M | threat model |
+| S12 | Lynis index and OpenSCAP CIS result as a baseline (R26) | meas P3.11 | M | report |
+| S13 | Can an `hscl` CLI parser crash or hang on hostile input (GGUF, JSON, catalog)? | own: fuzz depth P3.8 | M | safety |
+| S14 | Does the MCP server annotate tools correctly and enforce scope in our layer (F9)? | own | H | AI-agent safety |
+| S15 | Are all GitHub Actions pinned by SHA; are Dependabot majors safe? | meas/owner Q14 | M | supply chain |
+| S16 | Is there any secret in git history (not only HEAD)? | meas: history scan once | H | publish |
+| S17 | Do release assets contain anything from the build host (usernames, paths, hostnames) in manifests/logs? | meas: grep the manifest, SBOM, ISO `.disk`/`README.diskdefines` | M | privacy |
+
+### Privacy and telemetry (T) - see P18
+| # | Question | Answer by | Pri | Gate |
+|---|---|---|---|---|
+| T1 | Which Ubuntu telemetry/reporting components exist in the image and are they enabled? | meas N1 | H | AGENTS rule 9 |
+| T2 | Which hosts does an idle live session / installed system contact in 15 minutes? | meas N2 (pcap) | H | rule 9 |
+| T3 | Does the Firefox snap or snapd contact the store at first boot offline/online? | meas N2 | H | rule 9 |
+| T4 | Does Plasma/KDE contact kde.org (connectivity check, news widgets, discover metadata)? | meas N2 | M | rule 9 |
+| T5 | Does `apt`'s default timer (`apt-daily`) run on first boot and contact the archive? (expected; disclose) | meas | M | disclosure |
+| T6 | Is the hostname/DHCP identity leaking real names? (live host now `hscl1`) | meas | L | privacy |
+| T7 | Does the Calamares installer send anything besides the connectivity check and mirror GeoIP? | meas pcap during install | M | rule 9 |
+| T8 | Do the crash reporters write personal data to disk (`/var/crash`)? | meas | L | privacy |
+
+### Legal and compliance (L) - see P22
+| # | Question | Answer by | Pri | Gate |
+|---|---|---|---|---|
+| L1 | May we publicly distribute this modified Ubuntu derivative as ISO under the IP policy, and what exactly must change (approval or trademark-free rebuild)? | owner/legal Q15 | H | any non-prototype release |
+| L2 | Written offer for corresponding source (3 years, to anyone) in the ISO and the release | own G1, owner review G4 | H | GPL compliance |
+| L3 | Third-party notices for packages, fonts, icons, artwork | own G3/G5 | M | compliance |
+| L4 | Is the name "HSCL1" free to use (no conflicting trademark)? | owner | M | brand |
+| L5 | Does shipping proprietary firmware/codecs from the base need a notice? | src: base package copyright files | M | compliance |
+| L6 | Is the Kali container image redistribution/usage described correctly (we do not ship it) | own docs | L | claims |
+| L7 | Export/crypto notices for LUKS/Tor tooling? | owner | L | compliance |
+
+### Update delivery (U/A) - see P19, P23
+| # | Question | Answer by | Pri | Gate |
+|---|---|---|---|---|
+| U1 | How does a user update `hscl-*` packages? | own A1, owner Q13 | H | product |
+| U2 | Does a base package upgrade undo our branding/config edits, or block unattended upgrades with a conffile prompt? | meas P19 U4 | H | update claim |
+| U3 | Does `do-release-upgrade`/update-manager offer an upgrade to an Ubuntu interim/LTS that would break HSCL1? | meas + config (`Prompt=never`) | M | safety |
+| U4 | What is HSCL1's support window (Ubuntu 26.04 LTS standard maintenance vs Kubuntu's shorter KDE window)? | src: release notes, then write it down | M | claims |
+| U5 | Who updates the pinned Kali digest, llama.cpp build, models catalogue, and how often? | own | L | maintenance |
+
+### UX, brand and i18n (X)
+| # | Question | Answer by | Pri | Gate |
+|---|---|---|---|---|
+| X1 | Which visible strings still say Kubuntu/Ubuntu (content scan + OCR over all screens)? | meas F6/P7.8 | H | owner request |
+| X2 | Does the Plasma Welcome Center show our `01-HSCL1.qml` page, and in which position? | meas screenshot of page 2..7 | M | brand |
+| X3 | Do the Konsole profile names, driver-manager and manage-software launchers show Kubuntu names? | meas | M | brand |
+| X4 | Are the global theme preview images (Kubuntu wallpaper screenshots) visible in System Settings? | meas | L | brand |
+| X5 | Does German/French text fit in the Control Center and installer without clipping? | meas P7.5 | M | i18n |
+| X6 | Is the live session usable by keyboard only and with Orca? | meas P7.4 | M | a11y |
+| X7 | Does high contrast/reduced motion work for the animated wallpaper? | meas | M | a11y |
+| X8 | HiDPI/fractional scaling smoke test | meas | L | UX |
+| X9 | Does the HSCL1 Handbook match the current features (modes, CLI)? | own D5 | M | docs |
+| X10 | Is the "Install HSCL1" desktop icon discoverable now that the prompt is gone? | own: user test by the owner | M | UX |
+
+### Local AI and GPU (G) - see P16
+| # | Question | Answer by | Pri | Gate |
+|---|---|---|---|---|
+| G1 | What are dedicated VRAM, GTT and the TTM prefix on the owner's 680M under Linux? | owner boots image | H | AI claims |
+| G2 | Does llama.cpp Vulkan select the real GPU on the 680M (Windows host first)? | meas P6.2 | H | claim |
+| G3 | What are real RAM and NVMe bandwidth, and the resulting tokens/s ceilings for our model sizes? | meas T-bench | M | advisor |
+| G4 | Does the pinned llama.cpp advertise `--fit`, `--n-cpu-moe`, `--moe-cache-mib`, MTP, a perplexity tool? | meas `--help` | M | flags |
+| G5 | What is the acceptable KV quantisation quality threshold per model? | meas T-kv | M | claim |
+| G6 | Hybrid (`qwen35`) models: how to estimate recurrent-state memory? | meas from logs P6.6 | M | `hscl ai fit` |
+| G7 | Does mmap vs `--mlock`/`--no-mmap` thrash the page cache on a 24 GB machine with the model larger than free RAM? | meas | M | advice |
+| G8 | Is zram a net benefit for already quantised weights (reasoned: no)? | meas | L | advice |
+| G9 | Do KIVI/SnapKV/H2O style methods matter for us (read papers first)? | src T5 | L | scope |
+
+### Dev process, cloud and speed (D)
+| # | Question | Answer by | Pri | Gate |
+|---|---|---|---|---|
+| D1 | Does direct-kernel boot find the medium (S0)? Time saved? | meas F2.1 | M | speed |
+| D2 | Layer image: order, whiteouts, effect on `verify-image` (T3)? | meas F3 | M | speed |
+| D3 | Do WHPX snapshots work reliably (S5)? | meas F2.4 | L | speed |
+| D4 | Does a hosted runner expose `/dev/kvm`? | meas kvm-probe | M | cloud tests |
+| D5 | Does a 5.5 GB OCI push to GHCR work, and at what cost/limit? | meas | L | mirror |
+| D6 | Is `sparseVhd`/memory reclaim better than `wsl --shutdown` for this machine? | meas F1.4 | L | speed |
+| D7 | Squash resource choice: 3 procs/512 MB (safe) vs 4/768 | meas F1.3 | L | speed |
+| D8 | Can CI run the boot classifier tests and `forge check` (without WSL)? | own | M | CI |
+| D9 | Do we need a Windows CI job for the harness code paths (WHPX cannot run there)? | own: no, keep unit tests platform-neutral | L | CI |
+| D10 | How do we keep `docs/CLI.md` and `docs/DEV_LOOP.md` from drifting (D2 of P13)? | own: generated + comparison test | M | docs |
+| D11 | Can the three-run determinism rule be applied automatically after each build (`forge test --runs 3`)? | own | M | speed/safety |
+| D12 | Should `forge` own the ISO copy-out/hash step (it has caused two manual mistakes)? | own | M | safety |
+
+### Documentation and README (R)
+| # | Question | Answer by | Pri | Gate |
+|---|---|---|---|---|
+| R1 | Are all commands in README/docs executed once as written (P9.6)? | meas | H | docs claim |
+| R2 | Do screenshots in README match the current release candidate? | own: regenerate from harness | M | docs |
+| R3 | Is the status table honest (VM-VERIFIED vs not verified columns)? | own D1 | H | claims |
+| R4 | Does the website show a download only when a release exists, with hashes from the manifest (exists)? | meas | M | website |
+| R5 | Are DE/FR docs behind EN? | own: coverage report | M | i18n |
+| R6 | Is there a one-page "what is verified and what is not" for end users? | own | M | honesty |
+
+### Owner decisions collected (O)
+O1 immutable releases on/off (Q11) | O2 network defaults of the base (NTP, GeoIP mirror, release check, connectivity check) (Q12, N3) | O3 signing key policy (Q13) | O4 Dependabot majors (Q14) | O5 trademark/IP position and legal review (Q15, L1, G4) | O6 DE/FR native review (Q16) | O7 physical hardware tests incl. the 680M under Linux, Hyper-V (Q17, G1, H3) | O8 protected-path list for the RSI guard (Q22) | O9 update delivery path for `hscl-*` (A1) | O10 whether to ship a public ISO before the legal review or keep releases at prerelease with the pending-review note.
+
+### Agent harness with local models (H) - see P24
+| # | Question | Answer by | Pri | Gate |
+|---|---|---|---|---|
+| H1 | Which local models are fast enough on 24 GB RAM + 680M Vulkan for an agent loop? | meas A2 + P16 advisor | M | scope |
+| H2 | Does scaffold choice matter more than model choice on our tasks? | meas A3 | M | design |
+| H3 | Is a 7-14B model useful at all, or is 30B-class the floor? | meas A2 | M | scope |
+| H4 | Which llama.cpp build + chat template + quant gives acceptable tool-call reliability? | meas A7 | H | reliability |
+| H5 | How large can tool output and history be before a small window breaks the loop? | meas A4 | M | design |
+| H6 | Think tool: helpful or wasteful for local models? | meas A5 | L | design |
+| H7 | Does a separate evaluator reduce false "done" claims? | meas A8 | M | safety |
+| H8 | Is bubblewrap enough for model-generated code, or rootless Podman / disposable VM? | meas A6 | H | safety |
+| H9 | How do we stop the agent editing the tests/gates that judge it? | own: protected paths (P17) | H | RSI guard |
+| H10 | Current licence and maintenance state of candidate scaffolds | src: read the repos | M | adoption |
+| H11 | What do the unextracted parts of the Mythos card say (long-running agentic tasks, alignment)? | src: read the PDF section by section if the owner wants | L | research |
+| H12 | What is behind the `[redacted]` markers? | unknowable: do not reconstruct | L | honesty |
+| H13 | Are the secondary harness-design write-ups accurate? | src: read Anthropic's own engineering posts first | M | design |
+| H14 | Run the harness inside the HSCL1 image or only on the host? | owner; default host first | L | scope |
+
+---
+
+## 7. Release procedure (target form; implemented step by step in `forge release`)
+1. Version bump PR -> green CI -> merge. 2. Clean clone of `main`, full release build, `git_dirty` must be false, manifest + hash.
+3. Gates on that exact artefact: S1 boot without a click, S2 three runs x 27 checks, S2b OCR scan, S3 LUKS2 install + unlock + wrong passphrase + installed boot, secret scan.
+4. Split into 1500 MiB parts, `SHA256SUMS` (parts + whole), manifest, SBOMs. 5. **Draft** release, upload without `--clobber`, download back and compare every hash.
+6. Publish (immutable if enabled). 7. Workflow: verify, bundle (merged one-file ISO), attest. 8. Check the artefact size/hash, update `website/data/release.json`, notes with verified/not-verified lists.
+9. BUILD_LOG + CLAIMS in the same PR as the metadata. Anything unverified is written in the notes, never implied.
+
+## 8. Risk register
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
-| Host runs out of memory during build or VM | high (seen 3x, also with WSL capped at 8 GB) | job reaped | resource policy (section 3), sequential steps, WSL cap 6 GB, squash with 3 procs / 512M, restart only on the owner's word |
-| Workshop wedge has a second cause besides R1 | medium | VM tests stay flaky | P0.4 three-run determinism gate before any other VM work |
-| Calamares cannot produce the R2 layout non-interactively | medium | LUKS2 gate blocked | script the layout via `partition.conf` + `unpackfs` order, or document manual partitioning and test that path |
-| Signed GRUB/shim behaviour changes in point releases | low | boot failures | pin the base ISO checksum; re-test on base updates |
-| Upstream (Ubuntu archive) package drift breaks the build | medium | CI/builds red | pinned base ISO; record package versions in the manifest |
-| Physical hardware never tested | certain until the owner does it | stable claim limited | state it; offer a one-page "boot report" template |
-| Translations wrong in security warnings | medium | user confusion | labelled unreviewed; keep sentences short; owner review |
+| Gate green but artefact wrong (happened) | medium | high | principle 1, F5, mutation checks |
+| Host reaps a build/VM (happened 3x) | medium | medium | resource policy, small defaults, one heavy job at a time |
+| `E:` fills up (happened) | medium | high | 25 GB floor, delete own old dev ISOs, check before copy |
+| Live user rename breaks a flow (Q9) | medium | medium | r5 VM run before any release |
+| Layer images mislead (T3 evidence quoted as release evidence) | low | high | dev-only rule, gate on `qa_image`/`layer` flags in the manifest |
+| Trademark/IP issues of the derivative | unknown | high | Q15, keep text-only base statement, no upstream logos (gated) |
+| Over-claiming hardening | medium | high | measured only, scores as baselines, limits listed |
+| Tool-layer escape mangling of scripts | high | low | principle 7 |
 
-## 6. Backlog (found, not yet scheduled)
+## 9. Backlog (found, not scheduled)
+GRUB theme for the live ISO menu; BIOS boot test of the new images; second language for the live welcome; `hscl doctor` extension for the new checks; handbook chapters for the new modes; website refresh with the 0.1.2 screenshots; HSCL1 Welcome Center page review (is `01-HSCL1.qml` shown as a later page?); icons for `kubuntu-*` named apps; check that `plasma-welcome` pages mention only HSCL1/KDE.
 
-- QEMU upstream fix for issue 4672 (patchew, Sept 2026): re-test on a newer QEMU when available; keep the harness workaround.
-- Dependabot majors (checkout 7, upload-artifact 7, thiserror 2, sha2 0.11): P3.10.
-- `README`/CLAIMS wording audit for any remaining unverified phrase after each release.
-- Website: JSON-LD only for true SoftwareApplication facts; OG image from a real screenshot.
-- The old plan's M3/M4 AI/media items beyond P6.1-P6.4 stay PLANNED.
-
-## 7. Tracking
-
-Per task: set `[x]` only with an evidence line `Evidence: <path or run URL>`; `[~]` while partial. Update `docs/BUILD_LOG.md` after every loop (what
-was tried, what failed, what the next safe action is) and `docs/CLAIMS.md` for every claim whose status changed. Commit on `codex/hscl1-v1`,
-open a PR, merge into `main` when CI is green; never force-push; tag releases only per P9/P10.
-
-
----
-
-## Addendum 2026-11-06 (pointer)
-
-The expansion plan `2026-11-06-ux-ai-hardware-expansion.md` now also covers: the full product name (HSCL1 = Hypercharged Supreme Computing Layout 1) and the `hscl1` program (W13), the release path incl. the online single-file merger and README/screenshot overhaul (W14), the HCS shell, viewers, office/creative suite (W15-W17), the pentest tool registry with scope enforcement, job API and MCP (W18), the desktop API/MCP (W19) and measured hardening with `kernel-hardening-checker` and `lynis` (W20). New items for THIS plan:
-
-- [ ] **P1.8 Release `v0.1.1-alpha.0`** supersedes P1.4's "publish a fixed release": see W14.1 for the gate list. The published `v0.1.0-alpha.0` gets a warning in its notes (two measured defects: world-writable HSCL1 payload files, `/` owned by uid 1000).
-- [ ] **P3.11 Measured hardening report**: W20.1-W20.3.
+## 10. Tracking
+Every working session ends with: BUILD_LOG entry (what ran, hashes, results, dead ends), CLAIMS rows updated, plan boxes ticked with evidence links, commit + push, PR merged on green CI, a short German summary to the owner.

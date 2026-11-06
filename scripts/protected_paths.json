@@ -1,0 +1,16 @@
+{
+  "_comment": "Files that judge the work (tests, CI, image gates, boot classifier, forge gates, claims, policy). An agent/RSI branch (name starts with rsi/) must not change them without a human-review override. Editing this list is itself protected. Patterns: '**' crosses directories, '*' does not.",
+  "branch_prefixes": ["rsi/", "agent/"],
+  "protected": [
+    "tests/**",
+    ".github/**",
+    "distro/live/verify-image.sh",
+    "scripts/boot_classify.py",
+    "scripts/forge.py",
+    "scripts/protected_paths.py",
+    "scripts/protected_paths.json",
+    "deny.toml",
+    "AGENTS.md",
+    "docs/CLAIMS.md"
+  ]
+}

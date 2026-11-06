@@ -82,6 +82,19 @@ if [ -f "$mark" ]; then
   rm -f "$ROOTFS/usr/share/icons/breeze/places/16/start-here-kubuntu.svgz"
 fi
 
+# Installer welcome page: no upstream donation link (HSCL1 has no donation page)
+patch_file "$ROOTFS/etc/calamares/modules/welcome.conf" 's#^showDonateUrl:.*#showDonateUrl: false#'
+# Upstream website launchers must not appear in the application menu
+rm -f "$ROOTFS/usr/share/applications/org.kubuntu.web.home.desktop" "$ROOTFS/usr/share/applications/org.kfocus.web.howtos.desktop"
+patch_file "$ROOTFS/usr/share/applications/org.kubuntu.restore-desktop-links.desktop" 's/Re-create Kubuntu.s default desktop links/Re-create the default desktop links/'
+# SDDM theme derived from the upstream one: description and id (author/copyright lines stay: they are attribution, see docs/BRAND.md)
+if [ -f "$sddm/hscl1/metadata.desktop" ]; then
+  sed -i 's/^Description=.*/Description=HSCL1 login theme (based on the Breeze SDDM theme)/; s/^Theme-Id=.*/Theme-Id=hscl1/' "$sddm/hscl1/metadata.desktop"
+fi
+# Live session user and host name: do NOT touch /etc/casper.conf. Setting FLAVOUR there made the live initrd fail with
+# "cow format specified as overlay and no support found" (r5, 2026-11-06). casper derives the names from the first word of
+# /cdrom/.disk/info, which scripts/remaster-iso.sh sets to "HSCL1" on the medium.
+
 # Default avatar of new users
 rm -f "$ROOTFS/etc/skel/.face"
 install -m 0644 "$ROOTFS/usr/share/hscl/brand/hscl1-mark-256.png" "$ROOTFS/etc/skel/.face"
