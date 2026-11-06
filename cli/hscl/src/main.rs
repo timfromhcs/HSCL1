@@ -28,6 +28,8 @@ use std::process::ExitCode;
 
 pub const PRODUCT: &str = "HSCL1";
 pub const CREDIT: &str = "Made with love by hcsmedia";
+/// What HSCL1 stands for (owner decision 2026-11-06). The product name stays written `HSCL1`.
+pub const EXPANSION: &str = "Hypercharged Supreme Computing Layout 1";
 
 /// Stable exit codes (documented in docs/CLI.md).
 pub mod exit {
@@ -48,11 +50,13 @@ struct Cli {
     #[arg(long, global = true)]
     json: bool,
     #[command(subcommand)]
-    command: Cmd,
+    command: Option<Cmd>,
 }
 
 #[derive(Subcommand)]
 enum Cmd {
+    /// Friendly overview of HSCL1 and where to start (also what `hscl1` with no arguments prints).
+    Overview,
     /// Print the HSCL1 version.
     Version,
     /// Short system status summary.
@@ -553,14 +557,19 @@ fn print_value(as_json: bool, v: &serde_json::Value, human: impl FnOnce() -> Str
 
 fn run(cli: Cli) -> anyhow::Result<u8> {
     let j = cli.json;
-    match cli.command {
+    match cli.command.unwrap_or(Cmd::Overview) {
         Cmd::Version => {
-            let v = json!({"product": PRODUCT, "version": env!("CARGO_PKG_VERSION")});
+            let v = json!({"product": PRODUCT, "expansion": EXPANSION, "version": env!("CARGO_PKG_VERSION")});
             print_value(j, &v, || format!("{PRODUCT} {}", env!("CARGO_PKG_VERSION")));
+        }
+        Cmd::Overview => {
+            let prog = program_name(&std::env::args().next().unwrap_or_default());
+            let v = overview_json(prog);
+            print_value(j, &v, || overview_text(prog));
         }
         Cmd::About => {
             let v = json!({
-                "product": PRODUCT, "version": env!("CARGO_PKG_VERSION"),
+                "product": PRODUCT, "expansion": EXPANSION, "version": env!("CARGO_PKG_VERSION"),
                 "publisher": "HCSMEDIA", "credit": CREDIT,
                 "notice": "HSCL1 is not Tails and not an official Kali release."
             });
@@ -1297,16 +1306,149 @@ fn set_theme(
     Ok(exit::OK)
 }
 
+/// `hscl1` and `hscl` are the same program: the name HSCL1 is also a command. Returns the name to show in usage text.
+fn program_name(argv0: &str) -> &'static str {
+    let base = argv0
+        .rsplit(['/', '\\'])
+        .next()
+        .unwrap_or(argv0)
+        .to_ascii_lowercase();
+    let stem = base.strip_suffix(".exe").unwrap_or(&base);
+    if stem == "hscl1" {
+        "hscl1"
+    } else {
+        "hscl"
+    }
+}
+
+const OVERVIEW_COMMANDS: &[(&str, &str)] = &[
+    ("status", "system summary"),
+    ("doctor", "health checks (exit code 3 when one fails)"),
+    (
+        "hw detect",
+        "hardware inventory: GPU, CPU features, memory, firmware",
+    ),
+    (
+        "ai fit MODEL.gguf",
+        "will this model fit? RAM/VRAM and context estimate",
+    ),
+    (
+        "ai profile",
+        "run plan for the local AI model on this machine",
+    ),
+    ("graphics detect", "how the desktop is tuned for this GPU"),
+    (
+        "lab status",
+        "Security Lab (rootless containers, authorized testing only)",
+    ),
+    ("memory status", "RAM, swap, zram and the AI memory budget"),
+    ("--help", "every command"),
+];
+
+fn overview_json(prog: &str) -> serde_json::Value {
+    json!({
+        "product": PRODUCT, "expansion": EXPANSION, "version": env!("CARGO_PKG_VERSION"), "credit": CREDIT, "program": prog,
+        "stage": "pre-alpha: tested in virtual machines only, see docs/KNOWN_LIMITATIONS.md",
+        "commands": OVERVIEW_COMMANDS.iter().map(|(c, d)| json!({"command": format!("{prog} {c}"), "what": d})).collect::<Vec<_>>()
+    })
+}
+
+fn overview_text(prog: &str) -> String {
+    let mut s = format!(
+        "{PRODUCT} - {EXPANSION}
+{CREDIT} | version {} | pre-alpha, tested in virtual machines only
+
+Start here:
+",
+        env!("CARGO_PKG_VERSION")
+    );
+    for (c, d) in OVERVIEW_COMMANDS {
+        s.push_str(&format!(
+            "  {prog} {c:<20} {d}
+"
+        ));
+    }
+    s.push_str(
+        "
+`hscl` and `hscl1` are the same program. HSCL1 is not Tails and not an official Kali release.",
+    );
+    s
+}
+
 fn main() -> ExitCode {
     tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .with_writer(std::io::stderr)
         .init();
-    match run(Cli::parse()) {
+    let args: Vec<std::ffi::OsString> = std::env::args_os().collect();
+    let prog = program_name(
+        &args
+            .first()
+            .map(|a| a.to_string_lossy().into_owned())
+            .unwrap_or_default(),
+    );
+    let matches = <Cli as clap::CommandFactory>::command()
+        .name(prog)
+        .bin_name(prog)
+        .get_matches_from(args);
+    let cli = match <Cli as clap::FromArgMatches>::from_arg_matches(&matches) {
+        Ok(c) => c,
+        Err(e) => e.exit(),
+    };
+    match run(cli) {
         Ok(code) => ExitCode::from(code),
         Err(e) => {
             eprintln!("hscl: error: {e:#}");
             ExitCode::from(exit::FAILURE)
         }
+    }
+}
+
+#[cfg(test)]
+mod brand_tests {
+    use super::*;
+
+    #[test]
+    fn the_name_hscl1_is_also_a_program() {
+        for (argv0, want) in [
+            ("hscl1", "hscl1"),
+            ("/usr/bin/hscl1", "hscl1"),
+            (r"C:\tools\hscl1.exe", "hscl1"),
+            ("HSCL1.EXE", "hscl1"),
+            ("hscl", "hscl"),
+            ("/usr/bin/hscl", "hscl"),
+            ("hscl1-old", "hscl"),
+            ("", "hscl"),
+            ("xhscl1", "hscl"),
+        ] {
+            assert_eq!(program_name(argv0), want, "{argv0}");
+        }
+    }
+
+    #[test]
+    fn overview_names_the_product_in_full_and_uses_the_program_name() {
+        let t = overview_text("hscl1");
+        assert!(
+            t.starts_with("HSCL1 - Hypercharged Supreme Computing Layout 1"),
+            "{t}"
+        );
+        assert!(
+            t.contains("hscl1 hw detect")
+                && t.contains("hscl1 ai fit MODEL.gguf")
+                && t.contains("pre-alpha")
+        );
+        let v = overview_json("hscl");
+        assert_eq!(v["expansion"], "Hypercharged Supreme Computing Layout 1");
+        assert!(v["commands"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|c| c["command"].as_str().unwrap().starts_with("hscl ")));
+    }
+
+    #[test]
+    fn expansion_is_the_exact_owner_given_text() {
+        assert_eq!(EXPANSION, "Hypercharged Supreme Computing Layout 1");
+        assert_eq!(PRODUCT, "HSCL1");
     }
 }

@@ -355,3 +355,13 @@ Each task lists **Gate** (the command or observation that proves it) and **Evide
 Per task: set `[x]` only with an evidence line `Evidence: <path or run URL>`; `[~]` while partial. Update `docs/BUILD_LOG.md` after every loop (what
 was tried, what failed, what the next safe action is) and `docs/CLAIMS.md` for every claim whose status changed. Commit on `codex/hscl1-v1`,
 open a PR, merge into `main` when CI is green; never force-push; tag releases only per P9/P10.
+
+
+---
+
+## Addendum 2026-11-06 (pointer)
+
+The expansion plan `2026-11-06-ux-ai-hardware-expansion.md` now also covers: the full product name (HSCL1 = Hypercharged Supreme Computing Layout 1) and the `hscl1` program (W13), the release path incl. the online single-file merger and README/screenshot overhaul (W14), the HCS shell, viewers, office/creative suite (W15-W17), the pentest tool registry with scope enforcement, job API and MCP (W18), the desktop API/MCP (W19) and measured hardening with `kernel-hardening-checker` and `lynis` (W20). New items for THIS plan:
+
+- [ ] **P1.8 Release `v0.1.1-alpha.0`** supersedes P1.4's "publish a fixed release": see W14.1 for the gate list. The published `v0.1.0-alpha.0` gets a warning in its notes (two measured defects: world-writable HSCL1 payload files, `/` owned by uid 1000).
+- [ ] **P3.11 Measured hardening report**: W20.1-W20.3.

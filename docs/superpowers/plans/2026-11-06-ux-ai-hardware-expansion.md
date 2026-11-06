@@ -262,3 +262,105 @@ Physical-hardware reports (W1.6, W2.9), NVIDIA/Secure Boot driver test (R-HW-2),
 ## 7. Tracking
 
 Per task: `[x]` only with an `Evidence:` line (path or run URL). Update `docs/BUILD_LOG.md` after every loop and `docs/CLAIMS.md` for each status change. Commit on `codex/hscl1-v1`, PR to `main` on green CI, no force pushes, no secrets.
+
+
+---
+
+# ADDENDUM 2026-11-06 (second request round): naming, release path, HCS shell, viewers, office/creative suite, pentest API/MCP
+
+Interpretation notes (stated so they can be corrected): "HCS taste mit Menue und Ordner und Fenster wie Windows 11" is read as an **HCS taskbar with a start button and start menu, a folder-centred file manager and Windows-11-like window behaviour** (centred floating taskbar, rounded windows, snap layouts, searchable start menu). "Alle Pentesting-Tools" is read as **a curated, growing set** in the isolated Security Lab, never "everything, enabled by default". "Eigene Viewer" is read as **HCS-branded image and video viewers built on proven libraries**, not new codecs.
+
+## A1. Research findings of this round
+
+**R-BR-1 Name.** HSCL1 stands for **Hypercharged Supreme Computing Layout 1** (owner decision). The product name stays written `HSCL1`; the long form appears in README, About screens, CLI, website, installer slideshow, `os-release` (`HSCL1_NAME_LONG`) and the handbook. `hscl1` is also a program name (same binary as `hscl`, bare call prints an overview). Research on argv[0] dispatch: clap has no default subcommand, the established pattern is `Option<Command>` with a `None` arm; BusyBox-style names use symlinks; Cargo cannot install one binary under two names, so the package ships `/usr/bin/hscl1 -> hscl`.
+
+**R-REL-1 GitHub release limits.** Each release asset must stay below 2 GiB (a file of exactly 2 GiB was reported rejected, keep parts well below); the total size per release is not capped; one source mentions up to 1000 assets per release (unverified); upload actions have been reported to load assets into memory (upload one by one). Our 1500 MiB parts are within limits. Workflow artifacts have no 2 GiB cap, are billed by raw size, keep 1-90 days and need a GitHub login, and compression is useless on already-compressed parts (`compression-level: 0`, which the bundle job already sets). *Consequence:* keep split parts for the public download; the "Bundle one-file ISO" job is the **online merger** and its single ISO is an artifact; the release notes must say plainly that the single-file artifact needs a GitHub login and expires.
+
+**R-REL-2 README structure for distributions.** Logo and badges, one-line description with the full name, screenshots/GIF, table of contents, download with a checksum table and a verify command, usage examples, contributing, maintenance status. *Consequence:* README overhaul (W14) with real screenshots only, a checksum table generated from `release.json`, and an honest status box.
+
+**R-HARD-1 More hardening tools in the 26.04 archive.** `kernel-hardening-checker` 0.6.17.1-1 is in `universe` (checks kernel config, cmdline and sysctl against hardening recommendations); `lynis` is available; typical Lynis scores quoted by blogs (50s-60s fresh, 70s-80s after CIS Level 1) are not authoritative. No CIS benchmark or USG profile for 26.04 was found. *Consequence:* run `kernel-hardening-checker` and `lynis` in the VM as **measurement**, store the output, fix what is cheap and safe, document what is deliberately left; never quote blog numbers.
+
+**R-SHELL-1 Windows-11-like shell on Plasma 6.** Plasma 6 already floats the panel and Kickoff floats above it (you cannot have a screen-edge-glued panel and a floating menu at once); centring icons is manual; a complete GPL-3+ theme (NeoWin) shows what is possible but its sounds and icons derive from Windows assets and must not be reused; rounded corners for window decorations needed an extra shader effect in older themes; KWin custom tiling provides snap-style layouts. *Consequence:* build the HCS shell from **Plasma's own components plus original assets** (our tokens, icons, sounds), chosen options verified on a booted image; no Microsoft artwork, sounds or fonts.
+
+**R-VIEW-1 Viewers.** Gwenview (KDE) is the native image viewer; qimgv gets JPEG XL/AVIF/HEIF/RAW through plugins; nomacs covers RAW; KDE's `kimageformats` supplies Qt image-format plugins. Haruna (KDE) is a Qt/QML player on libmpv through the `MpvQt` binding (the model for a native Qt Quick video app); hardware decoding is an mpv option (`hwdec`). Architecture documentation for the viewers themselves was not found. *Consequence:* ship **HCS Image** and **HCS Video** as thin Qt Quick apps on `QImageReader`+`kimageformats` and `MpvQt`/libmpv respectively, with HCS look, keyboard-first controls, a metadata/privacy panel (EXIF view and strip) and a sandboxed decode path; verify licences (MpvQt, libmpv) before linking; keep Gwenview/Haruna installable as alternatives.
+
+**R-OFFICE-1 Office suite.** LibreOffice 26.2 improved native Qt theming (weld) under Qt6/KF6; the 26.2 branch ends in Nov/Dec 2026; Ubuntu's own packaging historically lagged on KF6 (verify what the image really contains: `libreoffice-plasma`/`-qt6`/`-gtk3`). Collabora Office and OnlyOffice Desktop licences and sizes were not found. *Consequence:* keep **LibreOffice** as the built-in suite (measure its size on the ISO and its VCL plugin in the booted image), apply an HCS colour scheme/icon pairing, no second suite until licences and sizes are read from primary sources.
+
+**R-IMG-1 Creative suite.** Ubuntu 26.04 test coverage names GIMP 3.2, Krita 6.0, darktable 5.4, RawTherapee 5.12; Pinta only as a snap; Krita AI Diffusion (GPL-3) is a Python plugin using ComfyUI as its backend and can manage a local ComfyUI server; GIMP has no built-in AI. *Consequence:* Creator bundle = GIMP + Krita + Inkscape + darktable as **optional bundles** (not on the ISO), Krita AI as an opt-in extra with its model/licence prompts, no snap packages in the default path.
+
+**R-PENTEST-1 AI-driven pentest tooling.** Community MCP servers for nmap/Burp/Kali exist; one aggregator labels a Burp server "official, maintained by PortSwigger" (unverified), others are WIP and treat scope as a prerequisite, not an enforced control. Kali metapackages were renamed to `kali-tools-*` (`kali-tools-top10`, `kali-tools-wireless`, `kali-tools-web`, `kali-linux-headless` ...); `kali-linux-everything` stays forbidden. *Consequence:* we write **our own thin, typed tool layer**; community servers are treated as untrusted code and are not shipped. Scope is enforced by us: the target allow-list is part of the container spec and of the network policy, not an agent promise.
+
+**R-MCP-1 MCP security.** The spec says tools represent arbitrary code execution; tool annotations (`readOnlyHint`, `destructiveHint`, ...) are a **risk vocabulary, not enforcement** and are untrusted unless the server is trusted; consent/elicitation must not treat silence as consent and should expire with the session; HTTP transports use OAuth 2.1. The official Rust SDK is `rmcp` (modelcontextprotocol/rust-sdk, `#[tool]` macros, stdio and Streamable HTTP). Primary spec pages (Tools, Security Best Practices, Elicitation, Authorization) were not retrieved yet and must be read before the HTTP transport is built. *Consequence:* one tool registry feeds both the local OpenAPI/REST API and the MCP server; destructive or active tools need an explicit confirmation step we implement ourselves; evaluate `rmcp` (licence, size, MSRV) against our hand-rolled stdio server.
+
+**R-MEDIA-1 Untrusted media.** ImageMagick's `policy.xml` is default-allow (last match wins) with presets `open/limited/secure/websafe` since 7.1.1-16; restricting coders (MVG, URL fetch, PS/PDF) is the standard hardening. Nothing was found on ffmpeg protocol whitelisting or libvips for this round. *Consequence:* media tools in the API/MCP run with `secure`/`websafe`-class policies, explicit format allow-lists, resource limits, no network, in a rootless container or equivalent sandbox; ffmpeg flags and libvips behaviour are to be read from primary docs when implementing.
+
+## A2. New workstreams
+
+### W13 - Brand and the program `hscl1`
+
+- [~] **W13.1 Full name everywhere (S).** `EXPANSION` constant, `hscl about`/`version --json`, overview, `os-release` `HSCL1_NAME_LONG`, README, website (EN/DE/FR), handbook intro, installer slideshow first slide, Control Center About page. **Gate:** a test greps each user-visible place for the exact string; translation parity test stays green. *CLI part implemented and tested; other places in progress.*
+- [~] **W13.2 `hscl1` is a program (S).** Same binary; bare invocation prints the overview; `/usr/bin/hscl1 -> hscl` shipped by `hscl-base`; usage text shows the name actually used; `verify-image.sh` checks the symlink; a VM check runs `hscl1` and `hscl1 version --json`.
+- [ ] **W13.3 `HSCL1` app entry (S).** A desktop entry named "HSCL1" (the Control Center) with the HSCL1 icon, so the name is also a launcher entry, a start-menu item and a KRunner result.
+- [ ] **W13.4 Brand rules doc (S).** `docs/BRAND.md`: how the name is written (`HSCL1`), the long form, tagline, what is never claimed (not Tails, not official Kali, not Microsoft/Apple), logo usage.
+
+### W14 - Release path and README
+
+- [ ] **W14.1 Release `v0.1.1-alpha.0` (L).** Built from a clean WSL clone with the fixes (root-owned `/`, package modes, KDE Connect off, daemon watchdog, baseline sandbox, `hscl1`, hw/ai fit); VM checks 3x23/23 on the exact artefact; plain and LUKS2 install re-verified including `stat /` = `0:0 755`; parts of 1500 MiB + `SHA256SUMS` + manifest + SBOM; prerelease; verify workflow green; **online merger** (`Bundle one-file ISO`) run and its artifact checked (name, size, sha256 equals the manifest); notes that list what is fixed, what is verified, what is not (physical hardware, signing, Secure Boot state) and a warning on `v0.1.0-alpha.0` (world-writable payload files, `/` owned by uid 1000).
+- [ ] **W14.2 Warning banner on the old release (S).** Edit only the notes of `v0.1.0-alpha.0` to add the warning; no deletion, no asset change.
+- [ ] **W14.3 README overhaul (M).** Logo + badges, full name in the first line, status box, real screenshots with captions (installer encrypted layout, unlock prompt, wrong-passphrase rejection, desktop, Control Center pages, wallpaper, shortcuts overlay when it exists), feature table with VERIFIED/IMPLEMENTED/PLANNED markers, download table with sizes and SHA-256 generated from `website/data/release.json`, verify commands (`sha256sum`, `scripts/release-join.sh`, `gh attestation verify` once attestations exist), quick start for the CLI (`hscl1`), table of contents, honest limits. Tests: every image link exists, every number in the download table equals `release.json`, forbidden-claim scan, link check.
+- [ ] **W14.4 Screenshot program (M).** A script that boots the image and captures the same named set at 1366x768 and 1920x1080 (installer pages, unlock prompt, desktop, launcher, each Control Center page, wallpaper studio, Security Lab, hardware page, AI fit); curated copies (small PNG/WebP, < 200 KB each) in `docs/img/`; manifest `docs/img/MANIFEST.md` with image sha256, date, resolution and what each shows.
+- [ ] **W14.5 Website refresh (S).** Same screenshots and facts, EN/DE/FR, full name in the hero, verified download table.
+
+### W15 - HCS Shell ("Windows-11-like", original)
+
+- [ ] **W15.1 Taskbar (M).** Centred, floating, pinned + running apps, grouped windows, clock/tray at the right; implemented with Plasma's panel + our layout script; options chosen from measurement on a booted image (R-SHELL-1); touch-friendly sizes; configurable position (bottom default).
+- [ ] **W15.2 Start menu (M).** Searchable, keyboard-first (`Meta`), pinned grid + recommended (recent apps only; no recent documents in privacy mode), power menu, user card; built from Plasma components (Kickoff variant or Application Dashboard) styled with our tokens; no Microsoft assets.
+- [ ] **W15.3 Folders and file manager (M).** Dolphin with HCS sidebar places (Home, Documents, Downloads, Pictures, Videos, Music, Projects, SecurityLabs when enabled, Network, Trash), rounded look, breadcrumb, preview pane, quick actions (open with HCS Image/Video); file associations point to the HCS viewers.
+- [ ] **W15.4 Windows (S).** Rounded corners where the compositor supports it without breaking apps, title bar buttons right, snap layouts from W5.5, Alt+Tab switcher, Overview; all verified by screenshots and key-injection tests.
+- [ ] **W15.5 Settings/Control Center parity (S).** One place for appearance, display, network, security, apps; real values only.
+- [ ] **W15.6 Performance guard (S).** Blur/translucency/animations follow the graphics profile and Reduced Motion; idle cost recorded (W12.3).
+
+### W16 - HCS Image and HCS Video
+
+- [ ] **W16.1 HCS Image (L).** Qt Quick app: open folder as a filmstrip, zoom/pan/rotate, slideshow, keyboard + mouse + touch gestures, formats via `QImageReader` + `kimageformats` (JXL, AVIF, HEIC, WebP, TIFF; RAW only if a library with a verified licence is present), EXIF panel with one-click **strip metadata and save a copy**, copy to clipboard, "open in editor" (GIMP/Krita). Decoding runs with size limits; fuzz tests on the file-opening path with malformed files; no network access. **Gate:** unit tests for the model layer, QML tests, VM screenshots, a corrupt-file corpus that must not crash the app.
+- [ ] **W16.2 HCS Video (L).** Qt Quick app on MpvQt/libmpv: playlist, subtitles, audio/subtitle track menus, speed, A-B loop, thumbnails on the seek bar if cheap, hardware decoding option (`hwdec=auto-safe`), HCS controls overlay, keyboard-first; licence check first (MpvQt, libmpv); codecs only from the distro archive. **Gate:** plays a generated test clip (ffmpeg testsrc) in the VM, seek and pause verified by screenshots and mpv's own state, software decode path works on the virtual GPU.
+- [ ] **W16.3 Alternatives stay installable (S):** Gwenview and Haruna entries in the Creator/Media bundles.
+- [ ] **W16.4 Association and thumbnails (S):** default apps, thumbnailers (Dolphin/Plasma) still work.
+
+### W17 - Office and creative suite
+
+- [ ] **W17.1 Office (M).** Measure what the ISO contains (`dpkg -l libreoffice*`, VCL plugin, size); HCS colour scheme and icon theme pairing for Writer/Calc/Impress in light and dark; templates (CV, letter, report) in EN/DE/FR; default-app associations; a document round-trip test in the VM (headless convert docx -> pdf) as a smoke test; note the branch end-of-life (Nov/Dec 2026) and the update path.
+- [ ] **W17.2 Creator bundle (S).** GIMP 3.2, Krita 6, Inkscape, darktable as an opt-in bundle (apt packages only, sizes measured by apt simulation, no snaps); `hscl dev setup creator` uses the typed install action (W1.3).
+- [ ] **W17.3 Krita AI Diffusion (M, opt-in).** Install flow with licence/model prompts, local ComfyUI backend using our backend detection (CPU/Vulkan/ROCm), clear VRAM/RAM expectations from `hscl ai fit`; EXPERIMENTAL until one real generation is recorded.
+- [ ] **W17.4 Quick image tools (S).** Context-menu actions (resize, convert, strip metadata) in Dolphin through a typed, sandboxed helper (W19.2), not shell strings.
+
+### W18 - Pentest suite, API and MCP (authorized testing only)
+
+- [ ] **W18.1 Typed tool registry (M).** One registry (Rust) describing each tool: id, container image/toolset, fixed argv template with typed parameters (target, ports, rate, wordlist from an allow-list), risk class (passive, active, intrusive), required scope, default timeout, output parser, annotations. Initial tools: nmap (ping/service scan with rate limit), whois, dig, tcpdump (on a lab interface only), tshark (read a given pcap), nikto/ffuf/gobuster (web, active), sqlmap (intrusive, off by default), john/hashcat identify-only; more groups follow the Kali `kali-tools-*` metapackages inside the container image, installed on request, never `kali-linux-everything`.
+- [ ] **W18.2 Scope and authorization engine (M).** A project has a scope file (hosts/CIDRs the user typed, default: loopback and the lab network only); every active tool call is checked against it **before** the container starts and the container network is limited to the scope (user-mode network with an allow-list or a lab bridge); first use per project shows the authorization reminder and requires a typed confirmation (EN/DE/FR); intrusive tools need a second confirmation each time; all calls are logged locally (who/what/target/time, no secrets). **Gate:** tests that out-of-scope targets, wildcard scopes outside lab ranges, DNS-rebinding style names resolving outside scope, and chained commands are refused; a VM test shows the container cannot reach an out-of-scope address.
+- [ ] **W18.3 Job API (M).** Local REST API (OpenAPI document generated from the registry), loopback only, bearer token in the user's runtime directory, job lifecycle (create -> confirm -> run -> result -> delete), size and time limits, structured results (JSON), artefacts stored in the project's lab folder.
+- [ ] **W18.4 MCP server for the same registry (M).** Tools mirror the registry; passive tools are marked `readOnlyHint`; active/intrusive tools are **not directly executable**: the MCP call creates a pending job and returns "awaiting user confirmation" (the human confirms in the HSCL1 UI or CLI), because annotations are only hints; elicitation is used where the client supports it, never treating silence as consent; stdio first, Streamable HTTP with OAuth 2.1 only after the spec pages are read; evaluate `rmcp`.
+- [ ] **W18.5 Control Center "Security Lab" page (M).** Projects, scope editor, tool picker with risk badges, running jobs, results, the authorization state; EN/DE/FR; keyboard operable.
+- [ ] **W18.6 Safety review (S).** Threat model section: prompt injection through tool output (results are data, never instructions), tool poisoning, scope bypass, container escape assumptions, log hygiene; fuzz the parameter validators.
+- [ ] **W18.7 Not shipped (statement).** Community pentest MCP servers (including any labelled official without verification), exploit frameworks enabled by default, anything that can run without a scope.
+
+### W19 - Desktop API and MCP for AI (premade, safe)
+
+- [ ] **W19.1 Registry for desktop tools (M).** Typed tools: `image.info/convert/resize/strip_metadata`, `video.info/probe/extract_thumbnail`, `office.convert` (headless LibreOffice to PDF), `files.search` (inside allowed roots), `system.status/hw/ai_fit`, `wallpaper.generate`, `theme.set` (existing); each with limits, allow-listed formats and paths, read-only by default; write tools require `--allow-write` or a UI confirmation like the existing MCP.
+- [ ] **W19.2 Sandboxed media helper (M).** Image/video/office conversions run in a rootless container or an equivalent sandbox without network, with `policy.xml`-class limits for ImageMagick or libvips, `-protocol_whitelist file` style limits for ffmpeg (read from primary docs when implementing), time/memory caps; hostile-file tests (decompression bombs, oversized dimensions, polyglots, odd containers) must fail safely.
+- [ ] **W19.3 OpenAPI + MCP generated from one source (S).** Single registry -> OpenAPI JSON and MCP `tools/list`; a test compares them; docs page generated, no hand-written drift.
+- [ ] **W19.4 Local-agent recipes (S).** `docs/AI_API.md` with copy-pasteable configs for OpenCode/Aider/Goose pointing at the local endpoint and the MCP server, and a short "what an agent may and may not do" section.
+
+### W20 - Hardening addendum
+
+- [ ] **W20.1 Measure with the archive's tools (S).** `kernel-hardening-checker` against the booted image's kernel config, cmdline and sysctl; `lynis audit system` (read-only); results stored under `artifacts/`; a findings table in `docs/THREAT_MODEL.md` with decision per item (fix / accept / not applicable).
+- [ ] **W20.2 Cheap fixes first (M).** Apply only items that demonstrably change a measured value and do not break the desktop, one commit each with the before/after, re-measure.
+- [ ] **W20.3 Release gate (S).** The measured scores and the list of accepted findings are part of the release notes; no number is quoted without the command that produced it.
+
+## A3. Updated order of work
+
+1. W0 verified fix (rebuild + fresh install shows `/` as `0:0`), W13 (name and `hscl1`), W14.1-W14.2 (release `v0.1.1-alpha.0` with the online merger) - **before further features**, because the published alpha carries two security defects.
+2. W14.3-W14.5 (README, screenshots, website) while the VM matrix runs.
+3. Host-testable core work: W1, W2, W5.1-W5.3, W6.1, W18.1-W18.2 (registry and scope engine), W19.1 (registry), W16.1 model layer.
+4. One image rebuild for the new packages/apps (podman, viewers, shell layout, KRunner runner), then the VM matrix and screenshots.
+5. Remaining shell/office/creative work and the HTTP/MCP transports after the primary spec pages are read.
