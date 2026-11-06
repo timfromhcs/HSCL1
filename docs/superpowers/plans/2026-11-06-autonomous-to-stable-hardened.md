@@ -32,6 +32,45 @@ release gates on that exact artefact; (3) publish 0.1.2-alpha.0 through the draf
 
 ---
 
+## 0b. Master map: all plans, critical path, release train (added 2026-11-06 after reading every plan file)
+
+### Plan map (12 files in `docs/superpowers/plans/`)
+| File | Role | Status | Read it for |
+|---|---|---|---|
+| `2026-11-06-autonomous-to-stable-hardened.md` (this) | **MASTER**: order, gates, phases P0-P31, register of open questions | ACTIVE | what to do next and what counts as done |
+| `2026-11-06-forge-loop.md` | control script `forge`, patch/debug/rebuild/split/upload and cloud merge | ACTIVE | the build/test/release loop in detail |
+| `2026-11-06-freeze-devmode-memory-tiering.md` | freeze a working OS into a new ISO, dev mode (sysext), memory advisor, KV compression, RSI guard | ACTIVE (P15-P17) | experiments E1-E3, `hscl ai tier`, protected paths |
+| `2026-11-06-local-agent-harness.md` | local-model agent harness built from the published patterns | ACTIVE (P24) | experiments A1-A12, sandbox choice |
+| `2026-11-06-own-gpu-backend.md` | levers before kernels, own Vulkan micro-library, matrix bridge, lab inventory of this PC | ACTIVE (P25-P27) | B0-B5, L1-L4, tests T1-T10, benchmark method |
+| `2026-11-06-ux-ai-hardware-expansion.md` | product work W0-W24 (UI/UX, shell, viewers, office, pentest API/MCP, hardening reports) | ACTIVE as product backlog | W-numbers referenced everywhere |
+| `2026-11-06-long-horizon-to-v2.md` | first long plan | SUPERSEDED | history only |
+| `2026-11-05-hscl1-to-v2-stable.md` | milestones M0-M4 (PoC, brand, base OS, desktop, control surface) | HISTORICAL: brand, security package, CLI, Control Center, Workshop exist in code | unique leftovers are listed in P28 |
+| `2026-11-05-path-to-next-stable.md` | W0-W8 ladder (build engine, prebuilt image, updates, boot hardening, visual QA, release) | HISTORICAL: W0 build engine done (overlay cache), LUKS and the release path done | leftovers in P28 |
+| `2026-11-05-prebuilt-image-and-updates.md` | OEM prebuilt disk image, `remaster --upgrade`, update check | HISTORICAL: install verification done (U1), rest open | leftovers in P28 |
+| `2026-11-05-workshop-main-iso.md` | one main ISO with Workshop (daemon, VM API, MCP, respin), HCS look | HISTORICAL: implemented and VM-verified | respin API ideas in P15/P22 |
+| `2026-11-05-ai-coding-wallpaper-studio.md` | local AI catalogue, coding tools, `hscl mcp`, Wallpaper Studio, low-VRAM switch | PARTLY DONE (`hscl ai fit`, `hscl lab`, wallpaper effects) | leftovers in P28 |
+
+### Critical path (dependencies, not wishes)
+```
+0.1.2-alpha.0 release (running)
+   -> evidence into BUILD_LOG/CLAIMS, merge plans PR, orchestrator into the repo as `forge release`
+   -> SPRINT 1 "measure before building": P25 B0 (needs llama.cpp b12130 + 3 small GGUF), P18 egress audit (idle pcap), P19 upgrade-persistence inventory,
+      P20 keyboard layout at disk unlock, P22 source offer text, P7.8 OCR banned-string gate
+   -> SPRINT 2 "faster loop + cheap speed levers": forge build/boot/test (+ serial classifier wired in), delta layer T3, L1-L4 (MoE, batching, prefix reuse, speculation)
+   -> SPRINT 3 "matrix bridge + UX": B1-B4 (own kernels with the autotuning loop and stop rule), welcome app (W23.1), Control Center pages, visual QA matrix, installer DE/FR
+   -> SPRINT 4 "agents + hardening evidence": A1-A12 local harness, P3.11 measured hardening report, P8 reproducibility, P9 attestation + SBOM of the ISO
+   -> owner-dependent gates (parallel, never blocking the above): trademark/legal review, key policy, DE/FR review, physical-hardware boot (V6), immutable releases, network defaults
+```
+
+### Release train (every step is a prerelease until all AGENTS.md section 20 gates are green)
+| Version | Content | Entry gate |
+|---|---|---|
+| 0.1.2-alpha.0 | rebrand round, live identity, forge check, boot classifier | gates on the exact artefact (running) |
+| 0.1.3-alpha.0 | egress audit result and decisions, source offer, upgrade persistence, branding scanner clean (OCR + content), keyboard-layout unlock verified | P18, P19, P20, P22, P7.8 done |
+| 0.2.0-alpha.0 | speed levers (L1-L4) with measured tables, delta-layer dev loop, welcome app, Control Center pages, README rewrite with harness screenshots | Sprint 2 and 3 evidence |
+| 0.3.0-beta.0 | owner hardware report (V6), measured hardening report (P3.11), reproducibility statement, attestation, SBOM of the ISO | owner boots the image on the 7735HS; P8, P9 |
+| 1.0.0 | AGENTS.md sections 14.2 and 20 all ticked or limits written | everything above |
+
 ## 1. Operating principles (distilled from what went wrong today)
 
 1. **Prove it from the finished artefact.** A gate that inspects the file we meant to ship is worthless when the shipped file differs (the
@@ -304,7 +343,105 @@ Research (second round): the Mythos system card describes its harness only gener
 - Third research round: Anthropic's own engineering pages read directly (long-running harness: same harness, initializer prompt creates `init.sh`, progress file, JSON feature list; SWE-bench scaffold: two tools, absolute paths; context engineering; multi-agent: tokens explain 80 % of variance; think tool; context management). Guesses G1-G10 about how such work operates are **hypotheses with research for/against, not facts**, and each maps to an experiment (section 8-9 of the harness plan).
 - [ ] build-vs-adopt decision recorded with licences and pinned versions | [ ] `hcs-agent` CLI only after A1-A8 numbers exist; no model or scaffold is called good without three-run medians
 
+### P25 - Local inference speed: levers first, own Vulkan micro-backend second (detail: `2026-11-06-own-gpu-backend.md`)
+Research (rounds 1-3): decode on an iGPU is bound by the same DRAM bandwidth as the CPU path; ZLUDA is a hobby project that needs ROCm and carries a possible licence question; free-form LLM kernel generation is weak (KernelBench: under 20 % match the baseline) while templated parameter tuning is the part reported to work; no Radeon 680M numbers were found; driver version moves prompt-processing results by about 13 % on a sibling chip. **A "better ZLUDA" is not planned; a small measured Vulkan micro-library is, and only after the cheap levers.**
+- Inventory of this PC (2026-11-06, measured, detail in section 12 of the GPU plan): four equal 6 GB LPDDR5 channels at 5500 MT/s (rated 6400), 19.8 of 24 GB visible, Radeon 680M with the Windows AMD driver 26.6.1, Vulkan device-local heap 9.1 GiB, subgroup 64 (32-64), cooperative matrix and external-memory-host extensions present, validation layer and `glslc`/`slangc` installed, Balanced power plan, **no llama.cpp binaries and no small GGUF models yet** (to fetch with hash checks: pinned build b12130 win-vulkan-x64/win-cpu-x64, a ~3B dense model, a 0.5B same-family draft, a small MoE, the f16 2B probe model)
+- [ ] B0 baseline + memory probe (adds: cooperative matrix on/off, High performance plan, driver and power plan in every row): `vulkaninfo`/`--list-devices` (warp size, fp16, cooperative matrix), DIMM layout and speed (WMI/CPU-Z), STREAM-style bandwidth at several buffer sizes, `llama-bench` CPU vs Vulkan with 1..16 threads, 3 runs, **Mesa/driver version recorded**; Windows host and image measured as separate experiments
+- [ ] L1 MoE vs dense on our machine + *bytes per token* in `hscl ai fit` | [ ] L2 `-np` batching sweep (feeds A10) | [ ] L3 KV prefix reuse for agent loops (slot save/restore, pinned slot, byte-identical prefix) | [ ] L4 speculative decoding: draftless n-gram first, small draft second, EAGLE-3 only if the pinned build ships it; benchmark server and the simple example
+- [ ] B1 own micro-kernels (bandwidth triad, quantised GEMV, tiled GEMM, split-K) with correctness tests T3-T9 (metamorphic, shape fuzzing, mutation, three-way differential, end-to-end KL, validation-layer debug run, determinism, sustained run) | [ ] B2 apples-to-apples vs ggml-vulkan | [ ] B3 decision gate (beat ggml-vulkan on two shapes over 3 runs, or publish the negative result) | [ ] B4 autotuning loop under the RSI guard (protected evaluator, held-out shapes, disposable sandbox, archive) | [ ] B5 feed measured bandwidths into the advisor (P16)
+- [ ] KL quality gate for compressed KV with stock `llama-perplexity` (`--kl-divergence-base` then `--kl-divergence`), threshold calibrated on our 2B model
+- Not planned: CUDA binary translation, PTX handling; needs a separate legal review if the owner asks.
+
 ---
+
+## P26 - Virtual hardware test lab: how far "emulating real hardware in a VM" really goes (owner request; research round 4)
+A VM cannot hand this PC's Radeon 680M to the guest with the tools available on a Windows host. What exists, with what the sources say:
+- **QEMU/Venus (virtio-gpu Vulkan forwarding):** needs the Venus renderer in virglrenderer, a host Vulkan driver with Linux-side extensions (`VK_EXT_external_memory_dma_buf`, `VK_EXT_image_drm_format_modifier`), QEMU invoked with `-device virtio-gpu-gl,...,venus=true` and a render server; documented as experimental; **nothing found for Windows hosts** (https://docs.mesa3d.org/drivers/venus.html).
+- **Hyper-V GPU partitioning (GPU-PV) for Linux guests:** unofficial; needs `dxgkrnl` built from Microsoft's WSL2 kernel tree via DKMS (not in mainline), `Add-VMGpuPartitionAdapter`, vendor driver parts copied from the host; best documented for NVIDIA; AMD/Intel support unclear; first check `Get-VMHostPartitionableGpu` on this PC (https://gist.github.com/krzys-h/e2def49966aa42bbd3316dfb794f4d6a).
+- **WSL2 with Vulkan over D3D12 (Mesa `dzn`):** `/dev/dxg` exists in WSL2, `/dev/kfd` does not; Ubuntu's `mesa-vulkan-drivers` (26.0.3 in the report) does **not** ship `dzn`, so WSL shows only llvmpipe unless Mesa is built from source; dzn is non-conformant; one Intel-iGPU report measured about 2/3 of native Windows speed; **no AMD iGPU report found** (https://github.com/ggml-org/llama.cpp/discussions/26729).
+- **Software Vulkan (lavapipe):** Mesa's CPU Vulkan driver, usable in CI without a GPU (forum statement), subgroup extensions exposed in a Mesa merge request; conformance status needs checking against current Mesa docs; the ICD selection variable and package details were not confirmed.
+- **QEMU virtual hardware profiles:** `-smbios type=1|2|3` fields (manufacturer, product, version, serial, uuid, sku, family; baseboard and chassis variants) map to the DMI names that `dmidecode` and `/sys/class/dmi/id` expose (the accepted fields depend on the QEMU version: read `--help`); the chassis type code and battery emulation were **not** found (likely custom ACPI tables, UNVERIFIED).
+- **KVM inside WSL2:** `nestedVirtualization=true` in `.wslconfig` (default on for amd64 on Windows 11 per one reference); on AMD check `/sys/module/kvm_amd/parameters/nested`; no Ryzen performance data found.
+
+**Lab levels (each hardware-dependent claim in CLAIMS records the level it was verified at):**
+| Level | What | Good for | Not good for |
+|---|---|---|---|
+| V0 | fixtures and synthetic sysfs/DMI/PCI trees in unit tests (`hw.rs`, `hscl ai fit`), plus captured real dumps (the Windows `vulkaninfo` of this PC is already saved as `artifacts/vulkaninfo-host.txt`) | parsers, edge cases, redaction | anything about real behaviour |
+| V1 | QEMU profiles: tiny (2 vCPU, 2 GB), laptop-like (8 vCPU, 8 GB, SMBIOS manufacturer/product/chassis set), workstation (16 GB, 4 disks of different bus types); `-cpu`/`-smp`/`-m` variants | installer disk selection, low-RAM behaviour, `hscl hw` on odd inputs, DMI-based logic | GPU, power, thermal |
+| V2 | lavapipe software Vulkan in the VM and in CI | **correctness** of our Vulkan kernels (T3-T9) without a GPU, shader compile, API misuse | speed, cooperative matrix, driver quirks |
+| V3 | real GPU through the **Windows host driver**: llama.cpp b12130 win-vulkan and the Rust micro-bench run directly on Windows | **performance numbers** for the 680M (the primary performance lab) | the HSCL1 image and RADV |
+| V4 | WSL2 + self-built `dzn` | Linux-side API smoke on the real GPU if V3 is not enough | performance claims (translation layer, non-conformant) |
+| V5 | Hyper-V GPU-PV Linux guest | experiment only, after `Get-VMHostPartitionableGpu` shows the GPU | anything official |
+| V6 | **bare metal**: the owner boots the HSCL1 live ISO from a USB stick on the 7735HS (the only way to see RADV on the real 680M with the image) | RADV numbers, GTT/TTM facts, suspend, Wi-Fi, audio, brightness, sensors | CI |
+| V7 | virtio-gpu Venus | only on a Linux host | this machine (Windows host) |
+Rules: V6 is a **physical-hardware step: the owner does it**, we only prepare the stick image instructions (hybrid ISO, DD mode) and a hardware-report collector that redacts identifiers by default and never writes to an internal disk. No claim is "works on hardware" below V6; no speed claim below V3; V2 may prove correctness but never speed.
+- [ ] L-V0 save the real dumps of this PC as fixtures (`vulkaninfo`, WMI memory/CPU/GPU, `powercfg`) under `tests/fixtures/hw/` after redacting serials | [ ] L-V1 three QEMU profiles in the harness (`--profile tiny|laptop|workstation`) with SMBIOS fields and a test that `hscl hw`/`doctor` see them | [ ] L-V2 lavapipe availability in the image and in CI (`vulkaninfo` with the software ICD), Vulkan correctness job (skips with an explicit reason when no software ICD exists) | [ ] L-V3 B0 on the Windows host | [ ] L-V4 `Get-VMHostPartitionableGpu` and WSL2 `/dev/dxg`/`/dev/kvm` probes (cheap, informational) | [ ] L-V6 owner checklist `docs/HARDWARE_TEST.md` + `hscl hw report --redact` (planned)
+
+## P27 - Matrix software bridge (owner request: build it, benchmark, modify until it beats the baseline)
+**What the bridge is.** One small Vulkan GEMM/GEMV library (`hcs-matrix`, Rust + `ash`, shaders in GLSL compiled with `glslc`) with a C ABI, and three consumers: (1) the ggml backend route of P25 (Stage 1/2), (2) an **NVBLAS-style BLAS shim** (a library that intercepts `cblas_sgemm`/`sgemm_` for large problems and falls back to the CPU BLAS for small ones), (3) our own tools (`hscl ai tier`, benchmark harness). Facts from the research: NVBLAS offloads only Level-3 BLAS, is injected by linking ahead of the CPU BLAS or by `LD_PRELOAD`, is configured by a text file with a CPU fallback BLAS and a CPU-ratio keyword, must not be set globally and must never run in an elevated process; it only works for dynamically linked BLAS; the best offload threshold depends on the relative GPU/CPU strength and latency and should be user-adjustable; a unified-memory study intercepts BLAS symbols and decides by workload size (https://docs.nvidia.com/cuda/pdf/NVBLAS_Library.pdf , https://arxiv.org/pdf/2404.13195).
+**Why it may win on this machine (OWN arithmetic, assumptions stated).** Peak FP32 of the 680M is 768 shaders x 2 x 2.2 GHz = 3.38 TFLOPS (6.76 FP16 packed; TechPowerUp, a spec-sheet peak). A Zen 3 core with two 256-bit FMA units does 32 FP32 FLOP/cycle; 8 cores at an assumed 3.5 GHz all-core = about 0.9 TFLOPS peak (**assumption, measure with a CPU BLAS**). Large GEMM is compute-bound, so the GPU could be up to about 3.7x the CPU on paper; decode GEMV is bandwidth-bound and stays equal. On an APU the buffers live in the same DRAM, so the transfer cost can approach zero if host memory is imported (`VK_EXT_external_memory_host` is present on this device), which would lower the break-even size a lot.
+**What the anecdotes say about alternatives:** DirectML/ONNX/WebGPU paths were reported slower than CPU on Ryzen 680M/760M-class iGPUs and Torch ROCm does not support them (forum snapshots, anecdotal), a 2026 guide recommends Vulkan first for llama.cpp on Windows and large-memory APUs. So Vulkan compute is the bridge's transport.
+**Method (the loop the owner asked for), with a stop rule:**
+1. Baselines first: `vkpeak`-style peak FP32/FP16 measured by our own kernel, **CPU SGEMM through `numpy.matmul` (OpenBLAS) for 512..4096 on this PC** (no new install needed), `llama-bench` CPU vs Vulkan (B0).
+2. Kernel ladder, one change per step, each measured on the same shapes with 30 repetitions: naive -> shared-memory tiling -> 2D register blocking -> vec4 loads -> subgroup size choice (32 vs 64) -> double-buffering -> cooperative matrix variant (if the probe lists FP16/FP32 types) -> split-K for skinny shapes. The CUDA worklogs found report the same ladder (tiling, thread tiling, vectorised loads, warp tiling reaching about 90 % of the vendor library on NVIDIA; the transfer to RDNA2 is **UNVERIFIED**).
+3. Correctness gate before every measurement (T3-T9); a step that fails is reverted, not tuned.
+4. **Success criteria (written before measuring):** (a) own SGEMM reaches at least 1.0x the CPU `numpy.matmul` GFLOPS for sizes at or above a break-even N0 including the host-to-device cost (zero-copy variant reported separately); (b) at least 50 % of the measured FP32 peak at some large size or a documented reason why not; (c) for LLM shapes, equal or better than the ggml-vulkan kernel on two shapes over 3 runs, else the negative result is published.
+5. **Stop rule:** stop tuning when three consecutive ladder steps or autotune rounds gain less than 3 % on every tracked shape, or after a budget of 16 working hours, whichever comes first; write what was learned. Every iteration is one line in `artifacts/gemm-archive.jsonl` (kernel version, parameters, shapes, medians, driver, power plan).
+6. BLAS shim only if (4a) holds: threshold learned from the break-even curve, configurable, CPU fallback, off by default, never active for privileged processes (as NVBLAS warns), covered by a test that a small GEMM never leaves the CPU.
+- [ ] M0 baselines (peak FP32/FP16, `numpy.matmul` CPU curve, `llama-bench`) | [ ] M1 kernel ladder with correctness gate | [ ] M2 zero-copy variant via external memory host | [ ] M3 break-even curve and success-criteria verdict | [ ] M4 BLAS shim (conditional) | [ ] M5 consumer integration (ggml route or tools)
+
+## P28 - Carry-over backlog from the older plans (unique open items found while reading all plans; each keeps its home plan's wording)
+- From `path-to-next-stable` / `prebuilt-image-and-updates`: **OEM prebuilt disk image** (qcow2 via Calamares OEM mode with credential scan: no extra users, no SSH keys); **`remaster --upgrade`** (apt dist-upgrade of the overlay, regenerate the casper initrd, kernel/initrd consistency check); **update row in the Control Center** from the allow-listed `hscl system updates --check`; **installer in DE and FR** with screenshots of every page; **fault injection** (kill mid-copy, full disk, no network) = P2.6; **Secure Boot read in the guest** = P2.7.
+- From `hscl1-to-v2-stable`: `clap_mangen` **man pages and shell completions** in the base package; **privileged helper + Polkit** with a finite typed operation set and a test that fails on `allow_any=yes`; **`docs/DECISIONS.md`** with ADRs (image pipeline = remaster, Workshop, rain wallpaper); `scripts/ci-local.sh` that mirrors CI; licence report into `docs/LICENSES.md`; the AGENTS.md section 13.2 documentation set (several files still missing).
+- From `ai-coding-wallpaper-studio` / `long-horizon`: `hscl ai` model catalogue with licence prompts and checksums; **`hscl-llama` package** (pinned llama.cpp, Vulkan + CPU) with an in-VM server smoke test; coding-tools catalogue and `hscl code`; `hscl mcp` stdio server (read-only default); **Wallpaper Studio** page; **low-VRAM switch**; memory-pressure test in a 4 GB VM with earlyoom/zram and the `hscl-ai.slice` limits; Blender and Godot MCP servers with finite typed tools; media-AI catalogue entries only with licence + sha256 + one real run.
+- Repository security settings (GitHub private vulnerability reporting, secret scanning with push protection, Dependabot alerts): **owner decision** (repository settings), recommended; listed in the owner list.
+- Tick rule: an item leaves this list only when its home plan's evidence rule is met (test or VM run), or it is deleted with a written reason.
+
+## P29 - Brand system v2 and every logo surface (owner request: better logos, custom logos everywhere incl. the "Welcome to Kubuntu" popup)
+Better Design's tool quota ran out (25 free queries); design rules below are my own, to be checked against the Better Design principles when the owner creates the free account (UNVERIFIED against that source). **Design rules:** (1) the mark must survive 16 px (tray, favicon) and 512 px (About, installer): two cuts, a **small mark** (no detail, no gradient, one colour) and a **large lockup** (mark + word `HSCL1`); (2) one-colour variants (mono dark, mono light) for GRUB, Plymouth text mode, and printed docs; (3) contrast: logo against its background at least 3:1 (large graphic, WCAG 1.4.11) and the word at least 4.5:1; (4) the name is always `HSCL1`; (5) no Apple/Windows/Kubuntu/Kali/Tails/Omarchy shapes; (6) motion on the splash is a slow pulse only and respects reduced motion where the surface allows it (Plymouth cannot read the user's setting; keep it subtle by default); (7) every surface is generated from ONE source SVG by `scripts/gen_brand.py` (no hand-edited PNGs), with a test that fails when a generated file differs from the generator output.
+
+**Surface inventory (each row: where it lives, state, how to prove it)**
+| Surface | Today | Target | Proof |
+|---|---|---|---|
+| Plymouth boot / disk unlock | done (`hscl1-logo`, pulsing lockup) | regenerate from the v2 mark | initrd gate + screenshot of unlock screen |
+| GRUB menu | text entries "HSCL1"; no theme | small GRUB theme (background + logo + selected item), fallback to text | ISO file check + serial/screenshot |
+| SDDM login | `hscl1` theme exists; `showlogo` upstream bug 468070 | logo via `theme.conf.user` override, check it renders | login screenshot |
+| Plasma splash (after login) | `[KSplash] Theme=org.kde.Breeze` (KDE logo) | own look-and-feel package with `contents/splash/Splash.qml` (HSCL1 lockup, fade in, no QtQuick.Particles) | screenshot sequence at login; `lookandfeel` file check |
+| Global themes | renamed "HSCL1 Classic"; `DefaultLightLookAndFeel=org.kubuntulight.desktop` | HSCL1 Dark (default) + HSCL1 Light as real packages; light default pointing at ours | `plasma-apply-lookandfeel --list` in VM + config file test |
+| Plasma Welcome (the "Welcome to Kubuntu/Plasma" popup) | first-page text and Konqi image from the distro-customisation file; our extra page `01-HSCL1.qml` added | `intro-customization.desktop` with HSCL1 text/image; audit all 7 pages one by one (default pages cannot be removed, KDE bug 499555: rename/reword by customisation, do not delete); the "Get Involved" page text reviewed | screenshot of every page, OCR banned-string gate |
+| System Settings > About / `kcm-about-distrorc` | distro name set | LogoPath = our mark, Website/Bug URLs ours | screenshot |
+| Calamares installer | slideshow/branding done, donate link off | v2 mark in sidebar/logo/welcome; product strings checked in DE/FR | installer screenshots (exists in e2e) |
+| Kickoff/launcher icon, panel icon | start icons replaced | mark on a mono small cut | screenshot at 100 % and 200 % scale |
+| Lock screen / wallpaper family | wallpaper exists | lock screen uses the lighter static variant | screenshot |
+| Website favicon/OG image | exists | same generator output | build check |
+- [ ] P29.1 `scripts/gen_brand.py` from one SVG (mark, lockup, mono, 16..512 px, ICO) + drift test | [ ] P29.2 Plasma splash package + light/dark look-and-feel | [ ] P29.3 Welcome Center pages audit and customisation file | [ ] P29.4 GRUB theme | [ ] P29.5 SDDM logo override and verify | [ ] P29.6 OCR gate: no "Kubuntu"/"Canonical"/KDE-donate strings on any screenshot except where legally required (e.g. About upstream credits) | [ ] P29.7 contrast test script for the generated assets
+
+## P30 - Menus, documentation, custom apps, commands, preinstalled software (owner request)
+**Preinstalled policy (derive, do not guess).** Source of truth is the image's own `dpkg` status plus `apt-cache depends kubuntu-desktop`: produce `docs/PACKAGES.md` with three columns per package group: KEEP (needed by the desktop/installer), REMOVE (flavour-specific or unwanted, e.g. donation/tour/bug-avatar leftovers; only with dependency analysis, AGENTS.md 5.1 "no bloat"), OPTIONAL (offered in the welcome app as bundles: Developer, Creator, Security Lab, Privacy, Local AI). Rule: nothing is removed without `apt-get -s remove` showing no desktop-meta removal; every REMOVE has a gate in `verify-image.sh`.
+**Menus.** Kickoff/application menu categories as in AGENTS.md 4.2 (Favorites, Development, Internet, Office, Graphics, Multimedia, System, Security Lab only when enabled, Privacy). Menu ordering is done with a system `applications-merged`/`kmenuedit`-compatible menu file shipped in `hscl-branding`; test: `kbuildsycoca6` succeeds in the VM and a script lists categories from the menu cache. Control Center sections follow AGENTS.md 4.2 (14 sections); only sections with real state are shown.
+**Commands (`hscl`).** Man pages and shell completions generated at build time (`clap_mangen`, `clap_complete` from `build.rs`), shipped in the package; `docs/CLI.md` is generated from `hscl --help` for every subcommand and a test fails when the committed file differs. **KRunner:** a D-Bus runner (`org.kde.krunner1`, DBus2 plugin) exposing ONLY an allow-listed set of read-only `hscl` actions (status, doctor, theme, language) — never free-form shell; test: the runner source has no `sh -c`/`system`/`eval`.
+**Custom apps (shipped, small, real).** Welcome app (first boot, W23.1), HSCL1 Control Center (QML shell exists, pages get real data), shortcut reference (`Meta+K`), "Install HSCL1" entry, Wallpaper Studio (later), Local AI page. Each app: desktop file with proper categories, translated name/comment (en/de/fr), icon from the brand generator, keyboard-accessible, and a launch smoke test in the VM.
+**Documentation.** Handbook EN/DE/FR (`docs/handbook/`): first steps, desktop tour, keyboard shortcuts, install/USB/VM, security modes, privacy limits, Security Lab, Local AI, troubleshooting, recovery; the same pages are shown in the welcome app/offline (installed package, no network needed). Link-check and "commands in docs are executed" test (extract fenced `hscl` commands, run `--help`/`--dry-run` variants in CI).
+- [ ] P30.1 `docs/PACKAGES.md` from real dpkg data + REMOVE gates | [ ] P30.2 menu file + category test | [ ] P30.3 man pages/completions via build.rs | [ ] P30.4 generated `docs/CLI.md` + drift test | [ ] P30.5 KRunner runner (allow-list) + source test | [ ] P30.6 apps' desktop files i18n + launch smoke test | [ ] P30.7 handbook EN, then DE/FR with owner review flag
+
+## P31 - Desktop wallpaper, effects and GPU/VRAM governor (owner request: better background, less VRAM, nicer UI/UX, more efficient, smarter offload)
+**Facts found (sources are docs/forum snippets, verify in the image):** Plasma/KWin has no adaptive animation quality; PowerDevil can switch off desktop effects on battery only; wallpaper plugins run inside the shell, so a heavy animated wallpaper costs GPU time and memory all day. amdgpu exposes `mem_info_vram_used`, `mem_info_gtt_used` and per-process `fdinfo` (`drm-memory-*`, `drm-engine-*`) under sysfs/procfs, so a governor can read real use without extra tools.
+**Design (small, measurable, off the hot path):**
+1. **Budget first:** measure idle VRAM/GTT, GPU engine busy and CPU of the current rain wallpaper in the VM (V1 profile) and on the host (V3/V6 when available). Targets are set after the measurement, not before.
+2. **Wallpaper governor** (a user service, 1 s poll or event-driven): pause the animation when a window covers the desktop (all windows maximised/fullscreen), on lock/idle/battery-saver; cap at 30 fps; render at reduced resolution and scale up when the GPU is busy; pre-rendered still fallback (also the Privacy/low-power mode). Every state change is logged and reversible; the user can disable it.
+3. **AI offload interplay:** when `hscl ai` loads a model and free VRAM/GTT drops below a margin, the governor switches the wallpaper to the still variant and disables blur/transparency effects (the owner's "low-VRAM switch"); it restores them when the model stops. Smart offload decisions (how many layers on GPU) stay in `hscl ai fit`; the governor only gives memory back to it.
+4. **UI/UX:** Control Center page "Appearance & Performance" shows live VRAM/GTT, GPU busy, wallpaper state, and one clear switch "Low-VRAM mode" (auto/on/off) with an explanation; reduced-motion respected everywhere.
+5. **Tests:** unit tests on parsers with captured sysfs/fdinfo fixtures (V0); governor state machine tests with fake inputs; a VM run proving the still fallback takes over and the process CPU drops (measured, with spread).
+- [ ] P31.1 baseline measurement script + numbers in BUILD_LOG | [ ] P31.2 sysfs/fdinfo readers (`hw.rs`) + fixtures | [ ] P31.3 governor service + state machine tests | [ ] P31.4 AI low-VRAM hook | [ ] P31.5 Control Center page | [ ] P31.6 VM measurement before/after
+
+## Ersatzwege (alternatives researched when the first choice may fail; none is adopted yet)
+| Goal | First choice | Alternative found | Verdict / next check |
+|---|---|---|---|
+| CUDA-like path on AMD iGPU | none (not planned) | chipStar (HIP/CUDA -> SPIR-V -> OpenCL/Level Zero) reported geomean about 0.75x of native HIP on supported GPUs; clspv route for OpenCL-C | needs OpenCL runtime on the 680M, no data; skip unless Vulkan path fails |
+| Faster decode via less memory traffic | ggml-vulkan Q4_K_M | BitNet b1.58 2B4T (GGUF `i2_s`) with bitnet.cpp, claims 2.37-6.17x on x86 CPUs | measure quality and speed on our tasks (L-series); claims are the vendor's own |
+| Portable GPU compute framework | llama.cpp Vulkan | MLC-LLM, Burn, candle, ncnn | no data for the 680M found; not planned |
+| Hybrid CPU+iGPU split | single device | llama.cpp device split / `-ngl` partial offload | caveat: both share the same DRAM bandwidth; measure before promising |
+| GPU in the VM | none | lavapipe for correctness (V2), Windows-host runs for speed (V3), bare metal for RADV (V6) | see P26 |
 
 ## 5. Hardening, verification and testing improvements (cross-cutting, new)
 1. **Content-aware gates**: OCR screenshot gate (P7.8), content scanner (F6), artefact-extraction gates (F5).
@@ -508,6 +645,25 @@ O1 immutable releases on/off (Q11) | O2 network defaults of the base (NTP, GeoIP
 | H12 | What is behind the `[redacted]` markers? | unknowable: do not reconstruct | L | honesty |
 | H13 | Are the secondary harness-design write-ups accurate? | src: read Anthropic's own engineering posts first | M | design |
 | H14 | Run the harness inside the HSCL1 image or only on the host? | owner; default host first | L | scope |
+
+
+### Round 3 additions (inference speed, tools, release hygiene)
+| # | Question | Answer by | Pri | Gate |
+|---|---|---|---|---|
+| V1 | Is the machine's RAM running dual-channel at its rated speed (24 GB layout: 2x12, 8+16, soldered+SODIMM)? | meas B0 (WMI/CPU-Z + STREAM) | H | speed claims |
+| V2 | Bandwidth efficiency of `llama-bench` decode vs STREAM (is any kernel work still useful)? | meas B0/T1 | H | P25 scope |
+| V3 | Prompt-processing and token-generation: Vulkan vs CPU on the 680M (Windows host and image)? | meas B0 | H | AI claims |
+| V4 | MoE vs dense: tokens/s and quality per byte read per token | meas L1 | M | model choice |
+| V5 | Aggregate tokens/s vs `-np` (where does KV read cost flatten the gain)? | meas L2 | M | A10 |
+| V6 | Prompt-processing time per agent step with and without slot reuse | meas L3 | M | P24 |
+| V7 | Draftless n-gram and small-draft speculative decoding: acceptance rate and net speed-up on our coding tasks | meas L4 | M | speed |
+| V8 | Do own kernels beat ggml-vulkan on any real shape? | meas B2/B3 | M | P25 |
+| V9 | KLD of q8_0 KV vs f16 on our model, and the logits-file size for a short slice | meas | M | KV gate |
+| V10 | Does Vulkan validation (GPU-AV) run on our driver and find a planted out-of-bounds write? | meas T8 mutation | L | test depth |
+| V11 | `oscap-chroot` availability and run on the unsquashed rootfs | try in WSL | L | P3.11 |
+| V12 | Which `release-upgrades` Prompt (`never`/`lts`/`normal`) does the owner want for HSCL1? | **owner** | M | update policy (U3) |
+| V13 | Do image and Windows-host numbers agree for the same model (driver difference)? | meas B0 | M | honesty of numbers |
+| V14 | The release itself: does the draft-first, digest-compare flow publish a correct prerelease and does the cloud merger produce the one-file ISO? | the running orchestrator, evidence in BUILD_LOG | H | this release |
 
 ---
 
