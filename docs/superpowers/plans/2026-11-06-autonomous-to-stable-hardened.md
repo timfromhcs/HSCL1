@@ -281,13 +281,14 @@ Each task lists **Gate** (the command or observation that proves it) and **Evide
 - [ ] **P7.7 Website:** remaining pages (install/USB only after a physical test - until then none, privacy, changelog), axe/pa11y-ci + Lighthouse CI
   with budgets (R10), link check, hreflang/canonical with the real `SITE_URL`, Vercel **preview** deployment; **production only with the owner's go**.
 
-- [ ] **P7.x Live-Ansicht bei VM-Laeufen (Owner-Wunsch 2026-11-06, gilt ab dem NAECHSTEN Lauf; laufende Laeufe nicht aendern).**
+- [~] **P7.x Live-Ansicht bei VM-Laeufen (Owner-Wunsch 2026-11-06, gilt ab dem NAECHSTEN Lauf; laufende Laeufe nicht aendern).**
   Jeder visuelle/automatische VM-QA-Lauf (`qemu_boot_test.py`, `workshop/e2e_*.py`, `vm.py`) oeffnet waehrend des Laufs ein Popup-Fenster mit dem Gastbildschirm,
   damit der Owner zuschauen kann. Umsetzung: Flag `--watch` (Standard an bei interaktiver Sitzung, `--no-watch` fuer CI/headless). Option A: QEMU `-display gtk`
   bzw. `sdl` zusaetzlich zu QMP (Screenshots/Eingabe laufen unveraendert ueber QMP). Option B (falls GUI-Display die WHPX/OVMF-Laeufe stoert):
   `-display none` beibehalten und ein kleines Viewer-Fenster (Python/Tk oder `ffplay`), das periodisch QMP `screendump` zeigt (~2 fps), mit Statuszeile
   (Szenario, Schritt, verstrichene Zeit). Anforderungen: Fenster stoert keine Tastatur-/Maus-Injektion, schliesst sich am Ende selbst, Absturz des Viewers
   bricht den Test nicht ab, CI nutzt immer `--no-watch`. Test: Unit-Test fuer Argument-/QEMU-Kommandozeilenbau (watch an/aus) + ein manueller Lauf mit Beleg.
+  **Stand 2026-11-06: IMPLEMENTED (Option B), nicht VM-verifiziert.** `scripts/workshop/watch.py` (Frame-Thread, `HSCL_WATCH`, CI aus) + `viewer.py` (Tk), in `vm.py` eingehaengt (QMP-Lock, `--no-watch`), alle `e2e_*`-Skripte ueber `VmManager`; Unit-Tests `tests/unit/test_watch.py`; Viewer-Smoke-Test ok (Fenster startet). Offen: erster echter VM-Lauf mit sichtbarem Fenster (Beleg), `qemu_boot_test.py` (eigene QMP-Verbindung, Installer-Szenarien) hat noch keine Live-Ansicht.
 
 ### P8 - Reproducibility (R3)
 

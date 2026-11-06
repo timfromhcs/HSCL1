@@ -12,12 +12,19 @@ import socket
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from watch import Watcher, watch_enabled  # noqa: E402  (optional live view of the guest screen)
 import qemu_boot_test as q  # noqa: E402  (reuses Qmp, ppm_to_png, send_keys, type_text, click, double_click)
+
+if "--no-watch" in sys.argv:  # every harness that imports this module accepts the flag; CI sets HSCL_WATCH=0 or CI=1
+    sys.argv.remove("--no-watch")
+    os.environ["HSCL_WATCH"] = "0"
 
 OVMF_LINUX = "/usr/share/OVMF"
 
@@ -77,6 +84,8 @@ class Vm:
         self.qmp = q.Qmp(f"tcp:127.0.0.1:{qmp_port}")
         self._rpc = None
         self._rid = 0
+        self._qlock = threading.RLock()  # QMP is one socket: the live-view thread and the test must not interleave commands
+        self.watcher = None
 
     @property
     def running(self) -> bool:
@@ -84,22 +93,31 @@ class Vm:
 
     # ---- display and input (QMP)
     def screenshot_png(self) -> bytes:
-        ppm = self.workdir / "shot.ppm"
-        r = self.qmp.cmd("screendump", filename=str(ppm))
-        if "error" in r or not ppm.exists():
-            raise VmError("screendump failed")
-        png, _w, _h, _rgb = q.ppm_to_png(ppm.read_bytes())
-        ppm.unlink()
-        return png
+        with self._qlock:
+            ppm = self.workdir / "shot.ppm"
+            r = self.qmp.cmd("screendump", filename=str(ppm))
+            if "error" in r or not ppm.exists():
+                raise VmError("screendump failed")
+            png, _w, _h, _rgb = q.ppm_to_png(ppm.read_bytes())
+            ppm.unlink()
+            return png
+
+    def note(self, text: str) -> None:
+        """Status line for the live view (no effect when the live view is off)."""
+        if self.watcher:
+            self.watcher.set_status(text)
 
     def keys(self, keys: list[str]) -> None:
-        q.send_keys(self.qmp, keys)
+        with self._qlock:
+            q.send_keys(self.qmp, keys)
 
     def type(self, text: str) -> None:
-        q.type_text(self.qmp, text)
+        with self._qlock:
+            q.type_text(self.qmp, text)
 
     def click(self, fx: float, fy: float, double: bool = False) -> None:
-        (q.double_click if double else q.click)(self.qmp, fx, fy)
+        with self._qlock:
+            (q.double_click if double else q.click)(self.qmp, fx, fy)
 
     # ---- guest RPC (virtio port hscl.api via 127.0.0.1)
     #
@@ -195,6 +213,8 @@ class Vm:
         raise VmError(f"no answer from the guest Workshop daemon within {timeout:.0f}s (booted with hscl-workshop? {last})")
 
     def stop(self) -> None:
+        if self.watcher:
+            self.watcher.stop()
         self._close_rpc()
         try:
             self.qmp.cmd("quit")
@@ -241,6 +261,8 @@ class VmManager:
         except Exception:
             proc.kill()
             raise
+        if watch_enabled():
+            vm.watcher = Watcher(vm, workdir, name).start()
         self.vms[name] = vm
         return vm
 
