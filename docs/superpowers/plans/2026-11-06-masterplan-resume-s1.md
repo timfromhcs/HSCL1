@@ -95,3 +95,6 @@ Research: `docs/research/2026-11-06-arex2-autodetect-reverse-engineering.md` (3 
 **Owner items added:** legal frame for the RE lab (O5); approval to evaluate AREX-Turbo / Apex-35B for the optional bundle (G39); confirmation that abliterated models stay opt-in and out of the ISO.
 
 **Execution order (S1, host-only, one PR):** Task 5 B1 modaliases -> D2 toolcall parser -> D3 runner -> A1/A2 round log -> D1 serve spec -> E1 delta-card gate -> F1 claim gate -> G1 stress script -> B3/B2 driver hints and hwdb -> C1/C2 RE lab. Then S2: one image with H, G2, G4, autodetect and completions, all VM gates, release 0.1.3-alpha.0.
+
+## 8. Local subagents (owner request, 4 research rounds done)
+Plan: `2026-11-06-local-subagents.md` (L1-L8). Research: `docs/research/2026-11-06-local-subagents-prism-bonsai-turboquant.md`. Summary: keep the LocalAI Gateway and the verified PrismML Vulkan build; no TurboQuant fork binary (mainline KV rotation already on); local subagents are a verify-patch worker exposed as one MCP tool to Claude Code and OpenCode; executors compared on our own tasks before any default is chosen; memory gate before every model start. Runs in parallel with Section 7 (HSCL1 tasks stay: D1 serve spec next, then E1, F1, G1, B1...). Owner items: rotate the plaintext GitHub token and OpenCode password; confirm autostart policy.
