@@ -121,7 +121,7 @@ Versions use semver pre-release tags; the ISO embeds its version and the manifes
 ### M7 - Website, handbook, release candidate
 
 - [ ] Handbook update for every new feature (EN/DE/FR) with translation coverage check; link check.
-- [~] Static website: plain static generator (`scripts/build_website.py`, no Node needed) with EN/DE/FR home + download pages, real release data, tests, mobile check at 390 px done; **not deployed** (Vercel preview first; `vercel.json` added); security page (EN/DE/FR) done; install, VM, privacy, changelog pages still open. Original item: download page generated from the real release metadata; Vercel preview first, production after tests.
+- [~] Static website: plain static generator (`scripts/build_website.py`, no Node needed) with EN/DE/FR home + download pages, real release data, tests, mobile check at 390 px done; **not deployed** (Vercel preview first; `vercel.json` added); security page (EN/DE/FR) done; VM page (tested settings only) done; USB/bare-metal install, privacy, changelog pages still open. Original item: download page generated from the real release metadata; Vercel preview first, production after tests.
 - [ ] Hardware table: stays empty until a physical machine is tested; at least one real-hardware boot report before v2 can claim "works on PCs".
 - [ ] RC build from a clean checkout, full test + VM matrix on the exact artefact, hashes recorded in `docs/BUILD_LOG.md`.
 

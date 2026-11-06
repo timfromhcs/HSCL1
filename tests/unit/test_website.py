@@ -62,7 +62,8 @@ def dist(tmp_path_factory):
 def pages(dist):
     return [dist / "index.html", dist / "download/index.html", dist / "de/index.html", dist / "de/download/index.html",
             dist / "fr/index.html", dist / "fr/download/index.html",
-            dist / "security/index.html", dist / "de/security/index.html", dist / "fr/security/index.html"]
+            dist / "security/index.html", dist / "de/security/index.html", dist / "fr/security/index.html",
+            dist / "install/vm/index.html", dist / "de/install/vm/index.html", dist / "fr/install/vm/index.html"]
 
 
 def test_all_pages_exist_with_one_h1_and_correct_lang(dist):
@@ -137,3 +138,10 @@ def test_security_page_states_the_limits_and_links_the_private_reporting_page(di
         text = (dist / prefix / "security/index.html").read_text(encoding="utf-8")
         assert "https://github.com/timfromhcs/HSCL1/security" in text
         assert "SHA256SUMS" in text and "Tails" in text
+
+
+def test_vm_page_lists_only_tested_hypervisor_settings_and_marks_the_rest_untested(dist):
+    for prefix in ["", "de/", "fr/"]:
+        text = (dist / prefix / "install/vm/index.html").read_text(encoding="utf-8")
+        assert "WHPX" in text and ("40 GB" in text or "40 Go" in text) and "VirtualBox" in text
+        assert "/dev/sd" not in text  # never a guessed block device

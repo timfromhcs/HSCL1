@@ -109,6 +109,7 @@ def page(lang: str, c: dict, path: str, title: str, body: str, site: str | None)
 <nav aria-label="Main"><ul>
 <li><a href="{home}"{cur("/")}>{e(n["home"])}</a></li>
 <li><a href="{dl}"{cur("/download/")}>{e(n["download"])}</a></li>
+<li><a href="{prefix(lang)}/install/vm/"{cur("/install/vm/")}>{e(n["vm"])}</a></li>
 <li><a href="{prefix(lang)}/security/"{cur("/security/")}>{e(n["security"])}</a></li>
 </ul></nav>
 <nav aria-label="{e(n["lang"])}"><ul>{langs}</ul></nav>
@@ -173,6 +174,16 @@ def security(lang: str, c: dict) -> str:
 <section aria-labelledby="docs"><h2 id="docs">{e(x["docs_h"])}</h2><p>{e(x["docs"])}</p><ul>{links}</ul></section>"""
 
 
+def vm(lang: str, c: dict) -> str:
+    x = c["vm"]
+    rows = "".join(f"<tr><th scope=\"row\">{e(a)}</th><td>{e(b)}</td></tr>" for a, b in x["rows"])
+    lst = lambda items: "<ul>" + "".join(f"<li>{e(i)}</li>" for i in items) + "</ul>"  # noqa: E731
+    return f"""<section class="hero"><h1>{e(x["h1"])}</h1><p class="note">{e(x["intro"])}</p></section>
+<section aria-labelledby="table"><h2 id="table">{e(x["table_h"])}</h2><table><tbody>{rows}</tbody></table></section>
+<section aria-labelledby="steps"><h2 id="steps">{e(x["steps_h"])}</h2>{lst(x["steps"])}</section>
+<section aria-labelledby="not"><h2 id="not">{e(x["not_h"])}</h2><div class="note">{lst(x["not"])}</div><p>{e(x["script"])}</p></section>"""
+
+
 def build(out: Path, site: str | None) -> list[str]:
     tokens = json.loads((ROOT / "themes/tokens/tokens.json").read_text(encoding="utf-8"))
     meta = json.loads((WEB / "data/release.json").read_text(encoding="utf-8"))
@@ -193,6 +204,7 @@ def build(out: Path, site: str | None) -> list[str]:
     for lang in LANGS:
         c = json.loads((WEB / f"content/{lang}.json").read_text(encoding="utf-8"))
         for path, body, title in [("/", home(lang, c, rel), c["title"]), ("/download/", download(lang, c, rel), f'{c["dl"]["h1"]} - HSCL1'),
+                            ("/install/vm/", vm(lang, c), c["vm"]["title"]),
                             ("/security/", security(lang, c), c["sec"]["title"])]:
             target = out / (prefix(lang).lstrip("/")) / path.strip("/") / "index.html"
             target.parent.mkdir(parents=True, exist_ok=True)

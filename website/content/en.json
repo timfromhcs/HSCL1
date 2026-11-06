@@ -9,7 +9,8 @@
   "honest": "Status",
   "lang": "Language",
   "skip": "Skip to content",
-  "security": "Security"
+  "security": "Security",
+  "vm": "Try in a VM"
  },
  "hero": {
   "h1": "One system. Three modes.",
@@ -118,5 +119,55 @@
     "u": "https://github.com/timfromhcs/HSCL1/blob/main/SECURITY.md"
    }
   ]
+ },
+ "vm": {
+  "title": "Try HSCL1 in a virtual machine - HSCL1",
+  "h1": "Try HSCL1 in a virtual machine",
+  "intro": "The only way HSCL1 has been tested so far is in virtual machines. These are the exact settings of our automated tests. Do not write this early pre-release to a USB stick for a real computer: it has not been tested on physical hardware.",
+  "table_h": "Tested settings (QEMU)",
+  "rows": [
+   [
+    "Hypervisor",
+    "QEMU 11.1 on Windows with WHPX acceleration; software emulation (TCG) where acceleration was unavailable (the Secure Boot firmware test)"
+   ],
+   [
+    "Firmware",
+    "UEFI (OVMF/edk2) and legacy BIOS (SeaBIOS) both reached the live desktop"
+   ],
+   [
+    "Memory and CPUs",
+    "4 GB RAM, 4 virtual CPUs"
+   ],
+   [
+    "Display",
+    "Standard VGA (software rendering); HSCL1 detects this and turns animations and blur off"
+   ],
+   [
+    "Disk (for an install test)",
+    "One empty 40 GB virtio disk in qcow2 format, created only for the test"
+   ],
+   [
+    "Network",
+    "QEMU user-mode networking with a virtio network card"
+   ],
+   [
+    "Installation medium",
+    "The ISO attached as a read-only CD-ROM"
+   ]
+  ],
+  "steps_h": "What to expect",
+  "steps": [
+   "The live desktop appears after roughly two minutes with hardware acceleration; with software emulation it takes much longer.",
+   "The installer (Calamares) asks you to choose the disk. Nothing is preselected and nothing is written until you confirm the summary. Use a disposable virtual disk.",
+   "A full test installation took about 23 minutes in our run and booted from the virtual disk afterwards."
+  ],
+  "not_h": "Not tested",
+  "not": [
+   "VirtualBox, VMware and Hyper-V: no settings are recommended because none were tested.",
+   "KVM on Linux: the same QEMU options should work, but this has not been verified by us.",
+   "Encrypted (LUKS2) installation: not tested yet.",
+   "3D acceleration, USB passthrough and shared folders: not tested; keep shared folders off."
+  ],
+  "script": "The harness that runs these tests is scripts/qemu_boot_test.py in the source repository."
  }
 }
