@@ -263,6 +263,47 @@ W1 hardware detect + drivers | W2 AI fit/estimate | W3 GPU/RAM bridges (experime
 ### P17 - Safe RSI guard (detail: same file, section 4)
 - [ ] S-protected `scripts/protected_paths.json` + `scripts/protected_paths.py` + test + CI step: a branch must not change the files that judge it without a human-review label | [ ] S-archive variant archive file (branch, parent, results) | [ ] S-sandbox candidates run in disposable VMs without secrets
 
+### P18 - Telemetry and egress audit (AGENTS.md rule 9: "no silent telemetry"; found missing from the plan)
+Research: whoopsie (crash reports to Ubuntu's Error Tracker), apport, ubuntu-report, popularity-contest, snapd store traffic, motd-news and Ubuntu Pro nags are the usual Ubuntu-side contacts. Sources disagree on opt-in vs opt-out and on flavour defaults ("the *buntu flavours are opt-in" is a single user's claim, **UNVERIFIED**), and cover releases up to 18.04 (https://ostechnix.com/ubuntu-telemetry/ , https://www.howtogeek.com/349844/how-to-stop-ubuntu-from-collecting-data-about-your-pc/). No source covers snapd, motd-news or the 26.04 defaults. **So we measure, we do not trust blogs.**
+- [ ] N1 inventory from the image: which of `whoopsie`, `apport`, `ubuntu-report`, `popularity-contest`, `snapd`, `ubuntu-advantage-tools`/`ubuntu-pro-client`, `update-notifier`, `update-manager-core`, `motd-news` are installed, enabled, timers active (`dpkg -l`, `systemctl list-unit-files`, `list-timers`); the Firefox **snap** and `snapd` refresh behaviour
+- [ ] N2 **idle egress capture**: QEMU user-net with `-object filter-dump` (pcap), live session idle 15 min and installed system idle 15 min, then first-boot with network; list DNS names, hosts and bytes; compare against a reviewed allow-list; unknown hosts fail the gate
+- [ ] N3 decide per component (purge / disable upload / keep and disclose) and write it into KNOWN_LIMITATIONS and the privacy docs; changing inherited network defaults stays an **owner decision** (stop-and-ask)
+- [ ] N4 gate in `verify-image.sh` for the decided state (packages absent, units masked, config files) + the capture as evidence for the release notes
+
+### P19 - Customisations must survive package upgrades (found missing)
+Problem: our build hook edits files owned by other packages (`/etc/calamares/modules/welcome.conf`, `/etc/default/grub`, `.desktop` files, theme metadata). Package upgrades can overwrite non-conffiles silently (branding comes back), and a **modified conffile can make unattended-upgrades fail for that package** because of the conffile prompt (Launchpad bug 2063268, https://bugs.launchpad.net/bugs/2063268). `--force-confold` alone leaves even unmodified files untouched; it is normally paired with `--force-confdef` (https://raphaelhertzog.com/2010/09/21/debian-conffile-configuration-file-manag). Whether an apt post-invoke hook or `dpkg-divert`/`dpkg-statoverride` is the better tool was **not** covered by the search.
+- [ ] U1 inventory: every file our hook modifies or deletes, classified: conffile of which package / plain file of which package / our own (`dpkg-query -S`, `${Conffiles}`, `dpkg -V` baseline) - this list is also the **documented deviation list** of HSCL1 from its base
+- [ ] U2 move edits out of foreign conffiles where possible (drop-ins in `/etc/*.d/`, package-owned replacement via `dpkg-divert`, `Dpkg::Options` set deliberately: `--force-confdef` + `--force-confold`) and say which ones remain
+- [ ] U3 an idempotent **re-apply** step (apt post-invoke) for branding that cannot be diverted, with its own test
+- [ ] U4 VM test: `apt-get install --reinstall` of the packages that own our edited files (plasma-welcome, calamares-settings-kubuntu, kubuntu-settings-desktop, grub-common, sddm themes) and an unattended-upgrade dry run; the image gates must still pass afterwards
+
+### P20 - Keyboard layout and language correctness (found missing)
+- LUKS prompt keymap is baked into the initramfs from `/etc/default/keyboard` and the console-setup cache at **initramfs build time**; Ubuntu's own installer once generated the initramfs before the chosen layout was applied (https://github.com/canonical/subiquity/pull/1411); fix pattern = update the keyboard files, then `update-initramfs -u -k all` (single-person notes, **UNVERIFIED** for 26.04). Our Calamares path is untested with a non-US layout; a wrong keymap means a user who cannot type their own passphrase.
+- [ ] K1 install with the German layout and a passphrase containing `y`, `z`, `-`, `ß`-free symbols that differ between US and DE; boot, unlock; compare with the US case (the harness needs a typing map for DE: planned) | [ ] K2 the unlock screen tells the user which layout is active (we currently show `us` in the keyboard indicator) | [ ] K3 same test for FR
+- [ ] K4 live session language: the replaced Try/Install prompt used to offer a language choice; provide one (boot menu `locale=`/`lang=` entries or the HSCL1 welcome of W23.1) and test that DE/FR strings appear in the live desktop
+- [ ] K5 Plymouth `_Title`/`_SubTitle` strings (update screens) are English only: translate or document
+
+### P21 - Hypervisors and boot media (found missing)
+- Hyper-V Generation 2: community guides say Linux ISOs boot with the **Microsoft UEFI Certificate Authority** Secure Boot template; the default Windows template often refuses (https://www.thomasmaurer.ch/2018/06/how-to-install-ubuntu-in-a-hyper-v-generation-2-virtual-machine/); nothing found for 26.04, VirtualBox or VMware.
+- USB: Rufus guides recommend DD mode; Ventoy needs its own Secure Boot key enrolment (a guide claims this since 1.1.14, **UNVERIFIED**); casper's multi-layer loop-boot needs `layerfs-path` on 23.04+ desktop ISOs (https://lists.ubuntu.com/archives/ubuntu-devel-discuss/2023-June/019562.html) - our image has one `filesystem.squashfs`, so whether loop boot works is unknown.
+- [ ] H1 QEMU: boot the ISO as a **USB mass-storage** device under UEFI (hybrid image check) | [ ] H2 BIOS/legacy boot of the ISO (is it even offered by the base?) | [ ] H3 Hyper-V Gen2 with the Microsoft UEFI CA template on the owner's Windows host (owner machine) | [ ] H4 VirtualBox and VMware: document **only** settings that were tested | [ ] H5 Ventoy: test or document "not supported/untested" | [ ] H6 memory floor: live boot at 2 GB and 3 GB (AGENTS.md says 4 GB; measure, then state)
+
+### P22 - Legal and source compliance (found missing; owner review needed)
+- **Trademark/derivative policy.** Canonical's page says redistribution of modified versions of Ubuntu must be approved, certified or provided by Canonical if it is associated with the trademarks; strict readings (Matthew Garrett) say a modified distribution must be approved **or have all trademarks removed and everything rebuilt**; the unmodified-binary question was not answered by any source we found (https://canonical.com/legal/intellectual-property-policy , https://mjg59.dreamwidth.org/35969.html). We removed logos and visible names from the image, but package names (`kubuntu-*`), `ID=ubuntu`, apt sources and many strings remain. **Risk statement for the owner:** public ISO distribution of a modified Ubuntu derivative may need Canonical's approval or a full trademark-free rebuild; until reviewed, every release stays a prerelease with "trademark review pending" in the notes (already the case).
+- **GPL source obligations.** Debian's CD-vendor page: a distributor of GPL binaries must give a written offer for the complete corresponding source valid at least three years, to **anyone**, and pointing to a third party such as the Debian archive is **not** sufficient (https://www.debian.org/CD/vendors/legal.en.html). Our ISO and release assets carry no such offer today.
+- [ ] G1 `docs/SOURCE_OFFER.md` + the same text inside the ISO and as a release asset: valid 3 years, covers every GPL/LGPL package in the image (package list with versions from the manifest) and our own packages (this repository at the tagged commit) | [ ] G2 a script that fetches the corresponding source packages for a given manifest (`apt source` against the pinned archive/snapshot) and a statement of where we keep them | [ ] G3 `docs/LICENSES.md`/`NOTICE` generated from package copyright files (no licence audit claimed) | [ ] G4 **owner:** legal review of G1 and of the trademark position (Q15) | [ ] G5 third-party font/icon/artwork licences listed (Ubuntu font stays from the base; our own art is GPL-3.0-or-later)
+
+### P23 - How users get updates for HSCL1's own packages (found missing)
+Today `hscl-*` debs exist only inside an ISO; a user cannot update them without a new ISO. AGENTS.md allows a separately signed HCS repository "only if truly needed".
+- [ ] A1 decide the delivery path: (a) new ISO only, documented honestly; (b) debs as release assets with a verify script; (c) a signed apt repository (key policy = owner decision Q13) | [ ] A2 version/compat rule between hscl packages and the base (`Depends` ranges, what breaks when Kubuntu updates `plasma-welcome` etc.) | [ ] A3 `hscl doctor` reports installed hscl package versions vs the release manifest | [ ] A4 rollback story: previous deb kept, documented command
+
+### P24 - Local-model agent harness (detail: `2026-11-06-local-agent-harness.md`)
+Research (second round): the Mythos system card describes its harness only generically (tools, think tool, tool-call/token budgets, containerised GPU task), shows no scaffold source, and has `[redacted]` markers without a stated reason; RSI is defined there as automating or dramatically accelerating top-tier AI research (RSP substitute-the-researchers or about 2x pace). So **only the pattern can be rebuilt**, with local models, and nothing in HSCL1 claims parity (PRIMARY extraction of the PDF; later METR/S-1 material is SECONDARY).
+- [ ] A1 in-repo task set (15-20 tasks, 5 held out, real pass/fail commands) | [ ] A2 baseline: 2-3 local models that fit 24 GB, one scaffold | [ ] A3 scaffold comparison (OpenCode vs mini-SWE-agent vs Aider) | [ ] A4 context-budget sweep | [ ] A5 think tool on/off | [ ] A6 sandbox escape suite | [ ] A7 tool-call reliability layer | [ ] A8 separate evaluator vs self-evaluation
+- [ ] A9 own small time-horizon measure per local model (50 % task length, spread) | [ ] A10 K-rollout + execution verifier judged per wall-clock minute | [ ] A11 context hygiene sweep (tool-result clearing, notes, compaction on 8k-32k windows) | [ ] A12 evaluator-run tests vs worker claims, `passes`-only feature list enforced by a script
+- Third research round: Anthropic's own engineering pages read directly (long-running harness: same harness, initializer prompt creates `init.sh`, progress file, JSON feature list; SWE-bench scaffold: two tools, absolute paths; context engineering; multi-agent: tokens explain 80 % of variance; think tool; context management). Guesses G1-G10 about how such work operates are **hypotheses with research for/against, not facts**, and each maps to an experiment (section 8-9 of the harness plan).
+- [ ] build-vs-adopt decision recorded with licences and pinned versions | [ ] `hcs-agent` CLI only after A1-A8 numbers exist; no model or scaffold is called good without three-run medians
+
 ---
 
 ## 5. Hardening, verification and testing improvements (cross-cutting, new)
@@ -301,6 +342,172 @@ W1 hardware detect + drivers | W2 AI fit/estimate | W3 GPU/RAM bridges (experime
 | Q20 | Real NVMe streaming tokens/s for our model sizes | bounded speed test + one real run | no |
 | Q21 | Perplexity/KLD tool in the pinned llama.cpp build and an acceptable quality threshold for compressed KV | pinned `--help`, calibrate on the 2B model | no |
 | Q22 | Complete protected-path list for the RSI guard | review with the owner once | **yes** |
+
+## 6b. Open questions register v2 (everything I could think of, grouped; "gate" = what it can block)
+Legend: **meas** = answered by a measurement on this machine/VM, **src** = answered by reading a primary source, **own** = answered by a code/design decision, **owner** = needs the owner. Priority: H (can invalidate a release claim), M, L.
+
+### Image and build (B)
+| # | Question | Answer by | Pri | Gate |
+|---|---|---|---|---|
+| B1 | Which files does the build hook change that belong to other packages (conffile or not)? | meas: `dpkg-query -S`, `${Conffiles}`, `dpkg -V` (P19 U1) | H | upgrades |
+| B2 | Is the base ISO checksum check (6 GB hash each build) needed every time, or cacheable by file mtime+size+recorded hash? | own | L | speed |
+| B3 | Can the pristine-rootfs cache be shared between builds without trusting a stale cache (key = base sha256 + builder script hash)? | own | M | speed |
+| B4 | Does a build from the same commit twice give the same package list, file list, squashfs, ISO hash? | meas P8 | M | reproducibility claim |
+| B5 | What is the smallest ISO we can ship without removing things users expect (LibreOffice language packs, snaps, firmware)? Size now 5.0 GB (xz), dev 5.5 GB | meas: package size table from the manifest | M | download size |
+| B6 | Does xz vs zstd (level 15/19) change size, build time and boot time enough to switch? | meas | L | speed/size |
+| B7 | Do `mksquashfs` timestamp flags in our squashfs-tools version make output deterministic? | src: `man mksquashfs` | M | P8 |
+| B8 | Is `update-initramfs` output deterministic (cpio order, timestamps, font caches differ between r4/r5)? | meas P8 | M | P8 |
+| B9 | Does the remaster depend on host state (WSL kernel, locale, umask, clock)? | meas: build in a clean container once | M | reproducibility |
+| B10 | What happens if the base ISO is replaced by a newer 26.04.x point release: does the hook fail loudly on missing/moved files? | own: gates exist; add a "patched count" assertion per file | M | maintenance |
+| B11 | Does the hook's "patched >= N files" threshold hide a silent no-op for one important edit? | own: per-edit assertions instead of a count | M | gate bug class |
+| B12 | Are all generated assets (wallpapers, Plymouth frames, logos) deterministic bytewise? | meas | L | P8 |
+| B13 | Is the 2.4 GB `artifacts/` directory growth under control (old ISOs, VM disks)? | own: prune script with allow-list | M | disk |
+
+### Boot and installer (I)
+| # | Question | Answer by | Pri | Gate |
+|---|---|---|---|---|
+| I1 | Does the ISO boot via BIOS/legacy at all? | meas H2 | M | AGENTS 20 |
+| I2 | Does it boot as a USB device under UEFI (hybrid)? | meas H1 | H | USB guide |
+| I3 | Secure Boot: do shim, GRUB, kernel verify with our replaced `grub.cfg`/initrd/squashfs, and what do the three sources in the guest say? | meas P2.7 (TCG, slow) | H | SB claim |
+| I4 | After install, does the installed GRUB menu say HSCL1 and what is the EFI directory name; does renaming it break Secure Boot? | meas P2.10 | M | branding |
+| I5 | Does a plain (unencrypted) install work as well as the LUKS one? | meas P2.3 | H | AGENTS 20 |
+| I6 | Does the installer work at 1366x768 without clipped buttons? | meas P7.5 | M | UX |
+| I7 | What happens when the target disk is smaller than 25 GB, or has existing partitions/Windows? (no dual-boot claim until tested) | meas, disposable disks | H | safety |
+| I8 | Does the installer survive killing it mid-copy, a full disk, no network? | meas P2.6 | H | safety |
+| I9 | Does the installed system come up with the HSCL1 Plymouth theme, SDDM theme, wallpaper, welcome page, dock? (unlock + logo verified; rest to check) | meas | M | claims |
+| I10 | Does the Calamares "Donate" link disappear (config changed, not yet seen on screen)? | meas: installer screenshot of the next candidate | M | brand |
+| I11 | Does Calamares use the live user name `hscl1` anywhere that breaks (users module, autologin cleanup)? | meas: install on r6+ image | H | install |
+| I12 | Is `/boot` 4 GiB (unencrypted) acceptable on small disks? | own/meas | L | layout |
+| I13 | Recovery key flow: can we generate and show once a second LUKS key and unlock with it? | meas P2.5 | M | claim |
+| I14 | Does the live session survive 2 GB / 3 GB RAM (AGENTS says 4 GB)? | meas H6 | M | spec |
+| I15 | What does the OEM install entry do now that the session starter was replaced (OEM branch kept)? | meas | M | regression |
+
+### Security and hardening (S)
+| # | Question | Answer by | Pri | Gate |
+|---|---|---|---|---|
+| S1 | Which services listen on which sockets in live and installed systems? | meas P3.2 | H | hardening |
+| S2 | Is AppArmor enforcing for our daemon(s) and is the profile actually attached (`ps -Z`)? | meas P3.4 | H | claim |
+| S3 | Does the firewall deny inbound by default in the installed system (probe from the host)? | meas P3.6 | H | claim |
+| S4 | Is the Workshop daemon inert in the release image under every boot path (live, installed, OEM)? | meas gate exists for live; add installed | H | safety |
+| S5 | `sudo-rs` and `uutils`: do any of our scripts or hooks depend on GNU behaviour (R24)? | meas Q8 | M | regressions |
+| S6 | Does the live session still disable unattended-upgrades' security origin (casper hook)? | meas P3.12 | M | live stability |
+| S7 | Are kernel mitigations on (no `mitigations=off`) in the live and installed command line? | meas | M | claim |
+| S8 | Is the initrd integrity-protected under Secure Boot? (No: say so; unified kernel image is out of scope) | src/doc | M | threat model |
+| S9 | Does `apt` verify our added debs? (They are installed with `dpkg -i` at build time, signed by nobody; users cannot update them) | own P23 | M | supply chain |
+| S10 | Are there world-writable files anywhere outside `/tmp` in the installed system (not only ours)? | meas `find` | M | hardening |
+| S11 | Do the polkit actions of the base allow the live user passwordless admin? (live session: yes by design; installed: no) | meas | M | threat model |
+| S12 | Lynis index and OpenSCAP CIS result as a baseline (R26) | meas P3.11 | M | report |
+| S13 | Can an `hscl` CLI parser crash or hang on hostile input (GGUF, JSON, catalog)? | own: fuzz depth P3.8 | M | safety |
+| S14 | Does the MCP server annotate tools correctly and enforce scope in our layer (F9)? | own | H | AI-agent safety |
+| S15 | Are all GitHub Actions pinned by SHA; are Dependabot majors safe? | meas/owner Q14 | M | supply chain |
+| S16 | Is there any secret in git history (not only HEAD)? | meas: history scan once | H | publish |
+| S17 | Do release assets contain anything from the build host (usernames, paths, hostnames) in manifests/logs? | meas: grep the manifest, SBOM, ISO `.disk`/`README.diskdefines` | M | privacy |
+
+### Privacy and telemetry (T) - see P18
+| # | Question | Answer by | Pri | Gate |
+|---|---|---|---|---|
+| T1 | Which Ubuntu telemetry/reporting components exist in the image and are they enabled? | meas N1 | H | AGENTS rule 9 |
+| T2 | Which hosts does an idle live session / installed system contact in 15 minutes? | meas N2 (pcap) | H | rule 9 |
+| T3 | Does the Firefox snap or snapd contact the store at first boot offline/online? | meas N2 | H | rule 9 |
+| T4 | Does Plasma/KDE contact kde.org (connectivity check, news widgets, discover metadata)? | meas N2 | M | rule 9 |
+| T5 | Does `apt`'s default timer (`apt-daily`) run on first boot and contact the archive? (expected; disclose) | meas | M | disclosure |
+| T6 | Is the hostname/DHCP identity leaking real names? (live host now `hscl1`) | meas | L | privacy |
+| T7 | Does the Calamares installer send anything besides the connectivity check and mirror GeoIP? | meas pcap during install | M | rule 9 |
+| T8 | Do the crash reporters write personal data to disk (`/var/crash`)? | meas | L | privacy |
+
+### Legal and compliance (L) - see P22
+| # | Question | Answer by | Pri | Gate |
+|---|---|---|---|---|
+| L1 | May we publicly distribute this modified Ubuntu derivative as ISO under the IP policy, and what exactly must change (approval or trademark-free rebuild)? | owner/legal Q15 | H | any non-prototype release |
+| L2 | Written offer for corresponding source (3 years, to anyone) in the ISO and the release | own G1, owner review G4 | H | GPL compliance |
+| L3 | Third-party notices for packages, fonts, icons, artwork | own G3/G5 | M | compliance |
+| L4 | Is the name "HSCL1" free to use (no conflicting trademark)? | owner | M | brand |
+| L5 | Does shipping proprietary firmware/codecs from the base need a notice? | src: base package copyright files | M | compliance |
+| L6 | Is the Kali container image redistribution/usage described correctly (we do not ship it) | own docs | L | claims |
+| L7 | Export/crypto notices for LUKS/Tor tooling? | owner | L | compliance |
+
+### Update delivery (U/A) - see P19, P23
+| # | Question | Answer by | Pri | Gate |
+|---|---|---|---|---|
+| U1 | How does a user update `hscl-*` packages? | own A1, owner Q13 | H | product |
+| U2 | Does a base package upgrade undo our branding/config edits, or block unattended upgrades with a conffile prompt? | meas P19 U4 | H | update claim |
+| U3 | Does `do-release-upgrade`/update-manager offer an upgrade to an Ubuntu interim/LTS that would break HSCL1? | meas + config (`Prompt=never`) | M | safety |
+| U4 | What is HSCL1's support window (Ubuntu 26.04 LTS standard maintenance vs Kubuntu's shorter KDE window)? | src: release notes, then write it down | M | claims |
+| U5 | Who updates the pinned Kali digest, llama.cpp build, models catalogue, and how often? | own | L | maintenance |
+
+### UX, brand and i18n (X)
+| # | Question | Answer by | Pri | Gate |
+|---|---|---|---|---|
+| X1 | Which visible strings still say Kubuntu/Ubuntu (content scan + OCR over all screens)? | meas F6/P7.8 | H | owner request |
+| X2 | Does the Plasma Welcome Center show our `01-HSCL1.qml` page, and in which position? | meas screenshot of page 2..7 | M | brand |
+| X3 | Do the Konsole profile names, driver-manager and manage-software launchers show Kubuntu names? | meas | M | brand |
+| X4 | Are the global theme preview images (Kubuntu wallpaper screenshots) visible in System Settings? | meas | L | brand |
+| X5 | Does German/French text fit in the Control Center and installer without clipping? | meas P7.5 | M | i18n |
+| X6 | Is the live session usable by keyboard only and with Orca? | meas P7.4 | M | a11y |
+| X7 | Does high contrast/reduced motion work for the animated wallpaper? | meas | M | a11y |
+| X8 | HiDPI/fractional scaling smoke test | meas | L | UX |
+| X9 | Does the HSCL1 Handbook match the current features (modes, CLI)? | own D5 | M | docs |
+| X10 | Is the "Install HSCL1" desktop icon discoverable now that the prompt is gone? | own: user test by the owner | M | UX |
+
+### Local AI and GPU (G) - see P16
+| # | Question | Answer by | Pri | Gate |
+|---|---|---|---|---|
+| G1 | What are dedicated VRAM, GTT and the TTM prefix on the owner's 680M under Linux? | owner boots image | H | AI claims |
+| G2 | Does llama.cpp Vulkan select the real GPU on the 680M (Windows host first)? | meas P6.2 | H | claim |
+| G3 | What are real RAM and NVMe bandwidth, and the resulting tokens/s ceilings for our model sizes? | meas T-bench | M | advisor |
+| G4 | Does the pinned llama.cpp advertise `--fit`, `--n-cpu-moe`, `--moe-cache-mib`, MTP, a perplexity tool? | meas `--help` | M | flags |
+| G5 | What is the acceptable KV quantisation quality threshold per model? | meas T-kv | M | claim |
+| G6 | Hybrid (`qwen35`) models: how to estimate recurrent-state memory? | meas from logs P6.6 | M | `hscl ai fit` |
+| G7 | Does mmap vs `--mlock`/`--no-mmap` thrash the page cache on a 24 GB machine with the model larger than free RAM? | meas | M | advice |
+| G8 | Is zram a net benefit for already quantised weights (reasoned: no)? | meas | L | advice |
+| G9 | Do KIVI/SnapKV/H2O style methods matter for us (read papers first)? | src T5 | L | scope |
+
+### Dev process, cloud and speed (D)
+| # | Question | Answer by | Pri | Gate |
+|---|---|---|---|---|
+| D1 | Does direct-kernel boot find the medium (S0)? Time saved? | meas F2.1 | M | speed |
+| D2 | Layer image: order, whiteouts, effect on `verify-image` (T3)? | meas F3 | M | speed |
+| D3 | Do WHPX snapshots work reliably (S5)? | meas F2.4 | L | speed |
+| D4 | Does a hosted runner expose `/dev/kvm`? | meas kvm-probe | M | cloud tests |
+| D5 | Does a 5.5 GB OCI push to GHCR work, and at what cost/limit? | meas | L | mirror |
+| D6 | Is `sparseVhd`/memory reclaim better than `wsl --shutdown` for this machine? | meas F1.4 | L | speed |
+| D7 | Squash resource choice: 3 procs/512 MB (safe) vs 4/768 | meas F1.3 | L | speed |
+| D8 | Can CI run the boot classifier tests and `forge check` (without WSL)? | own | M | CI |
+| D9 | Do we need a Windows CI job for the harness code paths (WHPX cannot run there)? | own: no, keep unit tests platform-neutral | L | CI |
+| D10 | How do we keep `docs/CLI.md` and `docs/DEV_LOOP.md` from drifting (D2 of P13)? | own: generated + comparison test | M | docs |
+| D11 | Can the three-run determinism rule be applied automatically after each build (`forge test --runs 3`)? | own | M | speed/safety |
+| D12 | Should `forge` own the ISO copy-out/hash step (it has caused two manual mistakes)? | own | M | safety |
+
+### Documentation and README (R)
+| # | Question | Answer by | Pri | Gate |
+|---|---|---|---|---|
+| R1 | Are all commands in README/docs executed once as written (P9.6)? | meas | H | docs claim |
+| R2 | Do screenshots in README match the current release candidate? | own: regenerate from harness | M | docs |
+| R3 | Is the status table honest (VM-VERIFIED vs not verified columns)? | own D1 | H | claims |
+| R4 | Does the website show a download only when a release exists, with hashes from the manifest (exists)? | meas | M | website |
+| R5 | Are DE/FR docs behind EN? | own: coverage report | M | i18n |
+| R6 | Is there a one-page "what is verified and what is not" for end users? | own | M | honesty |
+
+### Owner decisions collected (O)
+O1 immutable releases on/off (Q11) | O2 network defaults of the base (NTP, GeoIP mirror, release check, connectivity check) (Q12, N3) | O3 signing key policy (Q13) | O4 Dependabot majors (Q14) | O5 trademark/IP position and legal review (Q15, L1, G4) | O6 DE/FR native review (Q16) | O7 physical hardware tests incl. the 680M under Linux, Hyper-V (Q17, G1, H3) | O8 protected-path list for the RSI guard (Q22) | O9 update delivery path for `hscl-*` (A1) | O10 whether to ship a public ISO before the legal review or keep releases at prerelease with the pending-review note.
+
+### Agent harness with local models (H) - see P24
+| # | Question | Answer by | Pri | Gate |
+|---|---|---|---|---|
+| H1 | Which local models are fast enough on 24 GB RAM + 680M Vulkan for an agent loop? | meas A2 + P16 advisor | M | scope |
+| H2 | Does scaffold choice matter more than model choice on our tasks? | meas A3 | M | design |
+| H3 | Is a 7-14B model useful at all, or is 30B-class the floor? | meas A2 | M | scope |
+| H4 | Which llama.cpp build + chat template + quant gives acceptable tool-call reliability? | meas A7 | H | reliability |
+| H5 | How large can tool output and history be before a small window breaks the loop? | meas A4 | M | design |
+| H6 | Think tool: helpful or wasteful for local models? | meas A5 | L | design |
+| H7 | Does a separate evaluator reduce false "done" claims? | meas A8 | M | safety |
+| H8 | Is bubblewrap enough for model-generated code, or rootless Podman / disposable VM? | meas A6 | H | safety |
+| H9 | How do we stop the agent editing the tests/gates that judge it? | own: protected paths (P17) | H | RSI guard |
+| H10 | Current licence and maintenance state of candidate scaffolds | src: read the repos | M | adoption |
+| H11 | What do the unextracted parts of the Mythos card say (long-running agentic tasks, alignment)? | src: read the PDF section by section if the owner wants | L | research |
+| H12 | What is behind the `[redacted]` markers? | unknowable: do not reconstruct | L | honesty |
+| H13 | Are the secondary harness-design write-ups accurate? | src: read Anthropic's own engineering posts first | M | design |
+| H14 | Run the harness inside the HSCL1 image or only on the host? | owner; default host first | L | scope |
 
 ---
 
