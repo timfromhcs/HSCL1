@@ -38,6 +38,7 @@ CHECKS = {
     "hscl_version": f"{AS_USER} 'hscl version --json'",
     "memory_status": f"{AS_USER} 'hscl memory status --json'",
     "memory_budget": f"{AS_USER} 'hscl memory budget'",
+    "hw_detect": f"{AS_USER} 'hscl hw detect --json'",
     "graphics_detect": f"{AS_USER} 'hscl graphics detect --json'",
     "ai_model_list": f"{AS_USER} 'hscl ai model list --json'",
     "ai_profile": f"{AS_USER} 'hscl ai profile --json'",

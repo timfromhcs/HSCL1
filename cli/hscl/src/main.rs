@@ -9,6 +9,7 @@ mod code;
 mod doctor;
 mod download;
 mod graphics;
+mod hw;
 mod lab;
 mod mcp;
 mod memory;
@@ -124,6 +125,11 @@ enum Cmd {
         #[arg(long)]
         force: bool,
     },
+    /// Hardware inventory from sysfs/procfs (read-only, no root): GPUs, CPU features, memory, firmware, Secure Boot.
+    Hw {
+        #[command(subcommand)]
+        cmd: HwCmd,
+    },
     /// Security Lab: isolated rootless-container workspaces (authorized testing only). Shows the podman command, never runs a shell.
     Lab {
         #[command(subcommand)]
@@ -134,6 +140,12 @@ enum Cmd {
         #[command(subcommand)]
         cmd: AppearanceCmd,
     },
+}
+
+#[derive(Subcommand)]
+enum HwCmd {
+    /// Detect devices and report them (nothing is installed or changed).
+    Detect,
 }
 
 #[derive(Subcommand)]
@@ -663,6 +675,10 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
         }
         Cmd::Graphics { cmd } => return run_graphics(j, cmd),
         Cmd::Lab { cmd } => return run_lab(j, cmd),
+        Cmd::Hw { cmd: HwCmd::Detect } => {
+            let r = hw::detect(std::path::Path::new("/"));
+            print_value(j, &serde_json::to_value(&r)?, || hw::render(&r));
+        }
         Cmd::Autotune { dry_run, force } => {
             return run_graphics(j, GraphicsCmd::Apply { dry_run, force });
         }
