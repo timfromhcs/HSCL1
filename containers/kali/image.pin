@@ -1,0 +1,8 @@
+# Pinned official Kali image for the HSCL1 Security Lab (one reference per line, first non-comment line is used).
+# Source: Docker Hub API https://hub.docker.com/v2/repositories/kalilinux/kali-rolling/tags/latest, read 2026-11-06,
+#   tag last pushed 2026-11-01T04:16:25Z, media type manifest.list.v2 (multi-arch; podman selects the architecture).
+#   amd64 manifest inside it: sha256:73915d5d54833d498f52fd200960126be4a2dbdcc110d75d70839c4ef155ed03
+# STATUS: read from the registry API, NOT yet verified by a pull. Verify with:
+#   podman pull docker.io/kalilinux/kali-rolling@sha256:...   then   podman image inspect --format '{{.Digest}}' ...
+# kali-rolling is refreshed weekly upstream; bumping this pin is a deliberate change (new date and source above), never automatic.
+docker.io/kalilinux/kali-rolling@sha256:7997e0581c4f5c185cfe6773d5cae8fcc7c6b79798726ccaabf843af4bcd2013

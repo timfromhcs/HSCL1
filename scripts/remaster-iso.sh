@@ -105,11 +105,15 @@ xorriso -osirrox on -indev "$base" -extract /boot/grub/grub.cfg "$work/iso-files
 chmod u+w "$work/iso-files/grub.cfg" "$work/iso-files/md5sum.base.txt"
 
 new_sq="$work/iso-files/filesystem.main.squashfs"; sudo rm -f "$new_sq"
-echo "== Re-squash (bounded memory) =="
+# Squash resources are tunable: the host reaped the build three times while all cores and 1 GB of buffers were in use on a 19.8 GB machine
+# (WSL page cache from the large output file counts against free memory). Defaults are deliberately modest.
+sq_procs="${HSCL_SQUASH_PROCS:-3}"
+sq_mem="${HSCL_SQUASH_MEM:-512M}"
+echo "== Re-squash (bounded memory: $sq_procs processors, $sq_mem buffers) =="
 if [ "$fast" -eq 1 ]; then
-  sudo mksquashfs "$merged" "$new_sq" -comp zstd -Xcompression-level 3 -b 131072 -noappend -quiet -processors "$(nproc)" -mem 1G
+  sudo mksquashfs "$merged" "$new_sq" -comp zstd -Xcompression-level 3 -b 131072 -noappend -quiet -processors "$sq_procs" -mem "$sq_mem"
 else
-  sudo mksquashfs "$merged" "$new_sq" -comp xz -b 131072 -Xbcj x86 -noappend -quiet -processors "$(nproc)" -mem 1G
+  sudo mksquashfs "$merged" "$new_sq" -comp xz -b 131072 -Xbcj x86 -noappend -quiet -processors "$sq_procs" -mem "$sq_mem"
 fi
 sudo chown "$(id -u):$(id -g)" "$new_sq"
 

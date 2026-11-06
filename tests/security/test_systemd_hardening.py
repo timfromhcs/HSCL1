@@ -34,3 +34,16 @@ def test_every_unit_has_the_sandbox_baseline():
         sec = service_section(u)
         for k, v in BASELINE.items():
             assert sec.get(k) == v, f"{u.name}: {k} should be {v}, is {sec.get(k)!r}"
+
+
+def test_security_baseline_unit_has_the_measured_strict_sandbox():
+    """VM measurement 2026-11-06: these options took the exposure of hscl-security-baseline from 7.6 to 2.5 and ufw still worked."""
+    sec = service_section(ROOT / "distro/security/systemd/hscl-security-baseline.service")
+    assert sec["ProtectSystem"] == "strict" and sec["StateDirectory"] == "hscl"
+    assert sec["PrivateDevices"] == "yes" and sec["MemoryDenyWriteExecute"] == "yes"
+    caps = set(sec["CapabilityBoundingSet"].split())
+    assert caps == {"CAP_NET_ADMIN", "CAP_NET_RAW", "CAP_DAC_OVERRIDE", "CAP_FOWNER", "CAP_CHOWN"}
+    rw = sec["ReadWritePaths"].split()
+    assert all(p.startswith("-/") for p in rw), "every path must be optional (leading '-')"
+    assert "-/etc/default/ufw" in rw  # `ufw enable` writes ENABLED=yes there (found by the VM run)
+    assert "/etc/ufw" in sec["ReadWritePaths"] and not any(p.rstrip("/") in ("-/usr", "-/etc", "-/") for p in rw)

@@ -9,6 +9,7 @@ mod code;
 mod doctor;
 mod download;
 mod graphics;
+mod lab;
 mod mcp;
 mod memory;
 mod profile;
@@ -123,10 +124,52 @@ enum Cmd {
         #[arg(long)]
         force: bool,
     },
+    /// Security Lab: isolated rootless-container workspaces (authorized testing only). Shows the podman command, never runs a shell.
+    Lab {
+        #[command(subcommand)]
+        cmd: LabCmd,
+    },
     /// Desktop appearance.
     Appearance {
         #[command(subcommand)]
         cmd: AppearanceCmd,
+    },
+}
+
+#[derive(Subcommand)]
+enum LabCmd {
+    /// Is podman present, is the lab folder there, and which toolsets exist.
+    Status,
+    /// Create the lab root folder (~/SecurityLabs, mode 0700).
+    Setup,
+    /// List the toolsets and the packages each installs (inside the container only).
+    Toolsets,
+    /// Print the exact podman command for a project (nothing is executed).
+    Spec {
+        /// Project name: lowercase letters, digits and `-`.
+        #[arg(long)]
+        project: String,
+        /// Image pinned by digest: registry/name@sha256:<64 hex> (needed for `run` and `install`).
+        #[arg(long, default_value = "")]
+        image: String,
+        /// `run` (default), `install` (toolset into a local image), `commit` (turn the install container into the local image) or `destroy`.
+        #[arg(long, default_value = "run")]
+        phase: String,
+        /// Toolset for the install phase.
+        #[arg(long, default_value = "basic")]
+        toolset: String,
+        /// One folder below ~/SecurityLabs to mount at /work (run phase only).
+        #[arg(long)]
+        workspace: Option<String>,
+        /// `none` (default) or `outbound`; host networking does not exist.
+        #[arg(long, default_value = "none")]
+        network: String,
+        #[arg(long, default_value_t = 2048)]
+        memory_mib: u32,
+        #[arg(long, default_value_t = 2)]
+        cpus: u32,
+        #[arg(long, default_value_t = 512)]
+        pids: u32,
     },
 }
 
@@ -339,6 +382,137 @@ enum ModelCmd {
     Path,
 }
 
+fn labs_root() -> std::path::PathBuf {
+    std::path::PathBuf::from(std::env::var_os("HOME").unwrap_or_default()).join("SecurityLabs")
+}
+
+fn on_path(bin: &str) -> bool {
+    std::env::var_os("PATH")
+        .is_some_and(|p| std::env::split_paths(&p).any(|d| d.join(bin).is_file()))
+}
+
+fn run_lab(j: bool, cmd: LabCmd) -> anyhow::Result<u8> {
+    match cmd {
+        LabCmd::Status => {
+            let root = labs_root();
+            let v = json!({
+                "podman_installed": on_path("podman"),
+                "labs_root": root.display().to_string(),
+                "labs_root_exists": root.is_dir(),
+                "toolsets": lab::TOOLSETS.iter().map(|(n, _)| *n).collect::<Vec<_>>(),
+                "defaults": {"network": "none", "run_phase_capabilities": "none (cap-drop=ALL)", "image": "must be pinned by sha256 digest"},
+                "note": "Kali tools run only inside rootless containers; the host never gets Kali repositories. Authorized testing only."
+            });
+            print_value(j, &v, || {
+                format!(
+                    "podman: {}
+lab folder: {} ({})
+toolsets: {}",
+                    if on_path("podman") {
+                        "installed"
+                    } else {
+                        "NOT installed"
+                    },
+                    root.display(),
+                    if root.is_dir() {
+                        "exists"
+                    } else {
+                        "missing - run `hscl lab setup`"
+                    },
+                    lab::TOOLSETS
+                        .iter()
+                        .map(|(n, _)| *n)
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            });
+        }
+        LabCmd::Setup => {
+            let root = labs_root();
+            std::fs::create_dir_all(&root)?;
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                std::fs::set_permissions(&root, std::fs::Permissions::from_mode(0o700))?;
+            }
+            print_value(
+                j,
+                &json!({"labs_root": root.display().to_string(), "created": true}),
+                || format!("lab folder ready: {}", root.display()),
+            );
+        }
+        LabCmd::Toolsets => {
+            let v = json!(lab::TOOLSETS
+                .iter()
+                .map(|(n, p)| json!({"name": n, "packages": p}))
+                .collect::<Vec<_>>());
+            print_value(j, &v, || {
+                lab::TOOLSETS
+                    .iter()
+                    .map(|(n, p)| format!("{n}: {}", p.join(" ")))
+                    .collect::<Vec<_>>()
+                    .join(
+                        "
+",
+                    )
+            });
+        }
+        LabCmd::Spec {
+            project,
+            image,
+            phase,
+            toolset,
+            workspace,
+            network,
+            memory_mib,
+            cpus,
+            pids,
+        } => {
+            let limits = lab::Limits {
+                memory_mib,
+                cpus,
+                pids,
+            };
+            let cmds: Vec<Vec<String>> = match phase.as_str() {
+                "install" => {
+                    if workspace.is_some() {
+                        anyhow::bail!("the install phase mounts no host folder; --workspace is for the run phase");
+                    }
+                    vec![lab::install_argv(&project, &image, &toolset, limits)?]
+                }
+                "commit" => vec![lab::commit_argv(&project)?],
+                "destroy" => lab::destroy_argv(&project)?,
+                "run" => {
+                    let root = labs_root();
+                    let ws = workspace.as_deref().map(std::path::Path::new);
+                    vec![lab::run_argv(&lab::RunSpec {
+                        project: &project,
+                        image: &image,
+                        workspace: ws,
+                        labs_root: &root,
+                        network: lab::Network::parse(&network)?,
+                        limits,
+                        command: &[],
+                    })?]
+                }
+                other => anyhow::bail!(
+                    "phase must be `run`, `install`, `commit` or `destroy`, not `{other}`"
+                ),
+            };
+            print_value(j, &json!({"commands": cmds, "executed": false}), || {
+                cmds.iter()
+                    .map(|c| lab::display(c))
+                    .collect::<Vec<_>>()
+                    .join(
+                        "
+",
+                    )
+            });
+        }
+    }
+    Ok(exit::OK)
+}
+
 fn print_value(as_json: bool, v: &serde_json::Value, human: impl FnOnce() -> String) {
     if as_json {
         println!("{}", serde_json::to_string_pretty(v).unwrap_or_default());
@@ -488,6 +662,7 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
             return Ok(exit::OK);
         }
         Cmd::Graphics { cmd } => return run_graphics(j, cmd),
+        Cmd::Lab { cmd } => return run_lab(j, cmd),
         Cmd::Autotune { dry_run, force } => {
             return run_graphics(j, GraphicsCmd::Apply { dry_run, force });
         }
