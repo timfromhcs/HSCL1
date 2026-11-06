@@ -180,3 +180,6 @@ Searched for open questions (Kali Podman docs, Calamares `partition.conf`/LUKS d
 
 ## Dependabot PRs (2026-11-06) - waiting for the owner
 `actions/checkout` 4.2.2 -> 7.0.1 (#1), `sha2` 0.11 (#3), `thiserror` 2 (#4) are rebased, mergeable and green; the pinned SHAs of #1 and #2 were checked against the upstream tags (checkout v7.0.1 = 3d3c42e5..., upload-artifact v7.0.2 = cf430e03...). My attempt to merge #1 was denied by the session's permission classifier (no reason given), so I did not retry or route around it. `upload-artifact` (#2) stays on hold until the release dry run (P9.4) because only the release bundle job uses it. Decision needed: merge #1, #3, #4 (owner or a permission rule for `gh pr merge` on Dependabot PRs).
+
+## P1.1 done (2026-11-06)
+Image `HSCL1-dev-p2.iso` (sha256 0eb7acb77f5dfd31ac9246b7a46a4cd7816c80cab214e5df46c535968be263ff, commit 3d89a43, clean): `verify-image.sh` all checks passed; built with `HSCL_SQUASH_PROCS=3`/`HSCL_SQUASH_MEM=512M` and WSL capped at 6 GB without being reaped. `e2e_cli.py` x3: 23/23 each, desktop after 110/111/110 s, KDE Connect listener 0, daemon port stats restarts 0 / write_timeouts 0. A read-only baseline probe (file modes, `systemd-analyze security`, Secure Boot variables, AppArmor, sysctls, firewall, sockets, Podman prerequisites, GRUB facts) is running on the same image (P1.2/P1.3/P3.1/P2.0 inputs).

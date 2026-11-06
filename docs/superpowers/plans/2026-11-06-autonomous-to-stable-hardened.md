@@ -182,7 +182,7 @@ Each task lists **Gate** (the command or observation that proves it) and **Evide
 
 ### P1 - Close M1 on the real image
 
-- [ ] **P1.1 Rebuild + full in-guest check** with everything from P0 in the image; 23/23 checks, 3 consecutive runs.
+- [x] **P1.1 Rebuild + full in-guest check** with everything from P0 in the image; 23/23 checks, 3 consecutive runs. Evidence: image `HSCL1-dev-p2.iso` (sha256 0eb7acb7...63ff, clean commit 3d89a43): `artifacts/e2e-p2-run1..3` all 23/23, KDE Connect 0 listeners, `status.port` restarts 0 / write_timeouts 0.
 - [ ] **P1.2 File modes inside the VM:** `find` over files owned by `hscl-*` packages: none group/world-writable; record the count checked.
 - [ ] **P1.3 `systemd-analyze security`** for every HSCL1 unit saved as evidence (feeds P3).
 - [ ] **P1.4 Published image:** inspect `v0.1.0-alpha.0`'s squashfs for world-writable HSCL1 files; if confirmed, publish `v0.1.1-alpha` built
