@@ -183,7 +183,7 @@ Each task lists **Gate** (the command or observation that proves it) and **Evide
 ### P1 - Close M1 on the real image
 
 - [x] **P1.1 Rebuild + full in-guest check** with everything from P0 in the image; 23/23 checks, 3 consecutive runs. Evidence: image `HSCL1-dev-p2.iso` (sha256 0eb7acb7...63ff, clean commit 3d89a43): `artifacts/e2e-p2-run1..3` all 23/23, KDE Connect 0 listeners, `status.port` restarts 0 / write_timeouts 0.
-- [ ] **P1.2 File modes inside the VM:** `find` over files owned by `hscl-*` packages: none group/world-writable; record the count checked.
+- [x] **P1.2 File modes inside the VM:** `find` over files owned by `hscl-*` packages: none group/world-writable; record the count checked. **Done:** 304 files, 0 bad (`artifacts/probe-baseline2`, image p2).
 - [ ] **P1.3 `systemd-analyze security`** for every HSCL1 unit saved as evidence (feeds P3).
 - [ ] **P1.4 Published image:** inspect `v0.1.0-alpha.0`'s squashfs for world-writable HSCL1 files; if confirmed, publish `v0.1.1-alpha` built
   from the fixed pipeline and add a **warning to the old release notes** (do not delete the old release without the owner's approval).
@@ -194,14 +194,14 @@ Each task lists **Gate** (the command or observation that proves it) and **Evide
 
 ### P2 - Installer, encryption, Secure Boot (R2, R5)
 
-- [ ] **P2.0 Offline facts first (no VM):** from the ISO read the Kubuntu Calamares config (`/etc/calamares/modules/partition.conf`, `settings.conf`,
-  `grubcfg.conf`), the GRUB version, and whether the signed `grubx64.efi` contains `luks2`/`cryptodisk` (strings); read Launchpad bug 2064909. Record in `docs/INSTALLER_FACTS.md`.
-- [ ] **P2.1 Calamares config (R12):** `partition.conf` with `luksGeneration: luks2`, `partitionLayout`: `/boot` ext4 1 GiB `noEncrypt: true`, `/` encrypted, ESP
+- [x] **P2.0 Offline facts first:** from the ISO read the Kubuntu Calamares config (`/etc/calamares/modules/partition.conf`, `settings.conf`,
+  `grubcfg.conf`), the GRUB version, and whether the signed `grubx64.efi` contains `luks2`/`cryptodisk` (strings); read Launchpad bug 2064909. Record in `docs/INSTALLER_FACTS.md`. **Done** (read inside a booted VM): the stock Kubuntu `partition.conf` already has LUKS2 + unencrypted 4 GiB `/boot` + swap file; signed GRUB has `luks2`, `cryptodisk`, `pbkdf2`, no `argon`.
+- [~] **P2.1 Calamares config (R12) - no layout change needed, only the notice:** the image's `partition.conf` already matches the target layout (INSTALLER_FACTS). Remaining: our own localised "/boot is not encrypted" notice (`showNotEncryptedBootMessage` is false). Original text: `partition.conf` with `luksGeneration: luks2`, `partitionLayout`: `/boot` ext4 1 GiB `noEncrypt: true`, `/` encrypted, ESP
   automatic, `initialPartitioningChoice: none`, our own localised not-encrypted-boot notice; no second LUKS volume; zram/swap-file only. Document why (R2).
   Gate: the P2.4 install boots.
 - [ ] **P2.2 Installer branding EN/DE/FR + slideshow**, no unbound shortcuts; screenshots at 1366x768 and 1920x1080.
 - [ ] **P2.3 Plain install:** disposable 40 GB qcow2, install, reboot, login; run the in-guest check set on the installed system.
-- [ ] **P2.4 LUKS2 install:** same, plus reboot, unlock prompt, **wrong passphrase refused**, correct one unlocks; `cryptsetup luksDump` shows
+- [ ] **P2.4 LUKS2 install (+ keyfile gate):** after the install, `lsinitramfs /boot/initrd.img-*` must contain no LUKS keyfile and `/etc/crypttab` must name no key file for the root volume (the `luksbootkeyfile` module is in the stock sequence; with an unencrypted `/boot` a keyfile in the initrd would void the encryption). Then: same, plus reboot, unlock prompt, **wrong passphrase refused**, correct one unlocks; `cryptsetup luksDump` shows
   LUKS2 and the PBKDF; `grep` of installer logs and journal finds no passphrase or key material (test uses a unique marker passphrase).
 - [ ] **P2.5 Recovery key flow:** `luksAddKey` with a generated key shown once; unlock with it in the VM; never stored in logs.
 - [ ] **P2.6 Fault injection:** kill the installer mid-copy, fill the target disk, no network, power-off at 50%; each leaves the virtual disk
