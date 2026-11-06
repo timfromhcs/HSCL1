@@ -38,3 +38,17 @@ Sources (all fetched 2026-11-06): <https://github.com/PrismML-Eng/llama.cpp>, <h
 3. **Vulkan checks before trusting speed:** `llama-bench -ngl 0` vs `-ngl 99` on the 680M; confirm the Prism build has the integer-dot MMVQ path (issue #329) by comparing PTQ1_0 vs PQ2_0 token rates; do not use Vulkan DFlash2 for anything that needs determinism.
 4. **Memory governor:** router-style start with `--models-max 2`, `--sleep-idle-seconds`, `-cram 1024`, free-RAM gate (model + KV + 3 GB), tiers by free RAM; fail closed.
 5. **Secrets hygiene first:** rotate the GitHub token and the OpenCode server password; configs read `{env:VAR}`.
+
+## First measurement through the existing gateway (2026-11-06, this machine)
+`localai-gateway.chat` with `qwen3-4b` (abliterated Qwen3-4B Q4_K_M), same coding prompt twice:
+- **Thinking on (default):** cold start took more than 120 s (model load), 400 completion tokens consumed, `content` empty, `finish_reason: length`. The thinking block ate the budget.
+- **Thinking off (`/no_think` in system and user message):** 178 tokens, `finish_reason: stop`, usable code and two tests. **But the code was subtly wrong:** it tries `float()` before `int()`, so `"100"` becomes `100.0` (spec: int or float); its tests did not catch it because `100 == 100.0`. Lesson: a 4B subagent needs thinking off, a sufficient token limit, and an independent verifier (tests that check types), never trust-as-is.
+- Free RAM before the call: 8.5 GB of 19.8 GB.
+
+## Round 3a - harness evidence for small models (agent report; primary sources unless marked)
+- Base instruct models without agentic training do badly in agent harnesses: Qwen3-8B base 7.6 % in OpenHands, Qwen2.5-Coder-7B 1.0 %; trajectory fine-tuning lifts an 8B to 42-44 % (SWE-Lego, arXiv 2601.01426). The gain comes from training data, not from the harness. mini-SWE-agent rows on swebench.com: Devstral Small 24B 56.4 %, GPT-5-nano 34.8 %; no <=10B open model listed.
+- Edit format matters for small models: Aider reports whole-file edits are more reliably well-formed than diffs for local models (Qwen3-32B no-think: whole 45.8 % with 100 % well-formed vs diff 41.3 % with 94.2 %); thinking on dropped diff well-formedness to 83.6 %. Diff-XYZ (arXiv 2510.12487): small open models struggle to apply any diff format. **Inference:** for 4-9B give them small files and whole-file or search/replace edits, and apply with `git apply --check`/own applier.
+- Too many tools hurts: one 2026 paper reports BFCL accuracy collapsing from 88.0 to 31.4 with many tools shown and recovering to 84.8 with filtering (snippet only; model sizes unconfirmed). Heuristic: at most 5-8 tools, one action per turn (mini-SWE-agent style: one bash action in a fenced block, step limit). **No measured maximum exists; treat as heuristic.**
+- Verifiers: SWE-Gym raised a 32B agent 20.6 % -> 29.8 % (best of 8) and SWE-Lego's 8B 42.2 % -> 49.6 % (best of 16), but these rank multiple trajectories; **no published number for a simple "run tests, feed failures back" loop on 4-9B models**. Aider's pass-rate-2 vs pass-rate-1 shows the size of the feedback effect on a big model only.
+- Routing: RouteLLM / FrugalGPT report large cost cuts on chat benchmarks (not agentic coding). No published agentic-coding offload fraction. Rule that the evidence supports: verify cheaply, escalate to the cloud model on test failure.
+- Gap that our own benchmark must fill: pass rate of our local 4B/9B executors inside our verify loop on our own task set (Task L2 below).
