@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """forge - one control for the HSCL1 patch/build/test loop (standard library only). Spec: docs/superpowers/plans/2026-11-06-forge-loop.md
 
-Implemented now:  check   local pre-push gate (tests, bash -n, ShellCheck in WSL, secret scan)
+Implemented now:  check   local pre-push gate (tests, changed tests again under Linux in WSL, bash -n, ShellCheck in WSL, secret scan)
 Planned:          build, boot, test, install, diff, cycle, release (see the plan; they are NOT implemented and not listed in --help)
 
 Rules: print what will run first; stop on the first failure; a skipped step is reported as SKIPPED and makes `check --strict` fail;
@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -101,8 +102,20 @@ def wsl_available() -> bool:
     return r.returncode == 0
 
 
-def plan_check(root: Path = ROOT, have_wsl: bool | None = None) -> list[Step]:
+def changed_test_files(root: Path = ROOT) -> list[str]:
+    """Test files that differ from the upstream branch (or HEAD when there is none) plus untracked ones, sorted, repo-relative."""
+    def git(*a: str) -> subprocess.CompletedProcess:
+        return subprocess.run(["git", "-C", str(root), *a], capture_output=True, text=True, errors="replace")
+
+    base = "@{u}" if git("rev-parse", "--abbrev-ref", "@{u}").returncode == 0 else "HEAD"
+    names = set(git("diff", "--name-only", base).stdout.splitlines())
+    names |= set(git("ls-files", "--others", "--exclude-standard").stdout.splitlines())
+    return sorted(n for n in names if re.fullmatch(r"tests/.*test_[^/]*\.py", n) and (root / n).is_file())
+
+
+def plan_check(root: Path = ROOT, have_wsl: bool | None = None, changed: list[str] | None = None) -> list[Step]:
     have_wsl = wsl_available() if have_wsl is None else have_wsl
+    changed = changed_test_files(root) if changed is None else changed
     pytest_argv = [sys.executable, "-m", "pytest", "tests", "-q", "-p", "no:cacheprovider"]
     try:
         import xdist  # noqa: F401
@@ -111,12 +124,22 @@ def plan_check(root: Path = ROOT, have_wsl: bool | None = None) -> list[Step]:
         pass
     steps = [Step("pytest", pytest_argv), Step("bash -n", None), Step("secret scan", None)]
     files = shell_files(root)
+    posix = "/mnt/" + root.drive[0].lower() + "/" + root.as_posix()[3:] if root.drive else str(root)
     if have_wsl:
-        posix = "/mnt/" + root.drive[0].lower() + "/" + root.as_posix()[3:] if root.drive else str(root)
         steps.insert(2, Step("shellcheck (WSL)", ["wsl", "-d", "Ubuntu", "--", "bash", "-lc",
                                                   f"cd '{posix}' && shellcheck -S warning {' '.join(files)}"]))
     else:
         steps.insert(2, Step("shellcheck (WSL)", None, skip_reason="WSL Ubuntu not available"))
+    # Linux run of the changed tests: CI is Linux, and Windows-only passes hid exec-bit and path problems (2026-11-06).
+    name = "pytest (WSL, changed tests)"
+    if not have_wsl:
+        steps.insert(1, Step(name, None, skip_reason="WSL Ubuntu not available"))
+    elif not changed:
+        steps.insert(1, Step(name, None, skip_reason="no changed test files"))
+    else:
+        quoted = " ".join(shlex.quote(f) for f in changed)
+        steps.insert(1, Step(name, ["wsl", "-d", "Ubuntu", "--", "bash", "-lc",
+                                    f"cd {shlex.quote(posix)} && python3 -m pytest -q -p no:cacheprovider {quoted}"]))
     return steps
 
 

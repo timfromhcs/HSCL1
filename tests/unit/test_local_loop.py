@@ -157,11 +157,14 @@ def test_window_round_two_prompt_is_identical_to_the_full_history_prompt(proj, t
     (other / "impl.py").write_text("def parse_score(s):\n    raise NotImplementedError\n", encoding="utf-8")
     (other / "check.py").write_text(CHECK, encoding="utf-8")
     go(other, b, history="full")
-    norm = lambda s: json.dumps(s).replace("hscl-local-", "X")  # noqa: E731 - temp dir names differ in the traceback path
     import re as _re
 
-    clean = lambda c: _re.sub(r"[A-Za-z]:\\\\[^\"]*?tree", "TREE", norm(c))  # noqa: E731
+    def clean(call):
+        # the traceback inside the feedback names the random temp directory (hscl-local-<random>); everything else must be identical
+        return _re.sub(r"hscl-local-\w+", "TMP", json.dumps(call))
+
     assert clean(a.calls[1]) == clean(b.calls[1])
+    assert "TMP" in clean(a.calls[1]), "the normalization must actually have something to normalize, or the test proves nothing"
 
 
 def test_a_word_for_word_repeated_answer_is_called_out_in_the_feedback(proj):
