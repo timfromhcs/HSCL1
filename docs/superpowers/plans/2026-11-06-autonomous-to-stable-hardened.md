@@ -218,7 +218,7 @@ Each task lists **Gate** (the command or observation that proves it) and **Evide
   `nft list ruleset`; stored under `artifacts/baseline-<date>/`; `docs/THREAT_MODEL.md` lists every listening socket with owner and reason.
 - [ ] **P3.2 Listening-socket allow-list test** in the VM: only the documented sockets exist (mDNS, CUPS on loopback, resolver/NTP loopback).
   Anything new fails the gate. Decide per item: keep, bind to loopback, or disable (CUPS browsing, avahi).
-- [ ] **P3.3 Per-unit sandboxing** for all HSCL1 units to a target `systemd-analyze security` exposure (<= 5.0 where function allows), measured
+- [~] **P3.3 Per-unit sandboxing - security-baseline unit done in source (predicted exposure 7.6 -> 2.5, ufw works under it in a VM); in-image first-boot verification pending the next rebuild; Workshop units stay the documented exception (8.6). Original text:** for all HSCL1 units to a target `systemd-analyze security` exposure (<= 5.0 where function allows), measured
   before/after, applied in phases with a VM test after each phase; the Workshop daemon stays the documented exception.
 - [ ] **P3.4 AppArmor (R7):** named profiles for `hscl_workshopd`, the `hscl mcp` server, and `hscl` helpers; complain-mode run through the
   full e2e set, then enforce; gate: `ps -Z` shows the profile (not unconfined) and the e2e set still passes enforced.
