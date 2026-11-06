@@ -15,6 +15,7 @@ import base64
 import json
 import os
 import re
+import select
 import subprocess
 import sys
 import time
@@ -23,6 +24,7 @@ from pathlib import Path
 VERSION = 1
 MAX_FILE_BYTES = 8 * 1024 * 1024
 MAX_LINE_BYTES = 12 * 1024 * 1024
+MAX_REPLY_BYTES = 4 * 1024 * 1024  # a reply the host cannot take in time wedges the port; refuse to build one this large
 HOOKS_DIR = "/usr/lib/hscl/workshop/hooks"
 ALLOWED_PREFIXES = (
     "/usr/share/hscl/",
@@ -166,7 +168,7 @@ def op_status(_args: dict) -> dict:
                 osr[k] = v.strip('"')
     su = session_user()
     return {"workshop": VERSION, "hscl1_version": osr.get("HSCL1_VERSION"), "live": os.path.exists("/cdrom/casper/filesystem.squashfs") or "/casper/" in cmdline,
-            "session_user": su[0] if su else None, "ops": sorted(OPS)}
+            "session_user": su[0] if su else None, "ops": sorted(OPS), "port": dict(PORT_STATS)}
 
 
 def op_respin(args: dict) -> dict:
@@ -215,6 +217,63 @@ def handle(line: str, ops: dict | None = None) -> dict:
         return {"id": rid, "ok": False, "error": f"internal error: {type(e).__name__}"}
 
 
+WRITE_TIMEOUT_S = 20.0
+PORT_STATS = {"restarts": 0, "write_timeouts": 0}
+
+
+class WriteTimeout(OSError):
+    """The host end of the port did not take our reply within WRITE_TIMEOUT_S."""
+
+
+class FdReader:
+    """Line reader on a (non-blocking) fd. readline() returns b'' on EOF, like a file object."""
+
+    def __init__(self, fd: int):
+        self.fd, self.buf = fd, bytearray()
+
+    def readline(self) -> bytes:
+        while True:
+            i = self.buf.find(b"\n")
+            if i >= 0:
+                line = bytes(self.buf[: i + 1])
+                del self.buf[: i + 1]
+                return line
+            select.select([self.fd], [], [])
+            try:
+                chunk = os.read(self.fd, 65536)
+            except BlockingIOError:
+                continue
+            if not chunk:
+                rest, self.buf = bytes(self.buf), bytearray()
+                return rest
+            self.buf.extend(chunk)
+
+
+class TimedWriter:
+    """Writes with a deadline. A virtio-serial write that the host cannot drain blocks the guest forever (QEMU issue 4672);
+    with a deadline the daemon notices, reopens the port and carries on instead of going silent."""
+
+    def __init__(self, fd: int, timeout: float = WRITE_TIMEOUT_S):
+        self.fd, self.timeout = fd, timeout
+
+    def write(self, data: bytes) -> int:
+        view, end = memoryview(data), time.monotonic() + self.timeout
+        while view:
+            try:
+                n = os.write(self.fd, view)
+                view = view[n:]
+            except BlockingIOError:
+                left = end - time.monotonic()
+                if left <= 0:
+                    PORT_STATS["write_timeouts"] += 1
+                    raise WriteTimeout("host end of the port is not draining") from None
+                select.select([], [self.fd], [], min(left, 1.0))
+        return len(data)
+
+    def flush(self) -> None:
+        pass
+
+
 def serve(rfile, wfile, ops: dict | None = None) -> None:
     wfile.write((json.dumps({"hello": "hscl-workshopd", "version": VERSION}) + "\n").encode())
     wfile.flush()
@@ -222,7 +281,11 @@ def serve(rfile, wfile, ops: dict | None = None) -> None:
         line = raw.decode("utf-8", "replace").strip()
         if not line:
             continue
-        wfile.write((json.dumps(handle(line, ops)) + "\n").encode())
+        resp = handle(line, ops)
+        data = (json.dumps(resp) + "\n").encode()
+        if len(data) > MAX_REPLY_BYTES:
+            data = (json.dumps({"id": resp.get("id"), "ok": False, "error": f"reply too large ({len(data)} bytes, limit {MAX_REPLY_BYTES})"}) + "\n").encode()
+        wfile.write(data)
         wfile.flush()
 
 
@@ -250,16 +313,24 @@ def main(argv: list[str]) -> int:
     if not os.path.exists(port):
         print(f"no such port: {port}", file=sys.stderr)
         return 1
-    # The host may connect and disconnect many times; keep serving until the service is stopped.
+    # The host may connect and disconnect many times; keep serving until the service is stopped. The port is opened once per
+    # session non-blocking, reads and writes wait with select, and a write the host does not drain within WRITE_TIMEOUT_S
+    # makes us close and reopen the port instead of hanging.
     while True:
+        fd = -1
         try:
-            fd = os.open(port, os.O_RDWR)
-            with os.fdopen(fd, "rb", buffering=0) as r, os.fdopen(os.dup(fd), "wb", buffering=0) as w:
-                serve(r, w)
+            fd = os.open(port, os.O_RDWR | os.O_NONBLOCK)
+            select.select([], [fd], [])  # like the old blocking hello write: wait until a host is connected (no timeout here)
+            serve(FdReader(fd), TimedWriter(fd))
+        except WriteTimeout as e:
+            print(f"hscl-workshopd: {e}; reopening the port", file=sys.stderr, flush=True)
         except OSError:
             pass
+        finally:
+            if fd >= 0:
+                try:
+                    os.close(fd)
+                except OSError:
+                    pass
+        PORT_STATS["restarts"] += 1
         time.sleep(0.5)
-
-
-if __name__ == "__main__":
-    sys.exit(main(sys.argv))

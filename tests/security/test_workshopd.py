@@ -114,3 +114,16 @@ def test_serve_speaks_line_delimited_json_with_hello():
 @pytest.mark.parametrize("ok", ["/usr/bin/hscl", "/usr/lib/hscl/workshop/hscl-respin", "/etc/hscl/x.toml", "/var/lib/hscl/workshop/debs/a.deb", "/usr/share/doc/hscl-handbook/en/x.html"])
 def test_hscl_owned_paths_are_allowed(ok, tmp_path):
     assert wd.validate_put_path(ok, str(tmp_path))
+
+
+def test_oversized_reply_is_replaced_by_an_error_not_written():
+    """A reply the host cannot take in time would wedge the virtio port; the daemon refuses to send more than MAX_REPLY_BYTES."""
+    big = {"huge": lambda a: {"blob": "x" * (wd.MAX_REPLY_BYTES + 10)}, "small": lambda a: {"ok": 1}}
+    rin = io.BytesIO(b'{"id":1,"op":"huge","args":{}}\n{"id":2,"op":"small","args":{}}\n')
+    out = io.BytesIO()
+    wd.serve(rin, out, big)
+    lines = out.getvalue().decode().splitlines()
+    first, second = json.loads(lines[1]), json.loads(lines[2])
+    assert first["ok"] is False and "reply too large" in first["error"] and first["id"] == 1
+    assert second["ok"] is True and second["id"] == 2
+    assert all(len(l) < wd.MAX_REPLY_BYTES for l in lines)
