@@ -96,3 +96,13 @@ def test_the_squashfs_root_owner_check_does_not_close_the_pipe_early():
     sh = (Path(__file__).resolve().parents[2] / "scripts/remaster-iso.sh").read_text(encoding="utf-8")
     line = next(l for l in sh.splitlines() if l.startswith("root_owner="))
     assert "exit" not in line and "head" not in line and "!done" in line
+
+
+def test_rebuilt_initrd_is_mapped_and_proven_in_the_iso():
+    """A missing -map once shipped the upstream boot splash with all gates green: the script must map the rebuilt initrd AND compare
+    what the finished ISO contains."""
+    from pathlib import Path
+    s = (Path(__file__).resolve().parents[2] / "scripts" / "remaster-iso.sh").read_text(encoding="utf-8")
+    assert '-map "$new_initrd" /casper/initrd' in s
+    assert 'cmp -s "$work/iso-files/initrd.check" "$new_initrd"' in s
+    assert s.index('-map "$new_initrd" /casper/initrd') < s.index('initrd.check')

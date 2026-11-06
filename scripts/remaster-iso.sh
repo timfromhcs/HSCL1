@@ -158,9 +158,16 @@ rm -f "$out"
 xorriso -indev "$base" -outdev "$out" -volid "HSCL1 ${version} amd64" \
   -boot_image any replay \
   -map "$new_sq" /casper/filesystem.squashfs \
+  -map "$new_initrd" /casper/initrd \
   -map "$cfg" /boot/grub/grub.cfg \
   -map "$md5" /md5sum.txt \
   -commit 2>&1 | grep -vE '^(xorriso : UPDATE|Writing: )' | tail -n 12
+# The check above only looked at the file we meant to map. Prove it is what the finished ISO contains (a missing -map once shipped the
+# upstream boot splash while every gate was green).
+xorriso -osirrox on -indev "$out" -extract /casper/initrd "$work/iso-files/initrd.check" 2>/dev/null
+cmp -s "$work/iso-files/initrd.check" "$new_initrd" || { echo "the ISO does not contain the rebuilt initrd" >&2; exit 1; }
+rm -f "$work/iso-files/initrd.check"
+echo "ok    ISO /casper/initrd is the rebuilt initrd (md5 $ird_md5)"
 rm -f "$new_sq" "$new_initrd"
 sha256sum "$out" | tee "$out.sha256"
 dirty=0
