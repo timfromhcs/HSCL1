@@ -39,6 +39,16 @@ All screenshots are real captures from QEMU virtual machines.
 | ![Aurora wallpaper](docs/img/desktop-aurora.png) | ![Control Center](docs/img/control-center.png) |
 | ![Starfield wallpaper](docs/img/desktop-starfield.png) | ![Installer welcome](docs/img/installer-welcome.png) |
 
+### Encrypted install (release 0.1.1-alpha.0, VM)
+
+| Erase disk + encrypt | Summary before installing |
+|---|---|
+| ![Encryption option with passphrase fields](docs/img/install-encrypt.png) | ![Installer summary: EFI, 4 GiB /boot, LUKS2 root](docs/img/install-summary.png) |
+| ![Passphrase prompt at boot](docs/img/boot-unlock.png) | ![Installed desktop after unlocking](docs/img/desktop-installed.png) |
+
+Captured from the exact release ISO in a disposable 40 GB virtual disk (UEFI, no Secure Boot). The layout is an unencrypted
+`/boot` plus a LUKS2 root. Not tested on physical hardware; see [`docs/CLAIMS.md`](docs/CLAIMS.md).
+
 The aurora effect currently looks like overlapping circles rather than ribbons; this is a known design defect
 (see [`docs/CLAIMS.md`](docs/CLAIMS.md)).
 
