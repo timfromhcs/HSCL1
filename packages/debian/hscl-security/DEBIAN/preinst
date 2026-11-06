@@ -1,7 +1,9 @@
 #!/bin/sh
 set -e
-# The kdeconnect package owns this file; divert it so our hidden copy wins and upgrades of kdeconnect do not overwrite it.
+# The kdeconnect package owns these files; divert the originals OUT of the scanned directories (a diverted copy left in
+# /etc/xdg/autostart is still started by systemd-xdg-autostart-generator - seen in a VM run).
 if [ "$1" = install ] || [ "$1" = upgrade ]; then
-  dpkg-divert --package hscl-security --quiet --rename --divert /etc/xdg/autostart/org.kde.kdeconnect.daemon.desktop.kdeconnect --add /etc/xdg/autostart/org.kde.kdeconnect.daemon.desktop
-  dpkg-divert --package hscl-security --quiet --rename --divert /usr/share/dbus-1/services/org.kde.kdeconnect.service.kdeconnect --add /usr/share/dbus-1/services/org.kde.kdeconnect.service
+  mkdir -p /usr/share/hscl/diverted
+  dpkg-divert --package hscl-security --quiet --rename --divert /usr/share/hscl/diverted/org.kde.kdeconnect.daemon.desktop --add /etc/xdg/autostart/org.kde.kdeconnect.daemon.desktop
+  dpkg-divert --package hscl-security --quiet --rename --divert /usr/share/hscl/diverted/org.kde.kdeconnect.service --add /usr/share/dbus-1/services/org.kde.kdeconnect.service
 fi

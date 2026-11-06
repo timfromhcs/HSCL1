@@ -56,6 +56,7 @@ def main() -> int:
     report: dict = {"iso": Path(iso).name, "checks": {}}
     mgr = vmmod.VmManager(out / "vm")
     vm = mgr.start("cli", iso, None, 4096, "uefi")
+    t0 = time.time()
     try:
         report["desktop_after_s"] = base.wait_desktop(vm)
         report["status"] = vm.rpc("status", timeout=180)
@@ -68,6 +69,17 @@ def main() -> int:
                 report["checks"][name] = {"hook_exit": r["exit"], "output": text[-3500:]}
             except Exception as e:  # noqa: BLE001 - record, do not hide
                 report["checks"][name] = {"error": f"{type(e).__name__}: {e}"}
+                if "first_error" not in report:  # keep evidence of the guest state at the first failure
+                    report["first_error"] = {"check": name, "at_s": round(time.time() - t0)}
+                    try:
+                        (out / "first-error.png").write_bytes(base.rgb_shot(vm)[0])
+                        report["first_error"]["screenshot"] = "first-error.png"
+                    except Exception as se:  # noqa: BLE001
+                        report["first_error"]["screenshot_error"] = f"{type(se).__name__}: {se}"
+                    try:
+                        report["first_error"]["status_after"] = vm.rpc("status", timeout=20)
+                    except Exception as se:  # noqa: BLE001
+                        report["first_error"]["status_after"] = f"no answer: {type(se).__name__}"
         report["screenshot_png"] = (out / "desktop.png").name
         (out / "desktop.png").write_bytes(base.rgb_shot(vm)[0])
     finally:

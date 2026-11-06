@@ -43,7 +43,15 @@ chmod 0755 "$stage/DEBIAN"
 # drvfs/NTFS checkouts report 0777; dpkg requires maintainer scripts within 0555..0775 and sane file modes
 for f in preinst postinst prerm postrm; do [ -f "$stage/DEBIAN/$f" ] && chmod 0755 "$stage/DEBIAN/$f"; done
 chmod 0644 "$stage/DEBIAN/control"
-find "$stage" -type f ! -path "$stage/DEBIAN/*" ! -perm /111 -exec chmod 0644 {} + 
+# Normalise every payload file by CONTENT, never by the checkout's modes (NTFS/drvfs checkouts report 0777 for everything, which
+# would ship world-writable files): scripts with a shebang and ELF binaries are 0755, everything else 0644; directories 0755.
+while IFS= read -r -d '' f; do
+  if [ "$(head -c 2 "$f")" = '#!' ] || [ "$(head -c 4 "$f" | od -An -tx1 | tr -d ' \n')" = '7f454c46' ]; then
+    chmod 0755 "$f"
+  else
+    chmod 0644 "$f"
+  fi
+done < <(find "$stage" -type f ! -path "$stage/DEBIAN/*" -print0)
 find "$stage" -type d -exec chmod 0755 {} +
 mkdir -p "$out"
 dpkg-deb --root-owner-group --build "$stage" "$out/${name}_${version//-/\~}_amd64.deb" >/dev/null
