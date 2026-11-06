@@ -91,6 +91,37 @@ third-party guides disagree. *Consequence:* derive the baseline by measuring the
 listening sockets), keep only settings we can show do something, and cite no one else's claims. AppArmor restricts unprivileged user
 namespaces via `kernel.apparmor_restrict_unprivileged_userns`; rootless Podman needs a profile or a deliberate exception (test in P4).
 
+**R12 - Calamares layout for LUKS2 + unencrypted `/boot` (concrete).** Upstream `partition.conf`: `luksGeneration` defaults to `luks1` because GRUB
+did not support LUKS2+Argon2id; `luks2` is allowed (PBKDF2 works in GRUB). `partitionLayout` entries take `mountPoint`, `size`, `filesystem` and
+`noEncrypt: true`, so `/boot` (ext4, about 1 GiB) can be exempted while `/` is encrypted; the ESP is prepended automatically; `initialPartitioningChoice: none`
+already matches our "nothing preselected" rule; `showNotEncryptedBootMessage` controls the "boot not encrypted" warning (we show our own, localised).
+Calamares' LUKS deployment doc says the keyfile modules and `GRUB_ENABLE_CRYPTODISK` are only needed when `/boot` is encrypted, so with an unencrypted
+`/boot` the initramfs simply asks for the passphrase. Launchpad bug 2064909 (Kubuntu 24.04 failing to decrypt) must be read before P2.1.
+Sources: <https://github.com/calamares/calamares/blob/calamares/src/modules/partition/partition.conf>, <https://calamares.euroquis.nl/docs/deploy-luks>.
+
+**R13 - Official Kali Podman guidance.** The Kali images ship **without** the default metapackage (`apt update && apt install kali-linux-headless` etc.),
+have no systemd, and resolve through the containers shortnames list (`kali-rolling` -> `docker.io/kalilinux/kali-rolling`). *Consequence:* the Security Lab
+has two phases: an **install phase** (network on, only the capabilities apt needs to drop to its `_apt` user, namespaced by the rootless user namespace:
+CHOWN, DAC_OVERRIDE, FOWNER, SETUID, SETGID; a hypothesis to test, alternative `-o APT::Sandbox::User=root`) that produces a local image, and a **run phase**
+with `--cap-drop=ALL`, `no-new-privileges`, read-only root, no network unless chosen. Source: <https://www.kali.org/docs/containers/using-kali-podman-images/>.
+
+**R14 - Attestation action.** `actions/attest-build-provenance` v4 is now only a wrapper around `actions/attest`; new workflows should call `actions/attest`
+directly (pin by SHA, read its README for the subject and SBOM inputs at implementation time). Public repo -> public-good Sigstore; permissions needed:
+`id-token: write`, `attestations: write`. Verify with `gh attestation verify FILE -R timfromhcs/HSCL1`. Sources: <https://github.com/actions/attest-build-provenance>,
+<https://github.com/actions/attest>.
+
+**R15 - llama.cpp Vulkan check.** Prebuilt Windows Vulkan binaries exist in the ggml-org/llama.cpp releases; the real test is `llama-server --list-devices`
+(device names look like `Vulkan0: AMD Radeon Graphics (RADV RENOIR)` on Linux/RADV) plus the backend log line of the selected device; `GGML_VK_VISIBLE_DEVICES`
+selects devices. Integrated GPUs report shared memory as device memory (large totals), which confirms our rule to show dedicated and shared memory separately.
+
+**R16 - QEMU WHPX facts.** `-accel whpx,ssd=off` disables the "separate security domain" (branch-predictor flush on VM entry/exit): a large MMIO speed-up at the
+cost of mitigations. WHPX has no SMM, so Secure Boot firmware tests stay on TCG. Legacy VGA modes are slow under WHPX. Source:
+<https://www.qemu.org/docs/master/system/whpx.html>. *Consequence:* optional benchmark P1.7; adopt `ssd=off` only for our own disposable test VMs and only if it
+is clearly faster; never for anything that runs untrusted code (Security Lab VMs).
+
+**R17 - CI runner mirror stalls.** The Azure Ubuntu mirror intermittently stalls a package download without erroring; `Acquire::Retries` cannot help. Fixed in CI
+with a download-only loop under `timeout` and an offline install (done 2026-11-06).
+
 ---
 
 ## 2. Self-healing loop protocol (applies to every task)
@@ -142,6 +173,12 @@ Each task lists **Gate** (the command or observation that proves it) and **Evide
 - [x] **P0.5 Restore the sandbox options on the Workshop units** if P0.1 passes with them present in the image (they are in `cd0bf42e`);
   remove the A/B exemption in `tests/security/test_systemd_hardening.py`. If P0.1 still wedges, return to the hypothesis step (do not guess). **Done:** P0.1 passed with the options present; the A/B commit was reverted (options restored, exemption removed, suite 189 passed). Evidence: `artifacts/e2e-m1d`, git revert of ed84913.
 - [x] **P0.6 Dev loop doc:** one page `docs/DEV_LOOP.md` with the resource policy, commands, and the harness API (what `vm.py` guarantees).
+- [x] **P0.7 Harness typing:** `vm.type()` drops `;` and `|` (seen when typing a command line into the guest terminal); extend the key map; test by typing a line with
+  every printable ASCII character into a guest `cat` and reading it back. **Done (host side):** SHIFTED/QCODES maps + `tests/unit/test_typing.py` (every printable ASCII char maps to a chord); a guest read-back is still to be run once.
+- [ ] **P0.8 Guest-terminal diagnostics:** commit the scratch `diag_term.py` as `scripts/workshop/e2e_term.py` (open the terminal via the dock, type lines, screenshot).
+  It found the missing `__main__` guard while the API was down.
+- [x] **P0.9 Process-level tests:** every shipped daemon/CLI entry point has a test that starts it as a process (found by the p1 image failure). Evidence:
+  `test_script_entry_point_runs_main`.
 
 ### P1 - Close M1 on the real image
 
@@ -152,11 +189,16 @@ Each task lists **Gate** (the command or observation that proves it) and **Evide
   from the fixed pipeline and add a **warning to the old release notes** (do not delete the old release without the owner's approval).
 - [ ] **P1.5 Aurora wallpaper redesign** (ribbons) with before/after screenshots and a CPU-cost measurement; otherwise "not measured".
 - [ ] **P1.6 Autotune on a different virtual GPU** (virtio-gpu) to see another fingerprint/profile: `graphics detect` vs state.
+- [ ] **P1.7 Optional WHPX speed-up (R16):** boot-to-desktop time with and without `ssd=off` (3 runs each, same image); adopt for our own test VMs only if clearly
+  faster; record the security trade-off.
 
 ### P2 - Installer, encryption, Secure Boot (R2, R5)
 
-- [ ] **P2.1 Calamares config:** `partition.conf` with `luksGeneration: luks2`, an explicit layout (ESP, 1 GiB unencrypted ext4 `/boot`, LUKS2
-  root), no second LUKS volume; zram/swap-file only. Document why (R2).
+- [ ] **P2.0 Offline facts first (no VM):** from the ISO read the Kubuntu Calamares config (`/etc/calamares/modules/partition.conf`, `settings.conf`,
+  `grubcfg.conf`), the GRUB version, and whether the signed `grubx64.efi` contains `luks2`/`cryptodisk` (strings); read Launchpad bug 2064909. Record in `docs/INSTALLER_FACTS.md`.
+- [ ] **P2.1 Calamares config (R12):** `partition.conf` with `luksGeneration: luks2`, `partitionLayout`: `/boot` ext4 1 GiB `noEncrypt: true`, `/` encrypted, ESP
+  automatic, `initialPartitioningChoice: none`, our own localised not-encrypted-boot notice; no second LUKS volume; zram/swap-file only. Document why (R2).
+  Gate: the P2.4 install boots.
 - [ ] **P2.2 Installer branding EN/DE/FR + slideshow**, no unbound shortcuts; screenshots at 1366x768 and 1920x1080.
 - [ ] **P2.3 Plain install:** disposable 40 GB qcow2, install, reboot, login; run the in-guest check set on the installed system.
 - [ ] **P2.4 LUKS2 install:** same, plus reboot, unlock prompt, **wrong passphrase refused**, correct one unlocks; `cryptsetup luksDump` shows
@@ -194,7 +236,7 @@ Each task lists **Gate** (the command or observation that proves it) and **Evide
 ### P4 - Security Lab MVP (R8)
 
 - [ ] **P4.1 Read the Kali Podman page** and record the exact supported flags; pin the digest read from `podman pull` (full `sha256:`).
-- [ ] **P4.2 Container spec generator** in Rust (`hscl lab ...`): typed options only; defaults = rootless, `--cap-drop=ALL`, `no-new-privileges`,
+- [ ] **P4.2 Container spec generator (two phases, R13)** in Rust (`hscl lab ...`): typed options only; defaults = rootless, `--cap-drop=ALL`, `no-new-privileges`,
   `--read-only`+tmpfs, no host network/PID, no privileged, no socket mounts, no host home, explicit lab folder mount only, memory/CPU/PID limits.
   Unit tests assert the generated argv for the safe default and reject every unsafe override (privileged, `--net=host`, `/`, `/etc`, `/run`,
   `$SSH_AUTH_SOCK`, gpg-agent, browser profile paths, `~`).
@@ -217,7 +259,7 @@ Each task lists **Gate** (the command or observation that proves it) and **Evide
 ### P6 - Local AI, coding and media tooling (verify before listing as working)
 
 - [ ] **P6.1 CPU path** re-verified on the current image with the pinned llama.cpp and the 2B model (already VM-adjacent on the builder); record tokens/s as one measured sample, not a benchmark.
-- [ ] **P6.2 Vulkan on real hardware:** the owner's machine has a Radeon 680M. A Windows-host llama.cpp Vulkan smoke test is possible without
+- [ ] **P6.2 Vulkan on real hardware (R15):** the owner's machine has a Radeon 680M. A Windows-host llama.cpp Vulkan smoke test is possible without
   rebooting (backend log shows the device); the Linux claim needs a physical boot -> owner task, otherwise "not verified on Linux".
 - [ ] **P6.3 MTP / TurboQuant:** enable only if the pinned backend's `--help` advertises it; measure before/after on the same model.
 - [ ] **P6.4 HCS Coder:** run the generated OpenCode config against the real tool; licence gate stays.
@@ -250,7 +292,7 @@ Each task lists **Gate** (the command or observation that proves it) and **Evide
 ### P9 - Release engineering (R4)
 
 - [ ] **P9.1 SBOM wired in:** `gen_sbom.py` run on the final rootfs (`var/lib/dpkg/status`) and `Cargo.lock`; attached to the release.
-- [ ] **P9.2 Attestations:** CI job attests the release files (provenance) and the SBOM; `gh attestation verify` documented on the download page.
+- [ ] **P9.2 Attestations (R14, `actions/attest`):** CI job attests the release files (provenance) and the SBOM; `gh attestation verify` documented on the download page.
 - [ ] **P9.3 Optional maintainer signature:** only after the owner decides the key policy; until then "unsigned by a maintainer" stays in the notes.
 - [ ] **P9.4 Release workflow dry run** on a prerelease tag; the verify workflow downloads, joins, hashes, checks attestations.
 - [ ] **P9.5 RC process:** feature freeze, RC image built from a clean clone, full VM matrix on the exact artefact, hashes in BUILD_LOG.
@@ -269,6 +311,23 @@ Each task lists **Gate** (the command or observation that proves it) and **Evide
 9. Known limitations and trademark-review status published; maintainer signature present or absent as stated.
 
 ---
+
+## 4b. Open questions and how each gets answered
+
+| # | Question | Cheapest discriminating experiment | Where |
+|---|---|---|---|
+| 1 | Does the Kubuntu Calamares accept a `noEncrypt` `/boot` + LUKS2 root layout non-interactively, and does the installed system boot and unlock? | P2.0 offline config read, then P2.4 install in a VM | P2 |
+| 2 | Does the signed GRUB in this ISO contain `luks2`/`cryptodisk`? | `strings` on `grubx64.efi` extracted from the ISO (no VM) | P2.0 |
+| 3 | Does `apt` work in the Kali container with the restricted capability set, or does it need `-o APT::Sandbox::User=root`? | one rootless container in the VM, both variants | P4.3 |
+| 4 | Does AppArmor really confine `hscl_workshopd` (the profile attaches to the interpreter path)? | `ps -Z` in the VM with a named profile | P3.4 |
+| 5 | Are unprivileged user namespaces restricted in 26.04 in a way that breaks rootless Podman? | `sysctl kernel.apparmor_restrict_unprivileged_userns` + one rootless run | P3.5/P4.3 |
+| 6 | Is the ISO reproducible, and where does it differ? | two clean builds with `SOURCE_DATE_EPOCH`, compare at 3 levels | P8 |
+| 7 | Does `ssd=off` make the WHPX VM clearly faster? | 3 boots each, same image | P1.7 |
+| 8 | Does the Windows Vulkan build of llama.cpp select the Radeon 680M? | `llama-server --list-devices` + backend log line on the owner's machine | P6.2 |
+| 9 | Do the Dependabot majors (checkout 7, thiserror 2, sha2 0.11) change behaviour we rely on? | CI incl. tests; read changelogs | P3.10 |
+| 10 | Is the DE/FR text acceptable to native speakers? | **owner** review | P7.6 |
+| 11 | Does the image boot on a physical PC (UEFI, Secure Boot on/off)? | **owner** boot report | P10 |
+| 12 | May the website go to production on Vercel, and under which domain? | **owner** decision; preview first | P7.7 |
 
 ## 5. Risk register
 

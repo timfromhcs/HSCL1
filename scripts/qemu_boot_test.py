@@ -133,7 +133,12 @@ def double_click(qmp, fx: float, fy: float) -> None:
         time.sleep(0.05)
 
 
-QCODES = {" ": "spc", "-": "minus", ".": "dot", ",": "comma", "/": "slash", "\n": "ret"}
+QCODES = {" ": "spc", "-": "minus", ".": "dot", ",": "comma", "/": "slash", "\n": "ret", "\t": "tab",
+          ";": "semicolon", "'": "apostrophe", "=": "equal", "\\": "backslash", "[": "bracket_left", "]": "bracket_right", "`": "grave_accent"}
+# US layout: characters typed with Shift held, mapped to the unshifted key (older versions dropped ; | : and friends silently)
+SHIFTED = {"|": "backslash", ":": "semicolon", '"': "apostrophe", "_": "minus", "+": "equal", "?": "slash", "<": "comma", ">": "dot",
+           "{": "bracket_left", "}": "bracket_right", "~": "grave_accent", "!": "1", "@": "2", "#": "3", "$": "4", "%": "5", "^": "6",
+           "&": "7", "*": "8", "(": "9", ")": "0"}
 
 
 def send_keys(qmp, keys) -> None:
@@ -146,6 +151,8 @@ def type_text(qmp, text: str) -> None:
     for ch in text:
         if ch.isupper():
             send_keys(qmp, ["shift", ch.lower()])
+        elif ch in SHIFTED:
+            send_keys(qmp, ["shift", SHIFTED[ch]])
         else:
             send_keys(qmp, [QCODES.get(ch, ch)])
 
