@@ -137,16 +137,19 @@ Plan: `2026-11-06-local-subagents.md` (L1-L8). Research: `docs/research/2026-11-
 | llama.cpp Tool-Calls | `--jinja` default an, `--reasoning-format auto|none|deepseek|deepseek-legacy`, XML-Autoparser listet **Qwen3-Coder**; upstream nennt **kein "Qwen3.5"** | Unser eigener Parser (D2) bleibt der Vertrag; die Aussage "der gepinnte Build parst Qwen3.5-XML" bleibt MEASURE (Test mit dem echten Modell), nicht Claim |
 | Secure Boot + Remaster | Kette Firmware -> MS-signierter shim -> Canonical-GRUB -> signierter Kernel; **initrd und squashfs werden nicht signaturgeprueft** | Squashfs-/initrd-Aenderungen koennen die Kette nicht brechen; Beweis trotzdem noetig: `sbverify --list` auf `EFI/BOOT/BOOTX64.EFI` und casper-`vmlinuz` des gebauten ISO (Task 9) |
 
-### 9.3 Reihenfolge ab jetzt (jede Aufgabe: Test zuerst, Gate, Commit)
-1. **Task 2b Man pages** (host-only): `clap_mangen` + `hscl man --out DIR`, Test gegen den clap-Baum, `build-deb.sh` erzeugt
-   `hscl.1`/`hscl1.1`, Paket-Test; CLI.md-Zeile (Drift-Gate erzwingt sie).
-2. **Task 4a Governor** (host-only): Parser/Zustandsmaschine mit Fixtures (`/sys/class/drm`, `/proc/*/fdinfo`), G27a.
-3. **Task 4b forge `build|boot|diff`** (host-only): Subkommandos + Fake-Tests + `docs/DEV_LOOP.md`, G30.
-4. **Task 6 Menue-Datei (G26a)** + `hscl hw modaliases` (B1) - letzteres ist im S2-Image sichtbar.
-5. **G3 proptest** fuer `redact.rs`, `toolcall.rs`, `hw.rs` + zeitboxiger Fuzz-Workflow.
-6. **Task 9 Secure-Boot-Evidenz** am vorhandenen ISO (sbverify + `--list`) - billig, schliesst F1 teilweise.
-7. **Korrekturen aus 9.2** (Calamares-Bugnummer, Kubuntu-Datum) - kleine Doku-Commits, sofort.
-8. Dann **S2**: ein Image mit allen S1-Aenderungen, Boot + e2e + Screens -> `0.1.3-alpha.0` (Owner-Merge/Release-Regeln beachten).
+### 9.3 Reihenfolge ab jetzt (jede Aufgabe: Test zuerst, Gate, Commit) - Stand 2026-11-07 09:40Z
+1. **Task 2b Man pages** - DONE: `hscl man`, `f96644c`.
+2. **Task 4a Governor** - DONE (Entscheidungslogik + sysfs-Leser, 14 Tests), `cc7d414`; Service/CC-Seite/VM-Messung bleiben S5.
+3. **Task 4b forge `build|boot|diff`** - DONE, `66501b1`; ISO-Inhalt-Diff offen.
+4. **Task 6 Menue-Datei (G26a)** - DONE, `e7a98dc`; VM-`kbuildsycoca6`-Check offen. **B1 Modaliases** - DONE, `f1de5bd`.
+5. **G3 proptest + Fuzz-Workflow** - DONE, `86f2fba` + Regressionsseed `824ea34`; echter `cargo fuzz`-Lauf ist CI-only (nightly).
+6. **Task 9 Secure-Boot-Evidenz** - DONE mit echter Messung am 0.1.2-ISO (`artifacts/sb-0.1.2/report.json`), `aae7944`.
+7. **Korrekturen aus 9.2** - DONE (Calamares #2156681, `21c98a0`); Kubuntu-Datum: nirgends zu genau gedruckt, nichts zu aendern.
+8. **S2** - LAEUFT: Build mit dem ganzen S1-Satz gestartet (Commit `8e550bd`, `HSCL_SQUASH_PROCS=2 HSCL_SQUASH_MEM=384M --fast`,
+   Log `~/hscl1-build/out/build-0.1.3-dev.log`). Danach: `forge boot` + e2e auf **diesem** Artefakt, SB-Evidenz erneut,
+   Screenshots, dann `0.1.3-alpha.0` vorbereiten (Veroeffentlichung = Owner).
+9. Noch offen fuer S1-Abschluss: B3 Treiberhinweise (`hscl hw suggest`, braucht apt-`Modaliases`-Parsing), ISO-Inhalt-Diff,
+   G3b lib/bin-Split (damit die Fuzz-Targets normal linken statt `#[path]`).
 
 ### 9.4 Owner-Items (unveraendert, nicht raten)
 Merge PR #22 und Dependabot #1-#4, Signing-Key fuer `SHA256SUMS`, Hardware-Testgeraete (Radeon 680M), native DE/FR-Review,
