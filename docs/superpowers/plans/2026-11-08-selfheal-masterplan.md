@@ -37,7 +37,9 @@ The 2-minute cron is a ping, never a pause.
 | H2d | f16 GEMM, cooperative-matrix GEMM | TESTED, hardware-verified | f16 tiled 0.257 ms; coopmat 16x16x16 f16->f32 0.167 ms (1.53x), error 2.4e-7, 16-aligned shapes only; next: multi-tile blocking and int8 coopmat (both unmeasured) |
 | H3a | GGUF header reader (`hcsuda-io`, `hcsuda gguf info`) | TESTED + checked on 3 real models | 14 tests; real-file size identity holds for Qwen3-4B and mmproj; PQ2_0 type 142 unsized by design |
 | H3b | tensor data read + dequant (F32/F16/BF16/Q8_0/Q4_0/Q4_K/Q6_K) vs oracle | TESTED + checked on a real model | bit-equal to official `gguf` on fixtures (worst error 0); Qwen3 attn_q/attn_v/attn_norm stats match Python; next: GPU dequant-GEMV, then H3c |
-| H3c | tiny transformer forward pass (text) / small CNN (image) | PLANNED | after H3b |
+| H3c-1 | CPU reference decoder block vs NumPy | TESTED | worst error 1.85e-6; causality + shape-error tests |
+| H3c-2 | GPU composition of the block (add/mul/silu, masked attention) vs the CPU block | PLANNED | next |
+| H3c-3 | block weights read from a real GGUF (Qwen3 layer 0 shapes) | PLANNED | after H3c-2 |
 | O-PR | PR to main, CI green, merge | PR #23 MERGED (`48a949c`, 14/14 green) | next batch: new PR from this branch |
 | O2 | alpha gaps (see §0) | PLANNED | recovery key flow design first (host-only) |
 | DOC | README/KNOWN_LIMITATIONS match artefact | PLANNED | update only with evidence |

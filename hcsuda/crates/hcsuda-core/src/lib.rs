@@ -12,6 +12,7 @@ pub mod quant;
 pub mod reference;
 pub mod report;
 pub mod tensor;
+pub mod transformer;
 
 pub use caps::{DTypePath, DeviceCaps, Features, Heap, Support};
 pub use dtype::{DType, Tolerance};
