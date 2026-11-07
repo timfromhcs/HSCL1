@@ -34,3 +34,8 @@
 - Consequences: a hard `Depends: python3-venv` would make `dpkg -i` fail in `scripts/remaster-iso.sh` (it installs the debs offline with `dpkg -i`), and on an installed system `install-runtime` could not create a venv. (The earlier real run in WSL worked only because that distribution has `python3-venv`.)
 - Change (red first, 16 tests pass): `python3-venv` moved to `Recommends`; `install-runtime` checks `import ensurepip` before anything else and exits 8 with an explanation, nothing changed. The hint avoids the word `sudo` (the launcher must never run it; the test forbids the word to keep that rule simple). ShellCheck rc 0.
 - Still not done: adding `hscl-cqhecs` to `scripts/remaster-iso.sh` and `distro/live/verify-image.sh`; installing `python3-venv` offline would need that `.deb` and its dependencies inside the ISO (size not measured), so on the live ISO the runtime install explains what is missing instead.
+
+## 2026-11-07 - B1: `hscl-cqhecs` in a built and booted image (dev2)
+- Added to `scripts/remaster-iso.sh` and `distro/live/verify-image.sh` (six `cq-hecs` checks), and three checks to `scripts/workshop/e2e_cli.py` (`cqhecs_package`, `cqhecs_no_unit`, `cqhecs_doctor`), each with a test written first.
+- Built `HSCL1-0.1.3-dev2-amd64.iso` (sha256 `4d04e7ca24b8dbf84fdc41de46648f7aac97ac98b99e3abb514cd6a95a9cdc74`, +64 KiB versus the previous dev image), boot gate passed after 147 s, 31 in-guest checks 0 failures. Details: `docs/BUILD_LOG.md`.
+- Still unverified: the package on an installed system, `install-runtime` inside any HSCL1 guest, idle RAM with the package (not measured separately; the package has no process).
