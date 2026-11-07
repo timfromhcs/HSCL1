@@ -1,0 +1,70 @@
+<!DOCTYPE Menu PUBLIC "-//freedesktop//DTD Menu 1.0//EN" "http://www.freedesktop.org/standards/menu-spec/menu-1.0.dtd">
+<!-- HSCL1 launcher sections. Read by KDE from /etc/xdg/menus/applications-merged/.
+     Categories are the freedesktop main categories from AGENTS.md 4.2 that have real desktop
+     entries today: Development, Internet, Office, Graphics, Multimedia (AudioVideo), System.
+     "Favorites" is a launcher feature, not a menu section. "Security Lab" and "Privacy" are
+     deliberately absent: HSCL1 ships no desktop entries for them yet, and an empty section is a
+     button that does nothing (see docs/KNOWN_LIMITATIONS.md). Add them together with the entries. -->
+<Menu>
+  <Name>Applications</Name>
+  <Menu>
+    <Name>Development</Name>
+    <Name xml:lang="de">Entwicklung</Name>
+    <Name xml:lang="fr">Développement</Name>
+    <Include>
+      <Category>Development</Category>
+    </Include>
+  </Menu>
+  <Menu>
+    <Name>Internet</Name>
+    <Name xml:lang="de">Internet</Name>
+    <Name xml:lang="fr">Internet</Name>
+    <Include>
+      <Category>Network</Category>
+    </Include>
+    <Include>
+      <And>
+        <Category>Network</Category>
+        <Category>WebBrowser</Category>
+      </And>
+    </Include>
+  </Menu>
+  <Menu>
+    <Name>Office</Name>
+    <Name xml:lang="de">Büro</Name>
+    <Name xml:lang="fr">Bureau</Name>
+    <Include>
+      <Category>Office</Category>
+    </Include>
+  </Menu>
+  <Menu>
+    <Name>Graphics</Name>
+    <Name xml:lang="de">Grafik</Name>
+    <Name xml:lang="fr">Graphisme</Name>
+    <Include>
+      <Category>Graphics</Category>
+    </Include>
+  </Menu>
+  <Menu>
+    <Name>Multimedia</Name>
+    <Name xml:lang="de">Multimedia</Name>
+    <Name xml:lang="fr">Multimédia</Name>
+    <Include>
+      <Category>AudioVideo</Category>
+    </Include>
+  </Menu>
+  <Menu>
+    <Name>System</Name>
+    <Name xml:lang="de">System</Name>
+    <Name xml:lang="fr">Système</Name>
+    <Include>
+      <Category>System</Category>
+    </Include>
+    <Include>
+      <Category>Settings</Category>
+    </Include>
+    <Include>
+      <Category>Utility</Category>
+    </Include>
+  </Menu>
+</Menu>

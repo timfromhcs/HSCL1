@@ -413,3 +413,15 @@ manifests - version, git commit, 5 494 800 384 -> 5 026 480 128 bytes and the sh
 value recorded at release time. **Not run:** a real `build` and a real `boot` (they need the WSL lab with >= 9 GB free and
 must not overlap with another VM); the ISO-content diff from the forge plan is still open. `python -m pytest
 tests/unit/test_forge.py` 22 passed.
+
+## Task 6 menu file (G26a part 1, 2026-11-07)
+`packages/debian/hscl-branding/etc/xdg/menus/applications-merged/hscl1.menu` - the launcher sections HSCL1 actually has
+entries for: Development, Internet (Network), Office, Graphics, Multimedia (AudioVideo), System (System/Settings/Utility),
+each named in English, German and French. Six tests written first (all red: file missing): well-formed XML, every
+`<Category>` from the freedesktop main-category list (a typo would show as an empty section), no empty or duplicated
+submenu, `C`+`de`+`fr` names present, no `<Directory>` pointing at a file the package does not ship, and a guard that
+"Security Lab" and "Privacy" are **not** offered yet - AGENTS 4.2 lists them, but HSCL1 has no desktop entries for them,
+and an empty section is a button that does nothing; the comment in the file says so and points here. First version
+referenced five `.directory` files that did not exist; dropped rather than invented, and the new gate keeps that from
+coming back. Still open for G26a: the VM check that `kbuildsycoca6` rebuilds the cache and the categories list as
+expected (`hscl-qa` / e2e set), which needs an image.

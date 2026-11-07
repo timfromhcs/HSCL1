@@ -58,11 +58,27 @@ def _path_with(bindir: Path) -> str:
     return f"{first}:/usr/bin:/bin{os.pathsep}{os.environ.get('PATH', '')}"
 
 
+def _fake_df(directory: Path, free_kb: int) -> Path:
+    """Deterministic free space: the real host disk made these tests flaky (WSL root had 2.9 GiB)."""
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / "df"
+    lines = [
+        "#!/bin/sh",
+        "printf 'Filesystem 1024-blocks Used Available Capacity Mounted on\\n'",
+        f"printf 'fake 999999999 1 {free_kb} 1%% /tmp\\n'",
+    ]
+    path.write_bytes(("\n".join(lines) + "\n").encode())
+    path.chmod(path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    return path
+
+
 def _run(tmp_path: Path, *, tools: tuple[str, ...] = ("stress-ng", "fio", "memtester"),
-         env: dict | None = None, args: tuple = ()) -> "tuple[int, str, Path]":
+         env: dict | None = None, args: tuple = (),
+         free_kb: int = 99_000_000) -> "tuple[int, str, Path]":
     bindir = tmp_path / "bin"
     for name in tools:
         _fake_tool(bindir, name)
+    _fake_df(bindir, free_kb)
     out = tmp_path / "out"
     overrides = {
         "PATH": _path_with(bindir),
@@ -137,6 +153,7 @@ def test_a_failing_tool_still_writes_the_summary_and_exits_nonzero(tmp_path):
     for name in ("stress-ng", "memtester"):
         _fake_tool(bindir, name)
     _fake_tool(bindir, "fio", exit_code=1)
+    _fake_df(bindir, 99_000_000)
     out = tmp_path / "out"
     r = shellutil.run_script(SCRIPT, "--out", out, env_overrides={
         "PATH": _path_with(bindir),
@@ -169,3 +186,14 @@ def test_shellcheck_is_clean_on_the_script():
     except FileNotFoundError:
         pytest.skip("shellcheck is not on PATH on this host (CI and `forge check` run it)")
     assert r.returncode == 0, r.stdout + r.stderr
+
+
+@needs_shell
+def test_refuses_when_the_target_filesystem_is_almost_full(tmp_path):
+    """fio writes a 1 GiB file; below a 2 GiB floor the script refuses and writes no evidence."""
+    marker = _marker(tmp_path)
+    code, text, out = _run(tmp_path, free_kb=500_000,
+                           env={"HSCL_IN_DISPOSABLE_VM": "1", "HSCL_VM_MARKER": marker})
+    assert code == 2, text
+    assert "2 GiB" in text
+    assert not (out / "summary.json").exists()

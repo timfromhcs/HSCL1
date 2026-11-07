@@ -73,10 +73,11 @@ done
 [ -n "$out" ] || out="$root/artifacts/stress/$stamp"
 mkdir -p "$out"
 
-# 1 GiB for fio plus logs; refuse rather than fill the guest's disk.
+# fio writes a 1 GiB file plus its logs; a 2 GiB floor keeps a factor of two in reserve rather than
+# filling the guest's disk. Not overridable: the point of the check is that it cannot be argued with.
 free_kb="$(df -Pk "$out" | awk 'NR == 2 {print $4}')"
-if [ -n "$free_kb" ] && [ "$free_kb" -lt 3145728 ]; then
-  echo "refusing: less than 3 GiB free on the target filesystem ($free_kb KiB)." >&2
+if [ -n "$free_kb" ] && [ "$free_kb" -lt 2097152 ]; then
+  echo "refusing: less than 2 GiB free on the target filesystem ($free_kb KiB)." >&2
   exit 2
 fi
 
