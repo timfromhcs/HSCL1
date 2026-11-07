@@ -490,3 +490,22 @@ started with the documented Ersatzweg from the finish-line plan - `HSCL_SQUASH_P
 3 processors / 512M - and with `--fast`. Log: `~/hscl1-build/out/build-0.1.3-dev.log`, target
 `~/hscl1-build/out/HSCL1-0.1.3-dev-amd64.iso`. If the host reaps it, that is recorded here and retried once with a
 further reduction; a build that fails for memory is not a product defect.
+
+## S2 build result: dev image with the whole S1 set (2026-11-07, finished 09:36Z host clock)
+Built from the clean clone at `8e550bd` with `HSCL_SQUASH_PROCS=2 HSCL_SQUASH_MEM=384M --fast` (see the deviation note
+above). Result (`~/hscl1-build/out/`, copied to `artifacts/iso/`):
+- `HSCL1-0.1.3-dev-amd64.iso`, 5 488 181 248 bytes, sha256 `b391226104868148cd0e47f20d221fff3a63680460a37634002f98612fed7896`
+- manifest: `version: 0.1.2-alpha.0` (the version string is bumped only for the release build - this image validates the
+  content), `git_commit: 8e550bd2a6...`, `git_dirty: false`, `workshop_default: disabled`, base checksum verified against
+  the upstream-signed `SHA256SUMS` during the build.
+- `verify-image` passed from the finished artefact: the ISO's `/casper/initrd` is the rebuilt one (md5
+  `0ae73448049120c45aca80fa155d6498`) and `/.disk/info` starts with HSCL1.
+- Secure Boot chain re-measured with `scripts/sb_evidence.py` (`artifacts/sb-0.1.3-dev/report.json`): shim = Microsoft
+  UEFI CA 2011 / Microsoft Windows UEFI Driver Publisher; grubx64/mmx64/vmlinuz = Canonical Secure Boot Signing (2022 v1).
+  Unchanged from 0.1.2, i.e. the new S1 content did not touch a signed component.
+- `forge diff` against the released 0.1.2 manifest: only `git_commit`, `iso_bytes` (5 026 480 128 -> 5 488 181 248) and
+  `iso_sha256` differ. The size grows because this run used `--fast` (zstd level 3); the released 0.1.2 used the slower
+  xz path, so a release build must **not** use `--fast` if the size is to stay comparable - recorded as a decision for
+  the 0.1.3 artefact.
+Next: boot gate on this exact ISO (UEFI), then the in-guest e2e set, then screenshots. Nothing is claimed until those
+artefacts exist.
