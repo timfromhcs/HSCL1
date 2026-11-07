@@ -643,3 +643,12 @@ What these gates do **not** cover, and therefore what this build may not claim: 
 the installer on this exact image (no install run yet), the brand OCR/content scan of the live session (G10), the shortcut
 audit (G11), physical hardware. `welcome_screen` in the boot harness is true even before the desktop appears, so it is
 not evidence about the Welcome window; the wallpaper-match number is the animated wallpaper against a still reference.
+
+## make_release.py: the "not verified" list belongs in the set (2026-11-07)
+`build_release(..., gaps)` / `make_release.py --gap TEXT` (repeatable) writes a "Not verified in this set" section into
+`release-notes.md`, so a pre-release carries its own gap list instead of relying on the reader to open
+KNOWN_LIMITATIONS. An empty gap line is refused (a blank bullet would look like an omission). Test written first:
+notes contain the section and every line, an empty gap raises. 9 tests pass.
+The first assembly run was started before this change and had copied only the ISO into
+`artifacts/release-0.1.3-alpha.0/`; it was stopped and restarted with the four gaps (firmware acceptance, install run on
+this image, brand OCR + shortcut audits, physical hardware) rather than shipping a set without them.

@@ -46,7 +46,10 @@ def check_no_placeholders(text: str, what: str) -> None:
 
 
 def build_release(version: str, iso: Path, prebuilt: Path | None, out: Path,
-                  evidence: dict[str, Path]) -> list[Path]:
+                  evidence: dict[str, Path], gaps: list[str] | None = None) -> list[Path]:
+    gaps = [g.strip() for g in (gaps or [])]
+    if any(not g for g in gaps):
+        raise ReleaseError("an empty gap line would render a blank bullet; drop it instead")
     iso_m = load(iso.with_name(iso.name + ".manifest.json"))
     pre_m = load(prebuilt.with_name(prebuilt.name + ".manifest.json")) if prebuilt else None
     if iso_m.get("workshop_default") != "disabled":
@@ -102,7 +105,8 @@ def build_release(version: str, iso: Path, prebuilt: Path | None, out: Path,
         f"- Live/installer ISO: `{iso_name}` (sha256 `{iso_m['iso_sha256']}`)\n"
         + image_line
         + "- Evidence recorded for this set: " + (", ".join(sorted(evidence)) or "none") + "\n\n"
-        "Not signed, not tagged, not uploaded. See `docs/KNOWN_LIMITATIONS.md` for what is not verified.\n"
+        + ("## Not verified in this set\n\n" + "".join(f"- {g}\n" for g in gaps) + "\n" if gaps else "")
+        + "Not signed, not tagged, not uploaded. See `docs/KNOWN_LIMITATIONS.md` for what is not verified.\n"
     )
     check_no_placeholders(notes, "release-notes.md")
     (out / "release-notes.md").write_text(notes, encoding="utf-8")
@@ -119,6 +123,8 @@ def main() -> int:
     ap.add_argument("--prebuilt", help="optional qcow2 prebuilt image")
     ap.add_argument("--out", required=True)
     ap.add_argument("--evidence", action="append", default=[])
+    ap.add_argument("--gap", action="append", default=[],
+                    help="one line for the \"not verified\" list in the release notes; repeatable")
     a = ap.parse_args()
     ev = {}
     for item in a.evidence:
@@ -126,7 +132,7 @@ def main() -> int:
         ev[name] = Path(path)
     try:
         prebuilt = Path(a.prebuilt) if a.prebuilt else None
-        files = build_release(a.version, Path(a.iso), prebuilt, Path(a.out), ev)
+        files = build_release(a.version, Path(a.iso), prebuilt, Path(a.out), ev, a.gap)
     except ReleaseError as e:
         print("REFUSED:", e)
         return 1
