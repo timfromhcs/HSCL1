@@ -509,3 +509,17 @@ above). Result (`~/hscl1-build/out/`, copied to `artifacts/iso/`):
   the 0.1.3 artefact.
 Next: boot gate on this exact ISO (UEFI), then the in-guest e2e set, then screenshots. Nothing is claimed until those
 artefacts exist.
+
+## S2 boot gate, first run: a defect in forge boot itself (2026-11-07)
+First run on `HSCL1-0.1.3-dev-amd64.iso` (UEFI, `--live`, WHPX, 191 s): the harness reached the desktop
+(`reached_desktop: true`, four shots, `desktop_final_wallpaper_match 0.121`) and `verify` evidence is in
+`artifacts/forge/boot-0.1.3-dev/` (`desktop-final.png`, `shot-001..004.png`, `qemu.log`, `result.json`).
+**But `forge boot` printed "booted: not booted" and exited 1** - my own summary code read `booted`, `seconds` and
+`screenshots`, keys `scripts/qemu_boot_test.py` never writes (it writes `reached_desktop`, `elapsed_s`, `shots`). I had
+invented the schema instead of reading the harness. Fixed with two tests that use payloads copied from the real
+`result.json`, and the two older boot tests were corrected as well (they had encoded the same wrong schema, so they
+could not have caught it). Also recorded: the shell pipeline `forge boot ... | tail` masked the exit code (the reported
+`EXIT=0` was `tail`'s); the rerun redirects to a file and reads `$?` directly.
+Open question from the screenshots: `welcome_screen` was still `true` in the last two frames, so the `--dismiss-welcome`
+click (at 28.8 % / 84.8 % of the window) may have missed the "Skip" button - the desktop was reached, the welcome
+window's state is not proven either way. The rerun writes a second evidence set (`boot-0.1.3-dev2`) to compare.

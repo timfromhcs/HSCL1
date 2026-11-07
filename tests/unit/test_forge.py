@@ -162,28 +162,18 @@ def test_build_runs_through_the_configured_wsl_prefix(tmp_path, monkeypatch):
 
 def test_boot_uses_the_harness_and_summarises_its_result(tmp_path, capsys):
     out = tmp_path / "boot"
-    harness = tmp_path / "fake_boot.py"
-    harness.write_text(
-        "import json, pathlib, sys\n"
-        "out = pathlib.Path(sys.argv[2]); out.mkdir(parents=True, exist_ok=True)\n"
-        "(out / 'result.json').write_text(json.dumps({'booted': True, 'seconds': 99,"
-        " 'screenshots': ['a.png', 'b.png'], 'firmware': 'uefi'}))\n",
-        encoding="utf-8")
-    code = forge.main(["boot", "some.iso", "--out", str(out), "--harness", str(harness)])
+    payload = ('{"reached_desktop": true, "elapsed_s": 99, '
+               '"shots": [{"n": 1}, {"n": 2}], "firmware": "uefi"}')
+    code = forge.main(["boot", "some.iso", "--out", str(out), "--harness", str(_fake_boot_harness(tmp_path, payload))])
     text = capsys.readouterr().out
     assert code == 0
-    assert "booted" in text and "99" in text and "2" in text
+    assert "booted: yes" in text and "99" in text and "2" in text
 
 
 def test_boot_fails_when_the_harness_reports_a_failed_boot(tmp_path, capsys):
     out = tmp_path / "boot"
-    harness = tmp_path / "fake_boot.py"
-    harness.write_text(
-        "import json, pathlib, sys\n"
-        "out = pathlib.Path(sys.argv[2]); out.mkdir(parents=True, exist_ok=True)\n"
-        "(out / 'result.json').write_text(json.dumps({'booted': False, 'seconds': 300, 'screenshots': []}))\n",
-        encoding="utf-8")
-    code = forge.main(["boot", "some.iso", "--out", str(out), "--harness", str(harness)])
+    payload = '{"reached_desktop": false, "elapsed_s": 300, "shots": []}'
+    code = forge.main(["boot", "some.iso", "--out", str(out), "--harness", str(_fake_boot_harness(tmp_path, payload))])
     assert code == 1
     assert "not booted" in capsys.readouterr().out.lower()
 
@@ -241,3 +231,36 @@ def test_boot_plan_can_reach_the_live_desktop():
     assert "--try-live" in argv and "--dismiss-welcome" in argv
     plain = forge.plan_boot("x.iso", "out", harness="h.py")[0].argv
     assert "--try-live" not in plain
+
+def _fake_boot_harness(tmp_path, payload: str):
+    """A stand-in harness that writes exactly the schema scripts/qemu_boot_test.py writes."""
+    harness = tmp_path / "fake_boot.py"
+    harness.write_text(
+        "import json, pathlib, sys" + chr(10)
+        + "out = pathlib.Path(sys.argv[2])" + chr(10)
+        + "out.mkdir(parents=True, exist_ok=True)" + chr(10)
+        + "(out / 'result.json').write_text(" + repr(payload) + ")" + chr(10),
+        encoding="utf-8", newline=chr(10))
+    return harness
+
+
+def test_boot_reads_the_harness_schema_it_actually_writes(tmp_path, capsys):
+    """Regression: the first version looked for `booted`/`seconds`/`screenshots`, which
+    scripts/qemu_boot_test.py never writes - it writes `reached_desktop`, `elapsed_s` and `shots`.
+    The real 0.1.3 dev run therefore reported "not booted" for a guest that had reached the desktop."""
+    payload = ('{"firmware": "uefi", "secure_boot_requested": false, "accel": "whpx", '
+               '"iso": "x.iso", "shots": [{"n": 1, "t": 50}, {"n": 2, "t": 95}], '
+               '"reached_desktop": true, "desktop_final_wallpaper_match": 0.121, "elapsed_s": 191}')
+    out = tmp_path / "boot"
+    code = forge.main(["boot", "x.iso", "--out", str(out), "--harness", str(_fake_boot_harness(tmp_path, payload))])
+    text = capsys.readouterr().out
+    assert code == 0, text
+    assert "booted: yes" in text and "191" in text and "2 screenshot" in text, text
+
+
+def test_boot_reports_a_guest_that_did_not_reach_the_desktop(tmp_path, capsys):
+    payload = '{"shots": [], "reached_desktop": false, "elapsed_s": 2400, "firmware": "uefi"}'
+    out = tmp_path / "boot"
+    code = forge.main(["boot", "x.iso", "--out", str(out), "--harness", str(_fake_boot_harness(tmp_path, payload))])
+    assert code == 1
+    assert "not booted" in capsys.readouterr().out.lower()

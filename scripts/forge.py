@@ -309,11 +309,15 @@ def cmd_boot(args: argparse.Namespace) -> int:
     if not result_path.is_file():
         print(f"forge boot: no result.json in {out} - the harness did not get far enough")
         return 1
+    # The harness writes `reached_desktop`, `elapsed_s` and `shots` (scripts/qemu_boot_test.py).
+    # The first version of this function guessed other key names and called a booted guest "not booted".
     result = json.loads(result_path.read_text(encoding="utf-8"))
-    shots = result.get("screenshots") or []
-    booted = bool(result.get("booted"))
-    print(f"booted: {'yes' if booted else 'not booted'}; {result.get('seconds', '?')} s; "
-          f"{len(shots)} screenshot(s); firmware {result.get('firmware', args.firmware)}")
+    shots = result.get("shots") or []
+    booted = bool(result.get("reached_desktop"))
+    match = result.get("desktop_final_wallpaper_match")
+    print(f"booted: {'yes' if booted else 'not booted'}; {result.get('elapsed_s', '?')} s; "
+          f"{len(shots)} screenshot(s); firmware {result.get('firmware', args.firmware)}"
+          + (f"; final wallpaper match {match}" if match is not None else ""))
     print(f"evidence: {result_path}")
     return 0 if booted else 1
 
