@@ -36,11 +36,11 @@ MAX_OUT = 2000
 # shared system memory. bonsai-27b and qwen3.5-9b are estimates (not measured yet).
 MODEL_MB = {"qwen3-4b": 4300, "jev-1.5b": 0, "bonsai-27b": 9000, "bonsai-9b": 4900, "bonsai-4b": 3900, "qwen3.5-9b": 6800}
 DEFAULT_MODEL_MB = 6000
-DEFAULT_MODEL = "jev-1.5b"  # the :8080 Bonsai-9B that is already resident (measured 2026-11-07: 10/10 tasks, 10.6 s/task, 0 MB extra)
+DEFAULT_MODEL = "jev-1.5b"  # the :8080 server (since 2026-11-07 Qwen3-4B-Instruct-2507 Q4_K_M, owner replaced Bonsai): 9/10 tasks, 8.8-10 s/task
 KV_MB = 600
 # The shared 8080 server (gateway id jev-1.5b) is free only while it is already working: measured 2026-11-07 about 2.7-3.5 GB working,
 # about 1.3 GB asleep (sleep-idle 60 s). Asleep or absent, a run has to wake it.
-WAKE_MB = {"jev-1.5b": 2700}
+WAKE_MB = {"jev-1.5b": 5000}  # measured 2026-11-07: RSS 5.0 GB after a benchmark run of the Qwen3-4B server
 SHARED_PROCESS = {"jev-1.5b": "llama-server"}
 
 TOOL = {
