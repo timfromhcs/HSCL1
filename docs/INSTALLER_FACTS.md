@@ -35,8 +35,7 @@ What this means (and what it does not prove):
 - The automated "erase disk + encrypt" path already produces the layout the plan wants: ESP, a 4 GiB **unencrypted `/boot`**, one **LUKS2** root,
   swap as a **file** (so there is exactly one LUKS volume). This avoids the two failures reported for Kubuntu 26.04 (encrypted `/boot` + signed GRUB without
   Argon2; Calamares failing with more than one LUKS volume). *Whether the installed system actually boots and unlocks is not yet tested (P2.4).*
-- `showNotEncryptedBootMessage: false`: the installer does not warn that `/boot` is unencrypted. HSCL1 must show its own, localised explanation
-  (P2.1) - until then this is an honest gap in the installer UX.
+- `showNotEncryptedBootMessage: false` (stock): the installer does not warn that `/boot` is unencrypted. Since 2026-11-07 the live hook switches it to `true` (Calamares' own, translated message) and `verify-image.sh` checks it; **this reaches users only with the next image build, and what the message looks like on screen has not been seen yet.** The 0.1.3-alpha.0 ISO still has the stock value. A recovery-key or recovery-method explanation (AGENTS.md 6.3) is a separate, still open gap.
 - `settings.conf` runs `luksbootkeyfile` in the exec sequence. **Risk to check in P2.4:** with an unencrypted `/boot`, a LUKS keyfile that ends up inside the
   initramfs would let anyone with disk access unlock the root. Gate: after the encrypted install, `lsinitramfs /boot/initrd.img-*` contains no keyfile,
   `/etc/crypttab` names no key file for the root volume, and boot asks for the passphrase.

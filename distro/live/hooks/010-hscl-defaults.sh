@@ -104,6 +104,8 @@ patch_file "$ROOTFS/etc/calamares/modules/oemid.conf" 's/^batch-identifier: kubu
 
 # Partition/filesystem names that end up on the installed disk
 patch_file "$ROOTFS/etc/calamares/modules/partition.conf" 's/"kubuntu_boot"/"hscl1_boot"/; s/"kubuntu_2604"/"hscl1_root"/'
+# With encryption, /boot stays unencrypted (docs/INSTALLER_FACTS.md); Calamares has a translated message for exactly that.
+patch_file "$ROOTFS/etc/calamares/modules/partition.conf" 's/^showNotEncryptedBootMessage:.*/showNotEncryptedBootMessage: true/'
 
 # Replace upstream marketing shortcuts on the live desktop with HSCL1 entries
 rm -f "$ROOTFS/etc/skel/Desktop/org.kfocus.web.howtos.desktop" "$ROOTFS/etc/skel/Desktop/org.kubuntu.web.home.desktop"
