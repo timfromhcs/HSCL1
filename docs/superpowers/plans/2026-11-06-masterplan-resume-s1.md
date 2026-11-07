@@ -69,7 +69,13 @@
 - [x] Commit (6b9f1c0-nachfolgend)
 
 ### Task 4: Governor-Parser (Rust, P27a) und forge `build/boot/diff`
-- [ ] Parser + Zustandsmaschine mit Fixture-Tests (Spec: Finish-Line-Plan G27a)
+- [x] Parser + Zustandsmaschine mit Fixture-Tests (Spec: Finish-Line-Plan G27a)
+      DONE 2026-11-07: `cli/hscl/src/governor.rs` (14 Tests) - reine `decide(cfg, sample, prev)`-Funktion mit
+      Rangfolge gesperrt > Desktop bedeckt > wenig freier Speicher > Modell resident > GPU busy > Batterie > normal,
+      Hysterese 80/70 % gegen Flackern, 30-fps-Hartgrenze, `None`-Transition im Ruhezustand (kein Log-Spam), und ein
+      fixture-getesteter sysfs-Leser (`mem_info_vram/gtt_used|total`, `gpu_busy_percent`, Connector-Verzeichnisse
+      ignoriert, Unsinnswerte geklemmt). Rot-Lauf belegt (Stub: 9 von 9 Regel-Tests rot). Teil 2 bleibt: systemd-User-Service,
+      Control-Center-Seite, VM-Messung (S5 / P31.3, P31.5, P31.6)
 - [ ] `forge.py build|boot|diff` dokumentiert in `docs/DEV_LOOP.md`, getestet mit Fakes
 - [ ] Gate-Lauf: WSL pytest, Windows pytest, `forge check --strict`; PR oeffnen
 

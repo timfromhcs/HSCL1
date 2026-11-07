@@ -379,3 +379,20 @@ so the test looks for `.TH` rather than the first byte. `scripts/build-deb.sh` (
 $stage/usr/share/man/man1` and gzips the pages (`gzip -9n`); `tests/security/test_package_completions.py` asserts both
 `hscl.1.gz` and `hscl1.1.gz` (its fake binary answers `man --out`), WSL run green. `docs/CLI.md` row added - the drift test
 G12 would have failed without it. `cargo test -p hscl` 145 passed, fmt and clippy -D warnings clean.
+
+## Task 4a governor decision logic + sysfs pressure reader (P31.2/P31.3, 2026-11-07)
+`cli/hscl/src/governor.rs`: a pure `decide(&Config, &Sample, &prev) -> (State, Option<Transition>)` with a named
+`Reason` for every outcome and a fixed priority - user disabled, locked/idle, desktop covered, low free memory, resident
+local model, busy GPU, on battery, normal. 14 tests. Deliberate choices: the frame rate is hard-capped at 30 (a desktop
+wallpaper above that buys nothing and costs power all day); VRAM and GTT are separate pools and the *smallest* headroom
+wins, so a full pool stops the animation even if the other one is empty; an unknown pool abstains instead of guessing, so
+a machine without amdgpu sysfs is never reported as "low memory"; GPU busy uses 80 % enter / 70 % exit hysteresis, so a
+value hovering at the threshold does not repaint the desktop every second; a steady state returns `None`, which is what
+keeps the service from logging every poll. `read_gpu(root)` reads `mem_info_vram_used|total`, `mem_info_gtt_used|total`
+and `gpu_busy_percent` from `sys/class/drm/card*/device`, ignores connector directories (`card1-DP-1`), clamps a
+nonsense busy value to 100 and returns defaults when the tree is missing - all fixture-tested.
+Process note: the implementation was written in the same pass as the tests, so the red run was produced afterwards by
+stubbing `decide` to `State::default()` (9 of 9 rule tests failed) and restoring it; recorded here rather than presented
+as test-first. `#![allow(dead_code)]` with a comment: the governor service (P31.3, sprint S5) is the caller; until then
+the module is covered by tests only, and no CLI command was invented that would have to guess covered/locked/battery.
+`cargo test -p hscl` 159 passed, fmt and clippy -D warnings clean.

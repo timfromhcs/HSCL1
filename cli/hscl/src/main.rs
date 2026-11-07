@@ -10,6 +10,7 @@ mod code;
 mod doctor;
 mod download;
 mod gguf;
+mod governor;
 mod graphics;
 mod hw;
 mod lab;
