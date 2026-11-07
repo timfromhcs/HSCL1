@@ -1,0 +1,47 @@
+#version 450
+
+// Root-mean-square normalisation over the last dimension: one workgroup per row.
+//
+// Push constants: { uint cols; uint rows; float eps; }
+// Bindings: 0 = x, 1 = gamma, 2 = y
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+layout(std430, binding = 0) readonly buffer XBuf { float x[]; };
+layout(std430, binding = 1) readonly buffer GBuf { float gamma[]; };
+layout(std430, binding = 2) writeonly buffer YBuf { float y[]; };
+
+layout(push_constant) uniform Push {
+    uint cols;
+    uint rows;
+    float eps;
+} pc;
+
+shared float scratch[256];
+
+void main() {
+    uint row = gl_WorkGroupID.x;
+    if (row >= pc.rows) {
+        return;
+    }
+    uint tid = gl_LocalInvocationID.x;
+    uint base = row * pc.cols;
+
+    float local_ms = 0.0;
+    for (uint c = tid; c < pc.cols; c += 256u) {
+        float v = x[base + c];
+        local_ms += v * v;
+    }
+    scratch[tid] = local_ms;
+    barrier();
+    for (uint s = 128u; s > 0u; s >>= 1u) {
+        if (tid < s) {
+            scratch[tid] += scratch[tid + s];
+        }
+        barrier();
+    }
+    float inv = inversesqrt(scratch[0] / float(pc.cols) + pc.eps);
+
+    for (uint c = tid; c < pc.cols; c += 256u) {
+        y[base + c] = x[base + c] * inv * gamma[c];
+    }
+}

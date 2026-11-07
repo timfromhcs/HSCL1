@@ -16,7 +16,9 @@ actually execute, and a planner that refuses to run a path it has not verified.
 | int8 / packed-int4 quantisation | **TESTED** | `crates/hcsuda-core/src/quant.rs` |
 | Vulkan device, memory, dispatch, timestamps | **TESTED** on hardware | `crates/hcsuda-vk` |
 | GPU kernels `saxpy`, `triad`, `gemv` (f32) | **HARDWARE-VERIFIED** vs oracle | `benchmarks/amd-radeon-680m/selftest.json` |
-| Tiled GEMM, cooperative matrix, int8 dot GEMM | `PLANNED` (H2) | — |
+| Tiled f32 GEMM (16x16, shared memory) | **HARDWARE-VERIFIED** vs oracle, benchmarked on the 680M | `docs/MEASURED.md` (H2) |
+| Softmax, LayerNorm, RMSNorm (f32) | **HARDWARE-VERIFIED** vs oracle; GPU not faster than CPU in wall time at 32x4096 | `docs/MEASURED.md` (H2) |
+| Cooperative-matrix GEMM, int8 dot GEMM, f16 kernels | `PLANNED` (H2, next) | — |
 | GGUF / ONNX IO | `PLANNED` (H3) | — |
 | CUDA driver shim (`nvcuda`) | `PLANNED`, `EXPERIMENTAL` when it lands (H5) | — |
 

@@ -22,6 +22,10 @@ pub struct Runner {
     pub saxpy: Kernel,
     pub triad: Kernel,
     pub gemv: Kernel,
+    pub gemm_tiled: Kernel,
+    pub softmax: Kernel,
+    pub layernorm: Kernel,
+    pub rmsnorm: Kernel,
     pub dev: Device,
 }
 
@@ -39,6 +43,22 @@ struct PushRowsCols {
     cols: u32,
 }
 
+#[repr(C)]
+#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+struct PushMkn {
+    m: u32,
+    n: u32,
+    k: u32,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+struct PushRowsColsF {
+    cols: u32,
+    rows: u32,
+    eps: f32,
+}
+
 impl Runner {
     pub fn new(device_index: Option<usize>) -> Result<Self> {
         if !hcsuda_vk::shaders_available() {
@@ -52,12 +72,22 @@ impl Runner {
         let saxpy = Kernel::from_shader(&dev, "saxpy", 2, 8).context("saxpy kernel")?;
         let triad = Kernel::from_shader(&dev, "triad", 3, 8).context("triad kernel")?;
         let gemv = Kernel::from_shader(&dev, "gemv", 3, 8).context("gemv kernel")?;
+        let gemm_tiled =
+            Kernel::from_shader(&dev, "gemm_tiled", 3, 12).context("gemm_tiled kernel")?;
+        let softmax = Kernel::from_shader(&dev, "softmax", 2, 8).context("softmax kernel")?;
+        let layernorm =
+            Kernel::from_shader(&dev, "layernorm", 4, 12).context("layernorm kernel")?;
+        let rmsnorm = Kernel::from_shader(&dev, "rmsnorm", 3, 12).context("rmsnorm kernel")?;
         Ok(Self {
-            dev,
             dispatch,
             saxpy,
             triad,
             gemv,
+            gemm_tiled,
+            softmax,
+            layernorm,
+            rmsnorm,
+            dev,
         })
     }
 
@@ -151,6 +181,111 @@ impl Runner {
                 &[&a.buf, &x.buf, &y.buf],
                 push,
                 groups,
+            )
+            .map_err(Into::into)
+    }
+
+    /// Tiled GEMM: `C = A * B`, A `m x k`, B `k x n`, all row-major f32.
+    pub fn gemm_tiled(
+        &mut self,
+        a: &GpuTensor,
+        b: &GpuTensor,
+        c: &GpuTensor,
+        m: usize,
+        k: usize,
+        n: usize,
+    ) -> Result<Timed> {
+        let pc = PushMkn {
+            m: m as u32,
+            n: n as u32,
+            k: k as u32,
+        };
+        let push = bytemuck::bytes_of(&pc);
+        let groups = ((n as u32).div_ceil(16), (m as u32).div_ceil(16), 1);
+        self.dispatch
+            .run(
+                &self.dev,
+                &self.gemm_tiled,
+                &[&a.buf, &b.buf, &c.buf],
+                push,
+                groups,
+            )
+            .map_err(Into::into)
+    }
+    /// Softmax over one row; one workgroup per row.
+    pub fn softmax(
+        &mut self,
+        x: &GpuTensor,
+        y: &GpuTensor,
+        rows: usize,
+        cols: usize,
+    ) -> Result<Timed> {
+        // The softmax shader's push block is { uint cols; uint rows; } (8 bytes).
+        let pc = [cols as u32, rows as u32];
+        let push = bytemuck::bytes_of(&pc);
+        self.dispatch
+            .run(
+                &self.dev,
+                &self.softmax,
+                &[&x.buf, &y.buf],
+                push,
+                (rows as u32, 1, 1),
+            )
+            .map_err(Into::into)
+    }
+
+    /// Layer normalisation over the last dimension; one workgroup per row.
+    #[allow(clippy::too_many_arguments)]
+    pub fn layernorm(
+        &mut self,
+        x: &GpuTensor,
+        gamma: &GpuTensor,
+        beta: &GpuTensor,
+        y: &GpuTensor,
+        rows: usize,
+        cols: usize,
+        eps: f32,
+    ) -> Result<Timed> {
+        let pc = PushRowsColsF {
+            cols: cols as u32,
+            rows: rows as u32,
+            eps,
+        };
+        let push = bytemuck::bytes_of(&pc);
+        self.dispatch
+            .run(
+                &self.dev,
+                &self.layernorm,
+                &[&x.buf, &gamma.buf, &beta.buf, &y.buf],
+                push,
+                (rows as u32, 1, 1),
+            )
+            .map_err(Into::into)
+    }
+
+    /// RMS normalisation over the last dimension; one workgroup per row.
+    pub fn rmsnorm(
+        &mut self,
+        x: &GpuTensor,
+        gamma: &GpuTensor,
+        y: &GpuTensor,
+        rows: usize,
+        cols: usize,
+        eps: f32,
+    ) -> Result<Timed> {
+        let pc = PushRowsColsF {
+            cols: cols as u32,
+            rows: rows as u32,
+            eps,
+        };
+        let push = bytemuck::bytes_of(&pc);
+        self.dispatch
+            .run(
+                &self.dev,
+                &self.rmsnorm,
+                &[&x.buf, &gamma.buf, &y.buf],
+                push,
+                (rows as u32, 1, 1),
             )
             .map_err(Into::into)
     }

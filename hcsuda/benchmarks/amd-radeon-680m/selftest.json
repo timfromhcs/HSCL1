@@ -4,7 +4,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.00256,
+      "gpu_ms": 0.00284,
       "max_error": 2.384185791015625e-7,
       "ok": true,
       "op": "saxpy",
@@ -14,7 +14,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.00132,
+      "gpu_ms": 0.00136,
       "max_error": 2.384185791015625e-7,
       "ok": true,
       "op": "triad",
@@ -24,12 +24,52 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.25719,
+      "gpu_ms": 0.0742,
       "max_error": 1.9073486328125e-6,
       "ok": true,
       "op": "gemv",
       "path": "vulkan_scalar",
       "tolerance": 0.000032627416997969525
+    },
+    {
+      "deterministic": true,
+      "dtype": "f32",
+      "gpu_ms": 0.0092,
+      "max_error": 2.384185791015625e-7,
+      "ok": true,
+      "op": "gemm",
+      "path": "vulkan_tiled",
+      "tolerance": 0.000021445523142259596
+    },
+    {
+      "deterministic": true,
+      "dtype": "f32",
+      "gpu_ms": 0.00636,
+      "max_error": 3.259629011154175e-9,
+      "ok": true,
+      "op": "softmax",
+      "path": "vulkan_tiled",
+      "tolerance": 0.000042
+    },
+    {
+      "deterministic": true,
+      "dtype": "f32",
+      "gpu_ms": 0.00752,
+      "max_error": 2.86102294921875e-6,
+      "ok": true,
+      "op": "layernorm",
+      "path": "vulkan_tiled",
+      "tolerance": 0.000042
+    },
+    {
+      "deterministic": true,
+      "dtype": "f32",
+      "gpu_ms": 0.00688,
+      "max_error": 4.76837158203125e-7,
+      "ok": true,
+      "op": "rmsnorm",
+      "path": "vulkan_tiled",
+      "tolerance": 0.000042
     }
   ],
   "device": "AMD Radeon(TM) Graphics",
@@ -39,6 +79,10 @@
   "verified_paths": [
     "vulkan_scalar:saxpy:f32",
     "vulkan_scalar:triad:f32",
-    "vulkan_scalar:gemv:f32"
+    "vulkan_scalar:gemv:f32",
+    "vulkan_tiled:gemm:f32",
+    "vulkan_tiled:softmax:f32",
+    "vulkan_tiled:layernorm:f32",
+    "vulkan_tiled:rmsnorm:f32"
   ]
 }

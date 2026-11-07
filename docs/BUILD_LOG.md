@@ -703,3 +703,10 @@ New Cargo workspace `hcsuda/` (excluded from the root workspace), GPL-3.0-or-lat
 - **CI:** new `hcsuda` job (fmt/clippy/test on ubuntu + windows, `cargo audit` on ubuntu). Hosted runners have no GPU, so that job is the CPU-only gate by design.
 - Docs: `hcsuda/README.md`, `hcsuda/docs/MEASURED.md`, `hcsuda/docs/CAPABILITY_MATRIX.md`.
 
+
+## HCSUDA H2: tiled GEMM and row-wise ops, resumed after an interrupted session (2026-11-07)
+The previous session stopped mid-edit with `hcsuda-cli` not compiling: `gpu.rs` had a doc comment and `pub fn f32_tolerance` merged onto one line (the rest of the file was a comment, leaving an unmatched `}`), and `main.rs` had an unused `mut`. Uncommitted at that point: shaders `gemm_tiled`, `softmax`, `layernorm`, `rmsnorm`, runner methods, selftest/bench cases.
+- Fixed: the merged line; the unused `mut`; softmax push constants (shader block is 8 bytes `{cols, rows}`, runner sent 12); softmax reference and bench baseline were fed the whole matrix as one row (selftest "error" 6e-3, unfair CPU baseline), now per row.
+- Commands: `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test --all` (41 passed), `hcsuda selftest` -> PASS for all 7 kernels, `hcsuda bench --suite saxpy,triad,gemv,gemm,softmax,layernorm,rmsnorm --runs 15 --warmup-s 3`; `python scripts/forge.py check` OK.
+- Measured (release build, one host job at a time, no VM or model running): GEMM 256x1024x256 0.291 ms GPU (spread 0.21), 461 GFLOP/s kernel-side / 323 wall; row ops 13-17 us on the GPU but about 100 us wall, i.e. no wall-time gain over the CPU at 32x4096; rmsnorm spread 0.37 is noisy and not reported as a result. Details and caveats in `hcsuda/docs/MEASURED.md`.
+- Not measured: f16/bf16/int8/int4/FP8 kernels, cooperative-matrix GEMM, attention, training step, any comparison against llama-bench or rocBLAS.

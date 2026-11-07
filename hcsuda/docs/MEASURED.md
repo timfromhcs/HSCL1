@@ -77,10 +77,58 @@ Consequence, now encoded in the tool: `--reps` defaults to 50, and a benchmark
 row with a GPU spread above 0.25 is called noisy rather than reported as a
 result.
 
+## H2: tiled GEMM and row-wise ops (2026-11-07)
+
+New kernels `gemm_tiled` (16x16 tiles, shared memory), `softmax`, `layernorm`,
+`rmsnorm` (one 256-lane workgroup per row, tree reduction). All f32. Differential
+test against the CPU oracle, 3 runs each, determinism checked:
+
+| op | shape (selftest) | max error | tolerance | deterministic |
+|---|---|---|---|---|
+| gemm | 67x131x95 (not multiples of 16, exercises edge masking) | 2.4e-7 | 2.1e-5 | yes |
+| softmax | 8x1024 | 3.3e-9 | 4.2e-5 | yes |
+| layernorm | 8x1024 | 2.9e-6 | 4.2e-5 | yes |
+| rmsnorm | 8x1024 | 4.8e-7 | 4.2e-5 | yes |
+
+Benchmark (`--runs 15 --warmup-s 3`, release build, `bench-f32.json`):
+
+| op | shape | GPU ms (spread) | wall median ms | oracle ms | note |
+|---|---|---|---|---|---|
+| gemm | 256x1024x256 | 0.291 (0.21) | 0.416 | 114.6 | 134.2 MFLOP: 461 GFLOP/s kernel-side, 323 GFLOP/s wall |
+| softmax | 32x4096 | 0.015 (0.12) | 0.105 | 0.373 | wall dominated by submit latency |
+| layernorm | 32x4096 | 0.017 (0.05) | 0.105 | 0.231 | same |
+| rmsnorm | 32x4096 | 0.013 (**0.37**) | 0.102 | 0.109 | **noisy, not a result** |
+
+What this does and does not say:
+
+- Tiled GEMM is about 70x faster than the single-threaded oracle and ~55x faster
+  than the H1 `gemv` in GFLOP/s. Against a tuned multi-threaded CPU BLAS or the
+  680M's roughly 3-4 TFLOP/s f32 peak (estimate from CU count and clock, not
+  measured) this is a modest fraction; no optimisation beyond the 16x16 tile has
+  been tried.
+- The row-wise kernels run in 13-17 us on the GPU, but a single 512 KiB dispatch
+  costs about 100 us wall including submit and fence. At this size the GPU path
+  is **not** faster than the CPU in wall time (rmsnorm: 0.102 vs 0.109 ms, i.e.
+  equal). They only pay off fused or batched into a larger graph, which H2 does
+  not do yet.
+- The oracle numbers in this table come from a release build and are not
+  comparable with the H1 table (debug build, saxpy 28.7 ms there, 4.6 ms here).
+  Compare GPU against oracle only within one table.
+
+Bugs found while building this (test and glue, not shader defects):
+
+- `softmax` push block is 8 bytes `{cols, rows}`; the runner first sent the
+  12-byte norm block and the kernel guard refused it ("expects 8 push-constant
+  bytes, got 12").
+- The CPU reference `softmax` works on one row; the selftest and the bench
+  baseline passed the whole matrix as one row, giving a 6e-3 "error" and an
+  unfair CPU baseline. Both now go row by row.
+- GEMM spread was 0.61 without a warm-up and 0.21 with `--warmup-s 3`.
+
 ## Not measured (do not infer it)
 
 - No f16, bf16, int8, int4 or FP8 kernel has been run yet — only f32.
-- No GEMM, conv, attention or training step has been executed on the GPU.
+- No conv, attention or training step has been executed on the GPU (GEMM and row-wise ops: see H2 above, f32 only).
 - No comparison against `llama-bench`, rocBLAS, hipBLASLt or a CUDA baseline.
 - No discrete GPU, and no Linux measurement yet.
 - No power or thermal instrumentation; the machine ran on its normal power plan.
