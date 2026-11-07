@@ -155,6 +155,7 @@ case "$1" in
 esac
 exit 0
 """, encoding="utf-8")
+    stub.chmod(0o755)  # Windows ignores the mode, Linux CI does not (found by the WSL step of `forge check`)
     return stub, log
 
 
