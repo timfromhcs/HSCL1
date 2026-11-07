@@ -91,7 +91,8 @@ existing file without `--force`. The release workflow also joins the parts in th
 ## Try it in a VM
 
 Tested settings: 4 GB RAM or more, 4 vCPUs, standard VGA, user-mode networking, UEFI (OVMF/edk2) or BIOS. Hypervisor
-instructions and build host requirements are in [`docs/BUILDING.md`](docs/BUILDING.md) and [`docs/TESTING.md`](docs/TESTING.md).
+instructions and build host requirements are in [`docs/BUILDING.md`](docs/BUILDING.md) and [`docs/TESTING.md`](docs/TESTING.md);
+how an artefact becomes a release (and which steps are the maintainer's) is in [`docs/RELEASE_PROCESS.md`](docs/RELEASE_PROCESS.md).
 
 > **The installer writes to the selected disk. Use a disposable virtual disk. Do not install on a real machine with data you care
 > about; HSCL1 has not been tested on hardware.**
