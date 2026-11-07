@@ -973,6 +973,62 @@ fn cmd_selftest(json: bool, device: Option<usize>, out: Option<PathBuf>) -> Resu
         });
     }
 
+    // Whole transformer block on the GPU versus the CPU block (itself checked
+    // against NumPy). Weights are synthetic and deterministic.
+    {
+        use hcsuda_core::transformer::{block_forward, BlockConfig, BlockWeights};
+        let synth = |n: usize, seed: u32, scale: f32, bias: f32| -> Vec<f32> {
+            (0..n)
+                .map(|i| {
+                    let h = (i as u32 ^ seed.wrapping_mul(0x9e37_79b9)).wrapping_mul(2_654_435_761);
+                    bias + ((h >> 8) % 2001) as f32 / 1000.0 * scale - scale
+                })
+                .collect()
+        };
+        let cfg = BlockConfig {
+            tokens: 6,
+            dim: 32,
+            heads: 4,
+            ffn: 64,
+            eps: 1e-5,
+            rope_base: 10000.0,
+        };
+        let (d, f) = (cfg.dim, cfg.ffn);
+        let w = BlockWeights {
+            g1: synth(d, 1, 0.1, 1.0),
+            g2: synth(d, 2, 0.1, 1.0),
+            wq: synth(d * d, 3, 0.2, 0.0),
+            wk: synth(d * d, 4, 0.2, 0.0),
+            wv: synth(d * d, 5, 0.2, 0.0),
+            wo: synth(d * d, 6, 0.2, 0.0),
+            wg: synth(d * f, 7, 0.2, 0.0),
+            wu: synth(d * f, 8, 0.2, 0.0),
+            wd: synth(f * d, 9, 0.2, 0.0),
+        };
+        let x = synth(cfg.tokens * d, 10, 1.0, 0.0);
+        let want = block_forward(&cfg, &w, &x)?;
+        let mut got_runs = Vec::new();
+        for _ in 0..3 {
+            got_runs.push(runner.block_forward_gpu(&cfg, &w, &x)?);
+        }
+        let got = got_runs.last().expect("three runs").clone();
+        let max_error = want
+            .iter()
+            .zip(&got)
+            .map(|(w, g)| ((g - w).abs() / w.abs().max(1.0)) as f64)
+            .fold(0.0f64, f64::max);
+        cases.push(Case {
+            op: "block",
+            dtype: "f32",
+            path: "vulkan_composed",
+            max_error,
+            tolerance: 1e-4,
+            ok: max_error <= 1e-4 && want.len() == got.len(),
+            deterministic: got_runs.windows(2).all(|w| w[0] == w[1]),
+            gpu_ms: None,
+        });
+    }
+
     let all_ok = cases.iter().all(|c| c.ok && c.deterministic);
     let verified: Vec<String> = cases
         .iter()

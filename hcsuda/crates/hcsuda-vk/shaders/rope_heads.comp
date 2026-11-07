@@ -1,0 +1,41 @@
+#version 450
+
+// RoPE (split-half) applied independently to every head of a [rows, dim] matrix,
+// where dim = heads * head_dim. Row r is token position pos0 + r. One invocation
+// per (row, head, pair).
+//
+// Push constants: { uint dim; uint head_dim; uint rows; uint heads; uint pos0; float base; }
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+layout(std430, binding = 0) readonly buffer XBuf { float x[]; };
+layout(std430, binding = 1) writeonly buffer YBuf { float y[]; };
+
+layout(push_constant) uniform Push {
+    uint dim;
+    uint head_dim;
+    uint rows;
+    uint heads;
+    uint pos0;
+    float base;
+} pc;
+
+void main() {
+    uint half_dim = pc.head_dim / 2u;
+    uint gid = gl_GlobalInvocationID.x;
+    if (gid >= pc.rows * pc.heads * half_dim) {
+        return;
+    }
+    uint i = gid % half_dim;
+    uint head = (gid / half_dim) % pc.heads;
+    uint r = gid / (half_dim * pc.heads);
+    float pos = float(pc.pos0 + r);
+    float theta = pos * exp2(-2.0 * float(i) / float(pc.head_dim) * log2(pc.base));
+    float s = sin(theta);
+    float c = cos(theta);
+    uint lo = r * pc.dim + head * pc.head_dim + i;
+    uint hi = lo + half_dim;
+    float a = x[lo];
+    float b = x[hi];
+    y[lo] = a * c - b * s;
+    y[hi] = a * s + b * c;
+}
