@@ -18,8 +18,10 @@ actually execute, and a planner that refuses to run a path it has not verified.
 | GPU kernels `saxpy`, `triad`, `gemv` (f32) | **HARDWARE-VERIFIED** vs oracle | `benchmarks/amd-radeon-680m/selftest.json` |
 | Tiled f32 GEMM (16x16, shared memory) | **HARDWARE-VERIFIED** vs oracle, benchmarked on the 680M | `docs/MEASURED.md` (H2) |
 | Softmax, LayerNorm, RMSNorm (f32) | **HARDWARE-VERIFIED** vs oracle; GPU not faster than CPU in wall time at 32x4096 | `docs/MEASURED.md` (H2) |
-| Cooperative-matrix GEMM, int8 dot GEMM, f16 kernels | `PLANNED` (H2, next) | — |
-| GGUF / ONNX IO | `PLANNED` (H3) | — |
+| f16-storage GEMM, int8 dot GEMM (tiled), cooperative-matrix GEMM (f16 to f32, 16-aligned shapes), RoPE | **HARDWARE-VERIFIED** vs oracle on the 680M (selftest); speeds in the measured file | `benchmarks/amd-radeon-680m/selftest.json`, `docs/MEASURED.md` |
+| Transformer block and Qwen3-style layer (GQA, QK-norm) | CPU reference **TESTED** against independent NumPy; block composed from GPU kernels **HARDWARE-VERIFIED** vs the CPU block (at most 256 tokens, correctness kernels, not tuned) | `crates/hcsuda-core/tests/`, selftest case `block` |
+| GGUF header reader and tensor dequantisation (F32/F16/BF16/Q8_0/Q4_0/Q4_K/Q6_K) | **TESTED**: bit-equal to the official `gguf` Python package on fixtures; statistics match on a real Qwen3-4B | `crates/hcsuda-io`, `docs/BUILD_LOG.md` (H3a, H3b) |
+| GGUF writing, ONNX, safetensors, other quantisation types, the vendor PQ2_0 layout | `PLANNED` | — |
 | CUDA driver shim (`nvcuda`) | `PLANNED`, `EXPERIMENTAL` when it lands (H5) | — |
 
 Nothing above is claimed beyond what the linked evidence shows.

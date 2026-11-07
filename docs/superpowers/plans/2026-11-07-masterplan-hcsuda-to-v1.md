@@ -372,11 +372,11 @@ with `rg`/`git`/`pytest` before it lands in code, docs or a claim. `system-one-j
 
 | Track | State | Evidence | Next action |
 |---|---|---|---|
-| O1 push/land | IN PROGRESS | 114 commits ahead; PR #22 open; CI green; exec-bit fix staged | push, refresh PR, merge on green |
+| O1 push/land | **DONE for H0-H3c**, repeated per batch | PRs #22-#27 merged with merge commits, 14/14 CI checks each | open one PR per green batch |
 | H0 scaffold | **TESTED** | `hcsuda-core` (dtype/fp8/quant/tensor/oracle/planner/report), 41 unit tests green | — |
 | H1 dispatch | **HARDWARE-VERIFIED** | `caps.json`, `selftest.json` (PASS, det. yes), `bench-f32.json` on Radeon 680M | — |
-| H2 fast math | PLANNED | device facts in §1.2 + H1 numbers | tiled GEMM f32/f16 → coopmat → int8/int4 dot, then softmax/norm/rope |
-| H3 models | PLANNED | — | GGUF reader first, then tiny transformer |
+| H2 fast math | **HARDWARE-VERIFIED** (2026-11-07) | tiled f32/f16/int8 GEMM, cooperative-matrix GEMM, softmax/norm/RoPE: `hcsuda/benchmarks/amd-radeon-680m/selftest.json`, `hcsuda/docs/MEASURED.md` | planner covers gemm/rope; int4 GEMM and multi-tile coopmat remain |
+| H3 models | IN PROGRESS | GGUF reader + 7-type dequantisation TESTED (`hcsuda-io`); CPU transformer block and Qwen3-style layer TESTED vs NumPy; GPU block HARDWARE-VERIFIED vs CPU | stream real Qwen3 layers, final norm + tied head, compare logits with llama-server (see 2026-11-08 self-heal masterplan, H3c-3b) |
 | O2 alpha gaps | PLANNED | KNOWN_LIMITATIONS rows | recovery key, /boot text, OCR, shortcuts |
 | O3 hardening | PLANNED | — | measured report + SBOM |
 | O4/O5 product/modes | PLANNED | — | welcome app, lab, privacy |

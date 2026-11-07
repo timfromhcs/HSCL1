@@ -45,6 +45,17 @@ The 2-minute cron is a ping, never a pause.
 | O2 | alpha gaps (see §0) | PLANNED | recovery key flow design first (host-only) |
 | DOC | README/KNOWN_LIMITATIONS match artefact | PLANNED | update only with evidence |
 
+## 2b. Track E - HCSEASYMATH (added 2026-11-08, see `2026-11-08-hcseasymath-plan.md`)
+
+Order decision: Track E runs first, H3c-3b waits for a free heavy slot. Research in `docs/research/HCSEASYMATH_*.md`.
+
+| ID | Item | State | Evidence / next action |
+|---|---|---|---|
+| E-M0 | baseline, research ledger (3 rounds), decisions D1-D10, blockers B1-B8, test matrix, integration page, AGENTS proposal; HCSUDA doc drift reconciled | DONE | `docs/research/HCSEASYMATH_*.md`, `docs/integrations/HCSEASYMATH*.md`, reconciled `hcsuda/README.md` + `CAPABILITY_MATRIX.md` |
+| E-M1 | `apps/hcseasymath/` foundation: allow-list parser, exact derivative, worker limits, loopback API with Host/Origin/token, hash-pinned cp314 lock | NEXT | steps 1-8 in the plan, tests first |
+| E-M2..M13 | see the plan | PLANNED | - |
+| H3c-3b | real Qwen3 layers + logits vs llama-server | PAUSED (resource slot, not dropped) | resumes after E-M1 or in a free slot |
+
 ## 3. Owner-only items (not guessed)
 
 HCSUDA licence, public `hcsuda` repo, signing keys, physical hardware boot, legal review,
