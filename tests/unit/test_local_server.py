@@ -190,3 +190,11 @@ def test_gate_sizes_are_not_below_the_measured_peak_memory():
     assert server.MODEL_MB["bonsai-9b"] >= 4900
     assert server.MODEL_MB["bonsai-4b"] >= 3900
     assert server.MODEL_MB["qwen3-4b"] >= 4200
+
+
+def test_default_model_is_the_already_resident_shared_server():
+    """Measured 2026-11-07: the :8080 Bonsai-9B (gateway id jev-1.5b) solved 10/10 worker tasks at 10.6 s/task and costs no extra RAM,
+    while qwen3-4b starts a second 4.3 GB copy. With max two parallel workers the default must be the model that is already loaded."""
+    ok = {"task": "t", "files": ["a.py"], "test_cmd": ["pytest"]}
+    assert server.validate(ok)["model"] == "jev-1.5b"
+    assert server.MODEL_MB["jev-1.5b"] == 0

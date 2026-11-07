@@ -35,6 +35,7 @@ MAX_OUT = 2000
 # shared system memory. bonsai-27b and qwen3.5-9b are estimates (not measured yet).
 MODEL_MB = {"qwen3-4b": 4300, "jev-1.5b": 0, "bonsai-27b": 9000, "bonsai-9b": 4900, "bonsai-4b": 3900, "qwen3.5-9b": 6800}
 DEFAULT_MODEL_MB = 6000
+DEFAULT_MODEL = "jev-1.5b"  # the :8080 Bonsai-9B that is already resident (measured 2026-11-07: 10/10 tasks, 10.6 s/task, 0 MB extra)
 KV_MB = 600
 
 TOOL = {
@@ -50,7 +51,7 @@ TOOL = {
             "task": {"type": "string", "description": "What to implement or fix (<= 8000 chars)."},
             "files": {"type": "array", "items": {"type": "string"}, "description": "Editable files, relative to the project root (1-8)."},
             "test_cmd": {"type": "array", "items": {"type": "string"}, "description": "Test command as argv, e.g. [\"python\", \"check.py\"]. Executable must be one of: " + ", ".join(sorted(ALLOWED_EXE)) + "."},
-            "model": {"type": "string", "description": "Gateway model id (default qwen3-4b)."},
+            "model": {"type": "string", "description": "Gateway model id (default jev-1.5b = the shared :8080 server, no extra RAM)."},
             "max_rounds": {"type": "integer", "minimum": 1, "maximum": 5},
             "protected": {"type": "array", "items": {"type": "string"}, "description": "Files that must not change (tests)."},
         },
@@ -106,7 +107,7 @@ def validate(args: object) -> dict:
     rounds = args.get("max_rounds", 3)
     if isinstance(rounds, bool) or not isinstance(rounds, int) or not 1 <= rounds <= 5:
         raise InvalidParams("max_rounds must be an integer from 1 to 5")
-    model = args.get("model", "qwen3-4b")
+    model = args.get("model", DEFAULT_MODEL)
     if not isinstance(model, str) or not re.fullmatch(MODEL_RE, model):
         raise InvalidParams("model must be a plain gateway model id")
     return {"task": task, "files": args["files"], "protected": args.get("protected", []), "test_cmd": cmd, "max_rounds": rounds, "model": model}
