@@ -523,3 +523,14 @@ could not have caught it). Also recorded: the shell pipeline `forge boot ... | t
 Open question from the screenshots: `welcome_screen` was still `true` in the last two frames, so the `--dismiss-welcome`
 click (at 28.8 % / 84.8 % of the window) may have missed the "Skip" button - the desktop was reached, the welcome
 window's state is not proven either way. The rerun writes a second evidence set (`boot-0.1.3-dev2`) to compare.
+
+## S2 boot gate, second run with the fixed summary (2026-11-07)
+`forge boot --live --firmware uefi` on `HSCL1-0.1.3-dev-amd64.iso`: **booted yes, 146 s, 3 shots, UEFI, final
+wallpaper match 0.116**, exit 0 (`artifacts/forge/boot-0.1.3-dev2/`: `desktop-final.png`, `shot-001..003.png`,
+`qemu.log`, `result.json`). The fixed summary now reads the harness schema (`reached_desktop`, `elapsed_s`, `shots`).
+Open point, deliberately not claimed: `welcome_screen` was `true` in all three frames of **both** runs, including the frame
+at t=50 s before the desktop appears - so that flag is matching the live "Try or Install" prompt as well, and it does not
+prove that the welcome window stayed open after the `--dismiss-welcome` click. The wallpaper similarity is ~0.12 in both
+runs, which is expected for the animated rain wallpaper compared against a still reference; `reached_desktop` therefore
+came from `looks_like_desktop()` (dark top band with tray pixels), not from the wallpaper match. Recording both so the
+next session does not read the number as a defect or as proof.
