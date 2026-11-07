@@ -55,6 +55,11 @@ enum Command {
         json: bool,
         #[arg(long)]
         device: Option<usize>,
+        /// Selftest JSON to take verified paths from. Default: every
+        /// `benchmarks/*/selftest.json` below the current directory or `hcsuda/`.
+        /// Evidence for another device or driver is ignored.
+        #[arg(long)]
+        evidence: Option<PathBuf>,
     },
     /// Run GPU kernels against the CPU oracle and report the differential error.
     Selftest {
@@ -113,7 +118,8 @@ fn run() -> Result<()> {
             k,
             json,
             device,
-        } => cmd_plan(&op, &dtype, Shape::new(m, n, k), json, device),
+            evidence,
+        } => cmd_plan(&op, &dtype, Shape::new(m, n, k), json, device, evidence),
         Command::Selftest { json, device, out } => cmd_selftest(json, device, out),
         Command::Bench {
             suite,
@@ -323,10 +329,66 @@ fn print_caps_human(caps: &DeviceCaps) {
     }
 }
 
-fn cmd_plan(op: &str, dtype: &str, shape: Shape, json: bool, device: Option<usize>) -> Result<()> {
+/// Candidate selftest records: the explicit file, or `benchmarks/*/selftest.json`
+/// under the current directory and under `hcsuda/`.
+fn evidence_files(explicit: Option<PathBuf>) -> Vec<PathBuf> {
+    if let Some(p) = explicit {
+        return vec![p];
+    }
+    let mut out = Vec::new();
+    for root in ["benchmarks", "hcsuda/benchmarks"] {
+        if let Ok(read) = std::fs::read_dir(root) {
+            for entry in read.flatten() {
+                let f = entry.path().join("selftest.json");
+                if f.is_file() {
+                    out.push(f);
+                }
+            }
+        }
+    }
+    out.sort();
+    out
+}
+
+fn cmd_plan(
+    op: &str,
+    dtype: &str,
+    shape: Shape,
+    json: bool,
+    device: Option<usize>,
+    evidence: Option<PathBuf>,
+) -> Result<()> {
     let op = parse_op(op)?;
     let dtype = parse_dtype(dtype)?;
-    let caps = hcsuda_vk::probe(device).context("probing Vulkan devices")?;
+    let mut caps = hcsuda_vk::probe(device).context("probing Vulkan devices")?;
+    let driver = {
+        let dev = hcsuda_vk::Device::new(device).context("opening the device")?;
+        format!("{:#x}", dev.props.driver_version)
+    };
+    let explicit = evidence.is_some();
+    for file in evidence_files(evidence) {
+        let text = match std::fs::read_to_string(&file) {
+            Ok(t) => t,
+            Err(e) if explicit => {
+                return Err(e).with_context(|| format!("reading {}", file.display()))
+            }
+            Err(_) => continue,
+        };
+        let record: serde_json::Value = match serde_json::from_str(&text) {
+            Ok(v) => v,
+            Err(e) if explicit => {
+                return Err(e).with_context(|| format!("parsing {}", file.display()))
+            }
+            Err(_) => continue,
+        };
+        match caps.apply_selftest(&record, &driver) {
+            Ok(added) if !json => eprintln!("evidence    {} ({added} paths)", file.display()),
+            Ok(_) => {}
+            Err(why) if explicit => anyhow::bail!("{}: {why}", file.display()),
+            Err(why) if !json => eprintln!("evidence    ignored {}: {why}", file.display()),
+            Err(_) => {}
+        }
+    }
     let plan = planner::plan(op, dtype, shape, &caps);
     if json {
         println!("{}", serde_json::to_string_pretty(&plan)?);
@@ -636,6 +698,43 @@ fn cmd_selftest(json: bool, device: Option<usize>, out: Option<PathBuf>) -> Resu
         gpu_ms: timed.and_then(|t| t.gpu_ms),
     });
 
+    // Tiled int8 dot GEMM on a shape that is not a multiple of the tile (tail handling).
+    let (tm, tk, tn) = (37usize, 132usize, 29usize);
+    let ta: Vec<i8> = (0..tm * tk)
+        .map(|i| (((i * 11 + 1) % 253) as u8 ^ 0x4d) as i8)
+        .collect();
+    let tb: Vec<i8> = (0..tk * tn)
+        .map(|i| (((i * 17 + 9) % 249) as u8 ^ 0x66) as i8)
+        .collect();
+    let want = reference::gemm_i8(&ta, &tb, tm, tk, tn);
+    let mut tbt = vec![0i8; tk * tn];
+    for r in 0..tk {
+        for c in 0..tn {
+            tbt[c * tk + r] = tb[r * tn + c];
+        }
+    }
+    let gta = runner.upload_u32(&hcsuda_core::quant::pack_i8x4(&ta))?;
+    let gtb = runner.upload_u32(&hcsuda_core::quant::pack_i8x4(&tbt))?;
+    let gtc = runner.alloc_i32(tm * tn)?;
+    let mut got_runs = Vec::new();
+    let mut timed = None;
+    for _ in 0..3 {
+        timed = Some(runner.gemm_i8dot_tiled(&gta, &gtb, &gtc, tm, tk, tn)?);
+        got_runs.push(runner.download_i32(&gtc)?);
+    }
+    let got = got_runs.last().expect("three runs").clone();
+    let mismatches = want.iter().zip(&got).filter(|(w, g)| w != g).count();
+    cases.push(Case {
+        op: "gemm",
+        dtype: "i8",
+        path: "vulkan_intdot",
+        max_error: mismatches as f64,
+        tolerance: 0.0,
+        ok: mismatches == 0 && want.len() == got.len(),
+        deterministic: got_runs.windows(2).all(|w| w[0] == w[1]),
+        gpu_ms: timed.and_then(|t| t.gpu_ms),
+    });
+
     let all_ok = cases.iter().all(|c| c.ok && c.deterministic);
     let verified: Vec<String> = cases
         .iter()
@@ -905,6 +1004,79 @@ fn cmd_bench(
                         wall,
                         Some(2.0 * m as f64 * n as f64 * k as f64),
                         Some(4 * (m * k + k * n + m * n) as u64),
+                    )
+                    .with_gpu_stats(gpu_stats),
+                );
+            }
+            "gemm_i8dot" => {
+                let (m, k, n) = (256usize, 1024usize, 256usize);
+                let a: Vec<i8> = (0..m * k)
+                    .map(|i| (((i * 7 + 3) % 255) as u8 ^ 0x15) as i8)
+                    .collect();
+                let b: Vec<i8> = (0..k * n)
+                    .map(|i| (((i * 13 + 5) % 251) as u8 ^ 0x2b) as i8)
+                    .collect();
+                let mut bt = vec![0i8; k * n];
+                for r in 0..k {
+                    for c in 0..n {
+                        bt[c * k + r] = b[r * n + c];
+                    }
+                }
+                let ops = Some(2.0 * m as f64 * n as f64 * k as f64);
+                let bytes = Some((m * k + k * n + 4 * m * n) as u64);
+                let cpu = cpu_samples(runs, || {
+                    let _ = reference::gemm_i8(&a, &b, m, k, n);
+                });
+                out_suite.push(BenchRow::from_samples(
+                    "gemm_i8dot",
+                    "i8",
+                    [m, n, k],
+                    "reference",
+                    &runner.dev.name(),
+                    &driver,
+                    cpu,
+                    ops,
+                    bytes,
+                ));
+                let ga = runner.upload_u32(&hcsuda_core::quant::pack_i8x4(&a))?;
+                let gbt = runner.upload_u32(&hcsuda_core::quant::pack_i8x4(&bt))?;
+                let gc = runner.alloc_i32(m * n)?;
+                warm_up(warmup_s, || runner.gemm_i8dot(&ga, &gbt, &gc, m, k, n))?;
+                let timings = sample(runs, reps, || runner.gemm_i8dot(&ga, &gbt, &gc, m, k, n))?;
+                let (wall, gpu_stats) = split_timings(timings);
+                out_suite.push(
+                    BenchRow::from_samples(
+                        "gemm_i8dot",
+                        "i8",
+                        [m, n, k],
+                        "vulkan_i8dot",
+                        &runner.dev.name(),
+                        &driver,
+                        wall,
+                        ops,
+                        bytes,
+                    )
+                    .with_gpu_stats(gpu_stats),
+                );
+                let gc2 = runner.alloc_i32(m * n)?;
+                warm_up(warmup_s, || {
+                    runner.gemm_i8dot_tiled(&ga, &gbt, &gc2, m, k, n)
+                })?;
+                let timings = sample(runs, reps, || {
+                    runner.gemm_i8dot_tiled(&ga, &gbt, &gc2, m, k, n)
+                })?;
+                let (wall, gpu_stats) = split_timings(timings);
+                out_suite.push(
+                    BenchRow::from_samples(
+                        "gemm_i8dot",
+                        "i8",
+                        [m, n, k],
+                        "vulkan_i8dot_tiled",
+                        &runner.dev.name(),
+                        &driver,
+                        wall,
+                        ops,
+                        bytes,
                     )
                     .with_gpu_stats(gpu_stats),
                 );

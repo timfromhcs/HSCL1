@@ -1,0 +1,57 @@
+#version 450
+#extension GL_EXT_integer_dot_product : require
+
+// Signed int8 matrix product, shared-memory tiled: C = A * B (int32 accumulate).
+//
+// Same operand layout as gemm_i8dot: A is m x k packed along k, B is supplied
+// transposed (n x k) and packed along k, k % 4 == 0. A 16x16 output tile walks
+// k in steps of TW packed words (4*TW int8 values); both operand tiles are
+// loaded cooperatively into shared memory, then every invocation runs TW
+// dotPacked4x8EXT steps out of shared memory. Integer sums are order
+// independent, so results must equal the CPU oracle bit for bit.
+//
+// Push constants: { uint m; uint n; uint k; }
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(std430, binding = 0) readonly buffer ABuf { int a[]; };
+layout(std430, binding = 1) readonly buffer BBuf { int bt[]; };
+layout(std430, binding = 2) writeonly buffer CBuf { int c[]; };
+
+layout(push_constant) uniform Push {
+    uint m;
+    uint n;
+    uint k;
+} pc;
+
+const uint TW = 16u; // packed words per k step
+
+shared int tile_a[16][TW];
+shared int tile_b[16][TW];
+
+void main() {
+    uint lx = gl_LocalInvocationID.x;
+    uint ly = gl_LocalInvocationID.y;
+    uint col = gl_GlobalInvocationID.x;
+    uint row = gl_GlobalInvocationID.y;
+    uint words = pc.k / 4u;
+    uint block_row = gl_WorkGroupID.y * 16u;
+    uint block_col = gl_WorkGroupID.x * 16u;
+
+    int acc = 0;
+    for (uint w0 = 0u; w0 < words; w0 += TW) {
+        // Thread (lx, ly) loads word lx of tile row ly for both operands.
+        uint wi = w0 + lx;
+        uint ar = block_row + ly;
+        uint br = block_col + ly;
+        tile_a[ly][lx] = (ar < pc.m && wi < words) ? a[ar * words + wi] : 0;
+        tile_b[ly][lx] = (br < pc.n && wi < words) ? bt[br * words + wi] : 0;
+        barrier();
+        for (uint i = 0u; i < TW; ++i) {
+            acc += dotPacked4x8EXT(tile_a[ly][i], tile_b[lx][i]);
+        }
+        barrier();
+    }
+    if (row < pc.m && col < pc.n) {
+        c[row * pc.n + col] = acc;
+    }
+}

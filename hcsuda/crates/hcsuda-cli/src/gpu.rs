@@ -28,6 +28,7 @@ pub struct Runner {
     pub rmsnorm: Kernel,
     pub rope: Kernel,
     pub gemm_i8dot: Kernel,
+    pub gemm_i8dot_tiled: Kernel,
     pub dev: Device,
 }
 
@@ -92,6 +93,8 @@ impl Runner {
         let rope = Kernel::from_shader(&dev, "rope", 2, 16).context("rope kernel")?;
         let gemm_i8dot =
             Kernel::from_shader(&dev, "gemm_i8dot", 3, 12).context("gemm_i8dot kernel")?;
+        let gemm_i8dot_tiled = Kernel::from_shader(&dev, "gemm_i8dot_tiled", 3, 12)
+            .context("gemm_i8dot_tiled kernel")?;
         Ok(Self {
             dispatch,
             saxpy,
@@ -103,6 +106,7 @@ impl Runner {
             rmsnorm,
             rope,
             gemm_i8dot,
+            gemm_i8dot_tiled,
             dev,
         })
     }
@@ -187,6 +191,35 @@ impl Runner {
             .run(
                 &self.dev,
                 &self.gemm_i8dot,
+                &[&a.buf, &bt.buf, &c.buf],
+                push,
+                groups,
+            )
+            .map_err(Into::into)
+    }
+
+    /// Shared-memory tiled variant of [`Runner::gemm_i8dot`]; any `k % 4 == 0`.
+    pub fn gemm_i8dot_tiled(
+        &mut self,
+        a: &GpuTensor,
+        bt: &GpuTensor,
+        c: &GpuTensor,
+        m: usize,
+        k: usize,
+        n: usize,
+    ) -> Result<Timed> {
+        anyhow::ensure!(k % 4 == 0, "gemm_i8dot_tiled needs k % 4 == 0");
+        let pc = PushMkn {
+            m: m as u32,
+            n: n as u32,
+            k: k as u32,
+        };
+        let push = bytemuck::bytes_of(&pc);
+        let groups = ((n as u32).div_ceil(16), (m as u32).div_ceil(16), 1);
+        self.dispatch
+            .run(
+                &self.dev,
+                &self.gemm_i8dot_tiled,
                 &[&a.buf, &bt.buf, &c.buf],
                 push,
                 groups,

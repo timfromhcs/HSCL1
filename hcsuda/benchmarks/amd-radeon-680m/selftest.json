@@ -4,7 +4,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.0026,
+      "gpu_ms": 0.00256,
       "max_error": 2.384185791015625e-7,
       "ok": true,
       "op": "saxpy",
@@ -14,7 +14,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.00356,
+      "gpu_ms": 0.00132,
       "max_error": 2.384185791015625e-7,
       "ok": true,
       "op": "triad",
@@ -24,7 +24,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.07352,
+      "gpu_ms": 0.075,
       "max_error": 1.9073486328125e-6,
       "ok": true,
       "op": "gemv",
@@ -34,7 +34,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.01168,
+      "gpu_ms": 0.01196,
       "max_error": 2.384185791015625e-7,
       "ok": true,
       "op": "gemm",
@@ -44,7 +44,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.00624,
+      "gpu_ms": 0.00664,
       "max_error": 3.259629011154175e-9,
       "ok": true,
       "op": "softmax",
@@ -54,7 +54,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.00544,
+      "gpu_ms": 0.00788,
       "max_error": 2.86102294921875e-6,
       "ok": true,
       "op": "layernorm",
@@ -64,7 +64,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.00712,
+      "gpu_ms": 0.00376,
       "max_error": 4.76837158203125e-7,
       "ok": true,
       "op": "rmsnorm",
@@ -74,7 +74,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.00096,
+      "gpu_ms": 0.001,
       "max_error": 2.980232238769531e-7,
       "ok": true,
       "op": "rope",
@@ -84,11 +84,21 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.00396,
+      "gpu_ms": 0.00384,
       "max_error": 0.0,
       "ok": true,
       "op": "gemm_i8dot",
       "path": "vulkan_i8dot",
+      "tolerance": 0.0
+    },
+    {
+      "deterministic": true,
+      "dtype": "f32",
+      "gpu_ms": 0.00468,
+      "max_error": 0.0,
+      "ok": true,
+      "op": "gemm",
+      "path": "vulkan_intdot",
       "tolerance": 0.0
     }
   ],
@@ -105,6 +115,7 @@
     "vulkan_tiled:layernorm:f32",
     "vulkan_tiled:rmsnorm:f32",
     "vulkan_scalar:rope:f32",
-    "vulkan_i8dot:gemm_i8dot:i8"
+    "vulkan_i8dot:gemm_i8dot:i8",
+    "vulkan_intdot:gemm:i8"
   ]
 }

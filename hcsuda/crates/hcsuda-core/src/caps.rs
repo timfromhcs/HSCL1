@@ -121,6 +121,42 @@ impl DeviceCaps {
     pub fn path_is_verified(&self, key: &str) -> bool {
         self.verified_paths.contains(key)
     }
+
+    /// Merge the `verified_paths` of a `hcsuda selftest --json` record into this
+    /// capability record. Evidence from another device or another driver is
+    /// refused: a path verified on one GPU says nothing about a different one.
+    /// Returns the number of paths added.
+    pub fn apply_selftest(
+        &mut self,
+        record: &serde_json::Value,
+        driver: &str,
+    ) -> Result<usize, String> {
+        let device = record.get("device").and_then(|v| v.as_str()).unwrap_or("");
+        if device != self.name {
+            return Err(format!(
+                "selftest evidence is for device '{device}', not '{}'",
+                self.name
+            ));
+        }
+        let rec_driver = record.get("driver").and_then(|v| v.as_str()).unwrap_or("");
+        if rec_driver != driver {
+            return Err(format!(
+                "selftest evidence is for driver '{rec_driver}', not '{driver}'"
+            ));
+        }
+        if record.get("ok").and_then(|v| v.as_bool()) != Some(true) {
+            return Err("selftest evidence does not record a passing run".into());
+        }
+        let paths = record
+            .get("verified_paths")
+            .and_then(|v| v.as_array())
+            .ok_or("selftest evidence has no verified_paths list")?;
+        let before = self.verified_paths.len();
+        for p in paths.iter().filter_map(|v| v.as_str()) {
+            self.verified_paths.insert(p.to_string());
+        }
+        Ok(self.verified_paths.len() - before)
+    }
 }
 
 #[cfg(test)]
@@ -188,5 +224,38 @@ mod tests {
     fn storage_only_cannot_compute() {
         assert!(!Support::StorageOnly.can_compute());
         assert!(Support::Emulated.can_compute());
+    }
+
+    fn sample_caps() -> DeviceCaps {
+        let mut c = caps();
+        c.name = "GPU-A".into();
+        c
+    }
+
+    #[test]
+    fn selftest_evidence_is_accepted_only_for_the_same_device_and_driver() {
+        let rec = serde_json::json!({
+            "device": "GPU-A", "driver": "0x1", "ok": true,
+            "verified_paths": ["vulkan_scalar:rope:f32", "vulkan_intdot:gemm:i8"]
+        });
+        let mut c = sample_caps();
+        assert_eq!(c.apply_selftest(&rec, "0x1"), Ok(2));
+        assert!(c.path_is_verified("vulkan_intdot:gemm:i8"));
+        let mut other = sample_caps();
+        assert!(other.apply_selftest(&rec, "0x2").is_err());
+        other.name = "GPU-B".into();
+        assert!(other.apply_selftest(&rec, "0x1").is_err());
+        assert!(other.verified_paths.is_empty());
+    }
+
+    #[test]
+    fn failed_selftest_evidence_is_refused() {
+        let rec = serde_json::json!({
+            "device": "GPU-A", "driver": "0x1", "ok": false,
+            "verified_paths": ["vulkan_scalar:rope:f32"]
+        });
+        let mut c = sample_caps();
+        assert!(c.apply_selftest(&rec, "0x1").is_err());
+        assert!(c.verified_paths.is_empty());
     }
 }
