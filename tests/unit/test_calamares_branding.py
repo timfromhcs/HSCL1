@@ -35,3 +35,12 @@ def test_slideshow_has_three_languages():
     assert "Mit Liebe gemacht von hcsmedia" in qml and "Fait avec amour par hcsmedia" in qml
     assert "Meta+K" not in qml, "do not advertise shortcuts that are not bound"
     assert "Handbook" in qml and "Handbuch" in qml and "manuel" in qml
+
+
+def test_installer_version_matches_the_VERSION_file():
+    """Found 2026-11-07 in the live installer of the 0.1.3-alpha.0 ISO: the title read 'HSCL1 0.1.2-alpha.0 installer' because
+    branding.desc was not bumped with VERSION."""
+    v = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+    d = desc()
+    assert d["version"] == v
+    assert d["versionedName"] == f"HSCL1 {v}"
