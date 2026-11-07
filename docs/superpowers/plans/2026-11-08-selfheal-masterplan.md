@@ -103,7 +103,7 @@ Order rule: lowest P-number first, dependency met, one heavy job at a time. Rows
 |---|---|---|---|
 | E-M0 | research ledger, decisions D1-D10, blockers B1-B8, test matrix, integration page | DONE | `docs/research/HCSEASYMATH_*.md` |
 | E-M1 | allow-list parser, exact derivative, isolated worker, loopback API with Host/Origin/token, hash-locked cp314 lock, forge step, CI job | **DONE - PR #29 merged `4bdcb2f`, 16/16 CI checks** (B3 answered: `setup-python` 3.14 works on `ubuntu-latest`) | `apps/hcseasymath/`, 112 tests |
-| E-M2 | operations beyond differentiate | **integrate done locally** (134 tests; `unresolved` honest; graded derivative check); evaluate, simplify, solve, plot, warm worker open | row 4 |
+| E-M2 | operations beyond differentiate | **integrate and evaluate done** (143 tests; `unresolved` honest; graded derivative check; evaluate refuses symbolic/hostile values and reports undefined points as `unresolved`); simplify, solve, plot, warm worker open | row 4 |
 | E-M3..M13 | see the plan | PLANNED | - |
 
 ## 8. Track P - HCSPNP (Master P0-P11; detail in `2026-11-08-hcspnp-plan.md`)

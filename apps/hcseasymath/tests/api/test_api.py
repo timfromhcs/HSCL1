@@ -27,7 +27,7 @@ def test_health_and_capabilities_need_no_token_but_report_real_state():
     h = c.get("/api/v1/health")
     assert h.status_code == 200 and h.json()["status"] == "ok"
     caps = c.get("/api/v1/capabilities").json()
-    assert caps["operations"] == ["differentiate", "integrate"]
+    assert caps["operations"] == ["differentiate", "integrate", "evaluate"]
     assert caps["engines"]["sympy"]
     assert caps["accelerators"] == {"hcsuda": "not_used"}
     assert caps["limits"]["max_chars"] == 500
