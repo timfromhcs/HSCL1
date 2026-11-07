@@ -1583,3 +1583,197 @@ mod completion_tests {
         }
     }
 }
+
+#[cfg(test)]
+mod doc_command_tests {
+    //! G24: every `hscl ...` invocation shown in a fenced code block of the user-facing docs must
+    //! resolve in the real clap tree. Drift the other way (`docs/CLI.md` missing a command) is
+    //! covered by `cli_doc_lists_every_command`.
+    //!
+    //! Excluded on purpose: `docs/BUILD_LOG.md` (an append-only engineering log quoting commands
+    //! from past states), `docs/research/` and `docs/superpowers/` (plans may name commands that a
+    //! later sprint implements).
+    use clap::CommandFactory;
+    use std::path::{Path, PathBuf};
+
+    fn repo_root() -> PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
+    }
+
+    fn collect_md(dir: &Path, out: &mut Vec<PathBuf>) {
+        let Ok(entries) = std::fs::read_dir(dir) else {
+            return;
+        };
+        for entry in entries.flatten() {
+            let p = entry.path();
+            if p.is_dir() {
+                collect_md(&p, out);
+            } else if p.extension().is_some_and(|e| e == "md") {
+                out.push(p);
+            }
+        }
+    }
+
+    fn markdown_files(root: &Path) -> Vec<PathBuf> {
+        let mut out = Vec::new();
+        for name in ["README.md", "CONTRIBUTING.md", "SECURITY.md"] {
+            let p = root.join(name);
+            if p.is_file() {
+                out.push(p);
+            }
+        }
+        if let Ok(entries) = std::fs::read_dir(root.join("docs")) {
+            for entry in entries.flatten() {
+                let p = entry.path();
+                if p.extension().is_some_and(|e| e == "md")
+                    && p.file_name().is_some_and(|n| n != "BUILD_LOG.md")
+                {
+                    out.push(p);
+                }
+            }
+        }
+        collect_md(&root.join("handbook"), &mut out);
+        out.sort();
+        out
+    }
+
+    /// Commands inside fenced code blocks, as the token list after the program name.
+    fn commands_in(text: &str) -> Vec<String> {
+        let mut out = Vec::new();
+        let mut in_block = false;
+        for line in text.lines() {
+            let trimmed = line.trim();
+            if trimmed.starts_with("```") {
+                in_block = !in_block;
+                continue;
+            }
+            if !in_block {
+                continue;
+            }
+            if trimmed.starts_with('#') {
+                continue; // shell comment, not an invocation
+            }
+            let mut s = trimmed;
+            for prompt in ["$ ", "> "] {
+                if let Some(rest) = s.strip_prefix(prompt) {
+                    s = rest;
+                    break;
+                }
+            }
+            let words: Vec<&str> = s
+                .split_whitespace()
+                .take_while(|w| !w.contains('|') && !w.contains("&&") && !w.starts_with(';'))
+                .collect();
+            let mut words = words.as_slice();
+            if words.first() == Some(&"sudo") {
+                words = &words[1..];
+            }
+            if matches!(words.first(), Some(&"hscl") | Some(&"hscl1")) {
+                out.push(words[1..].join(" "));
+            }
+        }
+        out
+    }
+
+    /// Commands written as inline code spans (`sudo hscl ...`), which is how prose recommends them.
+    fn inline_commands(text: &str) -> Vec<String> {
+        let mut out = Vec::new();
+        let mut rest = text;
+        while let Some(start) = rest.find('`') {
+            rest = &rest[start + 1..];
+            let Some(end) = rest.find('`') else { break };
+            let span = &rest[..end];
+            rest = &rest[end + 1..];
+            let mut words: Vec<&str> = span
+                .split_whitespace()
+                .take_while(|w| !w.contains('|') && !w.contains("&&") && !w.starts_with(';'))
+                .collect();
+            if words.first() == Some(&"sudo") {
+                words.remove(0);
+            }
+            if matches!(words.first(), Some(&"hscl") | Some(&"hscl1")) && words.len() > 1 {
+                out.push(words[1..].join(" "));
+            }
+        }
+        out
+    }
+
+    /// Longest subcommand chain the tokens start with; a bare word under a node that has no
+    /// positionals is reported instead of silently accepted.
+    fn resolve(root: &clap::Command, command: &str) -> Result<String, String> {
+        let mut cur = root;
+        let mut path = vec!["hscl".to_string()];
+        for token in command.split_whitespace() {
+            if token.starts_with('-') || token.starts_with('#') {
+                break;
+            }
+            match cur.get_subcommands().find(|c| c.get_name() == token) {
+                Some(sub) => {
+                    path.push(token.to_string());
+                    cur = sub;
+                }
+                None => {
+                    let has_subs = cur.get_subcommands().any(|c| c.get_name() != "help");
+                    let has_positionals = cur.get_arguments().any(|a| a.get_index().is_some());
+                    if has_subs && !has_positionals {
+                        return Err(format!(
+                            "'{}' is not a subcommand of `{}`",
+                            token,
+                            path.join(" ")
+                        ));
+                    }
+                    break;
+                }
+            }
+        }
+        Ok(path.join(" "))
+    }
+
+    #[test]
+    fn documented_hscl_commands_resolve_in_the_cli() {
+        let root = repo_root();
+        let files = markdown_files(&root);
+        assert!(
+            files.len() > 10,
+            "only {} markdown files scanned - the gate would pass without looking",
+            files.len()
+        );
+        let cli = <crate::Cli as CommandFactory>::command();
+        let mut checked = 0usize;
+        let mut problems = Vec::new();
+        for file in &files {
+            let text = std::fs::read_to_string(file).expect("read markdown");
+            let mut all = commands_in(&text);
+            all.extend(inline_commands(&text));
+            for command in all {
+                if command.trim().is_empty() {
+                    continue;
+                }
+                checked += 1;
+                if let Err(why) = resolve(&cli, &command) {
+                    let rel = file.strip_prefix(&root).unwrap_or(file);
+                    problems.push(format!("{}: hscl {} ({})", rel.display(), command, why));
+                }
+            }
+        }
+        assert!(
+            checked > 25,
+            "only {checked} documented commands found - the scan is probably broken"
+        );
+        assert!(
+            problems.is_empty(),
+            "documented commands that do not exist:\n{}",
+            problems.join("\n")
+        );
+    }
+
+    #[test]
+    fn the_command_scanner_reads_fenced_blocks_only_and_handles_prompts() {
+        let text = "text `hscl nope` inline\n```bash\n$ hscl status --json | jq .\nsudo hscl1 ainet detect\n```\n```\n# hscl comment only\n```\n";
+        let got = commands_in(text);
+        assert_eq!(
+            got,
+            vec!["status --json".to_string(), "ainet detect".to_string()]
+        );
+    }
+}

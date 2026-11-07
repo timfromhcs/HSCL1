@@ -40,7 +40,8 @@ Only implemented commands are listed. `hscl --help` is authoritative. Every comm
 Read-only hardware inventory from `/sys` and `/proc` (no root, no external tool): CPU model/threads/feature flags (`sse4_2 avx avx2 fma avx512f avx512_vnni amx_tile`),
 memory, firmware (`uefi`/`bios`, Secure Boot `enabled`/`disabled`/`not_reported` from the EFI variable), PCI devices with class, driver in use and names from the system's
 `pci.ids` (numeric IDs when it is missing), and GPUs with render nodes and, for amdgpu, dedicated VRAM and GTT (system RAM the GPU may map), reported separately and never combined.
-`--json` prints the same data. It installs and changes nothing. Driver suggestions (`hscl hw suggest`) and the install action are separate, later steps.
+`--json` prints the same data. It installs and changes nothing. Driver suggestions and an install action are separate, later steps (PLANNED - no such subcommand
+exists yet, so none is offered here).
 
 ## `hscl lab` (IMPLEMENTED, unit-tested; no container started yet)
 

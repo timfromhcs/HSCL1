@@ -349,3 +349,20 @@ the script now accepts `python3` or `python` and probes it with `import json`; a
 `tests/shellutil.py` gained `run_command()` (needed to call shellcheck from a test on all three hosts; 2 tests).
 Documented in `docs/TESTING.md` under "Stress and fault gate". Windows: 13 passed, 1 skipped (shellcheck, run by
 forge/CI instead).
+
+## Task 3 doc-command gate (G24, 2026-11-07)
+Rust test `documented_hscl_commands_resolve_in_the_cli` in `cli/hscl/src/main.rs`: it reads `README.md`,
+`CONTRIBUTING.md`, `SECURITY.md`, every `docs/*.md` except the append-only `BUILD_LOG.md`, and all of `handbook/**`,
+collects `hscl`/`hscl1` invocations from fenced code blocks (prompt `$ `/`> ` stripped, shell comments skipped, the
+line cut at `|`, `&&`, `;`) and from **inline code spans** in prose, then resolves each one against the live clap tree
+instead of spawning the binary (fast, no target/release needed). A bare word under a node that has subcommands but no
+positionals is an error, so `hscl appearance them set` cannot pass as `hscl appearance`. Two guards stop the gate
+from passing while scanning nothing: more than 10 markdown files and more than 25 collected commands.
+Result on the real docs: **four drift findings, all real**, two of them false status claims:
+- `docs/CLI.md` offered `hscl hw suggest`, which does not exist - reworded as PLANNED without a fake command.
+- `docs/DECISIONS.md` (ADR-004) said the Workshop starts via `sudo hscl workshop enable`; there is no workshop
+  subcommand - corrected to `sudo systemctl enable --now hscl-workshopd`, the mechanism that actually exists.
+- ADR-006 and `docs/KNOWN_LIMITATIONS.md` described `hscl appearance layout list|show|set|reset` as shipped; the CLI has
+  only `appearance theme`. The limitation row even said IMPLEMENTED. Both corrected to PLANNED (plan W5.5, tiling presets),
+  because the KWin `[Tiling]` write can only be claimed after a VM test reads the applied config back.
+Gates: `cargo test -p hscl` 142 passed, `clippy -D warnings` clean, `cargo fmt --check` clean (fmt applied once).

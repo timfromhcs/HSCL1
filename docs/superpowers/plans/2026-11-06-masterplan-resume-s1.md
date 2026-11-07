@@ -59,8 +59,12 @@
 - [x] Commit
 
 ### Task 3: Menue-Datei + Doc-Command-Test
-- [ ] Alle in README/docs als Codeblock genannten `hscl ...`-Befehle laufen als `--help`-Probe (Test), unbekannte Befehle = rot
-- [ ] Commit
+- [x] Alle in README/docs als Codeblock genannten `hscl ...`-Befehle laufen als `--help`-Probe (Test), unbekannte Befehle = rot
+      DONE 2026-11-07: Rust-Test `documented_hscl_commands_resolve_in_the_cli` (clap-Baum statt Prozessstart) scannt README/PROJECT-md,
+      `docs/*.md` (ohne BUILD_LOG) und `handbook/**` - fenced blocks **und** Inline-Codepsans; `docs/CLI.md` (G12) bleibt der Gegentest.
+      Vier echte Drifts gefunden und korrigiert: `hscl hw suggest` (nicht existent), `hscl workshop enable` (ADR-004), und zweimal
+      `hscl appearance layout set` in ADR-006 + KNOWN_LIMITATIONS, wo das sogar als IMPLEMENTED stand - jetzt PLANNED (W5.5).
+- [x] Commit (6b9f1c0-nachfolgend)
 
 ### Task 4: Governor-Parser (Rust, P27a) und forge `build/boot/diff`
 - [ ] Parser + Zustandsmaschine mit Fixture-Tests (Spec: Finish-Line-Plan G27a)
