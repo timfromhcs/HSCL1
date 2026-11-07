@@ -626,3 +626,20 @@ is 3 (upstream's). `cargo test -p hscl` 189 passed, clippy -D warnings clean. `d
 Still open (MEASURE, not claimed): whether `mmap` or `auto` is faster on the 680M, whether `-nkvo` costs the prefill
 speed that the research predicts, and whether a draft model pays for itself here - all need `llama-bench` runs on this
 machine, and none of it is in the UI until measured.
+
+## Release gates on the exact artefact (2026-11-07)
+All gates ran on `artifacts/iso/HSCL1-0.1.3-alpha.0-amd64.iso`, sha256
+`fc81ad1d93efeac61904879e9def34e39cdceb982bf7aafc070b34afdd4d1ebb`, not on a rebuild:
+
+| Gate | Result | Evidence |
+|---|---|---|
+| boot, UEFI, `--live` | **booted yes, 191 s, 4 screenshots**, final wallpaper match 0.127, exit 0 | `artifacts/forge/boot-0.1.3-alpha.0/` (`result.json`, `desktop-final.png`, `shot-001..004.png`, `qemu.log`) |
+| in-guest e2e (28 checks) | **28 run, 0 non-zero**, desktop after 151 s, session user `hscl1`, guest report says version **0.1.3-alpha.0** | `artifacts/e2e-0.1.3-alpha.0/cli-report.json` |
+| Secure Boot chain (file level) | shim = Microsoft UEFI CA 2011 / Microsoft Windows UEFI Driver Publisher; `grubx64.efi`, `mmx64.efi`, `casper/vmlinuz` = Canonical Secure Boot Signing (2022 v1) | `artifacts/sb-0.1.3-alpha.0/report.json` |
+| host test suite | 562 passed, 12 skipped | this run |
+| `cargo test -p hscl` | 195 passed; clippy -D warnings clean | this session |
+
+What these gates do **not** cover, and therefore what this build may not claim: Secure Boot acceptance by firmware (G6),
+the installer on this exact image (no install run yet), the brand OCR/content scan of the live session (G10), the shortcut
+audit (G11), physical hardware. `welcome_screen` in the boot harness is true even before the desktop appears, so it is
+not evidence about the Welcome window; the wallpaper-match number is the animated wallpaper against a still reference.
