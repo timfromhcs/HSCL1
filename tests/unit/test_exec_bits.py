@@ -15,16 +15,26 @@ def _git(root: Path, *args: str) -> str:
     return subprocess.run(["git", *args], cwd=root, capture_output=True, check=True).stdout.decode("utf-8", "replace")
 
 
+def _is_shebang(p: Path) -> bool:
+    """A script starts with `#!`, but a Rust file starts with an inner attribute `#![...]`.
+
+    The first version compared only the first two bytes, so it demanded the executable bit on
+    `fuzz/fuzz_targets/*.rs` (2026-11-07) - a false positive that teaches people to ignore a gate.
+    """
+    if not p.is_file():
+        return False
+    head = p.read_bytes()[:3]
+    return head[:2] == b"#!" and head[2:3] != b"["
+
+
 def shebang_violations(root: Path) -> list[str]:
     bad = []
     for entry in filter(None, _git(root, "ls-files", "-s", "-z").split("\0")):
         meta, path = entry.split("\t", 1)
-        p = root / path
-        if meta.split()[0] == "100644" and p.is_file() and p.read_bytes()[:2] == b"#!":
+        if meta.split()[0] == "100644" and _is_shebang(root / path):
             bad.append(f"{path} (tracked as 100644)")
     for path in filter(None, _git(root, "ls-files", "--others", "--exclude-standard", "-z").split("\0")):
-        p = root / path
-        if p.is_file() and p.read_bytes()[:2] == b"#!":
+        if _is_shebang(root / path):
             bad.append(f"{path} (untracked: add it with --chmod=+x)")
     return bad
 
@@ -53,3 +63,13 @@ def test_checker_flags_untracked_tracked_644_and_accepts_755(tmp_path):
     assert any(b.startswith("bad.py") and "100644" in b for b in bad)
     assert any(b.startswith("new.py") and "untracked" in b for b in bad)
     assert not any(b.startswith(("ok.py", "plain.py")) for b in bad)
+
+
+def test_a_rust_inner_attribute_is_not_mistaken_for_a_shebang(tmp_path):
+    repo = _repo(tmp_path)
+    (repo / "target.rs").write_text("#![no_main]" + chr(10) + "fn main() {}" + chr(10), encoding="utf-8")
+    (repo / "script.sh").write_text("#!/bin/sh" + chr(10) + "true" + chr(10), encoding="utf-8")
+    _git(repo, "add", "target.rs")
+    bad = shebang_violations(repo)
+    assert not any(b.startswith("target.rs") for b in bad), bad
+    assert any(b.startswith("script.sh") and "untracked" in b for b in bad), bad
