@@ -459,3 +459,21 @@ capability). Windows cannot create names with `:`, so the fixtures reuse the exi
 Two test-only defects of mine were caught by running them: an assertion counted markers in a text where the host needle
 legitimately occurred twice ("in" inside "login"), which was fixed by asserting on the visible text instead of a count.
 `cargo test -p hscl` 180 passed, fmt and clippy -D warnings clean; `docs/CLI.md` row extended (the G12 drift test requires it).
+
+## Task 9 Secure Boot signature evidence from the released ISO (2026-11-07)
+`scripts/sb_evidence.py ISO --out DIR`: extracts `EFI/boot/bootx64.efi`, `EFI/boot/grubx64.efi`, `casper/vmlinuz` (and
+`mmx64.efi` as optional) with `xorriso -osirrox` (no root, no mount), parses the PE header's certificate table
+(IMAGE_DIRECTORY_ENTRY_SECURITY, index 4, which is a file offset rather than an RVA) and prints the signer CNs through
+`openssl pkcs7`. Seven tests build minimal PE32/PE32+ images by hand: no MZ, no signature, both header layouts, truncated
+headers at five lengths, an absurd certificate size, and a component list that must contain both path spellings.
+**Measurement on the released artifact** (`artifacts/iso/HSCL1-0.1.2-alpha.0-amd64.iso`, evidence in
+`artifacts/sb-0.1.2/report.json`):
+- `EFI/boot/bootx64.efi` - Microsoft Windows UEFI Driver Publisher / Microsoft Corporation UEFI CA 2011 (9 720 bytes PKCS#7)
+- `EFI/boot/grubx64.efi` - Canonical Ltd. Secure Boot Signing (2022 v1) (1 928 bytes)
+- `casper/vmlinuz` - Canonical Ltd. Secure Boot Signing (2022 v1) (1 928 bytes)
+- `EFI/boot/mmx64.efi` - Canonical Ltd. Secure Boot Signing (2022 v1) (1 928 bytes)
+The first run reported "BOOTX64.EFI NOT PRESENT" although the shim was there: Ubuntu media spell the path
+`EFI/boot/bootx64.efi`, and a case difference is enough to make a gate lie. The reader now tries both spellings and the test
+says why. What this proves: the remastered image still ships the documented chain (MS-signed shim -> Canonical GRUB ->
+Canonical kernel), so the squashfs/initrd edits did not replace a signed component. What it does **not** prove: that
+firmware accepts the chain - that is gate G6 (OVMF + Microsoft keys, `mokutil --sb-state` in the guest), still open.

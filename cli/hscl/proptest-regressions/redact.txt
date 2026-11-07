@@ -5,3 +5,4 @@
 # It is recommended to check this file in to source control so that
 # everyone who runs the test benefits from these saved cases.
 cc f0875d1ba1c45016072152c2c0175d7b335ad53eb01bb43bdfdbd8e51de85eb3 # shrinks to user = "aA", host = "re"
+cc e036062b270f2dafeb7846ec5d60917724d69ce55d6b816cd70540a031538381 # shrinks to user = "Aa", host = "in"

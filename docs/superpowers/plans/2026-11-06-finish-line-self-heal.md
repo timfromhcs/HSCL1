@@ -479,7 +479,7 @@ Status key: **ANSWERED** (evidence below, decision changed where needed), **OWNE
 
 | # | Status | Answer | Evidence / decision |
 |---|---|---|---|
-| F1 | MEASURE | not answerable from docs; the remaster keeps upstream shim/GRUB/kernel, so the chain *should* validate, but "should" is not evidence | S7 runs OVMF+MS keys, `mokutil --sb-state` in-guest; no claim before that |
+| F1 | MEASURE (partly measured 2026-11-07) | file-level chain proven on the 0.1.2 ISO: shim = Microsoft UEFI CA 2011 + Microsoft Windows UEFI Driver Publisher, GRUB/mmx64/vmlinuz = Canonical Secure Boot Signing (2022 v1), via `scripts/sb_evidence.py` (`artifacts/sb-0.1.2/report.json`). Firmware acceptance is still unproven | S7 runs OVMF+MS keys, `mokutil --sb-state` in-guest; no claim before that |
 | F2 | ANSWERED | casper merges **multiple** squashfs layers through overlayfs; Ubuntu 26.04 itself ships the root split into layered parts | <https://askubuntu.com/questions/1322661>, <https://www.linkedin.com/posts/linuxbaskar_ubuntu2604-overlayfs-squashfs-activity-7457645926728495106-to0a>; C3 stays *possible*, single layer stays default until a boot test proves the split |
 | F3 | ANSWERED | `zsync` 0.6.2-9 in the 26.04 archive (`zsyncmake` not installed); GitHub serves Range requests (`206`, `Accept-Ranges: bytes`) | `apt-cache policy zsync`; `curl -sIL -H "Range: bytes=0-99"` on a `v0.1.1-alpha.0` asset |
 | F4 | ANSWERED | `snapshot.ubuntu.com` covers `resolute` (`snapshot-3` published); pin with `APT::Snapshot` / `apt --snapshot`; **build hosts only** - pinning an installed system freezes security updates | <https://ubuntu.com/server/docs/how-to/software/snapshot-service/>, <https://discourse.ubuntu.com/t/resolute-snapshot-3-released/75832>; ADR-007 |
