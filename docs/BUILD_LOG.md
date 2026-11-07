@@ -597,3 +597,16 @@ Secure Boot chain re-measured on this exact file (`artifacts/sb-0.1.3-alpha.0/re
 Signing (2022 v1). Firmware acceptance is still gate G6.
 Not yet done on this artefact: the copy to `artifacts/iso/` (hash re-check on the target path), the boot gate and the e2e
 set. Those are the next two steps and they decide whether this file may be called tested.
+
+## Release artefact copied and hash-verified; research folded into the AI plans (2026-11-07)
+`artifacts/iso/HSCL1-0.1.3-alpha.0-amd64.iso` (5 026 742 272 B) + manifest copied out of the build lab and re-hashed **on
+the target path**: `fc81ad1d93efeac61904879e9def34e39cdceb982bf7aafc070b34afdd4d1ebb`, identical to the build log and the
+manifest. Secure Boot evidence for the same file: `artifacts/sb-0.1.3-alpha.0/report.json`.
+Two research rounds landed and changed plans rather than prose:
+- `docs/research/2026-11-07-apu-offload-vram-spill.md`: `ttm.pages_limit` (default half of RAM, read once at TTM init)
+  is the only GPU-memory knob, `amdgpu.gttsize` is deprecated; `--mmap/--no-mmap/--mlock` no longer exist upstream
+  (`--load-mode` instead, whose `auto` disables mmap on Vulkan iGPUs); `-nkvo` keeps KV in system RAM; a second fast model
+  is speculative decoding with an unmeasured gain on this iGPU; **no supported SSD spill for VRAM or KV** (Vulkan has no
+  unified-memory oversubscription). W2.5 refined, W2.10/W2.11 added, KNOWN_LIMITATIONS row for local-AI memory.
+- `make_release.py` now treats the prebuilt qcow2 as optional (AGENTS.md 7.1) and records `prebuilt: null` plus a note
+  when it is absent, so a missing image cannot be confused with a forgotten field. Test written first; 8 tests pass.
