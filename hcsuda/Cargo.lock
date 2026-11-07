@@ -147,6 +147,7 @@ dependencies = [
  "bytemuck",
  "clap",
  "hcsuda-core",
+ "hcsuda-io",
  "hcsuda-vk",
  "serde",
  "serde_json",
@@ -158,6 +159,15 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
+ "thiserror",
+]
+
+[[package]]
+name = "hcsuda-io"
+version = "0.1.0"
+dependencies = [
+ "hcsuda-core",
+ "serde",
  "thiserror",
 ]
 
