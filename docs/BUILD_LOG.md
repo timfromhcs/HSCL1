@@ -303,3 +303,33 @@ PR #22 failed in CI (Linux) on `test_window_round_two_prompt_is_identical_to_the
 ## Task F1 update-claim gate (2026-11-07)
 `scripts/check_update_claims.py` (25 tests written first): README, `docs/` (without `docs/research` and `docs/superpowers`), `handbook/` and `website/` must not claim atomic or immutable updates (EN/DE/FR forms), nor that the system can boot into a snapshot, unless the same clause negates it. The real repository has no hits today (checked by a test, which also proves the gate scans more than 20 user-facing files, so "no hits" cannot mean "scanned nothing"). Reason: the Ubuntu 26.04 archive has no `grub-btrfs`, HSCL1 updates with APT, and bootc/image-based updates are 2.x research only. Known limitation: word-based, not semantic.
 The first full forge run failed on the new gate itself: it flagged my own BUILD_LOG sentence above (its third clause, the one about the snapshot, had no negation). That was a correct catch; I reworded the sentence and added only `nor`/`neither` to the negation words (two new tests, red first), without loosening anything else. Forge check green afterwards (pytest 291 s, Linux run of the changed tests 53 s).
+
+## Resume 2026-11-07: where the previous session stopped, and two fixes
+Reconnaissance before any change: branch `codex/hscl1-v1` is level with `origin` (0/0), 37 commits
+past the released `v0.1.2-alpha.0` tag; `main` is `d8f6533` (the release tag) and has none of them;
+PR #22 is open, mergeable and green on all 10 checks; releases `v0.1.0/0.1.1/0.1.2-alpha.0` exist as
+prereleases (0.1.2 with 4 ISO parts, manifest, SHA256SUMS and a CLI-only SBOM, unsigned). Locally
+uncommitted were `tools/local_worker/sysmon.py` (staged + modified), `tests/unit/test_sysmon.py` and
+`docs/research/2026-11-07-cpu-igpu-balance.md`. The previous session stopped mid-refactor of sysmon
+with one red test (`KeyError: 'ram_available_mb'`).
+- **Defect found and fixed (sysmon):** on this German Windows the localised counter name
+  `Verfügbare MB` belongs to two Perflib indices (1382 with an English twin, 1824 without); the plain
+  reverse map let the last one win, so the counter stayed German, `summarize()` did not match it and
+  the RAM figure vanished while the umlaut-free CPU counters worked and hid the fault. 1081 of 4774
+  localised names are ambiguous. Fixed by preferring an index the English table knows. A raw-byte
+  probe confirmed the CSV is OEM code page 850, so the decoding was correct. Tests written first
+  (two fixture tests red, one real round-trip test); `tests/unit/test_sysmon.py` 17 passed. Real
+  sample afterwards: 4348-5093 MB available of 20262 MB visible.
+- **Policy drift found and fixed (APT):** `distro/base/apt/hscl-sources.sources` enabled
+  `resolute-backports` although AGENTS.md section 3.3 names exactly three pockets, and the gate had
+  been widened to match the file instead of the spec; `test_unattended_upgrades.py` already treated
+  `-backports` as forbidden, so the repository contradicted itself. Backports removed, gate narrowed
+  to the three named pockets plus a fixture case (red first), 2 passed.
+- **Measurement (this host, 2026-11-07):** 20262 MB visible of 24 GB installed, 4348 MB "available"
+  per the counter and only 3144 MB free; commit charge 36.6 GB against a 42.7 GB limit; standby cache
+  3152 MB with no process above 1.3 GB, i.e. **most of the resident RAM is not attributable to a
+  process working set** - mmap'd model weights land in standby cache, so per-process accounting
+  under-reports a loaded model. This is why "free RAM" and "available RAM" differ by gigabytes here
+  and why the RAM gate must read the counter, not a process list. Recorded for the resource plan.
+- Forge check green on both commits (pytest 204.8 s, WSL parity 41.7 s, bash -n, shellcheck, secret
+  scan). Nothing was pushed and no PR was merged: PR merges stay with the owner.
