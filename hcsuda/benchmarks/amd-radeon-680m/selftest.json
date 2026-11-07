@@ -4,7 +4,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.00284,
+      "gpu_ms": 0.0026,
       "max_error": 2.384185791015625e-7,
       "ok": true,
       "op": "saxpy",
@@ -24,7 +24,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.0742,
+      "gpu_ms": 0.07332,
       "max_error": 1.9073486328125e-6,
       "ok": true,
       "op": "gemv",
@@ -34,7 +34,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.0092,
+      "gpu_ms": 0.00892,
       "max_error": 2.384185791015625e-7,
       "ok": true,
       "op": "gemm",
@@ -44,7 +44,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.00636,
+      "gpu_ms": 0.00468,
       "max_error": 3.259629011154175e-9,
       "ok": true,
       "op": "softmax",
@@ -54,7 +54,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.00752,
+      "gpu_ms": 0.00788,
       "max_error": 2.86102294921875e-6,
       "ok": true,
       "op": "layernorm",
@@ -64,11 +64,21 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.00688,
+      "gpu_ms": 0.00388,
       "max_error": 4.76837158203125e-7,
       "ok": true,
       "op": "rmsnorm",
       "path": "vulkan_tiled",
+      "tolerance": 0.000042
+    },
+    {
+      "deterministic": true,
+      "dtype": "f32",
+      "gpu_ms": 0.00108,
+      "max_error": 2.980232238769531e-7,
+      "ok": true,
+      "op": "rope",
+      "path": "vulkan_scalar",
       "tolerance": 0.000042
     }
   ],
@@ -83,6 +93,7 @@
     "vulkan_tiled:gemm:f32",
     "vulkan_tiled:softmax:f32",
     "vulkan_tiled:layernorm:f32",
-    "vulkan_tiled:rmsnorm:f32"
+    "vulkan_tiled:rmsnorm:f32",
+    "vulkan_scalar:rope:f32"
   ]
 }

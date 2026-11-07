@@ -563,6 +563,33 @@ fn cmd_selftest(json: bool, device: Option<usize>, out: Option<PathBuf>) -> Resu
         gpu_ms: timed.and_then(|t| t.gpu_ms),
     });
 
+    // rope
+    let (p_rows, p_dim, p_pos0, p_base) = (8usize, 128usize, 3u32, 10000.0f32);
+    let px: Vec<f32> = (0..p_rows * p_dim)
+        .map(|i| ((i % 37) as f32 - 18.0) * 0.05)
+        .collect();
+    let want = reference::rope(p_rows, p_dim, &px, p_pos0, p_base);
+    let gpx = runner.upload(&px)?;
+    let gpy = runner.upload(&vec![0.0f32; px.len()])?;
+    let mut got_runs = Vec::new();
+    let mut timed = None;
+    for _ in 0..3 {
+        timed = Some(runner.rope(&gpx, &gpy, p_rows, p_dim, p_pos0, p_base)?);
+        got_runs.push(runner.download(&gpy)?);
+    }
+    let got = got_runs.last().expect("three runs").clone();
+    let max_error = rtol.max_error(&want, &got).unwrap_or(f64::INFINITY);
+    let deterministic = got_runs.windows(2).all(|w| w[0] == w[1]);
+    cases.push(Case {
+        op: "rope",
+        path: "vulkan_scalar",
+        max_error,
+        tolerance: rtol.abs + rtol.rel,
+        ok: max_error <= rtol.abs + rtol.rel,
+        deterministic,
+        gpu_ms: timed.and_then(|t| t.gpu_ms),
+    });
+
     let all_ok = cases.iter().all(|c| c.ok && c.deterministic);
     let verified: Vec<String> = cases
         .iter()

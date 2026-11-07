@@ -26,6 +26,7 @@ pub struct Runner {
     pub softmax: Kernel,
     pub layernorm: Kernel,
     pub rmsnorm: Kernel,
+    pub rope: Kernel,
     pub dev: Device,
 }
 
@@ -59,6 +60,15 @@ struct PushRowsColsF {
     eps: f32,
 }
 
+#[repr(C)]
+#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+struct PushRope {
+    dim: u32,
+    rows: u32,
+    pos0: u32,
+    base: f32,
+}
+
 impl Runner {
     pub fn new(device_index: Option<usize>) -> Result<Self> {
         if !hcsuda_vk::shaders_available() {
@@ -78,6 +88,7 @@ impl Runner {
         let layernorm =
             Kernel::from_shader(&dev, "layernorm", 4, 12).context("layernorm kernel")?;
         let rmsnorm = Kernel::from_shader(&dev, "rmsnorm", 3, 12).context("rmsnorm kernel")?;
+        let rope = Kernel::from_shader(&dev, "rope", 2, 16).context("rope kernel")?;
         Ok(Self {
             dispatch,
             saxpy,
@@ -87,6 +98,7 @@ impl Runner {
             softmax,
             layernorm,
             rmsnorm,
+            rope,
             dev,
         })
     }
@@ -286,6 +298,35 @@ impl Runner {
                 &[&x.buf, &gamma.buf, &y.buf],
                 push,
                 (rows as u32, 1, 1),
+            )
+            .map_err(Into::into)
+    }
+
+    /// Rotary position embedding (split-half); one invocation per (row, pair).
+    pub fn rope(
+        &mut self,
+        x: &GpuTensor,
+        y: &GpuTensor,
+        rows: usize,
+        dim: usize,
+        pos0: u32,
+        base: f32,
+    ) -> Result<Timed> {
+        let pc = PushRope {
+            dim: dim as u32,
+            rows: rows as u32,
+            pos0,
+            base,
+        };
+        let push = bytemuck::bytes_of(&pc);
+        let groups = ((rows * dim / 2) as u32).div_ceil(256);
+        self.dispatch
+            .run(
+                &self.dev,
+                &self.rope,
+                &[&x.buf, &y.buf],
+                push,
+                (groups, 1, 1),
             )
             .map_err(Into::into)
     }
