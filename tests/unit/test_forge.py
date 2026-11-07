@@ -305,3 +305,14 @@ def test_changed_paths_lists_every_modified_and_untracked_file(tmp_path):
     (tmp_path / "apps" / "hcseasymath" / "a.py").write_text("x = 2\n", encoding="utf-8")
     (tmp_path / "apps" / "hcseasymath" / "b.py").write_text("x = 1\n", encoding="utf-8")
     assert forge.changed_paths(tmp_path) == ["apps/hcseasymath/a.py", "apps/hcseasymath/b.py"]
+
+
+def test_doc_command_step_runs_when_docs_or_the_cli_changed():
+    """2026-11-08: a docs row naming a non-existent `hscl` command passed forge check and failed only in CI (the Rust
+    doc-command test). The step closes that parity gap; it is absent when neither docs nor the CLI changed."""
+    for path in ("docs/KNOWN_LIMITATIONS.md", "README.md", "cli/hscl/src/main.rs"):
+        steps = forge.plan_check(ROOT, have_wsl=False, changed=[path])
+        st = next(s for s in steps if s.name == "doc commands (cargo)")
+        assert st.argv[:3] == ["cargo", "test", "-p"] and "documented_hscl_commands" in st.argv
+    names = [s.name for s in forge.plan_check(ROOT, have_wsl=False, changed=["tests/unit/test_x.py"])]
+    assert "doc commands (cargo)" not in names

@@ -222,6 +222,8 @@ def plan_check(root: Path = ROOT, have_wsl: bool | None = None, changed: list[st
     else:
         paths = list(changed)
     app_changed = any(p.startswith("apps/hcseasymath/") for p in paths)
+    # The Rust test `documented_hscl_commands_resolve_in_the_cli` reads the docs; pytest does not. Run it when docs or the CLI changed.
+    docs_changed = any(p == "README.md" or re.fullmatch(r"docs/[^/]+\.md", p) or p.startswith("cli/hscl/") for p in paths)
     pytest_argv = [sys.executable, "-m", "pytest", "tests", "-q", "-p", "no:cacheprovider"]
     if not full:
         pytest_argv += ["-m", "not slow"]  # the slow tier runs with --full and in CI
@@ -248,6 +250,8 @@ def plan_check(root: Path = ROOT, have_wsl: bool | None = None, changed: list[st
         quoted = " ".join(shlex.quote(f) for f in changed)
         steps.insert(1, Step(name, ["wsl", "-d", "Ubuntu", "--", "bash", "-lc",
                                     f"cd {shlex.quote(posix)} && python3 -m pytest -q -p no:cacheprovider {quoted}"]))
+    if docs_changed:
+        steps.append(Step("doc commands (cargo)", ["cargo", "test", "-p", "hscl", "--bin", "hscl", "documented_hscl_commands", "-q"]))
     # HCSEASYMATH needs Python 3.14 (the OS interpreter), so its gate runs under WSL Ubuntu from a hash-locked venv.
     # Omitted entirely when the app is untouched: a SKIPPED step would fail `check --strict` for unrelated work.
     if app_changed:
