@@ -14,3 +14,6 @@ The base live image has Python 3.14 but not `python3-venv` (checked in the prist
 
 ## G-ADR-005 Work from fresh upstream checkouts, not the stale local clone (2026-11-07) - ACCEPTED
 `E:\QHCS\CQ-HECS` is at 2.1.0; GitHub `main` is 5.0.0. Reading and measuring uses shallow clones under `C:\AI\work\`; the user's clone is not touched.
+
+## G-ADR-006 HCSWaver plan folded in; proposals instead of edits to the owner's contract (2026-11-07) - ACCEPTED
+`AGENTS_HCSWAVER_MASTERPLAN.md` is a third untracked owner file. HSCL1 owns only the integration (packages, launcher, status commands, Control Center card, docs, image gates); the standalone app is a separate repository that does not exist yet and is not created without the owner's go. Changes the masterplan wants in `AGENTS.md` are written as a proposal (`docs/integrations/HCSWAVER_AGENTS_SECTION.md`), not inserted. `hscl-cqhecs` is the shared CQ-HECS adapter base for Genesis and HCSWaver. Plan: `docs/superpowers/plans/2026-11-07-hcswaver-integration.md`.
