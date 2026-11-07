@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Translation coverage report for Qt linguist .ts files (AGENTS.md 10.2: a release gate must fail on missing translations).
 
-Usage: python scripts/ts_coverage.py FILE.ts [FILE.ts ...]
+Usage: python scripts/ts_coverage.py [--quiet] FILE.ts [FILE.ts ...]   (--quiet: print problem lines only)
 Exit codes: 0 all files complete, 1 at least one problem, 2 usage error or unreadable file.
 
 A message is a problem when its translation is unfinished/vanished/obsolete, empty, or (for non-English files) identical to the source.
@@ -40,9 +40,11 @@ def check_file(path: Path) -> tuple[str, int, int, list[str]]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    paths = [Path(a) for a in (sys.argv[1:] if argv is None else argv)]
+    args = sys.argv[1:] if argv is None else argv
+    quiet = "--quiet" in args
+    paths = [Path(a) for a in args if a != "--quiet"]
     if not paths:
-        print("usage: ts_coverage.py FILE.ts [FILE.ts ...]", file=sys.stderr)
+        print("usage: ts_coverage.py [--quiet] FILE.ts [FILE.ts ...]", file=sys.stderr)
         return 2
     bad = False
     for p in paths:
@@ -51,7 +53,8 @@ def main(argv: list[str] | None = None) -> int:
         except (OSError, ET.ParseError) as e:
             print(f"ts_coverage: {p}: {e}", file=sys.stderr)
             return 2
-        print(f"{p.name}: {lang} {finished}/{total} finished")
+        if not quiet:
+            print(f"{p.name}: {lang} {finished}/{total} finished")
         for line in problems:
             print(line)
         bad = bad or bool(problems)

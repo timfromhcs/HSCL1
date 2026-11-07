@@ -72,3 +72,13 @@ def test_missing_file_is_a_usage_error(tmp_path):
 def test_real_hscl1_translation_files_are_complete():
     r = run(ROOT / "distro/installer/i18n/calamares-hscl1_de.ts", ROOT / "distro/installer/i18n/calamares-hscl1_fr.ts")
     assert r.returncode == 0, r.stdout + r.stderr
+
+
+def test_quiet_prints_nothing_for_a_complete_file_and_only_problems_otherwise(tmp_path):
+    good = write(tmp_path, "de", [("Back", "Zurueck", "")], name="good.ts")
+    bad = write(tmp_path, "fr", [("Next", "", "unfinished")], name="bad.ts")
+    r = subprocess.run([sys.executable, str(SCRIPT), "--quiet", str(good)], capture_output=True, text=True)
+    assert r.returncode == 0 and r.stdout == ""
+    r = subprocess.run([sys.executable, str(SCRIPT), "--quiet", str(good), str(bad)], capture_output=True, text=True)
+    assert r.returncode == 1
+    assert "finished" not in r.stdout and "unfinished: Next" in r.stdout
