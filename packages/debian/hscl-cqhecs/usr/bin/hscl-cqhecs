@@ -21,7 +21,8 @@ USAGE
 
 runtime_state() {
   if [ ! -x "$venv/bin/cq-hecs" ]; then echo missing; return; fi
-  if "$venv/bin/cq-hecs" --version >/dev/null 2>&1; then echo ok; else echo broken; fi
+  # the CQ-HECS CLI has a `version` subcommand (verified on 5.0.0: `--version` is not an option)
+  if "$venv/bin/cq-hecs" version >/dev/null 2>&1; then echo ok; else echo broken; fi
 }
 
 conf_value() {

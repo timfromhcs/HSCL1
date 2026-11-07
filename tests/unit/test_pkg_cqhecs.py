@@ -141,7 +141,7 @@ case "$1" in
     if [ "$2" = venv ]; then
       mkdir -p "$3/bin"
       cp "$0" "$3/bin/python"
-      {{ echo '#!/usr/bin/env bash'; echo 'echo "cq-hecs 5.0.0"'; }} > "$3/bin/cq-hecs"
+      {{ echo '#!/usr/bin/env bash'; echo 'test "$1" = version || exit 2   # the real CLI has a version subcommand, not --version'; echo 'echo "cq-hecs 5.0.0"'; }} > "$3/bin/cq-hecs"
       chmod +x "$3/bin/cq-hecs"
     fi ;;
 esac
