@@ -1,7 +1,7 @@
 # LIVE MASTER LEDGER (self-heal masterplan v7) — execution index for all tracks
 
 > Status: **ACTIVE**. This file is the one live index (Ecosystem Master section 8.5). Track plans hold detail and must not
-> carry their own competing priority lists. Last reconciled: **2026-11-08**, after landing PR #29 (`4bdcb2f`).
+> carry their own competing priority lists. Last reconciled: **2026-11-08**, after landing PR #31 (`49673ab`) and reading the Unified Master of the same day (section 0, item 3b).
 > A cron ping (every 2 minutes, session-only) only prompts: *take the first row of section 5 that is not DONE/BLOCKED and whose
 > dependency is met*. It is never a pause.
 
@@ -11,6 +11,10 @@
 2. Source code and reproducible tests; then `docs/CLAIMS.md`, `docs/BUILD_LOG.md`, `docs/KNOWN_LIMITATIONS.md`, capability matrices.
 3. **`AGENTS_HCS_ECOSYSTEM_MASTER_2026-11-07.md`** (owner companion, untracked): the single **priority list P0-P14**, the loop (section 8), file locks (8.6),
    benchmark contract (9), definition of done (16). Companions it builds on: `AGENTS_HCSPNP_HSCL1_LATEST.md`, `AGENTS_HCSEASYMATH_HSCL1_FIRST.md`.
+3b. **`AGENTS_HCS_UNIFIED_SELF_HEALING_RESEARCH_MASTER_2026-11-08.md`** (owner companion, untracked, 3278 lines; it embeds the 7 November Ecosystem Master as Appendix A): fresh
+   snapshot, six-layer architecture, the HCS Physics sub-track (parts III), the research evidence policy (part IV), the **update-before-next-work contract** (17.2), failure and
+   rollback rules (19), lock groups (20) and the scheduler model (21). It keeps P0-P14 as the only order (section 27). Its root `AGENTS.md` blob
+   (`88a8a9cc...`, 113402 bytes) was checked: identical to this repository's.
 4. Track plans: `2026-11-08-hcspnp-plan.md` (Track P), `2026-11-08-hcseasymath-plan.md` (Track E), `2026-11-07-masterplan-hcsuda-to-v1.md`
    (HCSUDA gates, threat model, honesty rules; **its "HCSUDA first" ordering is superseded**, see C1).
 5. Older notes and research.
@@ -21,7 +25,7 @@ The owner files above stay untracked until the owner decides otherwise.
 
 | Repository | `main` | Notes | Command |
 |---|---|---|---|
-| `timfromhcs/HSCL1` | `4bdcb2f` (merge of PR #29) | working branch `codex/hscl1-v1` equals `main` plus local doc edits; open PRs: Dependabot #1-#4 only | `git fetch --all --prune`, `gh pr list --state open` |
+| `timfromhcs/HSCL1` | `49673ab` (merge of PR #31; PRs #29, #30, #31 all merged) | working branch `codex/hscl1-v1` is ahead of `main` by the HCSEASYMATH integrate commit and this reconciliation; open PRs: Dependabot #1-#4 only | `git fetch --all --prune`, `gh pr list --state open` |
 | `timfromhcs/CQ-HECS` | `30c7f14` (2026-11-02), Apache-2.0 | 34 branches besides `main`: **31 behind, 0 equal, 0 ahead, 3 diverged** (`agent/v4-studio-mfit2-sat` 7/100, `claude/beautiful-rubin-3hcoym` 1/125, `claude/vigilant-ritchie-mscxry` 1/78); no open PRs; none merged or deleted by us | `gh api repos/timfromhcs/CQ-HECS/compare/main...<branch>` |
 | `timfromhcs/hcs-foundry` | `cfea6fa` (2026-11-02) | not inspected beyond the SHA | `gh api repos/timfromhcs/hcs-foundry/commits/main` |
 | `timfromhcs/hcs-discovery-studio` | `fdd6ccb` (2026-11-04) | separate product; not inspected | same |
@@ -48,6 +52,7 @@ Resource rule: one heavy job at a time, VM disks on `C:\AI\vmtest`, no secrets p
 | P6-P11 | smart cubing, XNF/parity, HCSUDA BCP, streaming, tensor #SAT, GNN/RLAF | PLANNED (research, after P0-P4) | P-M4..P-M7, P-M5; no code |
 | **P12** | HCSUDA inference track + HCSEASYMATH completion | IN FLIGHT, slots only | Track E (M1 done); HCSUDA H3c-3b paused |
 | P13 | QBF/TQBF | later | Q |
+| *sub-track* | HCS Physics (not P15, not a new priority list) | **PHYS-0 DONE** (research ledger + integrator experiment, no code); PHYS-1 only after P0-P4 and the CPU reference gate | `docs/research/HCSPHYSICS_RESEARCH_LEDGER.md` |
 | P14 | release hardening | later | P-M9, O-track |
 
 ## 4. Locks (Master 8.6 format: `LOCK: track - paths - owner - reason - start SHA`)
@@ -55,7 +60,9 @@ Resource rule: one heavy job at a time, VM disks on `C:\AI\vmtest`, no secrets p
 Shared groups: `cli/hscl/`; `apps/control-center/`; `packages/debian/`; `distro/live/verify-image.sh`; `scripts/remaster-iso.sh`, `scripts/forge.py` and shared CI
 workflows; schemas/provenance interfaces; HCSUDA planner/capability contracts.
 
-- **No lock held.** Released: `LOCK: P - cli/hscl/ (main.rs, new cqhecs.rs), docs/CLI.md - agent - read-only CQ-HECS status wrapper (Master P2, row 3) - a82b7a5`, released when its PR merged.
+Default lock groups added by the Unified Master (20.3): `scripts/selfheal/` (does not exist yet), `apps/hcseasymath` API/schema/worker, a future `apps/hcsphysics`.
+
+- **No lock held.** Released: `LOCK: E - apps/hcseasymath/ (core/symbolic.py, core/engine.py, api/app.py, schemas) - agent - integrate operation and graded derivative check - a82b7a5`; taken without a written line (same gap as C6), released when its PR merges. Released: `LOCK: P - cli/hscl/ (main.rs, new cqhecs.rs), docs/CLI.md - agent - read-only CQ-HECS status wrapper (Master P2, row 3) - a82b7a5`, released when its PR merged.
 - Released: `LOCK: E - scripts/forge.py, .github/workflows/ci.yml (+ tests/unit/test_forge.py) - agent - hcseasymath gate step and CI job, doc-command step - 37d2f6d`;
   taken without being written down (a gap), released when PR #29 merged as `4bdcb2f`. From now on a lock line is written **before** editing these files.
 
@@ -66,12 +73,19 @@ workflows; schemas/provenance interfaces; HCSUDA planner/capability contracts.
 | 1 | P0 | Read in full: `sat.py`, `sat_external.py`, `drat.py`, `unified.py`, `sat_separator.py`, `omniwave/{bcp,gpu,engine,learned}.py`, `studio/app.py`, `provenance.py`, `mcp_server.py`, `src/sat_solver.cpp` (section 23.1 questions); fill the gap list | read-only in the local clone; Repo Auditor | n/a (report) | - | **NEXT** | `HCSPNP_BASELINE.md` gap list with file and line references |
 | 2 | P1 | Studio guard (tests first, then patch): **done locally**. Files: `cqhecs/studio/app.py`, `cqhecs/studio/static/app.js`, `tests/test_studio_security.py` (new), `tests/test_studio.py` (helpers send the token) | local clone branch `hcspnp/studio-guard`; Solver Engineer | `~/venvs/cq/bin/python -m pytest -q tests/test_studio_security.py` then the full suite | row 1 not required | **DONE locally; waiting for owner (B-P1) before any push** | `HCSPNP_BASELINE.md` |
 | 3 | P2 | `hscl cqhecs status`: read-only, wraps `hscl-cqhecs doctor --json`, fixed argv, bounded time and output | `cli/hscl/src/cqhecs.rs`, `main.rs`, `docs/CLI.md` | `cargo test -p hscl` (Windows and WSL) | lock free | **DONE (PR pending CI)** | 12 tests; real launcher checked in both states |
-| 4 | P12 | Track E M2: evaluate / simplify / integrate (`unresolved` stays honest) / solve / plot, warm worker | `apps/hcseasymath/` | `bash scripts/hcseasymath_gate.sh` | PR #29 (done) | PLANNED | gate E6 |
+| 4 | P12 | Track E M2: **integrate done locally** (`unresolved` honest, derivative check graded symbolic / numeric / partial); open: evaluate, simplify, solve, plot, warm worker | `apps/hcseasymath/` | `bash scripts/hcseasymath_gate.sh` | PR #29 (done) | IN PROGRESS | 134 tests; gate E6 partly |
 | 5 | P12 | HCSUDA H3c-3b: real Qwen3 layers, tied head, logits vs llama-server | `hcsuda/` | per `hcsuda` gates | free heavy slot (no VM, no solver run) | PAUSED | logits comparison JSON |
 | 6 | P4/P5 | Benchmark corpus manifest proposal (families, hashes, seeds), `hcs.run.v2` reuse | docs first | link and command validation | rows 1, 2 | PLANNED | proposal document |
-| 7 | P0 | Review Dependabot #1-#4 one by one (MSRV, lockfile, action SHA pins, permissions) | `.github/`, `Cargo.lock` (locks apply) | full CI | lock free | PLANNED | per-PR notes |
+| 7 | P0 | Review Dependabot #1-#4 one by one (MSRV, lockfile, action SHA pins, permissions); review notes only, no batch merge | `.github/`, `Cargo.lock` (locks apply) | full CI | lock free | **NEXT** (light) | per-PR notes in this ledger |
+| 8 | P4 | Durable scheduler under `scripts/selfheal/` (Master 21): one tick, global lock, heavy-job lock, wall timeout below the interval, state in a user directory, unprivileged; today's 2-minute ping is session-only and not that scheduler | `scripts/selfheal/`, `scripts/forge.py` (lock) | dry-run first | rows 1-3 | PLANNED | design note, then tests |
+| 9 | sub-track | PHYS-0: research ledger and integrator check | `docs/research/HCSPHYSICS_RESEARCH_LEDGER.md`, `docs/research/hcsphysics/integrator_check.py` | `python docs/research/hcsphysics/integrator_check.py` | - | **DONE** | orders, symplecticity and drift measured; no engine code |
+| 10 | sub-track | PHYS-1 entry gate: numerical-method spec reviewed by the owner, scene and evidence schema extending `hcs.run.v2`, CPU reference for pendulum and Kepler | docs and schemas first | per the ledger gate | owner review, P0-P4 | BLOCKED on owner review | - |
 
 Order rule: lowest P-number first, dependency met, one heavy job at a time. Rows 1-3 are light; row 5 is the only heavy one.
+
+### 5b. Update before the next work (Unified Master 17.2) - the closing checklist of every batch
+
+1. exact changed files and commits; 2. commands with exit codes; 3. pass/fail/skip counts with skip reasons; 4. raw artifact paths; 5. `BUILD_LOG.md`; 6. the owning track plan and research ledger; 7. claims, limitations, architecture or decision record if affected; 8. this table; 9. release the lock; 10. only then pick the next row. A batch that cannot finish this stops at a stable checkpoint and does the update first.
 
 ## 6. HCSUDA and product ledger (carried forward, evidence in `BUILD_LOG.md`)
 
@@ -89,7 +103,8 @@ Order rule: lowest P-number first, dependency met, one heavy job at a time. Rows
 |---|---|---|---|
 | E-M0 | research ledger, decisions D1-D10, blockers B1-B8, test matrix, integration page | DONE | `docs/research/HCSEASYMATH_*.md` |
 | E-M1 | allow-list parser, exact derivative, isolated worker, loopback API with Host/Origin/token, hash-locked cp314 lock, forge step, CI job | **DONE - PR #29 merged `4bdcb2f`, 16/16 CI checks** (B3 answered: `setup-python` 3.14 works on `ubuntu-latest`) | `apps/hcseasymath/`, 112 tests |
-| E-M2..M13 | see the plan | PLANNED | row 4 above |
+| E-M2 | operations beyond differentiate | **integrate done locally** (134 tests; `unresolved` honest; graded derivative check); evaluate, simplify, solve, plot, warm worker open | row 4 |
+| E-M3..M13 | see the plan | PLANNED | - |
 
 ## 8. Track P - HCSPNP (Master P0-P11; detail in `2026-11-08-hcspnp-plan.md`)
 
@@ -112,6 +127,9 @@ HCSPNP is a feature family of CQ-HECS and HSCL1, not a product or repository.
 | C3 | Master 8.5: do not copy one mutable priority list into many files; `2026-11-08-hcspnp-plan.md` had its own order table | Replaced there by a pointer to section 3/5 of this ledger |
 | C4 | Ledger and plans cited SAT Competition 2025 proof rules; Master cites 2026 | Re-crawled: the 2026 output page states the same rule (proofs to `proof.out`, checked by dpr-trim, GRAT or VeriPB; verified LRAT/LPR via cake). Resource limits on the 2026 rules page were **not retrievable** (empty answer) |
 | C5 | Master snapshot lists the branch as 4 commits ahead with PR #29 open | Now merged; section 1 shows the new `main` |
+| C7 | The Unified Master (written at ~00:15) still lists PR #30 as open and PR #29 as the latest merge | Both are merged now (`49673ab`); section 1 shows the current state. The Master's own caution (a proposal in an open PR is not a merged rule) is why the ledger names the merge SHAs |
+| C8 | The Unified Master ends with a 2-minute scheduler design (an OS cron entry running a `cron_tick.py` wrapper); this session's ping is a Claude Code session job | Different things. The ping is session-only, dies with the session and is not the durable scheduler; the durable one is row 8 and does not exist. Neither may run as root |
+| C9 | A new domain (physics) tempts a P15 | Refused by the Master (section 27): it is a sub-track recorded under the one order, started as research only |
 | C6 | `forge.py` and `ci.yml` are lock groups; Track E edited them without a written lock | Documented in section 4; rule now followed |
 
 ## 10. Owner-only items (not guessed)

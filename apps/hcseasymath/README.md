@@ -1,7 +1,7 @@
 # HCSEASYMATH (in-tree, pre-alpha)
 
-A local mathematical workbench. **Today it does one thing**: an exact symbolic derivative of a
-validated expression, through a loopback-only API and a one-page UI. Everything else in
+A local mathematical workbench. **Today it does two things**: an exact symbolic derivative and an
+indefinite integral of a validated expression, through a loopback-only API and a one-page UI. Everything else in
 `docs/superpowers/plans/2026-11-08-hcseasymath-plan.md` is planned, not built.
 
 Made with love by hcsmedia. Part of HSCL1 (GPL-3.0-or-later); see `docs/integrations/HCSEASYMATH.md`.
@@ -17,10 +17,14 @@ Made with love by hcsmedia. Part of HSCL1 (GPL-3.0-or-later); see `docs/integrat
   bearer token for operations, limits body size and concurrency, and hides its schema/docs.
 - After exit no listener remains. There is no service and no autostart.
 - A failure is a typed result (`invalid_input`, `resource_limit`, ...) and never carries a result expression.
+- **Integration never invents an antiderivative.** If SymPy returns the integral unevaluated the status is `unresolved` with no
+  result. Every antiderivative is checked by differentiating it: `symbolic` (proven), `numeric` (agrees at several sample points,
+  stated as "not proven symbolically"), `partial` (could not be verified) or refused (`internal_error`) when the check fails.
+  The constant of integration is omitted and says so.
 
 ## What it does not do
 
-No integration, no plotting, no ODEs, no accelerators (HCSUDA is `not_used`), no Windows worker,
+No definite integrals, no solving, no simplification, no plotting, no ODEs, no accelerators (HCSUDA is `not_used`), no Windows worker,
 no packaging. A warm worker is not implemented: one request costs about 0.57 s because each one starts
 a fresh Python and imports SymPy (measured, median of 7, repo on a USB drive, WSL Ubuntu 26.04).
 

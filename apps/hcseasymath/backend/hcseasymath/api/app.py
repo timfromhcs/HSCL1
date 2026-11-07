@@ -41,7 +41,7 @@ _HTTP_FOR_STATUS = {
 }
 
 
-class DifferentiateRequest(BaseModel):
+class ExpressionRequest(BaseModel):
     expression: str = Field(max_length=DEFAULT_LIMITS.max_chars)
     variable: str = Field(max_length=16)
 
@@ -144,15 +144,19 @@ def create_app(
             "limits": asdict(DEFAULT_LIMITS),
         }
 
-    @app.post("/api/v1/symbolic/differentiate", dependencies=[Depends(require_token)])
-    async def differentiate(body: DifferentiateRequest) -> JSONResponse:
-        if not slots.acquire(blocking=False):
-            return JSONResponse({"detail": "busy, try again"}, status_code=429)
-        try:
-            request = {"operation": "differentiate", **body.model_dump()}
-            result = await anyio.to_thread.run_sync(run, request)
-        finally:
-            slots.release()
-        return JSONResponse(result, status_code=_HTTP_FOR_STATUS.get(result.get("status"), 500))
+    def register(operation: str) -> None:
+        @app.post(f"/api/v1/symbolic/{operation}", dependencies=[Depends(require_token)], name=operation)
+        async def run_operation(body: ExpressionRequest) -> JSONResponse:
+            if not slots.acquire(blocking=False):
+                return JSONResponse({"detail": "busy, try again"}, status_code=429)
+            try:
+                request = {"operation": operation, **body.model_dump()}
+                result = await anyio.to_thread.run_sync(run, request)
+            finally:
+                slots.release()
+            return JSONResponse(result, status_code=_HTTP_FOR_STATUS.get(result.get("status"), 500))
+
+    for operation in OPERATIONS:
+        register(operation)
 
     return app
