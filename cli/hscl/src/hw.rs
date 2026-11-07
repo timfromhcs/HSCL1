@@ -604,3 +604,44 @@ mod tests {
         }
     }
 }
+
+/// G3: the sysfs/procfs text parsers. Real machines produce truncated counter files, other locales'
+/// whitespace and nonsense; none of that may panic, and the values that are well-formed must survive
+/// a round trip.
+#[cfg(test)]
+mod proptests {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn prop_parse_hex_round_trips(value in any::<u32>()) {
+            let rendered = format!("0x{value:x}");
+            prop_assert_eq!(parse_hex(&rendered), Some(value));
+            prop_assert_eq!(parse_hex(&format!(" {rendered}\n")), Some(value));
+        }
+
+        #[test]
+        fn prop_mem_total_round_trips(mib in 0u64..4_000_000) {
+            let text = format!("MemTotal:        {}\nMemFree: 1 kB\n", mib * 1024);
+            prop_assert_eq!(mem_total_mib(&text), Some(mib));
+        }
+
+        #[test]
+        fn prop_garbage_never_panics(text in ".{0,400}") {
+            let _ = parse_pci_ids(&text);
+            let _ = cpu(&text);
+            let _ = mem_total_mib(&text);
+            let _ = parse_hex(&text);
+        }
+
+        #[test]
+        fn prop_vendor_lines_survive_pci_ids(hex_id in 0u16..=0xffff, name in "[A-Za-z0-9 ]{1,30}") {
+            let text = format!("{hex_id:04x}  {name}\n\t0010  Device\n", hex_id = hex_id);
+            let ids = parse_pci_ids(&text);
+            let (got, devices) = ids.get(&hex_id).expect("the vendor line must be parsed");
+            prop_assert_eq!(got.trim(), name.trim());
+            prop_assert!(devices.contains_key(&0x0010));
+        }
+    }
+}

@@ -56,7 +56,13 @@
 ## Track G - stress and fault tests
 - [x] G1 `scripts/stress_vm.sh`: refuses unless `HSCL_IN_DISPOSABLE_VM=1` and `/etc/hscl-vm-marker` exist; runs `stress-ng --klog-check --metrics-brief`, `fio` randrw 1 GiB, `memtester 256M 1`; writes JSON to `artifacts/stress/`. Tests with fake binaries on PATH: refuses without marker; writes summary; tool failure gives non-zero exit; shellcheck clean. DONE 2026-11-07: `scripts/stress_vm.sh`, 8 tests written first (`tests/unit/test_stress_vm.py`), shellcheck -S warning clean. Real run still MC: fio/stress-ng/memtester are not installed on this host; the gate needs the disposable VM (S2)
 - [ ] G2 (S2) QEMU `blkdebug` cases under `tests/vm/blkdebug/`: injected EIO at the Nth write must make the installer fail safely
-- [ ] G3 proptest round trips for `redact.rs`, `toolcall.rs`, `hw.rs`; scheduled workflow for time-boxed `cargo-fuzz` and `cargo-mutants -f` on parsers
+- [x] G3 proptest round trips for `redact.rs`, `toolcall.rs`, `hw.rs`; scheduled workflow for time-boxed `cargo-fuzz` and `cargo-mutants -f` on parsers
+      DONE 2026-11-07: 13 `prop_` cases in the three modules (proptest, dev-dependency only) + `fuzz/` crate with two
+      libFuzzer targets that `#[path]`-include the shipped files + `.github/workflows/fuzz.yml` (weekly/dispatch,
+      `-max_total_time=300`, PROPTEST_CASES=20000, cargo-mutants on both parsers). The properties found a real defect:
+      `redact` replaced user then host one after the other, so a short host rewrote the marker (`[[redacted]dacted]`);
+      now one pass over the input, documented marker limitation. Not run so far: a real `cargo fuzz` run (needs nightly,
+      CI only) and G3b prototype: splitting the crate into lib+bin so the targets link normally instead of `#[path]`
 - [ ] G4 (S2) `autopkgtest` for `hscl-base` (`hscl version --json`, completions present)
 
 ## Track H - desktop resilience (S2 image)

@@ -1,0 +1,79 @@
+name: Fuzz (scheduled)
+
+# Coverage-guided fuzzing and mutation testing are slow and need nightly, so they never run on a
+# pull request: a red fuzz job on a PR would block work for hours. Weekly plus on demand.
+#
+# Why `#[path]` includes instead of `use hscl::...`: `hscl` is a binary crate without a library
+# target. The fuzz targets compile the very files the binary ships (see fuzz/fuzz_targets/*.rs), so
+# there is nothing to drift. Splitting the crate into lib + bin is tracked as G3b and would let the
+# targets link normally.
+
+on:
+  schedule:
+    - cron: "23 4 * * 1" # Mondays 04:23 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    name: cargo-fuzz ${{ matrix.target }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [toolcall_parse, redact]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: dtolnay/rust-toolchain@2c76c034f9e32a5d6e2c104dc4df23a22476db04 # nightly branch, fetched 2026-11-07
+      - name: Install cargo-fuzz
+        run: cargo install cargo-fuzz --locked
+      - name: Fuzz ${{ matrix.target }} (time boxed)
+        run: |
+          cd fuzz
+          cargo fuzz run ${{ matrix.target }} -- -max_total_time=300 -rss_limit_mb=2048
+      - name: Keep a crashing input as an artifact
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: fuzz-crash-${{ matrix.target }}
+          path: fuzz/artifacts/
+          if-no-files-found: ignore
+
+  proptest-deep:
+    name: proptest, 20000 cases per property
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable branch, fetched 2026-11-07
+      - run: cargo test --release -p hscl -- prop_
+        env:
+          PROPTEST_CASES: "20000"
+
+  mutants:
+    name: cargo-mutants on the two parsers
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable branch, fetched 2026-11-07
+      - name: Install cargo-mutants
+        run: cargo install cargo-mutants --locked
+      - name: Mutate toolcall.rs and redact.rs (time boxed)
+        run: |
+          cargo mutants -p hscl \
+            --file src/toolcall.rs --file src/redact.rs \
+            --timeout 120 --jobs 2 \
+            --output mutants.out || true
+          echo "--- survived mutants (the interesting part) ---"
+          cat mutants.out/missed.txt 2>/dev/null || true
+          test "$(wc -l < mutants.out/missed.txt 2>/dev/null || echo 0)" -eq 0
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: mutants-report
+          path: mutants.out/
+          if-no-files-found: ignore

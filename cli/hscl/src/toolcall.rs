@@ -255,3 +255,66 @@ mod tests {
         }
     }
 }
+
+/// G3: the tool-call parser reads text produced by a language model, i.e. arbitrary text. These
+/// properties replace "it worked on the four examples".
+#[cfg(test)]
+mod proptests {
+    use super::*;
+    use proptest::prelude::*;
+
+    const ALLOW: &[&str] = &["read_doc", "update_context"];
+
+    fn allowed_name() -> impl Strategy<Value = String> {
+        prop_oneof![
+            Just("read_doc".to_string()),
+            Just("update_context".to_string())
+        ]
+    }
+
+    fn arbitrary_args() -> impl Strategy<Value = std::collections::BTreeMap<String, String>> {
+        proptest::collection::btree_map("[a-z_]{1,12}", "[^\"\\u{0}]{0,40}", 0..4)
+    }
+
+    proptest! {
+        #[test]
+        fn prop_parse_never_panics(text in ".{0,400}", allow_extra in "[a-z_]{0,20}") {
+            let mut allow: Vec<&str> = ALLOW.to_vec();
+            if !allow_extra.is_empty() {
+                allow.push(&allow_extra);
+            }
+            // Any outcome is fine; crashing on model output is not.
+            let _ = parse(&text, &allow);
+        }
+
+        #[test]
+        fn prop_json_calls_round_trip(name in allowed_name(), args in arbitrary_args()) {
+            let rendered = serde_json::json!({ "name": name, "arguments": args }).to_string();
+            let text = format!("{OPEN}\n{rendered}\n{CLOSE}");
+            let calls = parse(&text, ALLOW).expect("a well-formed call must parse");
+            prop_assert_eq!(calls.len(), 1);
+            match &calls[0] {
+                Call::Tool { name: got, args: a } => {
+                    prop_assert_eq!(got, &name);
+                    for (k, v) in &args {
+                        prop_assert_eq!(a.get(k).and_then(Value::as_str), Some(v.as_str()));
+                    }
+                }
+                other => prop_assert!(false, "expected a tool call, got {other:?}"),
+            }
+        }
+
+        #[test]
+        fn prop_unknown_tool_is_refused(name in "[a-z]{3,10}") {
+            prop_assume!(name != "finish" && !ALLOW.contains(&name.as_str()));
+            let text = format!("{OPEN}{{\"name\":\"{name}\",\"arguments\":{{}}}}{CLOSE}");
+            prop_assert!(matches!(parse(&text, ALLOW), Err(ParseError::UnknownTool(n)) if n == name));
+        }
+
+        #[test]
+        fn prop_a_block_without_its_end_is_incomplete(body in "[^<]{0,80}") {
+            let text = format!("{OPEN}{body}");
+            prop_assert!(matches!(parse(&text, ALLOW), Err(ParseError::Incomplete)));
+        }
+    }
+}

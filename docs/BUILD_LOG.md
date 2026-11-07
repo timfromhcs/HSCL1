@@ -425,3 +425,23 @@ and an empty section is a button that does nothing; the comment in the file says
 referenced five `.directory` files that did not exist; dropped rather than invented, and the new gate keeps that from
 coming back. Still open for G26a: the VM check that `kbuildsycoca6` rebuilds the cache and the categories list as
 expected (`hscl-qa` / e2e set), which needs an image.
+
+## Task G3 property tests, fuzz crate, scheduled fuzz workflow (2026-11-07)
+`proptest` as a dev-dependency only (a test asserts it is not in `[dependencies]`). Thirteen `prop_` cases in the modules
+that read untrusted text: `redact.rs` (idempotence, planted user/host gone, MAC and private IPv4 gone, public IPv4 kept),
+`toolcall.rs` (no panic on arbitrary input, JSON call round trip, unknown tool refused with its name, block without its end
+is `Incomplete`), `hw.rs` (`parse_hex` round trip, `MemTotal` round trip, garbage never panics in four parsers, generated
+`pci.ids` vendor lines survive). **The properties found a real defect**: `redact` replaced user and host in two passes, so
+with `user="aA"`, `host="re"` the marker written for the user was itself rewritten - `[[redacted]dacted]` - and the value
+"re" then appeared inside our own marker. Replaced by a single pass over the input that takes the earliest match of either
+needle. The marker `[redacted]` still contains letters, so a needle that is a substring of that word makes redaction
+non-idempotent; that is now documented in the module header and excluded with an explicit `prop_assume` instead of being
+hidden, and a regression property asserts the marker is not rewritten.
+Fuzzing: `fuzz/` is its own workspace (`libfuzzer-sys`, never a dependency of the product) with two targets that
+`#[path]`-include `cli/hscl/src/toolcall.rs` and `redact.rs` - the same files the binary compiles, because `hscl` is a
+bin crate without a library target (splitting it is tracked as G3b). `.github/workflows/fuzz.yml` runs weekly and on
+dispatch: `cargo fuzz run ... -- -max_total_time=300` per target (artifacts kept on failure), `proptest` with
+`PROPTEST_CASES=20000`, and `cargo-mutants` on both parsers with a time box; actions are pinned by commit SHA (the two
+toolchain SHAs were read from the GitHub API on 2026-11-07, not invented). Six tests in
+`tests/unit/test_property_gates.py` guard the setup itself (markers present, proptest not a runtime dependency, the workflow
+is scheduled + time-boxed + pinned). `cargo test -p hscl` 172 passed, clippy -D warnings and fmt clean.
