@@ -810,3 +810,6 @@ Read `AGENTS_HCS_UNIFIED_SELF_HEALING_RESEARCH_MASTER_2026-11-08.md` (3278 lines
 
 ## Dependabot #1-#4 reviewed and applied together (2026-11-08)
 PR #32 merged (`ce0e40b`, 16/16 checks). Release notes read for checkout v5-v7 and upload-artifact v5-v7.0.2; action SHAs verified against the tags via the GitHub API. sha2 0.11.1 and thiserror 2.0.21 each built and tested alone and combined on main (fmt, clippy -D warnings, `cargo test -p hscl`: 209 passed). Applied in one branch because the Dependabot bases were old; CI decides the merge. `hcsuda/` workspace not bumped.
+
+## HCSEASYMATH evaluate operation (2026-11-08)
+Added `evaluate` (exact substitution of a symbol-free value parsed by the allow-list parser; zoo/nan/oo give `unresolved` with no result). Gate in WSL: 143 passed (was 134); the capabilities test now lists three operations. Not yet done: simplify, solve, plot, warm worker.

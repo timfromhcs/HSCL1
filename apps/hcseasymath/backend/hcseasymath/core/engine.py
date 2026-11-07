@@ -102,9 +102,34 @@ def _integrate(request: dict[str, Any], started: float) -> dict[str, Any]:
     )
 
 
+def _evaluate(request: dict[str, Any], started: float) -> dict[str, Any]:
+    expr, var = _expression_and_variable(request)
+    text = request.get("value")
+    if not isinstance(text, str):
+        raise ExpressionError("invalid_input", "missing 'value'")
+    value = parse(text)
+    if value.free_symbols:
+        raise ExpressionError("invalid_input", "'value' must not contain symbols")
+    result = expr.subs(var, value)
+    elapsed = {"total": round((time.perf_counter() - started) * 1000.0, 3)}
+    if result.has(sp.zoo, sp.nan, sp.oo, -sp.oo):
+        return _result(
+            request, "evaluate", "unresolved",
+            normalized_expression=str(expr),
+            error="the expression is undefined or infinite at this value; no result is claimed",
+            warnings=["undefined or infinite at the given value"], timings_ms=elapsed,
+        )
+    return _result(
+        request, "evaluate", "ok",
+        normalized_expression=str(expr), result_expression=str(result),
+        exactness="symbolic_exact", assumptions=[f"{var} = {value}"], timings_ms=elapsed,
+    )
+
+
 _HANDLERS: dict[str, Callable[[dict[str, Any], float], dict[str, Any]]] = {
     "differentiate": _differentiate,
     "integrate": _integrate,
+    "evaluate": _evaluate,
 }
 OPERATIONS = tuple(_HANDLERS)
 
