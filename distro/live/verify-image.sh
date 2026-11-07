@@ -51,6 +51,11 @@ check "no Kubuntu installer launcher name" sh -c "! grep -E '^(Name|GenericName)
 check "live desktop: no Kubuntu Focus link" test ! -e "$root/etc/skel/Desktop/org.kfocus.web.howtos.desktop"
 check "live desktop: handbook link"       test -L "$root/etc/skel/Desktop/hscl-handbook.desktop"
 check "root filesystem label is hscl1_root" grep -q '"hscl1_root"' "$root/etc/calamares/modules/partition.conf"
+check "installer: warns that /boot is not encrypted" grep -q '^showNotEncryptedBootMessage: true$' "$root/etc/calamares/modules/partition.conf"
+check "installer notes page installed"     test -s "$root/etc/calamares/branding/hscl1/notesqml.qml"
+check "installer notes: German and French translations" sh -c "test -s '$root/etc/calamares/branding/hscl1/lang/calamares-hscl1_de.qm' && test -s '$root/etc/calamares/branding/hscl1/lang/calamares-hscl1_fr.qm'"
+check "installer notes: module config"     grep -q '^qmlSearch: branding$' "$root/etc/calamares/modules/notesqml.conf"
+check "installer notes: shown before partition" sh -c "awk '/^- show:/{s=1;next} /^- exec:/{s=0} s && /^  - notesqml\$/{n=NR} s && /^  - partition\$/{p=NR} END{exit !(n && p && n<p)}' '$root/etc/calamares/settings.conf'"
 check "SDDM theme hscl1"                  test -s "$root/usr/share/sddm/themes/hscl1/Main.qml"
 check "SDDM theme background"             test -s "$root/usr/share/sddm/themes/hscl1/background.png"
 check "SDDM theme selected"               grep -q '^Current=hscl1$' "$root/etc/sddm.conf.d/30-hscl1.conf"
@@ -95,6 +100,12 @@ check "workshop udev rule installed"       test -s "$root/usr/lib/udev/rules.d/9
 check "workshop is not enabled anywhere"   sh -c "! find '$root/etc/systemd/system' -name 'hscl-workshop*' | grep -q ."
 check "workshop has no socket units"       sh -c "! find '$root/usr/lib/systemd/system' -name 'hscl-workshop*.socket' | grep -q ."
 check "no workshop token baked in"         test ! -e "$root/etc/hscl/workshop.token"
+check "cq-hecs launcher installed"         test -x "$root/usr/bin/hscl-cqhecs"
+check "cq-hecs desktop entry"              test -s "$root/usr/share/applications/hscl-cqhecs.desktop"
+check "cq-hecs runtime manifest"           test -s "$root/usr/share/hscl/cqhecs/requirements-cp314.txt"
+check "cq-hecs: no autostart entry"        sh -c "! find '$root/etc/xdg/autostart' -name '*cqhecs*' | grep -q ."
+check "cq-hecs: no systemd unit"           sh -c "! find '$root/etc/systemd' '$root/usr/lib/systemd' -name '*cqhecs*' | grep -q ."
+check "cq-hecs: no runtime or wheels in the image" sh -c "test ! -e '$root/opt/hscl/venvs' && ! find '$root/usr/share/hscl' '$root/opt' -name '*.whl' 2>/dev/null | grep -q ."
 # Package payload permissions: nothing shipped by an HSCL1 package may be world-writable or group-writable (a build on an NTFS checkout once produced 0777 everywhere).
 bad_modes() {
   local l f

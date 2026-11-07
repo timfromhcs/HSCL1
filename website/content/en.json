@@ -49,7 +49,7 @@
   "Boots to a live desktop and installs to a virtual disk in QEMU (UEFI and BIOS). Tested only in virtual machines.",
   "Not tested on physical hardware. Not signed. Secure Boot inside the guest has not been read yet.",
   "Security Lab and Privacy are planned, not shipped.",
-  "HSCL1 is not an official Kubuntu, Kali or Tails product and is not endorsed by them. Third-party names belong to their owners."
+  "HSCL1 is not an official Kubuntu, Kali or Tails product and is not endorsed by them. HSCL1 is not affiliated with or endorsed by the Tails project. KALI LINUX™ is a trademark of OffSec. Third-party names belong to their owners."
  ],
  "dl": {
   "h1": "Download",

@@ -34,6 +34,10 @@ CHECKS = {
     "kdeconnect_autostart_file": "grep -H '^Hidden' /etc/xdg/autostart/org.kde.kdeconnect.daemon.desktop",
     "autotune_autostart_file": "grep -H '^Exec' /etc/xdg/autostart/hscl-autotune.desktop",
     "autotune_state_after_login": "cat /home/{USER}/.config/hscl/graphics.json 2>&1",
+    # hscl-cqhecs (Genesis B1): installed, honest about the missing runtime, nothing registered with systemd
+    "cqhecs_package": "dpkg -s hscl-cqhecs | grep -E '^(Package|Version|Status)'",
+    "cqhecs_no_unit": "systemctl list-unit-files --no-legend | grep -c cqhecs || true",
+    "cqhecs_doctor": f"{AS_USER} 'hscl-cqhecs doctor --json'",
     # CLI as the desktop user
     "hscl_version": f"{AS_USER} 'hscl version --json'",
     "memory_status": f"{AS_USER} 'hscl memory status --json'",

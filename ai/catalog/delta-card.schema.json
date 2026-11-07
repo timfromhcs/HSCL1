@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Delta card of an abliterated model",
+  "description": "How a refusal-removed model differs from its stock parent. `none` means nothing was measured (all numbers null). Checked by scripts/check_delta_cards.py.",
+  "type": "object",
+  "required": ["measured_by", "refusal_rate", "tool_overcall_rate", "kl_vs_stock", "date", "source", "note"],
+  "additionalProperties": false,
+  "properties": {
+    "measured_by": {"enum": ["own", "third-party", "none"]},
+    "refusal_rate": {"type": ["number", "null"], "minimum": 0, "maximum": 1, "description": "Share of sensitive prompts still refused."},
+    "tool_overcall_rate": {"type": ["number", "null"], "minimum": 0, "maximum": 1, "description": "Share of cases where no tool fits but a tool is called anyway."},
+    "kl_vs_stock": {"type": ["number", "null"], "minimum": 0, "description": "Mean KL divergence to the stock model on benign text, in nats."},
+    "date": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$"},
+    "source": {"type": "string", "description": "own: evidence file under docs/; third-party: https URL; none: may be empty."},
+    "note": {"type": "string"}
+  }
+}

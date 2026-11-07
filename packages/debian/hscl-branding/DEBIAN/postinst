@@ -18,4 +18,17 @@ if [ "$1" = configure ]; then
     update-alternatives --set default.plymouth "$new/hscl1-logo.plymouth"
   fi
 fi
+# Menu sections live in /etc/xdg/menus/applications-merged and are only visible once KDE has
+# rebuilt its cache. Plasma finds them because startplasma sets XDG_MENU_PREFIX=plasma- and the base
+# menu carries <DefaultMergeDirs/> (checked against kservice and plasma-workspace sources, 2026-11-07);
+# without a rebuild a freshly installed section can stay invisible until the next login, which looks
+# exactly like a broken menu file. Rebuild as the invoking desktop user when we can: a root-owned
+# cache in /root would be useless and would shadow nothing.
+if [ "$1" = configure ] && command -v kbuildsycoca6 >/dev/null 2>&1; then
+  if [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != root ] && command -v runuser >/dev/null 2>&1; then
+    runuser -u "$SUDO_USER" -- kbuildsycoca6 --noincremental >/dev/null 2>&1 || true
+  elif [ -n "${PKEXEC_UID:-}" ] && command -v runuser >/dev/null 2>&1; then
+    runuser -u "$(id -un "$PKEXEC_UID" 2>/dev/null || echo nobody)" -- kbuildsycoca6 --noincremental >/dev/null 2>&1 || true
+  fi
+fi
 exit 0

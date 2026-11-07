@@ -22,13 +22,16 @@ an offline trilingual handbook (English, Deutsch, Français), a conservative sec
 coding tooling, and a **Workshop**: an opt-in developer mode that lets you drive a VM, take screenshots and re-create the ISO from
 a running system.
 
-> **Status: pre-alpha (`0.1.2-alpha.0`).** It has been run **in virtual machines only**. Nothing has been tested on physical
+> **Status: pre-alpha (`0.1.3-alpha.0`).** It has been run **in virtual machines only**. Nothing has been tested on physical
 > hardware, the releases are **unsigned**, and many items in the plan are not built yet. Read
 > [Known limitations](docs/KNOWN_LIMITATIONS.md) and the [evidence table](docs/CLAIMS.md) before you try it. Do not use it for
 > anything that needs a security guarantee.
 
 HSCL1 is **not Tails**, **not an official Kali release**, and not endorsed by Canonical, the KDE/Kubuntu projects, Offensive Security
 or the Tails project. It makes **no anonymity claim**.
+
+KALI LINUX™ is a trademark of OffSec. HSCL1 is not affiliated with or endorsed by the Tails project; where strong anonymity matters,
+use the official Tails release. See [Trademarks](docs/TRADEMARKS.md).
 
 ## Screenshots
 
@@ -88,7 +91,8 @@ existing file without `--force`. The release workflow also joins the parts in th
 ## Try it in a VM
 
 Tested settings: 4 GB RAM or more, 4 vCPUs, standard VGA, user-mode networking, UEFI (OVMF/edk2) or BIOS. Hypervisor
-instructions and build host requirements are in [`docs/BUILDING.md`](docs/BUILDING.md) and [`docs/TESTING.md`](docs/TESTING.md).
+instructions and build host requirements are in [`docs/BUILDING.md`](docs/BUILDING.md) and [`docs/TESTING.md`](docs/TESTING.md);
+how an artefact becomes a release (and which steps are the maintainer's) is in [`docs/RELEASE_PROCESS.md`](docs/RELEASE_PROCESS.md).
 
 > **The installer writes to the selected disk. Use a disposable virtual disk. Do not install on a real machine with data you care
 > about; HSCL1 has not been tested on hardware.**

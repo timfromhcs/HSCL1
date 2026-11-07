@@ -217,3 +217,489 @@ Dev images only (not released). `r1`: all branding gates green and 27/27 guest c
 
 ## Release candidate content scan, r5/r6 (2026-11-06)
 Content scan of the finished 0.1.2-alpha.0 candidate (text, not paths) found visible upstream leftovers: installer `showDonateUrl: https://kubuntu.org/donate/`, menu entries "Kubuntu Website"/"Kubuntu Focus", SDDM theme description, live user/host `kubuntu`, Plymouth message overlapping the logo. Fixed in `e6ee0d4` (+ image gates, tests). Dev image `r5` then **failed to boot**: "cow format specified as overlay and no support found" (`artifacts/boot-r5/shot-073.png`). The initrd trees of r4 and r5 differ only in `casper.conf` (FLAVOUR set by my patch), `os-release`, the Plymouth descriptor and font caches; the r5 ISO with the r4 initrd (`HSCL1-exp-r5b`) booted to the desktop in 90 s, so the `casper.conf` change was the cause (GATE BUG too: every file gate was green, only the boot test caught it). Fix `35ba640`: `casper.conf` stays untouched (gate), the build writes `/.disk/info` with first word `HSCL1` (casper derives FLAVOUR, hence user and host `hscl1`), updates `md5sum.txt` and proves the file from the finished ISO. `r6`: boot without a click after 90 s (`artifacts/boot-r6`), 28/28 guest checks (`artifacts/e2e-r6`) incl. `live_identity` = `identity-ok`, session user `hscl1`, `/` `0:0 755`; ISO sha256 `25c2127ae5cba34cb66acb0e35d4ba1b3fa440423630ce21f9e58d21bc303984`. New tools: `scripts/forge.py check` (pytest, bash -n, ShellCheck in WSL, secret scan; about 23 s), `scripts/boot_classify.py` (boot failure classes; would have named r2 and r5 from a serial log). Not verified yet: the donate-link removal and Plymouth alignment on screen (to look at in r6 screenshots), installed-system effects, Secure Boot, physical hardware.
+
+## Test parity Windows/Linux + SOTA plan v5 (2026-11-06)
+Windows host suite was 238 passed / 11 failed / 16 skipped: every failure came from `shutil.which("bash")` resolving to the WSL launcher `C:\WINDOWS\system32\bash.EXE`, which mangles Windows paths and overrides `LANG`/`LC_ALL`. Instead of skipping them on the host, new `tests/shellutil.py` detects the bash flavour (`native` / `wsl` / `none`), converts paths (`/mnt/<drive>/...`), and passes environment overrides through `wsl.exe -e env [-u NAME] NAME=VALUE` - the interop layer resets `LANG` for a shell, but not for a program it is asked to exec. `tests/conftest.py` makes the helper importable. Rewrote `test_handbook_launcher.py`, `test_hcscoder.py`, `test_workshop_evidence.py`, `test_baseline_script.py` to use it; fake `#!/bin/sh` shims are written with `write_bytes` (CRLF made them unexecutable: "bad interpreter: /bin/sh^M"). New `tests/unit/test_shellutil.py` (7 cases).
+Result: **Windows 254 passed / 16 skipped**, **Linux (WSL, working tree incl. `.git`) 270 passed / 0 skipped**. Two bugs found and fixed by the Linux run: `bash_kind()` classified a real Linux host as WSL (uname says `Linux`), and `PATH` overrides inside WSL dropped `/usr/bin` so `bash` itself vanished - the guest PATH is now appended. Also two setup artefacts, not product defects, in the first Linux run: an rsync copy without `.git` breaks `git ls-files` tests.
+Plan: `docs/superpowers/plans/2026-11-06-finish-line-self-heal.md` extended with **v5 tracks** for delegation economics (OpenJev + subagents + ledger, with a "a local subagent is a hint, never evidence" rule), mid-flight LoRA training and shipping an opt-in model bundle, ISO build-speed bake-off/caches/zsync, update-channel + API hygiene, deterministic screenshot/visual-QA harness (QEMU + virtio-9p share + perceptual diff, Playwright for the site), and **Neural Lab** (NCA/tiny-net/frame-predictor demos, grammar-constrained Game Studio, custom workspace, sandboxed generated code). Gates G32-G46. Research basis: new `docs/research/2026-11-06-sota-scan.md` (GameNGen/Genie 3 are TPU/hosted scale; NCA is shippable; small models fill schemas, they do not synthesise programs).
+
+## Generated docs, delegation ledger, release-meta integrity (2026-11-06)
+New `scripts/gen_packages_doc.py` writes `docs/PACKAGES.md` from `packages/debian/*/DEBIAN/control` and `--check` fails when it is stale (a hand-written table drifts silently). It also asserts the control version is the `0.0.0` placeholder, because `scripts/build-deb.sh` substitutes the repository `VERSION` at build time - a hard-coded version would ship stale.
+New `scripts/ledger_report.py` summarises the delegation ledger (`artifacts/auto-loop/ledger.jsonl`) and exits 3 when a delegated answer was wrong and no other tool redid the job, so "we delegated it" cannot hide a regression. Measured reality of the local stack that day: `jev_noul` answered `p_true=0.45` for a true statement (1.5 ms, uncalibrated for repo state -> not a gate), `subagent.*` fails at session start with "the compaction request cannot be reduced further" even after lowering the output limit to 2048 (needs a service restart), `localai-gateway.chat` works.
+`scripts/fetch_release_meta.py` now cross-checks the release's `SHA256SUMS` whole-image hash and part sizes against the manifest's `iso_sha256`/`iso_bytes` (mismatch = exit, no silent write), retries transient `gh` failures (never a 404), and has `--check`. Tests: 5.
+Windows parity improved further: `test_release_split_join.py` now runs through `tests/shellutil.py` instead of skipping on Windows. Host suite: 274 passed, 9 skipped (was 238/11/16 at the start of the session); Linux/WSL: 270 passed, 0 skipped. The remaining Windows skips are genuine platform limits (chmod semantics on drvfs, POSIX symlinks/select, Qt qmltestrunner absent); all of them run on Linux CI.
+
+## Resume after 0.1.2-alpha.0 + masterplan R1 (2026-11-06)
+State found: `v0.1.2-alpha.0` published; PR #22 CI red only because `scripts/check_trademarks.py` lacked the exec bit in the index (fixed `0985ed5`). New `docs/superpowers/plans/2026-11-06-masterplan-resume-s1.md` (start position, S1 tasks, stop rules). Task 1 (G12): Rust test `cli_doc_lists_every_command` walks the clap tree; it was red with 36 undocumented commands, `docs/CLI.md` now lists all (rows from `--help`). cargo test 117 passed, clippy and fmt clean. Not done: man pages/completions, menu file, governor parser, forge build/boot/diff (Tasks 2-4); no image built, nothing VM-verified in this step.
+
+## Task 2 (completions) (2026-11-06)
+`hscl completions bash|zsh|fish|elvish|powershell` (clap_complete 4); program name follows argv0 so `hscl1` completes too. `scripts/build-deb.sh` generates the bash/zsh/fish files for `hscl` and `hscl1` from the packaged binary at package build time (no committed copy). Tests: Rust `completion_scripts_cover_every_top_level_command_for_both_program_names`; `tests/security/test_package_completions.py` (stand-in dpkg-deb and binary; WSL 2 passed with the modes test; skipped on Windows because of symlink/chmod semantics). The G12 drift test caught the new command before docs existed (red, then fixed). `cargo deny` is not installed on the host, so the licence check for clap_complete runs only in CI (MIT/Apache like clap). Man pages (clap_mangen) still open. No image rebuilt: the files are not in any ISO yet.
+
+## Research rounds R1-R3: AREX-2, autodetect, reverse engineering (2026-11-06)
+Three rounds, each created the next round's questions. AREX-2 is a 27B Apache-2.0 agent model from BAAI (arXiv 2609.38288), not hardware; its repository ships evaluation runners only, so we copy the loop pattern (score per round, reflection, round budget), not the model. Autodetect: Ubuntu maps hardware to drivers by sysfs modalias patterns; we add an offline modalias collector, hwdb-based quirk table and driver hints. Reverse engineering is documented as a lab workflow with explicit legal limits (EU 2009/24/EC art. 6, CJEU C-13/20); legal wording stays an owner item. Not found on the web, therefore MEASURE: 680M tok/s, WebGPU in QtWebEngine, Qwen3.5/3.8 in the pinned llama.cpp, sysext/hwdb on the image. Files: `docs/research/2026-11-06-arex2-autodetect-reverse-engineering.md`, `docs/superpowers/plans/2026-11-06-autodetect-arex-loop-re-lab.md`, masterplan section 6.
+
+## Four-round research loop and final master plan update (2026-11-06)
+Rounds: AREX harness, abliteration, updates, stress -> llama-server API (official README), abliterated AREX-2 card, bootc on Ubuntu, openQA, PSI/oomd, blkdebug -> server-tools scope, dm-flakey/log-writes, snapper, fuzzing, sched_ext, XML tool calls -> measured archive availability of 23 packages (WSL resolute). AREX-2 is a pattern for our runner (XML tool protocol, caller executes tools, update_context, round budget), not a shipped model. "APEX" turned out to be two unrelated things (a paper and Apex-35B); the owner's target was AREX-2. New files: research four-round document, `docs/superpowers/plans/2026-11-06-ai-api-updates-stress.md`, masterplan section 7. No code changed in this step. The WSL kernel config is Microsoft's, so kernel-option questions stay MEASURE.
+
+## Task D2 toolcall parser (2026-11-06)
+`cli/hscl/src/toolcall.rs`: AREX-protocol parser (`<tool_call>` JSON or `<function=..><parameter=..>` body, allow-list plus built-in `finish`, 64 KiB body limit, nested/duplicate/truncated/unknown-tool refusals, 20000-string seeded fuzz). Tests written first (8 of 10 red), then implemented; cargo test 128 passed, clippy -D warnings and fmt clean. A first Python-generated edit wrote real newlines into char literals (compile error), fixed with a targeted edit. Temporary `#![allow(dead_code)]` until the runner (D3/D4) uses the module; removal is tracked in the subplan. Nothing run against a real model yet.
+
+## Task D3 agent loop (2026-11-06)
+`cli/hscl/src/agent.rs`: `Chat`/`Tools` traits, `run(...)` with round budget, refusal of non-allow-listed tools as an error response (never executed), result cap 64 KiB, one `log` call per round. 4 tests written first (all red with a `todo!()` stub), then implemented; cargo test 132 passed, clippy -D warnings clean. Still no real model or HTTP client (D4); `dead_code` allow is temporary.
+
+## Tasks A1/A2 round log and report (2026-11-06)
+`scripts/round_log.py` (refuses secrets and personal paths, increasing rounds per task, numeric scores) and `scripts/round_report.py` (best round, delta, regression, stall after 3 rounds since the best, exit 3). 21 tests written first (collection error as the red state). One of my own tests contradicted the stop rule ("stalled" = three or more rounds since the best value) and was corrected before implementing. Documented in `docs/DEV_LOOP.md`. The recorder is not yet wired into the automatic loop prompt.
+
+## Local subagents: four research rounds and plan (2026-11-06)
+Read-only research subagents (3+3+3+1 reports) covered the PrismML fork and Bonsai models, TurboQuant, KV rotation, Vulkan kernels, memory flags, OpenCode V2 API, Claude Code bridge, harness evidence for small models, governor options and Qwen3.5 tool-call status. Local facts: PrismML Vulkan zip matches the release SHA-256; the LocalAI Gateway (:8090) is healthy with nothing loaded; first call to `qwen3-4b` with thinking on returned empty content after 400 tokens (cold start > 120 s), with thinking off it returned code in 178 tokens that contained an int/float bug the model's own tests missed. Two plain-text secrets found in `~/.config/opencode` (not copied anywhere; owner should rotate). New: `docs/superpowers/plans/2026-11-06-local-subagents.md`, masterplan section 8. Nothing installed yet in this step.
+
+## Plan L tasks L1/L2 (2026-11-06)
+`tools/local_worker/fetch_model.py` (SHA-256 from the Hugging Face tree API LFS oid, resumable `.part`, deletes on mismatch, allowed root `C:\LocalAIBACKEND`, repo/file validation) with 18 tests, and `tools/local_worker/memgate.py` (available-RAM gate: model + KV + 3000 MiB reserve) with 11 tests. Both written test-first. Verified candidate files exist with published digests: Ternary-Bonsai-2-9B PQ2_0-MTP-Q8_0 (2.68 GB), Ternary-Bonsai-2-4B PQ2_0-MTP-Q8_0 (1.27 GB), unsloth Qwen3.5-9B Q4_K_M (5.68 GB). Background downloads started (log in `artifacts/local/fetch.log`); results are recorded when they finish. Observation: only 5.2 GB RAM was available during the downloads (gateway had qwen3-4b loaded), so the gate correctly refused a further 3.6 GB model.
+
+## Plan L task L3 verify-patch loop (2026-11-06)
+`tools/local_worker/loop.py`: bounded loop (default 3 rounds) where the model returns whole-file `FILE:` blocks, applied only to a temp copy; tests decide; protected files, non-editable files, path escapes and symlinks are refused; timeout and output cap; result carries a unified diff and never touches the real tree. 14 tests written first: Windows 13 passed + 1 skipped (symlink rights), WSL 14 passed. One design fix came from a failing test: the client gets a copy of the message list. Not yet connected to a real model (L4/L5). Model downloads (correction of an earlier wrong note): Ternary-Bonsai-2-4B (PQ2_0-MTP-Q8_0) finished and passed the hash check; **Ternary-Bonsai-2-9B failed with a sha256 mismatch and the file was deleted** (the stream most likely ended early without an error; the fetcher had no length check or automatic resume). Fix in the next entry; Qwen3.5-9B Q4_K_M was still downloading.
+
+## Fetcher fix: truncated downloads (2026-11-06)
+Real use found a defect the unit tests had not covered: a stream that ends early raises no error, so the 9B file had the wrong hash and was deleted. `fetch_model.py` now reads the published size, resumes up to 3 times from the `.part` file, keeps the partial file when the download stays short ("download incomplete ... run again to resume") and deletes only when the full length has a wrong hash. Tests written first (2 red), 20 passed. The 9B download was restarted with the fixed code (`artifacts/local/fetch-9b.log`).
+
+## Plan L task L4 gateway client + CI exec-bit repeat (2026-11-06)
+`tools/local_worker/gateway.py`: loopback-only client (plain http to 127.0.0.1/localhost/::1, no proxy), thinking off via `/no_think` and `chat_template_kwargs`, `<think>` stripped, one retry with a doubled token budget on empty output (the measured failure of the first `qwen3-4b` call), stable error codes, key only from `LOCAL_AI_KEY`. 16 tests written first. CI on PR #22 had failed once more on the exec-bit gate for `tools/local_worker/loop.py` (I had not run `test_exec_bits.py` after adding the file); fixed in `ca1393c`. New rule for myself: run `python scripts/forge.py check` before every commit that adds a script. Downloads still running at the time of writing (Qwen3.5-9B about 2.6 GB of 5.7 GB, Bonsai-9B about 1.7 GB of 2.7 GB); not yet registered in `models.yaml`.
+
+## Exec-bit gate hole closed (2026-11-06)
+CI on PR #22 failed a third time on the shebang/exec-bit gate (`tools/local_worker/gateway.py`). Root cause was in the gate itself, not only in my habits: `test_exec_bits.py` inspected tracked files only, so the local forge check passed for a brand-new script and the CI failed after the commit. The test now also fails for untracked shebang files ("add it with --chmod=+x"), the checker is a function with its own test in a temporary git repo (tracked 100644, untracked, and 100755 cases), and I proved the gate by creating an untracked probe file (red) and removing it (green). `gateway.py` is now stored 100755.
+
+## Plan L task L5 MCP server localdelegate + model downloads complete (2026-11-06)
+`tools/local_worker/server.py`: stdio MCP server with exactly one tool `local_code(task, files, test_cmd, model?, max_rounds?, protected?)`, no directory argument (root from `HSCL_WORKER_ROOT`), executable allow-list for the test command, bounded sizes, free-RAM gate before every run, result `{ok, rounds, reason, diff, last_output, applied:false}` (the diff is only a proposal). 26 tests written first, including a process-level test over real stdio; verified by piping initialize/tools/list into the real process and by the no-root exit code 2. Forge check green. Registration in `.mcp.json` and the OpenCode config is deliberately postponed to L6 until the exact variable names are verified in the docs.
+Models (exit codes read from the logs, hashes checked by the fetcher against the Hugging Face digests): Ternary-Bonsai-2-4B-PQ2_0-MTP-Q8_0 1 274 642 176 B ok; Ternary-Bonsai-2-9B-PQ2_0-MTP-Q8_0 2 675 410 720 B ok (after the fetcher fix; the first attempt had failed); Qwen3.5-9B-Q4_K_M 5 680 522 464 B ok (`exit=0`). All three are in `C:\LocalAIBACKEND` and **not yet registered in models.yaml**; they have not been loaded or benchmarked.
+
+## Plan L task L6 shared agent source + first benchmarks (2026-11-06)
+`ai-shared/` (spec + prompt) generates the Claude Code and OpenCode files via `scripts/sync_ai_shared.py` (merge-safe for the tracked `.mcp.json`, drift check also run as a unit test on the real repository); 10 tests written first. Server root now also from `CLAUDE_PROJECT_DIR` (verified in the official docs by a read-only research subagent), 27 server tests. Forge check green. Note: Claude Code asks for approval before using a project-scoped server; the OpenCode agent file format is taken from the docs, not yet exercised against the live OpenCode 2.2.5 server.
+First measurements with the verified Prism build (llama-bench, Radeon 680M, no CPU fallback seen): Bonsai-2-4B PQ2_0 decode 14.1 t/s (CPU compute) vs 30.4 t/s (Vulkan); Bonsai-2-9B PQ2_0 8.9 vs 20.9 t/s; details in the research document. Qwen3.5-9B Q4_K_M not measured yet (RAM gate refused it while the gateway held Qwen3-4B). Models are still not registered in the gateway's `models.yaml`.
+
+## Plan L task L7 benchmark harness + first real task benchmarks (2026-11-06)
+`tools/local_worker/bench.py` and `bench_tasks.py`: ten tasks (including the int/float trap), each validated by a test (reference passes, naive solution and stub fail), run through the verify-patch loop; 19 tests written first; forge check green. Real runs on this machine (thinking off, up to 3 rounds, one run each, small sample): Qwen3-4B abliterated Q4_K_M via the gateway 7/10 solved (7 in round 1), 8.1 s/task; Ternary-Bonsai-2-4B PQ2_0 9/10 (8), 6.3 s/task; Ternary-Bonsai-2-9B PQ2_0 10/10 (9), 7.2 s/task. The Bonsai models were served by temporary `llama-server` processes on port 18081 (each stopped by port-targeted `Stop-Process`; the gateway's own server was not touched). Qwen3.5-9B was not measured because the RAM gate was closed (the gateway holds Qwen3-4B; it needs ~9.4 GB available, 7.4 GB were free). `bonsai-9b` and `bonsai-4b` were registered in `C:\LocalAIBACKEND\models.yaml` after a backup (`models.yaml.bak-20261106-pre-bonsai`), YAML validated and files present; the running gateway still lists the old set until it is restarted (not done by me). Memory values there are `hscl ai fit` estimates. PR #22: all 10 checks green at the start of this run; merge left to the owner.
+
+## Plan L task L8 queue + variance runs (2026-11-06)
+`scripts/local_queue.py` (13 tests written first, forge check green): reads `[local]` plan steps, validates with the MCP server validator, runs the verify-patch loop through the gateway, records runs with `round_log.py`, keeps results as diff proposals with a `git apply --check` verdict, never applies/commits/pushes and never ticks plan boxes; stops on RAM gate, gateway error, wall-clock or item limit. Real plans currently contain no `[local]` step, so the dry run is empty. Variance runs (temporary servers on port 18081, stopped by port): Bonsai-9B 10/10 solved in all three runs, Bonsai-4B 9, 10, 9 of 10. An owner message asked for lower VRAM/RAM use through stronger KV quantization, better context management and WSL limits; a KV/context sweep for Bonsai-9B was started and is recorded in the next entry.
+
+## KV/context sweep, context mode `last`, benchmark history option (2026-11-06)
+Sweep for Bonsai-9B over K/V cache types and context size with sampled process memory (full table in the research document): real peak private memory 4.5-4.7 GB (my earlier registry value of 3500 MB was too low), KV quantization/context saves only 100-260 MB, quality unchanged within noise, iGPU memory is shared system RAM (dedicated ~25 MB). New verify-loop default `history="last"` (constant-size context per round: task + current file content + latest failure; `history="full"` keeps the old growing history), 4 tests written first; `bench.py --history last|full` records the mode in the result (2 tests, red first). Forge check green (pytest took 237 s because every Python subprocess start currently takes ~0.8 s on this machine; not a code problem). Caveat recorded: I edited `loop.py` while the sweep was running, so two sweep rows may have used the new mode.
+
+## Task D1 `hscl ai serve` + context-mode comparison (2026-11-06)
+`cli/hscl/src/serve.rs` and `hscl ai serve`: prints the exact `llama-server` command (host fixed to 127.0.0.1, port >= 1024, context 512..262144, key only as a key file, model must be a `.gguf` inside the model storage, router mode with at most 2 resident models, no tools/MCP-proxy flags possible) with the measured defaults; 8 tests written first, `cargo test -p hscl` 140 passed, clippy clean, manual smoke test ok. Single-run comparison of the verify-loop context modes (Bonsai-9B, K q8_0 / V q4_0, c 4096): `full` 10/10 solved but 7 in round 1; `last` 9/10, all 9 in round 1 (word_count failed all rounds); Bonsai-4B `last` 10/10 (9 in round 1; merge_intervals needed 3 rounds), Bonsai-4B peak private memory 3836 MB, Bonsai-9B 4927 MB in that session. One run per mode is inside the noise, so three runs per mode were started (results in the next entry). Not yet done for D1: the forge check and the commit.
+
+## D1 committed; context mode `last` removed, `window` introduced (2026-11-06)
+Three runs per mode (Bonsai-9B): `last` 9/10 every time with `word_count` unsolved in all runs, `full` 10/10 every time. Traced prompts: in `last` mode rounds 2 and 3 were identical apart from the round number, the deterministic model repeated its wrong answer word for word (dedicated experiment: 0 of 6 solved, `full` 6 of 6). My context-saving change (committed earlier the same day as the default) therefore made quality worse; the memory it could save is only a few hundred MB. Replaced by `history="window"` (system, task, latest answer, latest failure; identical to `full` in round 2, constant afterwards) plus a hint when an answer repeats word for word; tests written first (3 red), loop tests 20 passed + 1 skipped, benchmark/queue/server tests 81 passed + 1 skipped in total, real-model check `word_count` 5/5 with `window`. `bench.py --history` now accepts `window|full`. Forge check green (pytest 280 s on the currently slow machine); `cargo test -p hscl` and clippy rechecked for the committed D1.
+
+## Memory incident and corrected gate sizes (2026-11-06)
+The background job with the three `window` benchmark runs was stopped by Claude Code because the system was critically low on memory; one run (10/10 solved, 8/10 in round 1) had finished, no orphaned test server remained (checked by port 18081), free RAM then 8.1 of 20.3 GB with the gateway's Qwen3-4B server (4.1 GB, not mine, untouched) as the largest consumer. Root cause was mine: gate calls used file-size guesses while the measured peak private memory is 4.5-4.9 GB (Bonsai-9B) and 3.8 GB (Bonsai-4B). Fixed: `tools/local_worker/server.py` `MODEL_MB` uses measured values (test written first, red), `C:\LocalAIBACKEND\models.yaml` corrected after a backup (YAML validated: bonsai-9b 4900 MB, bonsai-4b 3900 MB, `-c 4096 -ctk q8_0 -ctv q4_0`). Not restarted: the interrupted benchmark runs 2 and 3 and the Qwen3.5-9B measurement; both need more free RAM than this machine currently has next to the gateway's resident model. Suggestion to the owner: restart the gateway (needed anyway for the new models), which also frees its resident Qwen3-4B.
+
+## CI fix and Linux parity for the local gate (2026-11-06)
+PR #22 failed in CI (Linux) on `test_window_round_two_prompt_is_identical_to_the_full_history_prompt`: my normalization only handled Windows temp paths, on Linux the random `hscl-local-<random>` directory in the traceback differed between the two runs. Fixed by a platform-neutral normalization (plus an assertion that the normalization has something to normalize); passes on Windows (20 passed, 1 skipped) and in WSL (21 passed). Because this was the fourth CI-only failure of the day, `scripts/forge.py check` got a step `pytest (WSL, changed tests)` (changed and untracked test files, run with `python3 -m pytest` in WSL against the working tree); written test-first (3 new tests, the plan test updated), forge check green including the new step (63 s).
+
+## Task E1 delta-card gate for abliterated models (2026-11-07)
+`scripts/check_delta_cards.py`, `ai/catalog/delta-cards.json`, `ai/catalog/delta-card.schema.json`; 22 tests written first (module missing = red). Every abliterated catalog model needs a card stating honestly whether anything was measured (`own` with an evidence file under `docs/`, `third-party` with an https URL, or `none` with all numbers null); no abliterated id or file name may appear in `distro/` or `packages/`. Result on the real catalog: 6 abliterated models, none measured by us (the only published measurement we know, the AREX-2 abliterated card, is not a catalog entry), so all six cards say `none`. This makes the missing evidence visible instead of implied; the numbers cannot be filled without our own eval runs (blocked by the memory situation, see the incident entry). Follow-up: show the card status in `hscl ai model info`.
+
+## Task F1 update-claim gate (2026-11-07)
+`scripts/check_update_claims.py` (25 tests written first): README, `docs/` (without `docs/research` and `docs/superpowers`), `handbook/` and `website/` must not claim atomic or immutable updates (EN/DE/FR forms), nor that the system can boot into a snapshot, unless the same clause negates it. The real repository has no hits today (checked by a test, which also proves the gate scans more than 20 user-facing files, so "no hits" cannot mean "scanned nothing"). Reason: the Ubuntu 26.04 archive has no `grub-btrfs`, HSCL1 updates with APT, and bootc/image-based updates are 2.x research only. Known limitation: word-based, not semantic.
+The first full forge run failed on the new gate itself: it flagged my own BUILD_LOG sentence above (its third clause, the one about the snapshot, had no negation). That was a correct catch; I reworded the sentence and added only `nor`/`neither` to the negation words (two new tests, red first), without loosening anything else. Forge check green afterwards (pytest 291 s, Linux run of the changed tests 53 s).
+
+## Resume 2026-11-07: where the previous session stopped, and two fixes
+Reconnaissance before any change: branch `codex/hscl1-v1` is level with `origin` (0/0), 37 commits
+past the released `v0.1.2-alpha.0` tag; `main` is `d8f6533` (the release tag) and has none of them;
+PR #22 is open, mergeable and green on all 10 checks; releases `v0.1.0/0.1.1/0.1.2-alpha.0` exist as
+prereleases (0.1.2 with 4 ISO parts, manifest, SHA256SUMS and a CLI-only SBOM, unsigned). Locally
+uncommitted were `tools/local_worker/sysmon.py` (staged + modified), `tests/unit/test_sysmon.py` and
+`docs/research/2026-11-07-cpu-igpu-balance.md`. The previous session stopped mid-refactor of sysmon
+with one red test (`KeyError: 'ram_available_mb'`).
+- **Defect found and fixed (sysmon):** on this German Windows the localised counter name
+  `Verfügbare MB` belongs to two Perflib indices (1382 with an English twin, 1824 without); the plain
+  reverse map let the last one win, so the counter stayed German, `summarize()` did not match it and
+  the RAM figure vanished while the umlaut-free CPU counters worked and hid the fault. 1081 of 4774
+  localised names are ambiguous. Fixed by preferring an index the English table knows. A raw-byte
+  probe confirmed the CSV is OEM code page 850, so the decoding was correct. Tests written first
+  (two fixture tests red, one real round-trip test); `tests/unit/test_sysmon.py` 17 passed. Real
+  sample afterwards: 4348-5093 MB available of 20262 MB visible.
+- **Policy drift found and fixed (APT):** `distro/base/apt/hscl-sources.sources` enabled
+  `resolute-backports` although AGENTS.md section 3.3 names exactly three pockets, and the gate had
+  been widened to match the file instead of the spec; `test_unattended_upgrades.py` already treated
+  `-backports` as forbidden, so the repository contradicted itself. Backports removed, gate narrowed
+  to the three named pockets plus a fixture case (red first), 2 passed.
+- **Measurement (this host, 2026-11-07):** 20262 MB visible of 24 GB installed, 4348 MB "available"
+  per the counter and only 3144 MB free; commit charge 36.6 GB against a 42.7 GB limit; standby cache
+  3152 MB with no process above 1.3 GB, i.e. **most of the resident RAM is not attributable to a
+  process working set** - mmap'd model weights land in standby cache, so per-process accounting
+  under-reports a loaded model. This is why "free RAM" and "available RAM" differ by gigabytes here
+  and why the RAM gate must read the counter, not a process list. Recorded for the resource plan.
+- Forge check green on both commits (pytest 204.8 s, WSL parity 41.7 s, bash -n, shellcheck, secret
+  scan). Nothing was pushed and no PR was merged: PR merges stay with the owner.
+
+## Task G1 stress/fault gate script (2026-11-07)
+`scripts/stress_vm.sh` (8 tests written first in `tests/unit/test_stress_vm.py`, all red against the missing script):
+stress-ng (`--klog-check --metrics-brief`, 120 s, 4 cpu + 2 vm workers), fio (4k randrw, 70 % read, 1 GiB file,
+direct I/O) and memtester (`256M 1`), each with its own log; `summary.json` records per-tool status
+(`ok`/`failed`/`missing`), exit code, duration, argv and host facts, plus the DMI string as a *warning only*.
+Refuses with exit 2 unless `HSCL_IN_DISPOSABLE_VM=1` **and** the marker file exists (`/etc/hscl-vm-marker`;
+`HSCL_VM_MARKER` exists so the test can point at a fixture), and refuses with less than 3 GiB free. A failing or
+missing tool still writes the summary and exits 1. The tools are faked on `PATH` in the tests - fio/stress-ng/memtester
+are not installed on this dev host, so the real run stays a VM item for S2 (recorded in the plan as MC). Two host
+defects found while writing it: the WSL/Git Bash `python3` on this dev host is the Microsoft Store alias (exits 49), so
+the script now accepts `python3` or `python` and probes it with `import json`; and the Write tool produces CRLF, which
+`shellcheck` rejects with SC1017 - the file was normalised to LF and `shellcheck -S warning` is clean in WSL.
+`tests/shellutil.py` gained `run_command()` (needed to call shellcheck from a test on all three hosts; 2 tests).
+Documented in `docs/TESTING.md` under "Stress and fault gate". Windows: 13 passed, 1 skipped (shellcheck, run by
+forge/CI instead).
+
+## Task 3 doc-command gate (G24, 2026-11-07)
+Rust test `documented_hscl_commands_resolve_in_the_cli` in `cli/hscl/src/main.rs`: it reads `README.md`,
+`CONTRIBUTING.md`, `SECURITY.md`, every `docs/*.md` except the append-only `BUILD_LOG.md`, and all of `handbook/**`,
+collects `hscl`/`hscl1` invocations from fenced code blocks (prompt `$ `/`> ` stripped, shell comments skipped, the
+line cut at `|`, `&&`, `;`) and from **inline code spans** in prose, then resolves each one against the live clap tree
+instead of spawning the binary (fast, no target/release needed). A bare word under a node that has subcommands but no
+positionals is an error, so `hscl appearance them set` cannot pass as `hscl appearance`. Two guards stop the gate
+from passing while scanning nothing: more than 10 markdown files and more than 25 collected commands.
+Result on the real docs: **four drift findings, all real**, two of them false status claims:
+- `docs/CLI.md` offered `hscl hw suggest`, which does not exist - reworded as PLANNED without a fake command.
+- `docs/DECISIONS.md` (ADR-004) said the Workshop starts via `sudo hscl workshop enable`; there is no workshop
+  subcommand - corrected to `sudo systemctl enable --now hscl-workshopd`, the mechanism that actually exists.
+- ADR-006 and `docs/KNOWN_LIMITATIONS.md` described `hscl appearance layout list|show|set|reset` as shipped; the CLI has
+  only `appearance theme`. The limitation row even said IMPLEMENTED. Both corrected to PLANNED (plan W5.5, tiling presets),
+  because the KWin `[Tiling]` write can only be claimed after a VM test reads the applied config back.
+Gates: `cargo test -p hscl` 142 passed, `clippy -D warnings` clean, `cargo fmt --check` clean (fmt applied once).
+
+## Task 2b man pages from the clap tree (2026-11-07)
+`clap_mangen` 0.3 (MIT OR Apache-2.0 - allowed by `deny.toml`; it needs clap >= 4.6.6, which the lockfile has) and a new
+`hscl man --out DIR` next to `hscl completions`: it writes `hscl.1`, `hscl1.1` (same binary, second program name) and one
+`hscl-<command>.1` per top-level command, straight from the clap tree, so a page cannot describe a flag the binary does
+not have. Three tests written first (all red against the missing function): a page for the program and for every top-level
+command, every file a roff page with a `.TH` title line and a `.SH NAME` section, a path that is a regular file is refused
+without touching it, and two runs are byte-identical. Notes from doing it: `Command::name` needs clap's `string` feature to
+take an owned `String` (enabled in `cli/hscl/Cargo.toml`, with a comment); roff output opens with a `.\"` quoting preamble,
+so the test looks for `.TH` rather than the first byte. `scripts/build-deb.sh` (hscl-base) now calls `hscl man --out
+$stage/usr/share/man/man1` and gzips the pages (`gzip -9n`); `tests/security/test_package_completions.py` asserts both
+`hscl.1.gz` and `hscl1.1.gz` (its fake binary answers `man --out`), WSL run green. `docs/CLI.md` row added - the drift test
+G12 would have failed without it. `cargo test -p hscl` 145 passed, fmt and clippy -D warnings clean.
+
+## Task 4a governor decision logic + sysfs pressure reader (P31.2/P31.3, 2026-11-07)
+`cli/hscl/src/governor.rs`: a pure `decide(&Config, &Sample, &prev) -> (State, Option<Transition>)` with a named
+`Reason` for every outcome and a fixed priority - user disabled, locked/idle, desktop covered, low free memory, resident
+local model, busy GPU, on battery, normal. 14 tests. Deliberate choices: the frame rate is hard-capped at 30 (a desktop
+wallpaper above that buys nothing and costs power all day); VRAM and GTT are separate pools and the *smallest* headroom
+wins, so a full pool stops the animation even if the other one is empty; an unknown pool abstains instead of guessing, so
+a machine without amdgpu sysfs is never reported as "low memory"; GPU busy uses 80 % enter / 70 % exit hysteresis, so a
+value hovering at the threshold does not repaint the desktop every second; a steady state returns `None`, which is what
+keeps the service from logging every poll. `read_gpu(root)` reads `mem_info_vram_used|total`, `mem_info_gtt_used|total`
+and `gpu_busy_percent` from `sys/class/drm/card*/device`, ignores connector directories (`card1-DP-1`), clamps a
+nonsense busy value to 100 and returns defaults when the tree is missing - all fixture-tested.
+Process note: the implementation was written in the same pass as the tests, so the red run was produced afterwards by
+stubbing `decide` to `State::default()` (9 of 9 rule tests failed) and restoring it; recorded here rather than presented
+as test-first. `#![allow(dead_code)]` with a comment: the governor service (P31.3, sprint S5) is the caller; until then
+the module is covered by tests only, and no CLI command was invented that would have to guess covered/locked/battery.
+`cargo test -p hscl` 159 passed, fmt and clippy -D warnings clean.
+
+## Task 4b forge build / boot / diff (G30, 2026-11-07)
+Ten tests written first in `tests/unit/test_forge.py` (all red: `forge build ...` exited 2 with argparse "invalid choice").
+`forge build` is three visible steps in WSL - preflight (`git status --porcelain` must be empty, so a release artifact stays
+tied to a commit), the remaster, and a manifest probe that prints sha256/`git_dirty`/version from the file the build wrote.
+`--dry-run` prints them without executing. `FORGE_WSL` overrides the launcher so tests run a stand-in; it is split with
+`shlex.split(posix=False)` because the POSIX splitter ate the backslashes of a Windows path (`C:Usershcsme...`) and the
+step then failed with FileNotFoundError - a defect the test caught on the second run. Source and output paths are refused
+when they contain quotes, `$`, backticks or `;` (they are interpolated into a `bash -lc` string). `forge boot ISO --out DIR`
+runs the harness (default `scripts/qemu_boot_test.py`, `--harness` for a stand-in) and summarises `result.json`; it exits 1
+when the harness reports `booted: false` or writes no result, so it can gate a release. `forge diff A B` compares build
+manifests field by field and maps `X.iso` to `X.iso.manifest.json`; a missing manifest exits 2 with the path.
+Real runs on this host: `build --dry-run` (3 steps printed, nothing executed) and `diff` between the 0.1.1 and 0.1.2 release
+manifests - version, git commit, 5 494 800 384 -> 5 026 480 128 bytes and the sha256 change, with the 0.1.2 hash matching the
+value recorded at release time. **Not run:** a real `build` and a real `boot` (they need the WSL lab with >= 9 GB free and
+must not overlap with another VM); the ISO-content diff from the forge plan is still open. `python -m pytest
+tests/unit/test_forge.py` 22 passed.
+
+## Task 6 menu file (G26a part 1, 2026-11-07)
+`packages/debian/hscl-branding/etc/xdg/menus/applications-merged/hscl1.menu` - the launcher sections HSCL1 actually has
+entries for: Development, Internet (Network), Office, Graphics, Multimedia (AudioVideo), System (System/Settings/Utility),
+each named in English, German and French. Six tests written first (all red: file missing): well-formed XML, every
+`<Category>` from the freedesktop main-category list (a typo would show as an empty section), no empty or duplicated
+submenu, `C`+`de`+`fr` names present, no `<Directory>` pointing at a file the package does not ship, and a guard that
+"Security Lab" and "Privacy" are **not** offered yet - AGENTS 4.2 lists them, but HSCL1 has no desktop entries for them,
+and an empty section is a button that does nothing; the comment in the file says so and points here. First version
+referenced five `.directory` files that did not exist; dropped rather than invented, and the new gate keeps that from
+coming back. Still open for G26a: the VM check that `kbuildsycoca6` rebuilds the cache and the categories list as
+expected (`hscl-qa` / e2e set), which needs an image.
+
+## Task G3 property tests, fuzz crate, scheduled fuzz workflow (2026-11-07)
+`proptest` as a dev-dependency only (a test asserts it is not in `[dependencies]`). Thirteen `prop_` cases in the modules
+that read untrusted text: `redact.rs` (idempotence, planted user/host gone, MAC and private IPv4 gone, public IPv4 kept),
+`toolcall.rs` (no panic on arbitrary input, JSON call round trip, unknown tool refused with its name, block without its end
+is `Incomplete`), `hw.rs` (`parse_hex` round trip, `MemTotal` round trip, garbage never panics in four parsers, generated
+`pci.ids` vendor lines survive). **The properties found a real defect**: `redact` replaced user and host in two passes, so
+with `user="aA"`, `host="re"` the marker written for the user was itself rewritten - `[[redacted]dacted]` - and the value
+"re" then appeared inside our own marker. Replaced by a single pass over the input that takes the earliest match of either
+needle. The marker `[redacted]` still contains letters, so a needle that is a substring of that word makes redaction
+non-idempotent; that is now documented in the module header and excluded with an explicit `prop_assume` instead of being
+hidden, and a regression property asserts the marker is not rewritten.
+Fuzzing: `fuzz/` is its own workspace (`libfuzzer-sys`, never a dependency of the product) with two targets that
+`#[path]`-include `cli/hscl/src/toolcall.rs` and `redact.rs` - the same files the binary compiles, because `hscl` is a
+bin crate without a library target (splitting it is tracked as G3b). `.github/workflows/fuzz.yml` runs weekly and on
+dispatch: `cargo fuzz run ... -- -max_total_time=300` per target (artifacts kept on failure), `proptest` with
+`PROPTEST_CASES=20000`, and `cargo-mutants` on both parsers with a time box; actions are pinned by commit SHA (the two
+toolchain SHAs were read from the GitHub API on 2026-11-07, not invented). Six tests in
+`tests/unit/test_property_gates.py` guard the setup itself (markers present, proptest not a runtime dependency, the workflow
+is scheduled + time-boxed + pinned). `cargo test -p hscl` 172 passed, clippy -D warnings and fmt clean.
+
+## Task B1 modaliases in `hscl hw detect` (2026-11-07)
+`hw::modaliases(root) -> (Vec<Modalias>, dropped)` walks `sys/bus/{pci,usb,platform,acpi,i2c}/devices/*/modalias`, returns
+`sorted` entries (bus then path, `/` separators on every host) and counts values it refused. `Report` carries `modaliases`
+and `dropped_modaliases`, so `hscl hw detect --json` exposes them; text mode prints `Modaliases: 41 (pci 39, usb 2)` and
+mentions dropped values only when there are some (a full list would be 150+ lines). Eight tests written first: pci+usb+acpi
+fixtures come back sorted, a tree without `sys` returns nothing instead of erroring, control characters and values over
+512 bytes are dropped **and counted**, an empty modalias is ignored without being counted (the kernel writes empty files
+for devices it cannot describe - a normal case, not a data-quality problem), and a USB `serial` file next to a modalias is
+never read (asserted by its absence from the whole structure - a serial identifies a device, it does not describe a
+capability). Windows cannot create names with `:`, so the fixtures reuse the existing `s()` helper.
+Two test-only defects of mine were caught by running them: an assertion counted markers in a text where the host needle
+legitimately occurred twice ("in" inside "login"), which was fixed by asserting on the visible text instead of a count.
+`cargo test -p hscl` 180 passed, fmt and clippy -D warnings clean; `docs/CLI.md` row extended (the G12 drift test requires it).
+
+## Task 9 Secure Boot signature evidence from the released ISO (2026-11-07)
+`scripts/sb_evidence.py ISO --out DIR`: extracts `EFI/boot/bootx64.efi`, `EFI/boot/grubx64.efi`, `casper/vmlinuz` (and
+`mmx64.efi` as optional) with `xorriso -osirrox` (no root, no mount), parses the PE header's certificate table
+(IMAGE_DIRECTORY_ENTRY_SECURITY, index 4, which is a file offset rather than an RVA) and prints the signer CNs through
+`openssl pkcs7`. Seven tests build minimal PE32/PE32+ images by hand: no MZ, no signature, both header layouts, truncated
+headers at five lengths, an absurd certificate size, and a component list that must contain both path spellings.
+**Measurement on the released artifact** (`artifacts/iso/HSCL1-0.1.2-alpha.0-amd64.iso`, evidence in
+`artifacts/sb-0.1.2/report.json`):
+- `EFI/boot/bootx64.efi` - Microsoft Windows UEFI Driver Publisher / Microsoft Corporation UEFI CA 2011 (9 720 bytes PKCS#7)
+- `EFI/boot/grubx64.efi` - Canonical Ltd. Secure Boot Signing (2022 v1) (1 928 bytes)
+- `casper/vmlinuz` - Canonical Ltd. Secure Boot Signing (2022 v1) (1 928 bytes)
+- `EFI/boot/mmx64.efi` - Canonical Ltd. Secure Boot Signing (2022 v1) (1 928 bytes)
+The first run reported "BOOTX64.EFI NOT PRESENT" although the shim was there: Ubuntu media spell the path
+`EFI/boot/bootx64.efi`, and a case difference is enough to make a gate lie. The reader now tries both spellings and the test
+says why. What this proves: the remastered image still ships the documented chain (MS-signed shim -> Canonical GRUB ->
+Canonical kernel), so the squashfs/initrd edits did not replace a signed component. What it does **not** prove: that
+firmware accepts the chain - that is gate G6 (OVMF + Microsoft keys, `mokutil --sb-state` in the guest), still open.
+
+## S2 attempt 1: image build with the whole S1 set (2026-11-07, started 09:35Z)
+Preflight: branch `codex/hscl1-v1` at `8e550bd`, working tree clean, `forge check --strict` green on Windows **and**
+Linux-in-WSL just before the start. The WSL clone (`~/hscl1-src`) pulled this commit and then showed three files as
+modified - `packages/debian/hscl-security/{build.sh,DEBIAN/preinst,DEBIAN/postrm}` - with a diff of **0 inserted and
+0 deleted lines**: the only change was the file mode (100755 -> 100644), a checkout artifact, not work in progress.
+Restored with `git checkout --` after confirming the content was identical; the clone is clean again.
+Resource deviation, recorded rather than hidden: the resource policy asks for >= 9 GB free host memory before a build.
+After `wsl --shutdown` the Windows "available" counter read 5 540 MB (`tools/local_worker/sysmon.py`), so the build was
+started with the documented Ersatzweg from the finish-line plan - `HSCL_SQUASH_PROCS=2 HSCL_SQUASH_MEM=384M` instead of
+3 processors / 512M - and with `--fast`. Log: `~/hscl1-build/out/build-0.1.3-dev.log`, target
+`~/hscl1-build/out/HSCL1-0.1.3-dev-amd64.iso`. If the host reaps it, that is recorded here and retried once with a
+further reduction; a build that fails for memory is not a product defect.
+
+## S2 build result: dev image with the whole S1 set (2026-11-07, finished 09:36Z host clock)
+Built from the clean clone at `8e550bd` with `HSCL_SQUASH_PROCS=2 HSCL_SQUASH_MEM=384M --fast` (see the deviation note
+above). Result (`~/hscl1-build/out/`, copied to `artifacts/iso/`):
+- `HSCL1-0.1.3-dev-amd64.iso`, 5 488 181 248 bytes, sha256 `b391226104868148cd0e47f20d221fff3a63680460a37634002f98612fed7896`
+- manifest: `version: 0.1.2-alpha.0` (the version string is bumped only for the release build - this image validates the
+  content), `git_commit: 8e550bd2a6...`, `git_dirty: false`, `workshop_default: disabled`, base checksum verified against
+  the upstream-signed `SHA256SUMS` during the build.
+- `verify-image` passed from the finished artefact: the ISO's `/casper/initrd` is the rebuilt one (md5
+  `0ae73448049120c45aca80fa155d6498`) and `/.disk/info` starts with HSCL1.
+- Secure Boot chain re-measured with `scripts/sb_evidence.py` (`artifacts/sb-0.1.3-dev/report.json`): shim = Microsoft
+  UEFI CA 2011 / Microsoft Windows UEFI Driver Publisher; grubx64/mmx64/vmlinuz = Canonical Secure Boot Signing (2022 v1).
+  Unchanged from 0.1.2, i.e. the new S1 content did not touch a signed component.
+- `forge diff` against the released 0.1.2 manifest: only `git_commit`, `iso_bytes` (5 026 480 128 -> 5 488 181 248) and
+  `iso_sha256` differ. The size grows because this run used `--fast` (zstd level 3); the released 0.1.2 used the slower
+  xz path, so a release build must **not** use `--fast` if the size is to stay comparable - recorded as a decision for
+  the 0.1.3 artefact.
+Next: boot gate on this exact ISO (UEFI), then the in-guest e2e set, then screenshots. Nothing is claimed until those
+artefacts exist.
+
+## S2 boot gate, first run: a defect in forge boot itself (2026-11-07)
+First run on `HSCL1-0.1.3-dev-amd64.iso` (UEFI, `--live`, WHPX, 191 s): the harness reached the desktop
+(`reached_desktop: true`, four shots, `desktop_final_wallpaper_match 0.121`) and `verify` evidence is in
+`artifacts/forge/boot-0.1.3-dev/` (`desktop-final.png`, `shot-001..004.png`, `qemu.log`, `result.json`).
+**But `forge boot` printed "booted: not booted" and exited 1** - my own summary code read `booted`, `seconds` and
+`screenshots`, keys `scripts/qemu_boot_test.py` never writes (it writes `reached_desktop`, `elapsed_s`, `shots`). I had
+invented the schema instead of reading the harness. Fixed with two tests that use payloads copied from the real
+`result.json`, and the two older boot tests were corrected as well (they had encoded the same wrong schema, so they
+could not have caught it). Also recorded: the shell pipeline `forge boot ... | tail` masked the exit code (the reported
+`EXIT=0` was `tail`'s); the rerun redirects to a file and reads `$?` directly.
+Open question from the screenshots: `welcome_screen` was still `true` in the last two frames, so the `--dismiss-welcome`
+click (at 28.8 % / 84.8 % of the window) may have missed the "Skip" button - the desktop was reached, the welcome
+window's state is not proven either way. The rerun writes a second evidence set (`boot-0.1.3-dev2`) to compare.
+
+## S2 boot gate, second run with the fixed summary (2026-11-07)
+`forge boot --live --firmware uefi` on `HSCL1-0.1.3-dev-amd64.iso`: **booted yes, 146 s, 3 shots, UEFI, final
+wallpaper match 0.116**, exit 0 (`artifacts/forge/boot-0.1.3-dev2/`: `desktop-final.png`, `shot-001..003.png`,
+`qemu.log`, `result.json`). The fixed summary now reads the harness schema (`reached_desktop`, `elapsed_s`, `shots`).
+Open point, deliberately not claimed: `welcome_screen` was `true` in all three frames of **both** runs, including the frame
+at t=50 s before the desktop appears - so that flag is matching the live "Try or Install" prompt as well, and it does not
+prove that the welcome window stayed open after the `--dismiss-welcome` click. The wallpaper similarity is ~0.12 in both
+runs, which is expected for the animated rain wallpaper compared against a still reference; `reached_desktop` therefore
+came from `looks_like_desktop()` (dark top band with tray pixels), not from the wallpaper match. Recording both so the
+next session does not read the number as a defect or as proof.
+
+## S2 in-guest e2e gate: 28/28 on the dev image (2026-11-07)
+`python scripts/workshop/e2e_cli.py artifacts/iso/HSCL1-0.1.3-dev-amd64.iso artifacts/e2e-0.1.3-dev` -> exit 0,
+`artifacts/e2e-0.1.3-dev/cli-report.json`: **28 checks, 0 non-zero**, desktop reached after **121 s**, session user
+`hscl1` (the HSCL1 live user, not the upstream `kubuntu`), Workshop `ops` = doctor, put_file, report, respin,
+restart_shell, run_hook, screenshot, status; port restarts 0, write timeouts 0. Green checks include the ones this S1
+work touched or could plausibly have broken: `earlyoom_active` (active), `zram_swap` (zram0 1.9G), `zram_algorithm`
+(zstd selected), `sysctl_memory` (swappiness 100, page-cluster 0), `ai_slice` (MemoryHigh/Max present), `firewall`
+(active), `listening_sockets`, `system_tree_owner`, `kdeconnect_listener`/`kdeconnect_process` (absent). Full list and
+per-check output are in the report; the desktop screenshot is `artifacts/e2e-0.1.3-dev/desktop.png`.
+Note: `hscl1_version` in the guest report is `0.1.2-alpha.0` because `VERSION` was not bumped for this content-validation
+image; the release artefact is built separately after the bump (see below).
+
+## G26a follow-up: menu cache rebuild in the package (2026-11-07)
+The research round answered why `applications-merged` works on Plasma (startplasma sets
+`XDG_MENU_PREFIX=plasma-`, the base menu carries `<DefaultMergeDirs/>`, which is searched **without** the prefix) and
+that the cache is only refreshed by `kbuildsycoca6`. Without that call a freshly installed section can stay invisible
+until the next login - indistinguishable from a broken menu file. `hscl-branding` postinst now runs
+`kbuildsycoca6 --noincremental` (guarded by `command -v`, and as `$SUDO_USER`/`$PKEXEC_UID` via `runuser` so no
+root-owned cache is created), postrm does the same on remove/purge. Test written first (red): the postinst must contain
+the call, the `command -v` guard and an unprivileged runner, and postrm must rebuild too. bash -n and shellcheck (WSL)
+clean, 7 menu tests pass. Not yet verified in a VM: that the section actually appears in Kickoff after install - that
+belongs to the next image run, not to this commit.
+
+## Release build 0.1.3-alpha.0: one deliberate restart (2026-11-07)
+The first release build (xz, no `--fast`) started from `2508e24`. While it was in the squash phase I committed
+`a55e023` (menu-cache rebuild in the branding postinst), which the artefact would have missed. Instead of shipping an
+image without a committed fix - or building twice - I stopped it at about 5 % of the squash pass (`wsl --shutdown`;
+the background job exits 1 for that reason, not because of a build error) and restarted from `a55e023`. Build log:
+`~/hscl1-build/out/build-0.1.3-alpha.0.log`, target `~/hscl1-build/out/HSCL1-0.1.3-alpha.0-amd64.iso`, reduced
+squashfs settings again (`HSCL_SQUASH_PROCS=2 HSCL_SQUASH_MEM=384M`) because the host still has ~8.8 GB available.
+
+## Task B3 driver suggestions from the apt index (2026-11-07)
+`hscl hw suggest [--root DIR] [--json]`. The research round settled the mechanism, so the code follows upstream instead
+of inventing a vendor map: debhelper's `dh_modaliases` (source package `ubuntu-drivers-common`) emits `Modaliases:` into
+the binary package and therefore into the `Packages` index; each value is a glob, often vendor-wrapped
+(`nv(pci:v000010DEd000010C3sv*sd*bc03sc*i*)`), matched against the device modalias from sysfs. Implemented as pure
+functions (`parse_packages_modaliases`, `modality_matches`, `suggest`, `licence_class`, `load_package_modaliases`) plus
+the CLI command. Eight Rust tests: stanza parsing (Package/Section/Modaliases, skip stanzas without the field, stable
+sort), wrapped-pattern match and a differing device id that must not match, plain glob anchoring, `*` alone, empty
+pattern, suggestion list containing only devices with candidates, missing index = empty and no error, index reader
+ignoring non-Packages files, and the licence heuristic admitting "unknown" for e.g. `mesa-vulkan-drivers`.
+Three Python gate tests: the function names are present, the `suggest` body contains no install command
+(`apt-get install`, `apt install`, `dpkg -i`, `systemctl start`), and the Rust `suggest` tests pass.
+Live run on this host: `No apt package index found (var/lib/apt/lists); nothing to suggest.` - which is the honest
+answer on Windows, not a failure. `--json` shape: devices, dropped_modaliases, index_packages, suggestions,
+licence_class. `docs/CLI.md` row added (the drift test requires it). Not implemented: using `ubuntu-drivers devices` as a
+second source (the index route needs no external tool), and the hwdb generator half of Task 6 (B2).
+
+## Release artefact 0.1.3-alpha.0 built (2026-11-07)
+`HSCL1-0.1.3-alpha.0-amd64.iso`, **5 026 742 272 bytes**, sha256
+**fc81ad1d93efeac61904879e9def34e39cdceb982bf7aafc070b34afdd4d1ebb**, built from the clean clone at **a55e023**
+(`git_dirty: false`), manifest version `0.1.3-alpha.0`, `workshop_default: disabled`, base checksum verified against the
+upstream-signed `SHA256SUMS` during the build, `verify-image: all checks passed`, `BUILD_EXIT=0`. Build log:
+`~/hscl1-build/out/build-0.1.3-alpha.0.log`.
+Size check against the decision recorded earlier: the xz build is **5 026 742 272 B vs 5 026 480 128 B for 0.1.2** - a
+262 KiB difference for a whole sprint of changes, i.e. the release path really does not pay the ~460 MB that `--fast`
+added to the dev image. That confirms the decision to build the release without `--fast`.
+Secure Boot chain re-measured on this exact file (`artifacts/sb-0.1.3-alpha.0/report.json`): shim = Microsoft UEFI CA
+2011 / Microsoft Windows UEFI Driver Publisher; `grubx64.efi`, `mmx64.efi`, `casper/vmlinuz` = Canonical Secure Boot
+Signing (2022 v1). Firmware acceptance is still gate G6.
+Not yet done on this artefact: the copy to `artifacts/iso/` (hash re-check on the target path), the boot gate and the e2e
+set. Those are the next two steps and they decide whether this file may be called tested.
+
+## Release artefact copied and hash-verified; research folded into the AI plans (2026-11-07)
+`artifacts/iso/HSCL1-0.1.3-alpha.0-amd64.iso` (5 026 742 272 B) + manifest copied out of the build lab and re-hashed **on
+the target path**: `fc81ad1d93efeac61904879e9def34e39cdceb982bf7aafc070b34afdd4d1ebb`, identical to the build log and the
+manifest. Secure Boot evidence for the same file: `artifacts/sb-0.1.3-alpha.0/report.json`.
+Two research rounds landed and changed plans rather than prose:
+- `docs/research/2026-11-07-apu-offload-vram-spill.md`: `ttm.pages_limit` (default half of RAM, read once at TTM init)
+  is the only GPU-memory knob, `amdgpu.gttsize` is deprecated; `--mmap/--no-mmap/--mlock` no longer exist upstream
+  (`--load-mode` instead, whose `auto` disables mmap on Vulkan iGPUs); `-nkvo` keeps KV in system RAM; a second fast model
+  is speculative decoding with an unmeasured gain on this iGPU; **no supported SSD spill for VRAM or KV** (Vulkan has no
+  unified-memory oversubscription). W2.5 refined, W2.10/W2.11 added, KNOWN_LIMITATIONS row for local-AI memory.
+- `make_release.py` now treats the prebuilt qcow2 as optional (AGENTS.md 7.1) and records `prebuilt: null` plus a note
+  when it is absent, so a missing image cannot be confused with a forgotten field. Test written first; 8 tests pass.
+
+## W2.10: offload flags in `hscl ai serve`, verified against the real binary (2026-11-07)
+Probe first: the installed build 12128 (`llama-server --help`) already has `-lm/--load-mode`,
+`-kvo/-nkvo`, `-cmoe/-ncmoe`, `-fa`, `-ot` and `-md/--spec-draft-model` + `--spec-draft-n-max`, and prints
+"the argument has been removed. use --spec-draft-n-max" for `--draft-max` - i.e. the research was right that the old
+mmap/mlock flags are gone in the builds we ship (our pin is b12130, newer than the probed 12128).
+Implemented in `serve::ServeOpts`/`serve_argv` and exposed as `hscl ai serve --load-mode MODE`, `--kv-in-ram`,
+`--draft-model PATH [--draft-max N]`. Validation follows the existing rules: the load mode must be one of the six
+names, the draft model must be a `.gguf` inside the model storage whose name does not start with `-`, the draft budget is
+1..=16 and is refused without a draft model. Six tests: the default command carries none of the new flags; the load mode
+appears exactly once and an unknown mode is refused; `-nkvo` appears exactly once; the draft model is passed with its
+budget and is refused outside the storage or with a leading dash; a budget without a model is refused; the default budget
+is 3 (upstream's). `cargo test -p hscl` 189 passed, clippy -D warnings clean. `docs/CLI.md` rows added.
+Still open (MEASURE, not claimed): whether `mmap` or `auto` is faster on the 680M, whether `-nkvo` costs the prefill
+speed that the research predicts, and whether a draft model pays for itself here - all need `llama-bench` runs on this
+machine, and none of it is in the UI until measured.
+
+## Release gates on the exact artefact (2026-11-07)
+All gates ran on `artifacts/iso/HSCL1-0.1.3-alpha.0-amd64.iso`, sha256
+`fc81ad1d93efeac61904879e9def34e39cdceb982bf7aafc070b34afdd4d1ebb`, not on a rebuild:
+
+| Gate | Result | Evidence |
+|---|---|---|
+| boot, UEFI, `--live` | **booted yes, 191 s, 4 screenshots**, final wallpaper match 0.127, exit 0 | `artifacts/forge/boot-0.1.3-alpha.0/` (`result.json`, `desktop-final.png`, `shot-001..004.png`, `qemu.log`) |
+| in-guest e2e (28 checks) | **28 run, 0 non-zero**, desktop after 151 s, session user `hscl1`, guest report says version **0.1.3-alpha.0** | `artifacts/e2e-0.1.3-alpha.0/cli-report.json` |
+| Secure Boot chain (file level) | shim = Microsoft UEFI CA 2011 / Microsoft Windows UEFI Driver Publisher; `grubx64.efi`, `mmx64.efi`, `casper/vmlinuz` = Canonical Secure Boot Signing (2022 v1) | `artifacts/sb-0.1.3-alpha.0/report.json` |
+| host test suite | 562 passed, 12 skipped | this run |
+| `cargo test -p hscl` | 195 passed; clippy -D warnings clean | this session |
+
+What these gates do **not** cover, and therefore what this build may not claim: Secure Boot acceptance by firmware (G6),
+the installer on this exact image (no install run yet), the brand OCR/content scan of the live session (G10), the shortcut
+audit (G11), physical hardware. `welcome_screen` in the boot harness is true even before the desktop appears, so it is
+not evidence about the Welcome window; the wallpaper-match number is the animated wallpaper against a still reference.
+
+## make_release.py: the "not verified" list belongs in the set (2026-11-07)
+`build_release(..., gaps)` / `make_release.py --gap TEXT` (repeatable) writes a "Not verified in this set" section into
+`release-notes.md`, so a pre-release carries its own gap list instead of relying on the reader to open
+KNOWN_LIMITATIONS. An empty gap line is refused (a blank bullet would look like an omission). Test written first:
+notes contain the section and every line, an empty gap raises. 9 tests pass.
+The first assembly run was started before this change and had copied only the ISO into
+`artifacts/release-0.1.3-alpha.0/`; it was stopped and restarted with the four gaps (firmware acceptance, install run on
+this image, brand OCR + shortcut audits, physical hardware) rather than shipping a set without them.
+
+## G11 shortcut audit: finding (2026-11-07)
+Searched the tracked tree (`git ls-files`, `git grep`) for any shortcut configuration (kglobalshortcutsrc, kwinrc, khotkeys, Meta bindings): **none exists**, and README/docs/website publish no shortcut table. So the AGENTS.md 4.5 table is entirely PLANNED, not a defect in a published claim. Recorded as a KNOWN_LIMITATIONS row. Correction (same day): the earlier statement that no install harness exists was wrong in substance. The 0.1.0-alpha.0 install (1359 s, `install-test/`, then `install-boot/`) was driven interactively through the Workshop MCP tools (`vm_start`, `vm_click`, `vm_keys`, screenshots), not through a script in `scripts/forge.py`. The run on 0.1.3-alpha.0 repeats that route, one QEMU job at a time. Status stays: installer on this image NOT verified.
+
+## Installer run on the exact 0.1.3-alpha.0 artefact (2026-11-07) - VM-VERIFIED (narrow)
+ISO `fc81ad1d93efeac61904879e9def34e39cdceb982bf7aafc070b34afdd4d1ebb` (copied to NVMe, hash re-checked), QEMU+WHPX, UEFI, 4 GB RAM, fresh 40 GiB qcow2, driven through the Workshop MCP (`vm_*`). Evidence: `artifacts/install-0.1.3-alpha.0/nvme-run/` (8 screenshots).
+- Calamares started from the live desktop; only the disposable disk `vda` was offered; **nothing preselected** (Erase disk had to be chosen); the summary showed `Erase disk /dev/vda`, GPT, 300 MiB FAT32 EFI, 39.71 GiB ext4; a confirmation dialog ("You will not be able to undo these changes") had to be answered.
+- Install finished ("All done."), about 10 minutes from the confirm click on NVMe. Rebooted **from the installed disk only (no ISO)**: login screen with the created user (German date format from the chosen locale), login accepted, **HSCL1 desktop reached** (dock, top bar, Control Center and Handbook icons; no "Install HSCL1" icon).
+- **Defect found, fixed in source, still in the published ISO:** the installer title and "All done" text say `HSCL1 0.1.2-alpha.0` because `branding.desc` was not bumped. Fixed with a VERSION guard test (`5356d5b`); reaches users with the next image build.
+- **Measured: where the VM disk lives matters.** `E:` is a USB drive: the same install reached 6 % after 12 min (about 16 files/s, disk time 272 %). On NVMe it reached 24 % after 4 min and finished in about 10 min. VM disks/ISOs belong on `C:\AI\vmtest`.
+- **Not covered (so not claimed):** in-guest checks (`hscl status/doctor`, firewall, AppArmor: the Workshop is inert by default, so no guest agent), LUKS (assessed in the next section), BIOS boot, offline vs networked install (not recorded), install-alongside, physical hardware, localisation of the installer (English only was tested).
+
+## LUKS install on the exact 0.1.3-alpha.0 artefact (2026-11-07) - VM-VERIFIED (narrow)
+Same ISO (`fc81ad1d...`), fresh 40 GiB qcow2 on NVMe, QEMU+WHPX, UEFI. Evidence: `artifacts/install-0.1.3-alpha.0/luks-run/` (7 screenshots, not in Git).
+- The earlier statement "the installer offers no encryption" was wrong and is withdrawn: after choosing **Erase disk** the Partitions page shows **"Encrypt system"** with passphrase and confirm fields. It is **unchecked by default**.
+- With it ticked, the layout shown (Partitions page and Summary) is: EFI 300 MiB FAT32, `hscl1_boot` 4.00 GiB ext4 (unencrypted `/boot`), `hscl1_root` 35.71 GiB **LUKS2**. This matches `docs/INSTALLER_FACTS.md`.
+- Install finished ("All done."), about 10 min. Booted from the encrypted disk alone: **passphrase prompt appears; a wrong passphrase is refused** ("cryptsetup failed, bad password or options?") and the prompt returns; **the correct passphrase unlocks**, the login screen shows the created user, login is accepted and the **HSCL1 desktop is reached**.
+- **Gaps found against AGENTS.md 6.3 (not fixed, not claimed):** no recovery key/recovery method is offered or explained during install; no explanation of what is and is not encrypted (the installer's "not encrypted /boot" message is switched off, `showNotEncryptedBootMessage: false`, and the HSCL1 replacement text does not exist yet); encryption is off unless the user ticks it.
+- **Not checked in this run:** the initramfs keyfile risk from `INSTALLER_FACTS.md` (`lsinitramfs` must contain no keyfile), whether the passphrase or its marker appears in logs, TPM, BIOS boot, behaviour after an interrupted install, the installed system's own report (Workshop is inert). Status is therefore: *LUKS2 install unlocks and boots in one VM*, nothing more.
+- Smaller observations: the Plasma splash after login shows "Plasma made by KDE" and the Welcome Center shows the KDE mascot (upstream branding inside the live/installed session; relevant to the G10 brand scan, not yet judged).
+
+## LUKS offline inspection of the test disk (2026-11-07)
+No passphrase used. `qemu-img dd` copied the first 4.7 GiB of `luks.qcow2` to a raw file (deleted afterwards); the GPT was parsed with Python (`hscl1_boot` at byte 316,669,952, 4096 MiB; `hscl1_root` at 4,611,637,248); `debugfs` (WSL, `?offset=`) dumped the initramfs from the unencrypted `/boot`; `lsinitramfs`/`unmkinitramfs` listed it; the LUKS2 JSON header was parsed with Python. Findings are in `docs/INSTALLER_FACTS.md`: no keyfile in the initramfs, `crypttab` uses `none`, exactly one argon2id keyslot, no tokens. This closes the keyfile risk named in INSTALLER_FACTS for this one install; the missing recovery key stays an open gap (there is no second keyslot to hold one).
+
+## Dev image 0.1.3-dev2: installer fixes, `hscl-cqhecs` and the new gates, built and booted (2026-11-07)
+Built from the clean WSL clone at `2b65013` (`git_dirty: false`), `scripts/remaster-iso.sh --fast` with `HSCL_SQUASH_PROCS=2 HSCL_SQUASH_MEM=384M` (WSL has 5.9 GB), `BUILD_EXIT=0`. Artefact `HSCL1-0.1.3-dev2-amd64.iso`, **5,488,246,784 bytes**, sha256 **4d04e7ca24b8dbf84fdc41de46648f7aac97ac98b99e3abb514cd6a95a9cdc74** (re-checked after the copy to `C:\AI\vmtest\dev2\`); manifest version 0.1.3-alpha.0, `workshop_default: disabled`. This is a development image (`--fast`), **not a release artefact**.
+- Content: branding version fix (`5356d5b`), Calamares not-encrypted-/boot message on (`76d9ab0`), `hscl-cqhecs` in the image (`6a8ba01`). The image gate `verify-image.sh` printed `ok` for each new check (`installer: warns that /boot is not encrypted`, six `cq-hecs` checks) and `all checks passed`.
+- **Size effect of the package:** previous `--fast` dev image 5,488,181,248 B, this one 5,488,246,784 B: **+65,536 B (64 KiB)**.
+- Boot gate (`forge boot --live`, UEFI, WHPX, no Secure Boot): `reached_desktop: true` after **147 s**, wallpaper match 0.118, exit 0 (`artifacts/forge/boot-0.1.3-dev2/`).
+- In-guest run (`scripts/workshop/e2e_cli.py`, 31 checks incl. three new): **0 non-zero**, desktop after 110 s, session user `hscl1` (`artifacts/e2e-0.1.3-dev2/cli-report.json`). New checks: `dpkg -s hscl-cqhecs` -> `install ok installed`, `0.1.3~alpha.0`; `systemctl list-unit-files | grep -c cqhecs` -> 0; `hscl-cqhecs doctor --json` as the session user -> `runtime: missing`, data dir `/home/hscl1/.local/share/hscl/cqhecs`, `network: not used`. Listening sockets unchanged in kind (resolved stub on 127.0.0.53/54:53, chrony 127.0.0.1:323, cups 127.0.0.1:631 and [::1]:631, Avahi mDNS 5353; none belongs to hscl-cqhecs). Firewall active.
+- **Not verified on this image:** the installer itself (the corrected version string and the /boot message on screen), an install run, Secure Boot, the release compression, physical hardware. `hscl-cqhecs install-runtime` inside the booted guest (the Workshop channel runs one-shot commands; a 269 MiB venv install over the guest network was not attempted).
+
+## Installer on the dev2 image: version fixed, /boot message not visible (2026-11-07)
+VM `d2` (QEMU/WHPX UEFI, dev2 ISO from `C:\AI\vmtest\dev2`, fresh qcow2). Evidence: `artifacts/dev2-installer/` (3 screenshots, not in Git).
+- **Fixed and seen on screen:** the installer title reads "Welcome to the HSCL1 **0.1.3-alpha.0** installer" (the 0.1.3-alpha.0 ISO said 0.1.2).
+- **Not working as intended:** with Erase disk + Encrypt system ticked and matching passphrases (layout: EFI 300 MiB, `hscl1_boot` 4 GiB ext4, `hscl1_root` 35.71 GiB LUKS2) there is **no** explanation of the unencrypted `/boot`: no dialog on `Next`, no text on the Partitions page, none on the Summary. The `showNotEncryptedBootMessage: true` that `76d9ab0` switched on is present in the image (gate ok) but has no visible effect in this path. My earlier commit message and docs presented it as the remedy; that is withdrawn here, and `docs/INSTALLER_FACTS.md`, the hook comment and the test docstring were corrected. The explanation (and the recovery-key explanation) remains an open gap against AGENTS.md 6.3.
+- No install was run on dev2 (nothing new to learn from it; the install path was verified on 0.1.3-alpha.0).
+
+## HCSUDA H0/H1: runtime scaffold, GPU selftest and first benchmarks (2026-11-07)
+New Cargo workspace `hcsuda/` (excluded from the root workspace), GPL-3.0-or-later while it lives in this repo.
+- **Built:** `hcsuda-core` (dtypes, FP8 E4M3/E5M2 codec, int8/packed-int4 quantisation, tensor, CPU oracle, capability record, conservative planner, benchmark report), `hcsuda-vk` (ash 0.38 instance/device, memory, descriptor + command plumbing, timestamp queries, GLSL to SPIR-V build via `glslc`), `hcsuda-cli` (`caps`, `plan`, `selftest`, `bench`, all with `--json`/`--out`), shaders `saxpy`, `triad`, `gemv`.
+- **Commands:** `cargo fmt --all -- --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test --all` -> **41 passed, 0 failed**; `hcsuda selftest` -> **PASS**; `hcsuda bench --runs 7` -> suite written to `hcsuda/benchmarks/amd-radeon-680m/`.
+- **Hardware:** AMD Radeon 680M (`0x1681`), AMD proprietary driver 26.6.1, Vulkan 1.4.315, subgroup 64, 32 KiB shared, int8/int4 dot accelerated, cooperative matrix present, **no `VK_EXT_shader_float8`**.
+- **Differential test vs CPU oracle (3 runs, determinism checked):** saxpy 2.384e-7 (tol 7.4e-5), triad 2.384e-7, gemv 1.907e-6 (tol 3.263e-5). Verified paths: `vulkan_scalar:{saxpy,triad,gemv}:f32`.
+- **Benchmark (f32, 4 Mi elements / 512x8192, 7 samples x 50 dispatches):** saxpy 0.762 ms GPU (56.95 GB/s), triad 0.725 ms (79.69 GB/s), gemv 1.303 ms (5.89 GFLOP/s) versus single-threaded oracle 28.7 / 49.7 / 68.3 ms. Spread 0.02-0.19.
+- **Methodology finding:** with 5 dispatches per sample the same kernels show spread 0.87-1.15; with 50 it is 0.02-0.19. Short bursts measure the iGPU clock ramp. `--reps` now defaults to 50 and a row above 0.25 spread is labelled noisy, not reported as a result.
+- **Test bugs found and fixed (not code bugs):** four `hcsuda-core` assertions encoded wrong expectations (tolerance scale, int4 symmetric range, packing nibble order, spread formula).
+- **NOT measured:** no f16/bf16/int8/int4/FP8 kernel, no GEMM/conv/attention, no training step, no CUDA/rocBLAS baseline, no discrete GPU, no Linux run, no power/thermal instrumentation. `gemv` is a correctness kernel (one invocation per row) and its number must not be quoted as matrix throughput.
+- **CI:** new `hcsuda` job (fmt/clippy/test on ubuntu + windows, `cargo audit` on ubuntu). Hosted runners have no GPU, so that job is the CPU-only gate by design.
+- Docs: `hcsuda/README.md`, `hcsuda/docs/MEASURED.md`, `hcsuda/docs/CAPABILITY_MATRIX.md`.
+

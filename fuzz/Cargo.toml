@@ -1,0 +1,19 @@
+[package]
+name = "hscl-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+# Its own workspace: the fuzz crate needs nightly and libfuzzer, which must never become a
+# dependency of the shipped binary or of `cargo test` at the repository root.
+[workspace]
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+serde_json = "1"
+
+[profile.release]
+debug = 1

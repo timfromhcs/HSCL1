@@ -35,6 +35,26 @@ if [ -n "$bin" ]; then
   install -D -m 0755 "$bin" "$stage/usr/bin/hscl"
   ln -sf hscl "$stage/usr/bin/hscl1"   # the name HSCL1 is also a program (same binary; usage text shows the name used)
 fi
+if [ -n "$bin" ] && [ "$name" = "hscl-base" ]; then
+  # Shell completions come from the clap tree of the very binary we ship, so they cannot drift from the commands.
+  # argv0 decides the program name, so the hscl1 scripts are produced through a temporary link named hscl1.
+  cdir="$(mktemp -d)"
+  ln -s "$(readlink -f "$bin")" "$cdir/hscl1"
+  for prog in hscl hscl1; do
+    exe="$bin"; [ "$prog" = "hscl1" ] && exe="$cdir/hscl1"
+    install -d "$stage/usr/share/bash-completion/completions" "$stage/usr/share/zsh/vendor-completions" "$stage/usr/share/fish/vendor_completions.d"
+    "$exe" completions bash > "$stage/usr/share/bash-completion/completions/$prog"
+    "$exe" completions zsh > "$stage/usr/share/zsh/vendor-completions/_$prog"
+    "$exe" completions fish > "$stage/usr/share/fish/vendor_completions.d/$prog.fish"
+  done
+  rm -rf "$cdir"
+  # Man pages come from the same clap tree (docs/CLI.md is the drift gate). Debian policy wants them
+  # gzipped, and man-db reads hscl1.1 as the second program name of the same binary.
+  mandir="$stage/usr/share/man/man1"
+  install -d "$mandir"
+  "$bin" man --out "$mandir" >/dev/null
+  for page in "$mandir"/*.1; do gzip -9n "$page"; done
+fi
 if [ "$name" = "hscl-base" ]; then
   mkdir -p "$stage/usr/share/hscl"
   printf '{"product":"HSCL1","version":"%s","credit":"Made with love by hcsmedia","channel":"pre-alpha"}

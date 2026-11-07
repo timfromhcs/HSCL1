@@ -87,3 +87,44 @@ def test_missing_evidence_is_refused(arts):
 def test_placeholders_are_detected():
     with pytest.raises(mr.ReleaseError):
         mr.check_no_placeholders('{"sha256": "GENERATE_FROM_FINAL_ARTIFACT"}', "x")
+
+
+def test_the_disk_image_is_optional_and_says_so(tmp_path):
+    """AGENTS.md 7.1: the VM image is optional and must not delay the verified ISO. The set must then
+    record its absence instead of silently omitting it - a consumer reading build-manifest.json has
+    to be able to tell "no image was built" from "the key was forgotten"."""
+    iso = tmp_path / "y.iso"
+    iso.write_bytes(b"iso-bytes")
+    (tmp_path / "y.iso.manifest.json").write_text(
+        json.dumps(wim.build(iso, "0.1.3-alpha.0", False, "b" * 64, "c" * 40, False)))
+    out = tmp_path / "rel"
+    files = mr.build_release("0.1.3-alpha.0", iso, None, out, {})
+    names = sorted(p.name for p in files)
+    assert names == ["HSCL1-0.1.3-alpha.0-amd64.iso", "SHA256SUMS", "build-manifest.json", "release-notes.md"]
+    sums = (out / "SHA256SUMS").read_text(encoding="utf-8")
+    assert sums.count("\n") == 1 and "amd64.iso" in sums
+    man = json.loads((out / "build-manifest.json").read_text(encoding="utf-8"))
+    assert man["prebuilt"] is None
+    assert "optional" in man["prebuilt_note"].lower()
+    notes = (out / "release-notes.md").read_text(encoding="utf-8")
+    assert "no disk image" in notes.lower()
+
+
+def test_gaps_are_written_into_the_notes_and_never_invented(tmp_path):
+    """A release set must carry its own "not verified" list: that is the difference between an honest
+    pre-release and a claim. Gaps come from the caller (they change per release), and an empty gap is
+    refused so a blank bullet cannot appear."""
+    iso = tmp_path / "z.iso"
+    iso.write_bytes(b"iso-bytes")
+    (tmp_path / "z.iso.manifest.json").write_text(
+        json.dumps(wim.build(iso, "0.1.3-alpha.0", False, "b" * 64, "c" * 40, False)))
+    out = tmp_path / "rel"
+    gaps = ["firmware acceptance of the Secure Boot chain (gate G6)",
+            "an install run on this exact image"]
+    mr.build_release("0.1.3-alpha.0", iso, None, out, {}, gaps)
+    notes = (out / "release-notes.md").read_text(encoding="utf-8")
+    assert "Not verified in this set" in notes
+    for g in gaps:
+        assert f"- {g}" in notes
+    with pytest.raises(mr.ReleaseError):
+        mr.build_release("0.1.3-alpha.0", iso, None, out, {}, ["  "])

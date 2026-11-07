@@ -34,12 +34,12 @@ What this means (and what it does not prove):
 
 - The automated "erase disk + encrypt" path already produces the layout the plan wants: ESP, a 4 GiB **unencrypted `/boot`**, one **LUKS2** root,
   swap as a **file** (so there is exactly one LUKS volume). This avoids the two failures reported for Kubuntu 26.04 (encrypted `/boot` + signed GRUB without
-  Argon2; Calamares failing with more than one LUKS volume). *Whether the installed system actually boots and unlocks is not yet tested (P2.4).*
-- `showNotEncryptedBootMessage: false`: the installer does not warn that `/boot` is unencrypted. HSCL1 must show its own, localised explanation
-  (P2.1) - until then this is an honest gap in the installer UX.
+  Argon2; Calamares failing with more than one LUKS volume). *Update 2026-11-07: tested for one install of 0.1.3-alpha.0 in a VM - it boots, refuses a wrong passphrase and unlocks with the right one (BUILD_LOG, 'LUKS install on the exact 0.1.3-alpha.0 artefact').*
+- `showNotEncryptedBootMessage: false` (stock). Since 2026-11-07 the live hook sets it to `true` and `verify-image.sh` checks the file. **Observed on the `0.1.3-dev2` image (VM, screenshots in `artifacts/dev2-installer/`): in the automatic "Erase disk + Encrypt system" path the setting has no visible effect** - no dialog on `Next`, no text on the Partitions page or the Summary. It probably applies to manual partitioning only (not verified). So the installer still does not explain the unencrypted `/boot` in the default path; a custom explanation (and a recovery-key explanation, AGENTS.md 6.3) remains an open gap. The setting is left on because it is harmless, tested as configuration, and may matter in the manual path.
 - `settings.conf` runs `luksbootkeyfile` in the exec sequence. **Risk to check in P2.4:** with an unencrypted `/boot`, a LUKS keyfile that ends up inside the
   initramfs would let anyone with disk access unlock the root. Gate: after the encrypted install, `lsinitramfs /boot/initrd.img-*` contains no keyfile,
   `/etc/crypttab` names no key file for the root volume, and boot asks for the passphrase.
+  **Result for that one install (offline read of the test disk, no passphrase used):** the unencrypted `/boot` holds `initrd.img-7.0.0-30-generic` (93,926,537 bytes); `lsinitramfs | grep -i keyfile` is empty; the `cryptroot/crypttab` inside the initramfs reads `luks-<uuid> UUID=<uuid> none` (passphrase prompt, no key file); the root LUKS2 header (read directly from the partition) has **exactly one keyslot** (argon2id, 688,611 KiB memory, time 4, 4 CPUs, 64-byte key, `aes-xts-plain64`, sector 512) and no tokens. So no keyfile slot was added and none is in the initramfs. Not covered: whether `/crypto_keyfile.bin` exists inside the encrypted root, other installs (btrfs, swap choices), and low-RAM machines (the Argon2id memory cost of about 672 MiB was chosen on a 4 GB VM; a small machine may fail to unlock).
 - Manual partitioning is still available in the stock config; the plan documents only the automated path as supported.
 
 ## GRUB / Secure Boot chain in the image

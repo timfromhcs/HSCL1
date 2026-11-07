@@ -13,6 +13,15 @@ This file refines W24 of `2026-11-06-ux-ai-hardware-expansion.md` and the self-h
 | Heredoc/escape mangling of scripts by the tool layer | several retries | Write files with the Write tool or from a file; never put backslash escapes inside inline Python |
 | `git add -A` after a failing pipe (`pytest | tail`) committed red tests | Commit only after an explicit exit-code check |
 
+## 0a. Status 2026-11-07 (measured)
+| Subcommand | State | Evidence |
+|---|---|---|
+| `check` | DONE | `forge check --strict` green; WSL parity step added 2026-11-06 |
+| `build` | DONE (core) | 3 steps + `--dry-run`, 4 tests, `FORGE_WSL` override; **not tried on a real build yet** (needs the WSL lab and >= 9 GB free) |
+| `boot` | DONE (core) | runs `qemu_boot_test.py`, summarises `result.json`, exit 1 when not booted; **no real boot run in this session** |
+| `diff` | PARTIAL | manifest field diff implemented and run on the two release manifests (0.1.1 -> 0.1.2: version, commit, 4.6 GB -> 5.0 GB, sha256); ISO-content diff (unmkinitramfs / unsquashfs / package lists) still open |
+| `test`, `install`, `cycle`, `release` | PLANNED | not in `--help` |
+
 ## 1. Single control: `scripts/forge.py` (standard library, no install)
 Subcommands (each prints what it will do first, stops on the first failure, writes `artifacts/forge/<run>/summary.json`):
 - `forge check` - local pre-push gate: `pytest -n auto`, ShellCheck (WSL), `bash -n`, exec-bit test, secret scan. Seconds to 1 minute.

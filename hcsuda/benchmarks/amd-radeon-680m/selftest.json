@@ -1,0 +1,44 @@
+{
+  "api_version": "1.4.315",
+  "cases": [
+    {
+      "deterministic": true,
+      "dtype": "f32",
+      "gpu_ms": 0.00256,
+      "max_error": 2.384185791015625e-7,
+      "ok": true,
+      "op": "saxpy",
+      "path": "vulkan_scalar",
+      "tolerance": 0.000074
+    },
+    {
+      "deterministic": true,
+      "dtype": "f32",
+      "gpu_ms": 0.00132,
+      "max_error": 2.384185791015625e-7,
+      "ok": true,
+      "op": "triad",
+      "path": "vulkan_scalar",
+      "tolerance": 0.000074
+    },
+    {
+      "deterministic": true,
+      "dtype": "f32",
+      "gpu_ms": 0.25719,
+      "max_error": 1.9073486328125e-6,
+      "ok": true,
+      "op": "gemv",
+      "path": "vulkan_scalar",
+      "tolerance": 0.000032627416997969525
+    }
+  ],
+  "device": "AMD Radeon(TM) Graphics",
+  "driver": "0x800161",
+  "ok": true,
+  "schema": 1,
+  "verified_paths": [
+    "vulkan_scalar:saxpy:f32",
+    "vulkan_scalar:triad:f32",
+    "vulkan_scalar:gemv:f32"
+  ]
+}

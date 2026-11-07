@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=CQ-HECS Studio
+Comment=Classical quantum-circuit simulation and SAT research (status and launcher)
+Exec=hscl-cqhecs doctor
+Icon=applications-science
+Terminal=true
+Categories=Science;Education;

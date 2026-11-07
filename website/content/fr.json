@@ -49,7 +49,7 @@
   "Démarre jusqu'au bureau live et s'installe sur un disque virtuel dans QEMU (UEFI et BIOS). Testé uniquement dans des machines virtuelles.",
   "Non testé sur du matériel physique. Non signé. L'état de Secure Boot dans l'invité n'a pas encore été lu.",
   "Security Lab et Vie privée sont prévus, pas livrés.",
-  "HSCL1 n'est pas un produit officiel de Kubuntu, Kali ou Tails et n'est pas soutenu par eux. Les noms tiers appartiennent à leurs propriétaires."
+  "HSCL1 n'est pas un produit officiel de Kubuntu, Kali ou Tails et n'est pas soutenu par eux. HSCL1 n'est ni affilié au projet Tails ni approuvé par lui. KALI LINUX™ est une marque d'OffSec. Les noms tiers appartiennent à leurs propriétaires."
  ],
  "dl": {
   "h1": "Téléchargement",

@@ -1,0 +1,119 @@
+#!/usr/bin/env bash
+# hscl-cqhecs: safe launcher for the CQ-HECS runtime. Fixed argv, no dynamic evaluation, no system-python fallback.
+# The only network access is `install-runtime --yes`, which installs from a hash-pinned requirements file.
+set -Eeuo pipefail
+
+data_dir="${XDG_DATA_HOME:-$HOME/.local/share}/hscl/cqhecs"
+venv="${HSCL_CQHECS_VENV:-"$data_dir/venv"}"
+share="${HSCL_CQHECS_SHARE:-/usr/share/hscl/cqhecs}"
+py="${HSCL_CQHECS_PYTHON:-python3}"
+
+usage() {
+  cat <<'USAGE'
+usage: hscl-cqhecs doctor [--json]
+       hscl-cqhecs run -- [cq-hecs arguments]
+       hscl-cqhecs install-runtime [--yes]
+       hscl-cqhecs uninstall-runtime [--yes]
+exit codes: 0 ok, 2 usage, 3 runtime not installed, 4 runtime present but broken,
+            5 Python does not fit the pinned runtime, 6 not confirmed (nothing was changed),
+            7 not enough free disk space (nothing was changed), 8 python3-venv is missing (nothing was changed)
+USAGE
+}
+
+runtime_state() {
+  if [ ! -x "$venv/bin/cq-hecs" ]; then echo missing; return; fi
+  # the CQ-HECS CLI has a `version` subcommand (verified on 5.0.0: `--version` is not an option)
+  if "$venv/bin/cq-hecs" version >/dev/null 2>&1; then echo ok; else echo broken; fi
+}
+
+conf_value() {
+  # read key=value from the package-owned runtime.conf without sourcing it
+  sed -n "s/^$1=//p" "$share/runtime.conf" | head -n 1
+}
+
+confirmed() {
+  # an explicit --yes, or an interactive "y"; never assumed
+  [ "${1:-}" = "--yes" ] && return 0
+  if [ -t 0 ]; then
+    printf 'Continue? [y/N] ' >&2
+    read -r answer || return 1
+    [ "$answer" = "y" ] || [ "$answer" = "Y" ]
+    return
+  fi
+  return 1
+}
+
+cmd="${1:-}"
+case "$cmd" in
+  doctor)
+    json=0
+    [ "${2:-}" = "--json" ] && json=1
+    state="$(runtime_state)"
+    if [ "$json" = 1 ]; then
+      printf '{"runtime":"%s","venv":"%s","data_dir":"%s","network":"not used"}\n' "$state" "$venv" "$data_dir"
+    else
+      printf 'runtime: %s\nvenv: %s\ndata dir: %s\nnetwork: not used\n' "$state" "$venv" "$data_dir"
+    fi
+    case "$state" in ok) exit 0 ;; missing) exit 3 ;; *) exit 4 ;; esac
+    ;;
+  run)
+    shift
+    [ "${1:-}" = "--" ] && shift
+    case "$(runtime_state)" in
+      ok) exec "$venv/bin/cq-hecs" "$@" ;;
+      missing) echo "hscl-cqhecs: CQ-HECS runtime not installed ($venv). Run: hscl-cqhecs doctor" >&2; exit 3 ;;
+      *) echo "hscl-cqhecs: CQ-HECS runtime present but broken ($venv). Run: hscl-cqhecs doctor" >&2; exit 4 ;;
+    esac
+    ;;
+  install-runtime)
+    want_py="$(conf_value python)"
+    req="$share/$(conf_value requirements)"
+    bytes="$(conf_value download_bytes)"
+    have_py="$("$py" -c 'import sys; print("%d.%d" % sys.version_info[:2])')"
+    if [ "$have_py" != "$want_py" ]; then
+      echo "hscl-cqhecs: the pinned runtime is built for CPython $want_py, this system has $have_py. Nothing was changed." >&2
+      exit 5
+    fi
+    # the base image has python3 but not python3-venv (no ensurepip); say so instead of failing half-way
+    if ! "$py" -c 'import ensurepip' >/dev/null 2>&1; then
+      echo "hscl-cqhecs: python3-venv is not installed (needed to create the environment). Install the package python3-venv with apt (as an administrator) and run this again. Nothing was changed." >&2
+      exit 8
+    fi
+    # free space on the nearest existing parent of the venv, checked before anything is asked or downloaded
+    need="$(conf_value min_free_bytes)"
+    probe="$venv"
+    while [ ! -d "$probe" ] && [ "$probe" != "/" ] && [ "$probe" != "." ]; do probe="$(dirname "$probe")"; done
+    free_kb="$(df -Pk "$probe" | awk 'NR==2 { print $4 }')"
+    if [ "$(awk -v f="$free_kb" -v n="$need" 'BEGIN { print (f * 1024 < n) ? 1 : 0 }')" = 1 ]; then
+      echo "hscl-cqhecs: not enough free disk space at $probe ($((free_kb / 1024)) MiB free, $((need / 1048576)) MiB needed). Nothing was changed." >&2
+      exit 7
+    fi
+    mib="$(awk -v b="$bytes" 'BEGIN { printf "%.1f", b / 1048576 }')"
+    printf 'CQ-HECS runtime\n  python:   %s\n  venv:     %s\n  download: %s MiB from PyPI and the CQ-HECS GitHub release (SHA-256 pinned: %s)\n' "$have_py" "$venv" "$mib" "$req"
+    if ! confirmed "${2:-}"; then
+      echo "hscl-cqhecs: not confirmed (use --yes). Nothing was changed." >&2
+      exit 6
+    fi
+    created=0
+    if [ ! -e "$venv" ]; then created=1; fi
+    "$py" -m venv "$venv"
+    if ! "$venv/bin/python" -m pip install --require-hashes --only-binary=:all: --no-input --disable-pip-version-check -r "$req"; then
+      echo "hscl-cqhecs: installation failed." >&2
+      if [ "$created" = 1 ]; then rm -rf -- "$venv"; echo "hscl-cqhecs: the partial environment was removed." >&2; fi
+      exit 4
+    fi
+    "$0" doctor
+    ;;
+  uninstall-runtime)
+    if [ ! -e "$venv" ]; then echo "hscl-cqhecs: no runtime at $venv" >&2; exit 3; fi
+    printf 'This removes the runtime environment %s. Your data in %s is kept.\n' "$venv" "$data_dir"
+    if ! confirmed "${2:-}"; then
+      echo "hscl-cqhecs: not confirmed (use --yes). Nothing was changed." >&2
+      exit 6
+    fi
+    rm -rf -- "$venv"
+    echo "hscl-cqhecs: runtime removed."
+    ;;
+  -h|--help|help) usage ;;
+  *) usage >&2; exit 2 ;;
+esac

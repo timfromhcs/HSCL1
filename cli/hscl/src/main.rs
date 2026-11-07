@@ -2,6 +2,7 @@
 //!
 //! Only commands with real implementations are exposed (AGENTS.md section 8.2).
 
+mod agent;
 mod ai;
 mod appearance;
 mod catalog;
@@ -9,6 +10,7 @@ mod code;
 mod doctor;
 mod download;
 mod gguf;
+mod governor;
 mod graphics;
 mod hw;
 mod lab;
@@ -18,7 +20,9 @@ mod profile;
 mod redact;
 mod report;
 mod security;
+mod serve;
 mod sysinfo;
+mod toolcall;
 mod updates;
 mod wallpaper;
 
@@ -110,6 +114,18 @@ enum Cmd {
         #[command(subcommand)]
         cmd: CodeCmd,
     },
+    /// Print a shell completion script (bash, zsh, fish, elvish, powershell) for `hscl` and `hscl1`.
+    Completions {
+        /// Target shell.
+        #[arg(value_enum)]
+        shell: clap_complete::Shell,
+    },
+    /// Write roff man pages for `hscl`, `hscl1` and every command into DIR (packaged under /usr/share/man/man1).
+    Man {
+        /// Target directory; created when missing, refused when it is a file.
+        #[arg(long)]
+        out: std::path::PathBuf,
+    },
     /// Model Context Protocol server on stdio for local agents (read-only unless --allow-write).
     Mcp {
         /// Also expose write tools (theme set, graphics apply).
@@ -151,6 +167,12 @@ enum Cmd {
 enum HwCmd {
     /// Detect devices and report them (nothing is installed or changed).
     Detect,
+    /// Which driver packages claim this hardware (read from the apt index; nothing is installed).
+    Suggest {
+        /// Root to inspect (default `/`).
+        #[arg(long)]
+        root: Option<std::path::PathBuf>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -373,6 +395,41 @@ enum AiCmd {
         #[arg(long, value_name = "PATH")]
         backend: Option<std::path::PathBuf>,
     },
+    /// Print the exact llama-server command for a local model (loopback only, API key as a file, measured defaults). Nothing is started.
+    Serve {
+        /// Model file (.gguf) inside the model storage directory (see `hscl ai model path`); not needed with --router-dir.
+        model: Option<std::path::PathBuf>,
+        /// TCP port on 127.0.0.1 (1024 or higher).
+        #[arg(long, default_value_t = 8081)]
+        port: u16,
+        /// Context length in tokens (512 to 262144).
+        #[arg(long, default_value_t = 4096)]
+        ctx: u32,
+        /// File with the API key, one line (default: ai-server.key in the hscl config directory). The key is never put on the command line.
+        #[arg(long, value_name = "PATH")]
+        api_key_file: Option<std::path::PathBuf>,
+        /// Router mode: serve the models in this directory (must be inside the model storage), loaded on demand.
+        #[arg(long, value_name = "DIR")]
+        router_dir: Option<std::path::PathBuf>,
+        /// Router mode only: models kept in memory at the same time (1 or 2).
+        #[arg(long)]
+        models_max: Option<u32>,
+        /// Model loading mode for the backend (auto, none, mmap, mlock, mmap+mlock, dio).
+        #[arg(long, value_name = "MODE")]
+        load_mode: Option<String>,
+        /// Keep the KV cache in system RAM (-nkvo) while the weights stay on the GPU.
+        #[arg(long)]
+        kv_in_ram: bool,
+        /// Small draft model for speculative decoding (.gguf inside the model storage).
+        #[arg(long, value_name = "PATH")]
+        draft_model: Option<std::path::PathBuf>,
+        /// Tokens the draft model may propose per step (1 to 16, default 3).
+        #[arg(long)]
+        draft_max: Option<u32>,
+        /// Also expose the Prometheus /metrics endpoint.
+        #[arg(long)]
+        metrics: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -555,6 +612,49 @@ fn print_value(as_json: bool, v: &serde_json::Value, human: impl FnOnce() -> Str
     }
 }
 
+fn completions_script(shell: clap_complete::Shell, prog: &str) -> String {
+    let mut cmd = <Cli as clap::CommandFactory>::command();
+    let mut buf = Vec::new();
+    clap_complete::generate(shell, &mut cmd, prog, &mut buf);
+    String::from_utf8_lossy(&buf).into_owned()
+}
+
+/// Roff man pages straight from the clap tree: `hscl.1`, `hscl1.1` (same binary, second name) and
+/// one `hscl-<command>.1` per top-level command. Nothing is templated by hand, so a page cannot
+/// describe a flag the binary does not have.
+fn write_man_pages(out: &std::path::Path) -> anyhow::Result<Vec<std::path::PathBuf>> {
+    if out.exists() && !out.is_dir() {
+        anyhow::bail!("{} exists and is not a directory", out.display());
+    }
+    std::fs::create_dir_all(out)
+        .map_err(|e| anyhow::anyhow!("cannot create {}: {e}", out.display()))?;
+    let root = <Cli as clap::CommandFactory>::command();
+    let mut written = Vec::new();
+    let mut emit = |cmd: clap::Command, file: String| -> anyhow::Result<()> {
+        let mut buf = Vec::new();
+        clap_mangen::Man::new(cmd).render(&mut buf)?;
+        let path = out.join(file);
+        std::fs::write(&path, &buf)
+            .map_err(|e| anyhow::anyhow!("cannot write {}: {e}", path.display()))?;
+        written.push(path);
+        Ok(())
+    };
+    for prog in ["hscl", "hscl1"] {
+        emit(
+            root.clone().name(prog.to_string()).bin_name(prog),
+            format!("{prog}.1"),
+        )?;
+    }
+    for sub in root.get_subcommands().filter(|c| c.get_name() != "help") {
+        let name = format!("hscl-{}", sub.get_name());
+        emit(
+            sub.clone().name(name.clone()).bin_name(name.clone()),
+            format!("{name}.1"),
+        )?;
+    }
+    Ok(written)
+}
+
 fn run(cli: Cli) -> anyhow::Result<u8> {
     let j = cli.json;
     match cli.command.unwrap_or(Cmd::Overview) {
@@ -571,11 +671,11 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
             let v = json!({
                 "product": PRODUCT, "expansion": EXPANSION, "version": env!("CARGO_PKG_VERSION"),
                 "publisher": "HCSMEDIA", "credit": CREDIT,
-                "notice": "HSCL1 is not Tails and not an official Kali release."
+                "notice": "HSCL1 is not Tails and not an official Kali release. KALI LINUX™ is a trademark of OffSec. HSCL1 is not affiliated with or endorsed by the Tails project."
             });
             print_value(j, &v, || {
                 format!(
-                    "{PRODUCT} {}\n{CREDIT}\nHSCL1 is not Tails and not an official Kali release.",
+                    "{PRODUCT} {}\n{CREDIT}\nHSCL1 is not Tails and not an official Kali release.\nKALI LINUX™ is a trademark of OffSec. HSCL1 is not affiliated with or endorsed by the Tails project.",
                     env!("CARGO_PKG_VERSION")
                 )
             });
@@ -613,6 +713,40 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
             let sec = security::collect();
             let v = serde_json::to_value(&sec)?;
             print_value(j, &v, || security::render(&sec));
+        }
+        Cmd::Ai {
+            cmd:
+                AiCmd::Serve {
+                    model,
+                    port,
+                    ctx,
+                    api_key_file,
+                    router_dir,
+                    models_max,
+                    metrics,
+                    load_mode,
+                    kv_in_ram,
+                    draft_model,
+                    draft_max,
+                },
+        } => {
+            let o = serve::ServeOpts {
+                model: model.unwrap_or_default(),
+                port,
+                ctx,
+                api_key_file: api_key_file
+                    .unwrap_or_else(|| appearance::config_dir().join("ai-server.key")),
+                router_dir,
+                models_max,
+                metrics,
+                load_mode,
+                kv_in_ram,
+                draft_model,
+                draft_max,
+            };
+            let argv = serve::serve_argv(&o, &download::models_dir())?;
+            let v = json!({"argv": argv, "executed": false, "note": "Printed only. Create the key file yourself (one random line, mode 0600) before starting the server."});
+            print_value(j, &v, || serve::render(&argv));
         }
         Cmd::Ai {
             cmd: AiCmd::Model { cmd },
@@ -719,11 +853,83 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
             )?;
             return Ok(exit::OK);
         }
+        Cmd::Completions { shell } => {
+            let prog = program_name(&std::env::args().next().unwrap_or_default());
+            print!("{}", completions_script(shell, prog));
+            return Ok(exit::OK);
+        }
+        Cmd::Man { out } => {
+            let files = write_man_pages(&out)?;
+            let paths: Vec<String> = files.iter().map(|p| p.display().to_string()).collect();
+            print_value(
+                j,
+                &json!({ "out": out.display().to_string(), "pages": paths }),
+                || format!("{} man pages written to {}", paths.len(), out.display()),
+            );
+            return Ok(exit::OK);
+        }
         Cmd::Graphics { cmd } => return run_graphics(j, cmd),
         Cmd::Lab { cmd } => return run_lab(j, cmd),
         Cmd::Hw { cmd: HwCmd::Detect } => {
             let r = hw::detect(std::path::Path::new("/"));
             print_value(j, &serde_json::to_value(&r)?, || hw::render(&r));
+        }
+        Cmd::Hw {
+            cmd: HwCmd::Suggest { root },
+        } => {
+            let root = root.unwrap_or_else(hw::default_root);
+            let (mods, dropped) = hw::modaliases(&root);
+            let candidates = hw::load_package_modaliases(&root);
+            let found = hw::suggest(&mods, &candidates);
+            if j {
+                let classes: std::collections::BTreeMap<String, String> = candidates
+                    .iter()
+                    .map(|c| (c.package.clone(), hw::licence_class(c).to_string()))
+                    .collect();
+                print_value(
+                    true,
+                    &json!({
+                        "devices": mods.len(),
+                        "dropped_modaliases": dropped,
+                        "index_packages": candidates.len(),
+                        "suggestions": found,
+                        "licence_class": classes,
+                    }),
+                    String::new,
+                );
+            } else {
+                if candidates.is_empty() {
+                    println!("No apt package index found (var/lib/apt/lists); nothing to suggest.");
+                } else {
+                    println!(
+                        "{} device modalias(es), {} package(s) in the index with a Modaliases field{}",
+                        mods.len(),
+                        candidates.len(),
+                        if dropped == 0 {
+                            String::new()
+                        } else {
+                            format!(", {dropped} value(s) dropped as malformed")
+                        }
+                    );
+                    if found.is_empty() {
+                        println!("No package claims this hardware.");
+                    }
+                    for sug in &found {
+                        println!("{}  {}", sug.path, sug.modalias);
+                        for pkg in &sug.packages {
+                            let class = candidates
+                                .iter()
+                                .find(|c| &c.package == pkg)
+                                .map(hw::licence_class)
+                                .unwrap_or("unknown");
+                            println!("    {pkg} ({class})");
+                        }
+                    }
+                }
+                println!(
+                    "Nothing is installed: this command only reads the apt index and the devices."
+                );
+            }
         }
         Cmd::Autotune { dry_run, force } => {
             return run_graphics(j, GraphicsCmd::Apply { dry_run, force });
@@ -1370,7 +1576,7 @@ Start here:
     }
     s.push_str(
         "
-`hscl` and `hscl1` are the same program. HSCL1 is not Tails and not an official Kali release.",
+`hscl` and `hscl1` are the same program. HSCL1 is not Tails and not an official Kali release.\n\nKALI LINUX™ is a trademark of OffSec. HSCL1 is not affiliated with or endorsed by the Tails project.",
     );
     s
 }
@@ -1450,5 +1656,357 @@ mod brand_tests {
     fn expansion_is_the_exact_owner_given_text() {
         assert_eq!(EXPANSION, "Hypercharged Supreme Computing Layout 1");
         assert_eq!(PRODUCT, "HSCL1");
+    }
+}
+
+#[cfg(test)]
+mod doc_drift_tests {
+    use super::*;
+
+    fn leaves(cmd: &clap::Command, prefix: &str, out: &mut Vec<String>) {
+        let subs: Vec<&clap::Command> = cmd
+            .get_subcommands()
+            .filter(|c| c.get_name() != "help")
+            .collect();
+        if subs.is_empty() {
+            out.push(prefix.to_string());
+        }
+        for c in subs {
+            leaves(c, &format!("{prefix} {}", c.get_name()), out);
+        }
+    }
+
+    /// G12: every leaf command of the clap tree must appear in docs/CLI.md.
+    #[test]
+    fn cli_doc_lists_every_command() {
+        let doc =
+            std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/CLI.md"))
+                .expect("docs/CLI.md");
+        let mut all = Vec::new();
+        let root = <Cli as clap::CommandFactory>::command();
+        for c in root.get_subcommands().filter(|c| c.get_name() != "help") {
+            leaves(c, &format!("hscl {}", c.get_name()), &mut all);
+        }
+        assert!(all.len() > 10, "command tree not walked: {all:?}");
+        let missing: Vec<&String> = all.iter().filter(|p| !doc.contains(p.as_str())).collect();
+        assert!(missing.is_empty(), "docs/CLI.md misses: {missing:#?}");
+    }
+}
+
+#[cfg(test)]
+mod completion_tests {
+    use super::*;
+
+    #[test]
+    fn completion_scripts_cover_every_top_level_command_for_both_program_names() {
+        let root = <Cli as clap::CommandFactory>::command();
+        for prog in ["hscl", "hscl1"] {
+            for shell in [
+                clap_complete::Shell::Bash,
+                clap_complete::Shell::Zsh,
+                clap_complete::Shell::Fish,
+            ] {
+                let s = completions_script(shell, prog);
+                for c in root.get_subcommands().filter(|c| c.get_name() != "help") {
+                    assert!(
+                        s.contains(c.get_name()),
+                        "{shell:?}/{prog} misses {}",
+                        c.get_name()
+                    );
+                }
+                assert!(s.contains(prog));
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod doc_command_tests {
+    //! G24: every `hscl ...` invocation shown in a fenced code block of the user-facing docs must
+    //! resolve in the real clap tree. Drift the other way (`docs/CLI.md` missing a command) is
+    //! covered by `cli_doc_lists_every_command`.
+    //!
+    //! Excluded on purpose: `docs/BUILD_LOG.md` (an append-only engineering log quoting commands
+    //! from past states), `docs/research/` and `docs/superpowers/` (plans may name commands that a
+    //! later sprint implements).
+    use clap::CommandFactory;
+    use std::path::{Path, PathBuf};
+
+    fn repo_root() -> PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
+    }
+
+    fn collect_md(dir: &Path, out: &mut Vec<PathBuf>) {
+        let Ok(entries) = std::fs::read_dir(dir) else {
+            return;
+        };
+        for entry in entries.flatten() {
+            let p = entry.path();
+            if p.is_dir() {
+                collect_md(&p, out);
+            } else if p.extension().is_some_and(|e| e == "md") {
+                out.push(p);
+            }
+        }
+    }
+
+    fn markdown_files(root: &Path) -> Vec<PathBuf> {
+        let mut out = Vec::new();
+        for name in ["README.md", "CONTRIBUTING.md", "SECURITY.md"] {
+            let p = root.join(name);
+            if p.is_file() {
+                out.push(p);
+            }
+        }
+        if let Ok(entries) = std::fs::read_dir(root.join("docs")) {
+            for entry in entries.flatten() {
+                let p = entry.path();
+                if p.extension().is_some_and(|e| e == "md")
+                    && p.file_name().is_some_and(|n| n != "BUILD_LOG.md")
+                {
+                    out.push(p);
+                }
+            }
+        }
+        collect_md(&root.join("handbook"), &mut out);
+        out.sort();
+        out
+    }
+
+    /// Commands inside fenced code blocks, as the token list after the program name.
+    fn commands_in(text: &str) -> Vec<String> {
+        let mut out = Vec::new();
+        let mut in_block = false;
+        for line in text.lines() {
+            let trimmed = line.trim();
+            if trimmed.starts_with("```") {
+                in_block = !in_block;
+                continue;
+            }
+            if !in_block {
+                continue;
+            }
+            if trimmed.starts_with('#') {
+                continue; // shell comment, not an invocation
+            }
+            let mut s = trimmed;
+            for prompt in ["$ ", "> "] {
+                if let Some(rest) = s.strip_prefix(prompt) {
+                    s = rest;
+                    break;
+                }
+            }
+            let words: Vec<&str> = s
+                .split_whitespace()
+                .take_while(|w| !w.contains('|') && !w.contains("&&") && !w.starts_with(';'))
+                .collect();
+            let mut words = words.as_slice();
+            if words.first() == Some(&"sudo") {
+                words = &words[1..];
+            }
+            if matches!(words.first(), Some(&"hscl") | Some(&"hscl1")) {
+                out.push(words[1..].join(" "));
+            }
+        }
+        out
+    }
+
+    /// Commands written as inline code spans (`sudo hscl ...`), which is how prose recommends them.
+    fn inline_commands(text: &str) -> Vec<String> {
+        let mut out = Vec::new();
+        let mut rest = text;
+        while let Some(start) = rest.find('`') {
+            rest = &rest[start + 1..];
+            let Some(end) = rest.find('`') else { break };
+            let span = &rest[..end];
+            rest = &rest[end + 1..];
+            let mut words: Vec<&str> = span
+                .split_whitespace()
+                .take_while(|w| !w.contains('|') && !w.contains("&&") && !w.starts_with(';'))
+                .collect();
+            if words.first() == Some(&"sudo") {
+                words.remove(0);
+            }
+            if matches!(words.first(), Some(&"hscl") | Some(&"hscl1")) && words.len() > 1 {
+                out.push(words[1..].join(" "));
+            }
+        }
+        out
+    }
+
+    /// Longest subcommand chain the tokens start with; a bare word under a node that has no
+    /// positionals is reported instead of silently accepted.
+    fn resolve(root: &clap::Command, command: &str) -> Result<String, String> {
+        let mut cur = root;
+        let mut path = vec!["hscl".to_string()];
+        for token in command.split_whitespace() {
+            if token.starts_with('-') || token.starts_with('#') {
+                break;
+            }
+            match cur.get_subcommands().find(|c| c.get_name() == token) {
+                Some(sub) => {
+                    path.push(token.to_string());
+                    cur = sub;
+                }
+                None => {
+                    let has_subs = cur.get_subcommands().any(|c| c.get_name() != "help");
+                    let has_positionals = cur.get_arguments().any(|a| a.get_index().is_some());
+                    if has_subs && !has_positionals {
+                        return Err(format!(
+                            "'{}' is not a subcommand of `{}`",
+                            token,
+                            path.join(" ")
+                        ));
+                    }
+                    break;
+                }
+            }
+        }
+        Ok(path.join(" "))
+    }
+
+    #[test]
+    fn documented_hscl_commands_resolve_in_the_cli() {
+        let root = repo_root();
+        let files = markdown_files(&root);
+        assert!(
+            files.len() > 10,
+            "only {} markdown files scanned - the gate would pass without looking",
+            files.len()
+        );
+        let cli = <crate::Cli as CommandFactory>::command();
+        let mut checked = 0usize;
+        let mut problems = Vec::new();
+        for file in &files {
+            let text = std::fs::read_to_string(file).expect("read markdown");
+            let mut all = commands_in(&text);
+            all.extend(inline_commands(&text));
+            for command in all {
+                // `hscl ...` in prose is a meta-reference to "the CLI", not an invocation; the
+                // release process doc uses it that way. Skipping only a leading placeholder keeps
+                // the gate strict for every real command.
+                if command.trim().is_empty() || command.trim_start().starts_with("...") {
+                    continue;
+                }
+                checked += 1;
+                if let Err(why) = resolve(&cli, &command) {
+                    let rel = file.strip_prefix(&root).unwrap_or(file);
+                    problems.push(format!("{}: hscl {} ({})", rel.display(), command, why));
+                }
+            }
+        }
+        assert!(
+            checked > 25,
+            "only {checked} documented commands found - the scan is probably broken"
+        );
+        assert!(
+            problems.is_empty(),
+            "documented commands that do not exist:\n{}",
+            problems.join("\n")
+        );
+    }
+
+    #[test]
+    fn a_placeholder_command_is_not_treated_as_an_invocation() {
+        // docs/RELEASE_PROCESS.md writes "`hscl ...`" meaning "the CLI"; collecting it as a command
+        // made the gate fail on a document that is correct (2026-11-07).
+        let inline = inline_commands("run `hscl ...` or `sudo hscl status`");
+        assert!(inline.contains(&"...".to_string()), "{inline:?}");
+        let keep: Vec<&String> = inline
+            .iter()
+            .filter(|c| !c.trim_start().starts_with("..."))
+            .collect();
+        assert_eq!(keep.len(), 1, "{inline:?}");
+    }
+
+    #[test]
+    fn the_command_scanner_reads_fenced_blocks_only_and_handles_prompts() {
+        let text = "text `hscl nope` inline\n```bash\n$ hscl status --json | jq .\nsudo hscl1 ainet detect\n```\n```\n# hscl comment only\n```\n";
+        let got = commands_in(text);
+        assert_eq!(
+            got,
+            vec!["status --json".to_string(), "ainet detect".to_string()]
+        );
+    }
+}
+
+#[cfg(test)]
+mod man_tests {
+    //! `hscl man --out DIR` (plan task 2b): the packaged man pages come from the same clap tree as
+    //! the binary, so a new command cannot ship without documentation (docs/CLI.md is the other half).
+    use super::*;
+
+    fn names(dir: &std::path::Path) -> Vec<String> {
+        std::fs::read_dir(dir)
+            .unwrap()
+            .flatten()
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .collect()
+    }
+
+    #[test]
+    fn writes_a_page_for_the_program_and_every_top_level_command() {
+        let dir = tempfile::tempdir().unwrap();
+        let files = write_man_pages(dir.path()).unwrap();
+        let got = names(dir.path());
+        for want in ["hscl.1", "hscl1.1"] {
+            assert!(got.iter().any(|n| n == want), "{want} missing: {got:?}");
+        }
+        let root = <Cli as clap::CommandFactory>::command();
+        let mut expected = 2;
+        for c in root.get_subcommands().filter(|c| c.get_name() != "help") {
+            let want = format!("hscl-{}.1", c.get_name());
+            assert!(got.iter().any(|n| n == &want), "{want} missing: {got:?}");
+            expected += 1;
+        }
+        assert_eq!(files.len(), expected);
+        for f in &files {
+            let text = std::fs::read_to_string(f).unwrap();
+            // roff pages may open with a quoting preamble (dot-ie, dot-el), so look for the title
+            // line and the mandatory NAME section rather than the first byte.
+            assert!(
+                text.lines().any(|l| l.starts_with(".TH ")),
+                "{f:?} has no .TH title line"
+            );
+            assert!(text.contains(".SH NAME"), "{f:?} has no NAME section");
+            assert!(text.len() > 100, "{f:?} is suspiciously short");
+            assert!(
+                !text.contains("PLACEHOLDER"),
+                "{f:?} contains a placeholder"
+            );
+        }
+        let root_page = std::fs::read_to_string(dir.path().join("hscl.1")).unwrap();
+        assert!(
+            root_page.contains(PRODUCT),
+            "the root page should name the product"
+        );
+        assert!(
+            root_page.contains(&format!("hscl {}", env!("CARGO_PKG_VERSION")))
+                || root_page.contains(env!("CARGO_PKG_VERSION"))
+        );
+    }
+
+    #[test]
+    fn a_path_that_is_a_file_is_refused_without_touching_it() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("not-a-directory");
+        std::fs::write(&file, b"keep me").unwrap();
+        assert!(write_man_pages(&file).is_err());
+        assert_eq!(std::fs::read(&file).unwrap(), b"keep me");
+    }
+
+    #[test]
+    fn the_pages_are_deterministic() {
+        let a = tempfile::tempdir().unwrap();
+        let b = tempfile::tempdir().unwrap();
+        write_man_pages(a.path()).unwrap();
+        write_man_pages(b.path()).unwrap();
+        for name in ["hscl.1", "hscl-ai.1"] {
+            assert_eq!(
+                std::fs::read(a.path().join(name)).unwrap(),
+                std::fs::read(b.path().join(name)).unwrap(),
+                "{name} differs between two runs"
+            );
+        }
     }
 }

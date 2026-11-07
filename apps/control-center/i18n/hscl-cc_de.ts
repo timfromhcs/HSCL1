@@ -250,8 +250,8 @@
         <translation>Mit Liebe gemacht von hcsmedia</translation>
     </message>
     <message>
-        <source>HSCL1 is not Tails and not an official Kali release. It is pre-alpha software.</source>
-        <translation>HSCL1 ist nicht Tails und keine offizielle Kali-Version. Es ist Pre-Alpha-Software.</translation>
+        <source>HSCL1 is not Tails and not an official Kali release. It is pre-alpha software.\nKALI LINUX™ is a trademark of OffSec. HSCL1 is not affiliated with or endorsed by the Tails project.</source>
+        <translation>HSCL1 ist nicht Tails und keine offizielle Kali-Version. Es ist Pre-Alpha-Software.\nKALI LINUX™ ist eine Marke von OffSec. HSCL1 ist weder mit dem Tails-Projekt verbunden noch von ihm unterstützt.</translation>
     </message>
 </context>
 </TS>

@@ -149,6 +149,9 @@ Effort: S = under 2 h, M = a few hours, L = a day or more. "Gate" = proof; "Evid
 - [ ] **W2.3 (M) Bandwidth and GEMM probes**: STREAM-style triad (bytes/s) and an f32/f16-ish GEMM via the `matrixmultiply` crate (GFLOPS, single and multi thread); both with warm-up, repeat count and noise report. **Gate:** repeatability (coefficient of variation recorded), sane vs `lscpu`/DIMM facts.
 - [ ] **W2.4 (M) `hscl ai estimate MODEL`**: roofline from W2.3 + W2.2 -> decode tokens/s range and prefill tokens/s range, with inputs printed. **Gate:** compare with `llama-bench` on the builder for the 2B model (CPU): within 25 % or a task opens to fix the model. Documented limits (launch-bound small models, mmap effects).
 - [ ] **W2.5 (S) Unified-memory advice** (`hscl ai tune-memory`): detect APU + TTM limits (`/sys/module/ttm/parameters`, `amdgpu` params, `/sys/class/drm/card*/device/mem_info_*`), print the suggested `ttm.pages_limit` with the formula, reboot warning, rollback line; **apply is a separate, confirmed, reversible action** writing a clearly named file under `/etc/modprobe.d/` or kernel cmdline drop-in; never run in the VM.
+  Sources settled 2026-11-07 (`docs/research/2026-11-07-apu-offload-vram-spill.md`): the knob is `ttm.pages_limit` (default = **half of system RAM**, read once at TTM init, so cmdline/modprobe and a reboot), `amdgpu.gttsize` is **deprecated** and `ttm.page_pool_size` is not a cap; on APUs GTT is capped at physical RAM; keep **>= 4 GB** headroom for the compositor. Never write it silently and never claim it took effect before `cat /sys/module/ttm/parameters/pages_limit` confirms it after the reboot.
+- [ ] **W2.10 (S) Offload flags in the profile** (from the same research): replace `--mmap/--mlock` with `-lm/--load-mode` (the old flags no longer exist), offer `-nkvo/--no-kv-offload` + `-ctk/-ctv q8_0` as explicit options with their trade-off, and `-md/--spec-draft-model` only together with the measured acceptance rate. Gate first: probe the **pinned** build with `--help` (the pinned llama.cpp may predate `--load-mode`); if it does not accept a flag, do not emit it.
+- [ ] **W2.11 (S, honesty) No SSD-as-VRAM claim**: `llama.cpp` has no supported VRAM/KV spill to disk (only page cache, swap/TTM swapout, `--load-mode dio`, `--lazy-mode` for CPU tensors). Documented in KNOWN_LIMITATIONS; the Control Center must not offer such a switch until a real implementation is measured.
 - [ ] **W2.6 (M) MoE-aware profile**: `hscl ai profile` adds `--n-cpu-moe`/`-ot` suggestions only when the pinned backend's `--help` lists them (existing `backend_caps` mechanism); tests with fake help texts.
 - [ ] **W2.7 (S) mmap/`--no-mmap` and `-ngl` guidance** for iGPU Vulkan from R-AI-3, as profile notes (no silent flag changes).
 - [ ] **W2.8 (M) Vulkan path test on lavapipe in the VM**: install `mesa-vulkan-drivers` in the live VM (or confirm present), run the pinned `llama-server` Vulkan build (if the backend pin offers one) with the tiny model, confirm the log names the lavapipe device; this verifies the code path, not speed. If the pin has no Vulkan build, add one to the pin generator (verified by `--list-devices`).
@@ -405,3 +408,39 @@ Research (2026-11-06), sources: casper stacks every squashfs under `/casper` as 
 - [x] Boot splash: HSCL1 theme in the live boot (screenshot `artifacts/boot-r3/shot-010.png`), GRUB menu "Try or Install HSCL1 (pre-alpha)".
 - [ ] **W21.5 Live "Try / Install" welcome screen still says Kubuntu** (full-screen logo, "Try Kubuntu", "Install Kubuntu", seen in `artifacts/boot-r3/shot-073.png`). Find the program that draws it (live VM `ps`, package owner), then replace text and artwork; add it to the content scanner (W24.6) and a screenshot gate.
 - [ ] **W21.6 Installed-system boot menu and EFI directory** (the EFI folder is named after Ubuntu): `GRUB_DISTRIBUTOR=HSCL1` is set, to verify in an install; change the EFI directory name only after a Secure Boot check.
+
+## Addendum 2026-11-06 (5): design constraints from the research round
+
+These are UX rules that follow from measured behaviour, not taste. Each one prevents a promise the desktop cannot keep.
+
+### U5.1 Tiling: "apply a layout", never "remember a layout"
+KWin does not save custom tile layouts (KDE bug 466019, confirmed 2026-10). So the Control Center exposes **presets** (Focus,
+Trio, Quad, Wide) with a preview; applying one writes `kwinrc [Tiling]` through `hscl appearance layout set NAME` and shows a
+one-line note: *"Layouts are re-applied after a monitor change."* There is always a visible "reset to default". No screenshot or
+marketing text may show a "saved layouts" list.
+
+### U5.2 Software sources: one toggle, honest consequences
+Privacy/Software screen gets a single switch "Enable Flatpak (Flathub)" with the exact truth: it installs `flatpak` + Flathub, it is
+not part of the base system, and each app then shows source and trust level. Off by default. This replaces any "Flatpak support"
+bullet in the feature list.
+
+### U5.3 Installer: two warnings that come from real bugs
+Before the disk step, if more than one LUKS device would be touched, the installer must refuse and explain (upstream Calamares
+cannot finish that case). If the network is down, the software-db step is expected to warn instead of crashing (LP #2143847) - the
+offline path is the *primary* tested path, not the fallback.
+
+### U5.4 Neural Lab workspace: a folder, not a launcher full of buttons
+`~/Projects/NeuralLab/{models,games,specs,notebooks,README.md}` is created once, never overwritten. In the Start menu it is one entry
+("Neural Lab") that opens the folder plus one entry per demo. Each demo window carries, in its own header, the measured FPS and the
+sentence that says what it is *not* (e.g. "toy next-frame predictor, not a game engine"). The Game Studio is a single dialog:
+prompt field, template preview, "Create" -> file in `games/`, "Open" -> isolated viewer. If the local model is missing, the dialog
+says so and offers the template without AI instead of a disabled button.
+
+### U5.5 Screenshot and documentation surfaces
+All product screenshots come from `spectacle -b -n -o` inside the VM at 1920x1080 and 1366x768 with animations disabled and a fixed
+locale, named `<screen>-<locale>-<w>x<h>.png`. A screenshot that cannot be reproduced by `scripts/capture_ui.py` is not published.
+
+### U5.6 Trademark surfaces
+First mention of the mark in any UI page, README section or website page carries the symbol and the attribution sentence; the
+Security Lab page says "Kali Linux™ tools in isolated containers" and never uses a Kali logo or the word "Kali" inside an HSCL1
+product name. Same rule for Tails.
