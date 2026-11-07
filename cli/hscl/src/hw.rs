@@ -912,3 +912,318 @@ mod render_modalias_tests {
         assert!(out.contains("2 dropped as malformed"), "{out}");
     }
 }
+
+/// B3: one driver package candidate, read from an apt `Packages` index.
+///
+/// The `Modaliases:` field is produced by debhelper's `dh_modaliases` (source package
+/// `ubuntu-drivers-common`): it runs `modinfo` over the modules a package ships and the debhelper
+/// substvar lands in the binary control file, hence in the index. `ubuntu-drivers` itself matches
+/// these values as globs against the sysfs modalias (upstream test fixtures use
+/// `nv(pci:v000010DEd000010C3sv*sd*bc03sc*i*)`), which is why this module does the same instead of
+/// inventing its own vendor mapping.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct Candidate {
+    pub package: String,
+    pub section: Option<String>,
+    /// Raw patterns exactly as the index has them (vendor-wrapped or plain globs).
+    pub patterns: Vec<String>,
+}
+
+/// One device with the packages that claim to cover it.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct Suggestion {
+    pub path: String,
+    pub modalias: String,
+    pub packages: Vec<String>,
+}
+
+/// Parse `Modaliases:` fields out of an apt `Packages` file. Stanzas are separated by blank lines;
+/// keys are `Key: value` with folded continuation lines starting with a space (Debian policy).
+/// `python3-*`-style packages with no modules simply have no field and are skipped.
+pub fn parse_packages_modaliases(text: &str) -> Vec<Candidate> {
+    let mut out = Vec::new();
+    let mut package: Option<String> = None;
+    let mut section: Option<String> = None;
+    let mut patterns: Vec<String> = Vec::new();
+    let flush = |out: &mut Vec<Candidate>,
+                 package: &mut Option<String>,
+                 section: &mut Option<String>,
+                 patterns: &mut Vec<String>| {
+        if let Some(name) = package.take() {
+            if !patterns.is_empty() {
+                out.push(Candidate {
+                    package: name,
+                    section: section.clone(),
+                    patterns: std::mem::take(patterns),
+                });
+            }
+        }
+        patterns.clear();
+        *section = None;
+    };
+    for line in text.lines() {
+        if line.trim().is_empty() {
+            flush(&mut out, &mut package, &mut section, &mut patterns);
+            continue;
+        }
+        if let Some(rest) = line.strip_prefix("Package:") {
+            package = Some(rest.trim().to_string());
+        } else if let Some(rest) = line.strip_prefix("Section:") {
+            section = Some(rest.trim().to_string());
+        } else if let Some(rest) = line.strip_prefix("Modaliases:") {
+            let value = rest.trim();
+            if !value.is_empty() {
+                patterns.push(value.to_string());
+            }
+        }
+    }
+    flush(&mut out, &mut package, &mut section, &mut patterns);
+    // Stable order so two runs on the same index produce the same list.
+    out.sort_by(|a, b| a.package.cmp(&b.package));
+    out
+}
+
+/// Glob match with `*` as the only wildcard, anchored at both ends.
+///
+/// Deliberately not a regex: the patterns are shell-like (`usb:v046Dp*`), and a tiny matcher cannot
+/// backtrack catastrophically on a hostile index.
+pub fn modality_matches(pattern: &str, modality: &str) -> bool {
+    fn rec(p: &[u8], m: &[u8]) -> bool {
+        match (p.split_first(), m.split_first()) {
+            (None, None) => true,
+            (None, Some(_)) => false,
+            (Some((b'*', rest)), _) => {
+                // '*' consumes zero or more characters.
+                let mut i = 0;
+                loop {
+                    if rec(rest, &m[i..]) {
+                        return true;
+                    }
+                    if i == m.len() {
+                        return false;
+                    }
+                    i += 1;
+                }
+            }
+            (Some((pc, prest)), Some((mc, mrest))) => {
+                pc.eq_ignore_ascii_case(mc) && rec(prest, mrest)
+            }
+            (Some(_), None) => false,
+        }
+    }
+    // A vendor wrapper such as `nv(pci:v...i*)` is a group: the inner part is the glob and the
+    // prefix/suffix around it are not part of the comparison.
+    let inner = match pattern.find('(') {
+        Some(start) if pattern.ends_with(')') => &pattern[start + 1..pattern.len() - 1],
+        _ => pattern,
+    };
+    if inner.is_empty() || modality.is_empty() {
+        return false;
+    }
+    rec(inner.as_bytes(), modality.as_bytes())
+}
+
+/// Which devices a package claims, for the given modaliases. Empty when nothing matches.
+pub fn suggest(mods: &[Modalias], candidates: &[Candidate]) -> Vec<Suggestion> {
+    let mut out = Vec::new();
+    for m in mods {
+        let mut packages: Vec<String> = candidates
+            .iter()
+            .filter(|c| c.patterns.iter().any(|p| modality_matches(p, &m.value)))
+            .map(|c| c.package.clone())
+            .collect();
+        packages.sort();
+        packages.dedup();
+        if !packages.is_empty() {
+            out.push(Suggestion {
+                path: m.path.clone(),
+                modalias: m.value.clone(),
+                packages,
+            });
+        }
+    }
+    out.sort_by(|a, b| a.path.cmp(&b.path));
+    out
+}
+
+/// Licence class of a candidate, from the index `Section:` and the package name.
+///
+/// The archive does not mark proprietary drivers in a machine-readable way, so this is a heuristic
+/// with a small, explainable list - and the field says `unknown` when it does not know, which is the
+/// honest answer for most packages. It must never be used to hide a driver from the user.
+pub fn licence_class(c: &Candidate) -> &'static str {
+    let section = c.section.as_deref().unwrap_or("");
+    if section.ends_with("/restricted") || section.ends_with("/multiverse") {
+        return "proprietary";
+    }
+    let name = c.package.as_str();
+    if name.starts_with("nvidia-driver-") || name.starts_with("bcmwl-") || name.contains("-dkms") {
+        return "proprietary";
+    }
+    if name.starts_with("firmware-") || name.starts_with("linux-firmware") {
+        return "firmware";
+    }
+    "unknown"
+}
+
+/// Read every `Modaliases:` stanza from the apt lists under `root` (`var/lib/apt/lists/*Packages*`).
+/// Missing directory means "no index on this system", which is a normal answer, not an error.
+pub fn load_package_modaliases(root: &Path) -> Vec<Candidate> {
+    let dir = root.join("var/lib/apt/lists");
+    let Ok(entries) = fs::read_dir(&dir) else {
+        return Vec::new();
+    };
+    let mut all = Vec::new();
+    for entry in entries.flatten() {
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if !name.contains("Packages") {
+            continue;
+        }
+        if let Ok(text) = fs::read_to_string(entry.path()) {
+            all.extend(parse_packages_modaliases(&text));
+        }
+    }
+    all.sort_by(|a, b| a.package.cmp(&b.package));
+    all.dedup_by(|a, b| a.package == b.package);
+    all
+}
+
+#[cfg(test)]
+mod suggest_tests {
+    use super::*;
+
+    const INDEX: &str = "Package: nvidia-driver-535\nSection: restricted/libs\nModaliases: nv(pci:v000010DEd000010C3sv*sd*bc03sc*i*)\n\nPackage: firmware-iwlwifi\nSection: non-free-firmware/kernel\nModaliases: pci:v00008086d000024F3sv*sd*bc*sc*i*\n\nPackage: python3-foo\nSection: python\n\nPackage: linux-image-generic\nSection: kernel\nModaliases: pci:v000010DEd*\n";
+
+    fn modalias(path: &str, value: &str) -> Modalias {
+        Modalias {
+            bus: "pci".into(),
+            path: path.into(),
+            value: value.into(),
+        }
+    }
+
+    #[test]
+    fn parse_reads_package_section_and_modalias_and_skips_stanzas_without_one() {
+        let c = parse_packages_modaliases(INDEX);
+        let names: Vec<&str> = c.iter().map(|x| x.package.as_str()).collect();
+        assert_eq!(
+            names,
+            [
+                "firmware-iwlwifi",
+                "linux-image-generic",
+                "nvidia-driver-535"
+            ]
+        );
+        assert_eq!(c[2].section.as_deref(), Some("restricted/libs"));
+        assert_eq!(c[2].patterns, ["nv(pci:v000010DEd000010C3sv*sd*bc03sc*i*)"]);
+    }
+
+    #[test]
+    fn a_vendor_wrapped_pattern_matches_the_inner_glob() {
+        let nv = modalias(
+            "sys/bus/pci/devices/0000:01:00.0",
+            "pci:v000010DEd000010C3sv000010DEsd000010C3bc03sc00i00",
+        );
+        assert!(modality_matches(
+            "nv(pci:v000010DEd000010C3sv*sd*bc03sc*i*)",
+            &nv.value
+        ));
+        // A different device id must not match.
+        let other = modalias("x", "pci:v000010DEd00001C82sv000010DEsd00001C82bc03sc00i00");
+        assert!(!modality_matches(
+            "nv(pci:v000010DEd000010C3sv*sd*bc03sc*i*)",
+            &other.value
+        ));
+    }
+
+    #[test]
+    fn plain_globs_match_prefixes_and_are_anchored() {
+        assert!(modality_matches(
+            "pci:v000010DEd*",
+            "pci:v000010DEd00002684"
+        ));
+        assert!(!modality_matches(
+            "pci:v000010DEd*",
+            "pci:v00001002d00001681"
+        ));
+        assert!(modality_matches("usb:v046Dp*", "usb:v046DpC52B"));
+        assert!(!modality_matches("usb:v046Dp*", "usb:v046EpC52B"));
+        assert!(!modality_matches("", "pci:v0"));
+        assert!(!modality_matches("pci:v0", ""));
+    }
+
+    #[test]
+    fn a_wildcard_only_pattern_matches_but_an_empty_one_does_not() {
+        assert!(modality_matches("*", "usb:v046DpC52B"));
+        assert!(!modality_matches("(", "usb:v1"));
+    }
+
+    #[test]
+    fn suggest_returns_only_devices_with_candidates_sorted() {
+        let c = parse_packages_modaliases(INDEX);
+        let mods = vec![
+            modalias(
+                "sys/bus/pci/devices/0000:05:00.0",
+                "pci:v00001002d00001681sv000017AAsd00003801bc03sc00i00",
+            ),
+            modalias(
+                "sys/bus/pci/devices/0000:01:00.0",
+                "pci:v000010DEd000010C3sv000010DEsd000010C3bc03sc00i00",
+            ),
+        ];
+        let s = suggest(&mods, &c);
+        assert_eq!(s.len(), 1, "{s:?}");
+        assert_eq!(s[0].path, "sys/bus/pci/devices/0000:01:00.0");
+        assert_eq!(s[0].packages, ["linux-image-generic", "nvidia-driver-535"]);
+    }
+
+    #[test]
+    fn no_index_means_no_candidates_and_no_error() {
+        let dir = tempfile::tempdir().unwrap();
+        assert!(load_package_modaliases(dir.path()).is_empty());
+    }
+
+    #[test]
+    fn the_index_reader_finds_packages_files_only() {
+        let dir = tempfile::tempdir().unwrap();
+        let lists = dir.path().join("var/lib/apt/lists");
+        fs::create_dir_all(&lists).unwrap();
+        fs::write(
+            lists.join("archive.ubuntu.com_ubuntu_dists_resolute_main_binary-amd64_Packages"),
+            INDEX,
+        )
+        .unwrap();
+        fs::write(lists.join("lock"), "not an index").unwrap();
+        let c = load_package_modaliases(dir.path());
+        assert_eq!(c.len(), 3);
+    }
+
+    #[test]
+    fn licence_class_uses_section_and_name_and_admits_when_it_does_not_know() {
+        let mk = |p: &str, s: Option<&str>| Candidate {
+            package: p.into(),
+            section: s.map(Into::into),
+            patterns: vec![],
+        };
+        assert_eq!(
+            licence_class(&mk("nvidia-driver-535", Some("restricted/libs"))),
+            "proprietary"
+        );
+        assert_eq!(
+            licence_class(&mk("nvidia-driver-535-open", Some("libs"))),
+            "proprietary"
+        );
+        assert_eq!(
+            licence_class(&mk("bcmwl-kernel-source", Some("kernel"))),
+            "proprietary"
+        );
+        assert_eq!(
+            licence_class(&mk("firmware-iwlwifi", Some("non-free-firmware/kernel"))),
+            "firmware"
+        );
+        assert_eq!(
+            licence_class(&mk("mesa-vulkan-drivers", Some("libs"))),
+            "unknown"
+        );
+    }
+}

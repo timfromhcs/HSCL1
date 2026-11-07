@@ -167,6 +167,12 @@ enum Cmd {
 enum HwCmd {
     /// Detect devices and report them (nothing is installed or changed).
     Detect,
+    /// Which driver packages claim this hardware (read from the apt index; nothing is installed).
+    Suggest {
+        /// Root to inspect (default `/`).
+        #[arg(long)]
+        root: Option<std::path::PathBuf>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -847,6 +853,63 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
         Cmd::Hw { cmd: HwCmd::Detect } => {
             let r = hw::detect(std::path::Path::new("/"));
             print_value(j, &serde_json::to_value(&r)?, || hw::render(&r));
+        }
+        Cmd::Hw {
+            cmd: HwCmd::Suggest { root },
+        } => {
+            let root = root.unwrap_or_else(hw::default_root);
+            let (mods, dropped) = hw::modaliases(&root);
+            let candidates = hw::load_package_modaliases(&root);
+            let found = hw::suggest(&mods, &candidates);
+            if j {
+                let classes: std::collections::BTreeMap<String, String> = candidates
+                    .iter()
+                    .map(|c| (c.package.clone(), hw::licence_class(c).to_string()))
+                    .collect();
+                print_value(
+                    true,
+                    &json!({
+                        "devices": mods.len(),
+                        "dropped_modaliases": dropped,
+                        "index_packages": candidates.len(),
+                        "suggestions": found,
+                        "licence_class": classes,
+                    }),
+                    String::new,
+                );
+            } else {
+                if candidates.is_empty() {
+                    println!("No apt package index found (var/lib/apt/lists); nothing to suggest.");
+                } else {
+                    println!(
+                        "{} device modalias(es), {} package(s) in the index with a Modaliases field{}",
+                        mods.len(),
+                        candidates.len(),
+                        if dropped == 0 {
+                            String::new()
+                        } else {
+                            format!(", {dropped} value(s) dropped as malformed")
+                        }
+                    );
+                    if found.is_empty() {
+                        println!("No package claims this hardware.");
+                    }
+                    for sug in &found {
+                        println!("{}  {}", sug.path, sug.modalias);
+                        for pkg in &sug.packages {
+                            let class = candidates
+                                .iter()
+                                .find(|c| &c.package == pkg)
+                                .map(hw::licence_class)
+                                .unwrap_or("unknown");
+                            println!("    {pkg} ({class})");
+                        }
+                    }
+                }
+                println!(
+                    "Nothing is installed: this command only reads the apt index and the devices."
+                );
+            }
         }
         Cmd::Autotune { dry_run, force } => {
             return run_graphics(j, GraphicsCmd::Apply { dry_run, force });

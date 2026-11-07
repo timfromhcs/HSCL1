@@ -565,3 +565,20 @@ image without a committed fix - or building twice - I stopped it at about 5 % of
 the background job exits 1 for that reason, not because of a build error) and restarted from `a55e023`. Build log:
 `~/hscl1-build/out/build-0.1.3-alpha.0.log`, target `~/hscl1-build/out/HSCL1-0.1.3-alpha.0-amd64.iso`, reduced
 squashfs settings again (`HSCL_SQUASH_PROCS=2 HSCL_SQUASH_MEM=384M`) because the host still has ~8.8 GB available.
+
+## Task B3 driver suggestions from the apt index (2026-11-07)
+`hscl hw suggest [--root DIR] [--json]`. The research round settled the mechanism, so the code follows upstream instead
+of inventing a vendor map: debhelper's `dh_modaliases` (source package `ubuntu-drivers-common`) emits `Modaliases:` into
+the binary package and therefore into the `Packages` index; each value is a glob, often vendor-wrapped
+(`nv(pci:v000010DEd000010C3sv*sd*bc03sc*i*)`), matched against the device modalias from sysfs. Implemented as pure
+functions (`parse_packages_modaliases`, `modality_matches`, `suggest`, `licence_class`, `load_package_modaliases`) plus
+the CLI command. Eight Rust tests: stanza parsing (Package/Section/Modaliases, skip stanzas without the field, stable
+sort), wrapped-pattern match and a differing device id that must not match, plain glob anchoring, `*` alone, empty
+pattern, suggestion list containing only devices with candidates, missing index = empty and no error, index reader
+ignoring non-Packages files, and the licence heuristic admitting "unknown" for e.g. `mesa-vulkan-drivers`.
+Three Python gate tests: the function names are present, the `suggest` body contains no install command
+(`apt-get install`, `apt install`, `dpkg -i`, `systemctl start`), and the Rust `suggest` tests pass.
+Live run on this host: `No apt package index found (var/lib/apt/lists); nothing to suggest.` - which is the honest
+answer on Windows, not a failure. `--json` shape: devices, dropped_modaliases, index_packages, suggestions,
+licence_class. `docs/CLI.md` row added (the drift test requires it). Not implemented: using `ubuntu-drivers devices` as a
+second source (the index route needs no external tool), and the hwdb generator half of Task 6 (B2).

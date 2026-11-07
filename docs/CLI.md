@@ -46,6 +46,18 @@ the USB `serial` file is never read - a serial number identifies a device, it do
 `--json` prints the same data. It installs and changes nothing. Driver suggestions and an install action are separate, later steps (PLANNED - no such subcommand
 exists yet, so none is offered here).
 
+## `hscl hw suggest` (IMPLEMENTED, unit-tested; VM run pending)
+
+Reads the `Modaliases:` fields of the apt index under `/var/lib/apt/lists` and matches them against the devices'
+modaliases (the same mechanism `ubuntu-drivers` uses: debhelper's `dh_modaliases` writes those fields, and each value is
+a glob, often vendor-wrapped like `nv(pci:v000010DEd000010C3sv*sd*bc03sc*i*)`). Output: device path, modalias and the
+claiming packages with a licence class (proprietary / firmware / unknown - from the index `Section:` and a short,
+documented name list; "unknown" is printed rather than guessed).
+
+It **installs nothing**: no apt, no dpkg, no systemctl. Without an apt index it says so ("nothing to suggest") instead of
+inventing candidates. `--root DIR` points it at a fixture tree; `--json` prints the devices, the index package count, the
+suggestions and the licence classes.
+
 ## `hscl lab` (IMPLEMENTED, unit-tested; no container started yet)
 
 See `docs/SECURITY_LAB.md`: `status`, `setup`, `toolsets`, `spec` (prints the exact rootless `podman` command, executes nothing).

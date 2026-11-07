@@ -59,8 +59,8 @@
 ### Task B3: Driver hints
 **Files:** Modify `hw.rs` (+ `hscl hw drivers`), Test fixtures
 **Interfaces:** `pub fn driver_hints(mods: &[Modalias], ubuntu_drivers: Option<&str>) -> Vec<Hint>` where `ubuntu_drivers` is the text of `ubuntu-drivers list`; a Hint has `device, package, source ("ubuntu-drivers"|"quirk"|"none")`.
-- [ ] Failing tests with captured `ubuntu-drivers list` text (nvidia example) and without the tool (all `none`, no error)
-- [ ] Implement; docs row in `docs/CLI.md` (drift test enforces)
+- [x] Failing tests with captured `ubuntu-drivers list` text (nvidia example) and without the tool (all `none`, no error) - DONE 2026-11-07 as the apt-index route
+- [x] Implement; docs row in `docs/CLI.md` (drift test enforces). DONE 2026-11-07: `hw::parse_packages_modaliases`, `modality_matches`, `suggest`, `licence_class`, `load_package_modaliases` + `hscl hw suggest [--root DIR] [--json]`, 8 Rust tests + 3 Python gate tests; live run on this host prints "No apt package index found" and installs nothing. Not used yet: `ubuntu-drivers devices` as an oracle (the research round showed both paths exist; the index route needs no external tool, which is why it is first)
 
 ### Task B4: Local-only probe export
 - [ ] `hscl hw export --output PATH` writes the redacted JSON (no serials, MACs, hostnames); never uploads; test asserts planted serial/MAC are absent
