@@ -557,3 +557,11 @@ root-owned cache is created), postrm does the same on remove/purge. Test written
 the call, the `command -v` guard and an unprivileged runner, and postrm must rebuild too. bash -n and shellcheck (WSL)
 clean, 7 menu tests pass. Not yet verified in a VM: that the section actually appears in Kickoff after install - that
 belongs to the next image run, not to this commit.
+
+## Release build 0.1.3-alpha.0: one deliberate restart (2026-11-07)
+The first release build (xz, no `--fast`) started from `2508e24`. While it was in the squash phase I committed
+`a55e023` (menu-cache rebuild in the branding postinst), which the artefact would have missed. Instead of shipping an
+image without a committed fix - or building twice - I stopped it at about 5 % of the squash pass (`wsl --shutdown`;
+the background job exits 1 for that reason, not because of a build error) and restarted from `a55e023`. Build log:
+`~/hscl1-build/out/build-0.1.3-alpha.0.log`, target `~/hscl1-build/out/HSCL1-0.1.3-alpha.0-amd64.iso`, reduced
+squashfs settings again (`HSCL_SQUASH_PROCS=2 HSCL_SQUASH_MEM=384M`) because the host still has ~8.8 GB available.
