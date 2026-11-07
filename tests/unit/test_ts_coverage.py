@@ -81,4 +81,4 @@ def test_quiet_prints_nothing_for_a_complete_file_and_only_problems_otherwise(tm
     assert r.returncode == 0 and r.stdout == ""
     r = subprocess.run([sys.executable, str(SCRIPT), "--quiet", str(good), str(bad)], capture_output=True, text=True)
     assert r.returncode == 1
-    assert "finished" not in r.stdout and "unfinished: Next" in r.stdout
+    assert "good.ts" not in r.stdout and "bad.ts" not in r.stdout and "unfinished: Next" in r.stdout
