@@ -17,6 +17,7 @@ from typing import Callable, Mapping, TextIO
 
 import gateway
 import loop
+import hostgate
 import memgate
 
 NAME = "localdelegate"
@@ -37,6 +38,10 @@ MODEL_MB = {"qwen3-4b": 4300, "jev-1.5b": 0, "bonsai-27b": 9000, "bonsai-9b": 49
 DEFAULT_MODEL_MB = 6000
 DEFAULT_MODEL = "jev-1.5b"  # the :8080 Bonsai-9B that is already resident (measured 2026-11-07: 10/10 tasks, 10.6 s/task, 0 MB extra)
 KV_MB = 600
+# The shared 8080 server (gateway id jev-1.5b) is free only while it is already working: measured 2026-11-07 about 2.7-3.5 GB working,
+# about 1.3 GB asleep (sleep-idle 60 s). Asleep or absent, a run has to wake it.
+WAKE_MB = {"jev-1.5b": 2700}
+SHARED_PROCESS = {"jev-1.5b": "llama-server"}
 
 TOOL = {
     "name": "local_code",
@@ -67,6 +72,8 @@ class Deps:
     run_task: Callable
     make_chat: Callable[[str], Callable[[list], str]]
     gate: Callable[[str], dict]
+    host: Callable[[], dict] = lambda: {"ok": True, "reason": "host check not configured"}
+    lock: Callable[[], object] = lambda: hostgate.SingleFlight(Path(__import__("tempfile").gettempdir()) / "hscl-local-worker.lock")
 
 
 class InvalidParams(Exception):
@@ -122,6 +129,14 @@ def _call(args: dict, deps: Deps) -> dict:
     g = deps.gate(a["model"])
     if not g["ok"]:
         return _text(f"memory_gate: {g['reason']}", True)
+    h = deps.host()
+    if not h["ok"]:
+        return _text(f"host_busy: {h['reason']}", True)
+    try:
+        lock = deps.lock()
+        lock.__enter__()
+    except hostgate.Busy:
+        return _text("busy: another local task is running; the delegate runs one task at a time", True)
     try:
         res = deps.run_task(
             deps.make_chat(a["model"]), deps.root, a["files"], a["task"], a["test_cmd"],
@@ -129,6 +144,8 @@ def _call(args: dict, deps: Deps) -> dict:
         )
     except gateway.GatewayError as e:
         return _text(f"gateway_error: {e.code}", True)
+    finally:
+        lock.__exit__(None, None, None)
     body = {
         "ok": res.ok, "rounds": res.rounds, "reason": res.reason,
         "diff": res.diff[:MAX_DIFF], "last_output": res.last_output[-MAX_OUT:],
@@ -196,12 +213,19 @@ def make_deps(env: Mapping[str, str] | None = None) -> Deps:
     base = env.get("HSCL_WORKER_GATEWAY", gateway.DEFAULT_URL)
 
     def gate(model: str) -> dict:
-        return memgate.decide(MODEL_MB.get(model, DEFAULT_MODEL_MB), KV_MB, memgate.free_mb(), reserve)
+        mb = hostgate.effective_model_mb(model, MODEL_MB, WAKE_MB, SHARED_PROCESS, hostgate.process_rss_mb, DEFAULT_MODEL_MB)
+        return memgate.decide(mb, KV_MB, memgate.free_mb(), reserve)
+
+    allow_vm = env.get("HSCL_WORKER_ALLOW_VM") == "1"
+    cpu_limit = float(env.get("HSCL_WORKER_CPU_LIMIT", hostgate.DEFAULT_CPU_LIMIT))
+
+    def host() -> dict:
+        return hostgate.decide_host(hostgate.cpu_percent(), hostgate.qemu_running(), memgate.free_mb(), 0, reserve, cpu_limit, allow_vm)
 
     def make_chat(model: str) -> Callable[[list], str]:
         return lambda msgs: gateway.chat(msgs, model, max_tokens=1500, base_url=base)
 
-    return Deps(root=root, run_task=loop.run_task, make_chat=make_chat, gate=gate)
+    return Deps(root=root, run_task=loop.run_task, make_chat=make_chat, gate=gate, host=host)
 
 
 def main() -> int:

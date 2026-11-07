@@ -104,6 +104,12 @@ patch_file "$ROOTFS/etc/calamares/modules/oemid.conf" 's/^batch-identifier: kubu
 
 # Partition/filesystem names that end up on the installed disk
 patch_file "$ROOTFS/etc/calamares/modules/partition.conf" 's/"kubuntu_boot"/"hscl1_boot"/; s/"kubuntu_2604"/"hscl1_root"/'
+# Notes page (disk encryption explained, en/de/fr via lang/*.qm): a QML view step shown before the partition page. The page file lives in
+# the hscl-branding package; here the module config is created and the step is inserted into the show sequence.
+if [ -f "$ROOTFS/etc/calamares/settings.conf" ]; then
+  printf -- '---\n# where to look for notesqml.qml: the branding directory only\nqmlSearch: branding\n' > "$ROOTFS/etc/calamares/modules/notesqml.conf"
+  patch_file "$ROOTFS/etc/calamares/settings.conf" '0,/^  - partition$/s//  - notesqml\n  - partition/'
+fi
 # With encryption, /boot stays unencrypted (docs/INSTALLER_FACTS.md). Calamares has a message for that, but it was NOT seen in the automatic
 # erase+encrypt path of the dev2 image (only the config value is verified); an HSCL1 explanation is still an open gap.
 patch_file "$ROOTFS/etc/calamares/modules/partition.conf" 's/^showNotEncryptedBootMessage:.*/showNotEncryptedBootMessage: true/'

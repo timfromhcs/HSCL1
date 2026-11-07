@@ -54,3 +54,20 @@ mkdir -p "$STAGE/usr/lib"
 sed "s/@VERSION@/$VERSION/g" "$STAGE/os-release.in" > "$STAGE/usr/lib/os-release"
 rm -f "$STAGE/os-release.in"
 sed -i "s/\\S{VERSION}/$VERSION/" "$STAGE/etc/issue"
+
+# Installer translations (de, fr) for the QML pages of the branding component: Calamares reads lang/calamares-<component>_<lang>.qm.
+# The page text is English source; without these files the installer would show English whatever language was chosen, so a missing
+# lrelease is a build error, not a silent fallback.
+lrelease=""
+for cand in lrelease lrelease6 lrelease-qt6 /usr/lib/qt6/bin/lrelease; do
+  if command -v "$cand" >/dev/null 2>&1; then lrelease="$cand"; break; fi
+done
+if [ -z "$lrelease" ]; then
+  echo "build.sh: lrelease not found (install qt6-l10n-tools); the installer translations cannot be built" >&2
+  exit 1
+fi
+mkdir -p "$STAGE/etc/calamares/branding/hscl1/lang"
+for lang in de fr; do
+  "$lrelease" "$ROOT/distro/installer/i18n/calamares-hscl1_${lang}.ts" -qm "$STAGE/etc/calamares/branding/hscl1/lang/calamares-hscl1_${lang}.qm" >/dev/null
+  chmod 0644 "$STAGE/etc/calamares/branding/hscl1/lang/calamares-hscl1_${lang}.qm"
+done
