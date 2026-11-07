@@ -169,6 +169,7 @@ dependencies = [
  "ash",
  "bytemuck",
  "hcsuda-core",
+ "serde_json",
  "thiserror",
 ]
 

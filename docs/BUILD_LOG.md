@@ -729,3 +729,6 @@ Observation: `hcsuda plan` could never choose a GPU path, because `probe` leaves
 
 ## H2d step 1: f16-storage GEMM (2026-11-07)
 `pack_f16x2` / `round_through_f16` (tests first), `gemm_f16_tiled.comp`, runner method, selftest case on an odd shape (error 0, deterministic), bench suite `gemm_f16`. `vulkan_tiled:gemm:f16` is now a verified key, so `hcsuda plan gemm f16` picks it from evidence. Methodology finding recorded in `hcsuda/docs/MEASURED.md`: the f32 GEMM time is bimodal (0.27-0.38 ms) independent of suite order; only same-run comparisons or all-run ranges are quoted. Cooperative-matrix GEMM is the remaining H2d item.
+
+## H2d: cooperative-matrix GEMM (2026-11-07)
+Probe first: new `hcsuda coopmat` queries the driver's supported shapes (11, all 16x16x16, subgroup scope, incl. f16->f32). Shader compiled on attempt 1; selftest error 2.4e-7, deterministic. Planner: coopmat only for f16/bf16, a verified key and 16-aligned m/n/k (test first; unaligned falls back to the f16 tiled path). `hcsuda plan gemm f16 --m 256 --n 256 --k 1024` -> vulkan_coopmat; `--m 250` -> vulkan_tiled. Measured 0.167 ms vs 0.257 ms (f16 tiled), 1.53x, stable over two runs. `hcsuda-vk` gained a `serde_json` dependency (workspace-pinned). Tests 51, clippy -D warnings, fmt clean.

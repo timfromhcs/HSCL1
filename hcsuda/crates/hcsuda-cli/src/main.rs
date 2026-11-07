@@ -28,6 +28,11 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// List the cooperative-matrix shapes the device reports, as JSON.
+    Coopmat {
+        #[arg(long)]
+        device: Option<usize>,
+    },
     /// Report the device capability record (dtypes, heaps, features).
     Caps {
         #[arg(long)]
@@ -109,6 +114,19 @@ fn main() {
 fn run() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
+        Command::Coopmat { device } => {
+            let dev = hcsuda_vk::Device::new(device).context("opening the device")?;
+            let shapes = dev.cooperative_matrix_shapes();
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&serde_json::json!({
+                    "device": dev.name(),
+                    "count": shapes.len(),
+                    "shapes": shapes,
+                }))?
+            );
+            Ok(())
+        }
         Command::Caps { json, device, out } => cmd_caps(json, device, out),
         Command::Plan {
             op,
@@ -773,6 +791,46 @@ fn cmd_selftest(json: bool, device: Option<usize>, out: Option<PathBuf>) -> Resu
         gpu_ms: timed.and_then(|t| t.gpu_ms),
     });
 
+    // Cooperative-matrix GEMM (f16 in, f32 accumulate) on a 16-aligned shape.
+    if runner.gemm_coopmat.is_some() {
+        let (cm, ck, cn) = (48usize, 80usize, 64usize);
+        let ca: Vec<f32> = (0..cm * ck)
+            .map(|i| ((i % 83) as f32 - 41.0) * 0.015)
+            .collect();
+        let cb: Vec<f32> = (0..ck * cn)
+            .map(|i| ((i % 47) as f32 - 23.0) * 0.019)
+            .collect();
+        let want = reference::gemm(
+            &hcsuda_core::tensor::round_through_f16(&ca),
+            &hcsuda_core::tensor::round_through_f16(&cb),
+            cm,
+            ck,
+            cn,
+        );
+        let gca = runner.upload_u32(&hcsuda_core::tensor::pack_f16x2(&ca))?;
+        let gcb = runner.upload_u32(&hcsuda_core::tensor::pack_f16x2(&cb))?;
+        let gcc = runner.upload(&vec![0.0f32; cm * cn])?;
+        let mut got_runs = Vec::new();
+        let mut timed = None;
+        for _ in 0..3 {
+            timed = Some(runner.gemm_coopmat(&gca, &gcb, &gcc, cm, ck, cn)?);
+            got_runs.push(runner.download(&gcc)?);
+        }
+        let got = got_runs.last().expect("three runs").clone();
+        let ctol = gpu::f32_tolerance(ck);
+        let max_error = ctol.max_error(&want, &got).unwrap_or(f64::INFINITY);
+        cases.push(Case {
+            op: "gemm",
+            dtype: "f16",
+            path: "vulkan_coopmat",
+            max_error,
+            tolerance: ctol.abs + ctol.rel,
+            ok: max_error <= ctol.abs + ctol.rel,
+            deterministic: got_runs.windows(2).all(|w| w[0] == w[1]),
+            gpu_ms: timed.and_then(|t| t.gpu_ms),
+        });
+    }
+
     let all_ok = cases.iter().all(|c| c.ok && c.deterministic);
     let verified: Vec<String> = cases
         .iter()
@@ -1141,6 +1199,37 @@ fn cmd_bench(
                         "f16",
                         [m, n, k],
                         "vulkan_tiled",
+                        &runner.dev.name(),
+                        &driver,
+                        wall,
+                        ops,
+                        bytes,
+                    )
+                    .with_gpu_stats(gpu_stats),
+                );
+            }
+            "gemm_coopmat" => {
+                let (m, k, n) = (256usize, 1024usize, 256usize);
+                let a: Vec<f32> = (0..m * k)
+                    .map(|i| ((i % 97) as f32 - 48.0) * 0.01)
+                    .collect();
+                let b: Vec<f32> = (0..k * n)
+                    .map(|i| ((i % 41) as f32 - 20.0) * 0.02)
+                    .collect();
+                let ops = Some(2.0 * m as f64 * n as f64 * k as f64);
+                let bytes = Some((2 * (m * k + k * n) + 4 * m * n) as u64);
+                let ga = runner.upload_u32(&hcsuda_core::tensor::pack_f16x2(&a))?;
+                let gb = runner.upload_u32(&hcsuda_core::tensor::pack_f16x2(&b))?;
+                let gc = runner.upload(&vec![0.0f32; m * n])?;
+                warm_up(warmup_s, || runner.gemm_coopmat(&ga, &gb, &gc, m, k, n))?;
+                let timings = sample(runs, reps, || runner.gemm_coopmat(&ga, &gb, &gc, m, k, n))?;
+                let (wall, gpu_stats) = split_timings(timings);
+                out_suite.push(
+                    BenchRow::from_samples(
+                        "gemm",
+                        "f16",
+                        [m, n, k],
+                        "vulkan_coopmat",
                         &runner.dev.name(),
                         &driver,
                         wall,

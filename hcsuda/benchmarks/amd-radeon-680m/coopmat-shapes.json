@@ -1,0 +1,127 @@
+{
+  "count": 11,
+  "device": "AMD Radeon(TM) Graphics",
+  "shapes": [
+    {
+      "a": "FLOAT16",
+      "b": "FLOAT16",
+      "c": "FLOAT32",
+      "k": 16,
+      "m": 16,
+      "n": 16,
+      "result": "FLOAT32",
+      "saturating": false,
+      "scope": "SUBGROUP"
+    },
+    {
+      "a": "FLOAT16",
+      "b": "FLOAT16",
+      "c": "FLOAT16",
+      "k": 16,
+      "m": 16,
+      "n": 16,
+      "result": "FLOAT16",
+      "saturating": false,
+      "scope": "SUBGROUP"
+    },
+    {
+      "a": "FLOAT16",
+      "b": "FLOAT16",
+      "c": "FLOAT16",
+      "k": 16,
+      "m": 16,
+      "n": 16,
+      "result": "FLOAT16",
+      "saturating": true,
+      "scope": "SUBGROUP"
+    },
+    {
+      "a": "UINT8",
+      "b": "UINT8",
+      "c": "SINT32",
+      "k": 16,
+      "m": 16,
+      "n": 16,
+      "result": "SINT32",
+      "saturating": false,
+      "scope": "SUBGROUP"
+    },
+    {
+      "a": "UINT8",
+      "b": "UINT8",
+      "c": "SINT32",
+      "k": 16,
+      "m": 16,
+      "n": 16,
+      "result": "SINT32",
+      "saturating": true,
+      "scope": "SUBGROUP"
+    },
+    {
+      "a": "UINT8",
+      "b": "SINT8",
+      "c": "SINT32",
+      "k": 16,
+      "m": 16,
+      "n": 16,
+      "result": "SINT32",
+      "saturating": false,
+      "scope": "SUBGROUP"
+    },
+    {
+      "a": "UINT8",
+      "b": "SINT8",
+      "c": "SINT32",
+      "k": 16,
+      "m": 16,
+      "n": 16,
+      "result": "SINT32",
+      "saturating": true,
+      "scope": "SUBGROUP"
+    },
+    {
+      "a": "SINT8",
+      "b": "UINT8",
+      "c": "SINT32",
+      "k": 16,
+      "m": 16,
+      "n": 16,
+      "result": "SINT32",
+      "saturating": false,
+      "scope": "SUBGROUP"
+    },
+    {
+      "a": "SINT8",
+      "b": "UINT8",
+      "c": "SINT32",
+      "k": 16,
+      "m": 16,
+      "n": 16,
+      "result": "SINT32",
+      "saturating": true,
+      "scope": "SUBGROUP"
+    },
+    {
+      "a": "SINT8",
+      "b": "SINT8",
+      "c": "SINT32",
+      "k": 16,
+      "m": 16,
+      "n": 16,
+      "result": "SINT32",
+      "saturating": false,
+      "scope": "SUBGROUP"
+    },
+    {
+      "a": "SINT8",
+      "b": "SINT8",
+      "c": "SINT32",
+      "k": 16,
+      "m": 16,
+      "n": 16,
+      "result": "SINT32",
+      "saturating": true,
+      "scope": "SUBGROUP"
+    }
+  ]
+}

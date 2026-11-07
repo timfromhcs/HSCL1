@@ -4,7 +4,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.00256,
+      "gpu_ms": 0.0026,
       "max_error": 2.384185791015625e-7,
       "ok": true,
       "op": "saxpy",
@@ -24,7 +24,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.07324,
+      "gpu_ms": 0.073,
       "max_error": 1.9073486328125e-6,
       "ok": true,
       "op": "gemv",
@@ -34,7 +34,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.01408,
+      "gpu_ms": 0.01232,
       "max_error": 2.384185791015625e-7,
       "ok": true,
       "op": "gemm",
@@ -44,7 +44,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.00616,
+      "gpu_ms": 0.0068,
       "max_error": 3.259629011154175e-9,
       "ok": true,
       "op": "softmax",
@@ -54,7 +54,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.00536,
+      "gpu_ms": 0.01584,
       "max_error": 2.86102294921875e-6,
       "ok": true,
       "op": "layernorm",
@@ -74,7 +74,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.00232,
+      "gpu_ms": 0.00096,
       "max_error": 2.980232238769531e-7,
       "ok": true,
       "op": "rope",
@@ -84,7 +84,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.00384,
+      "gpu_ms": 0.00412,
       "max_error": 0.0,
       "ok": true,
       "op": "gemm_i8dot",
@@ -94,7 +94,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.00468,
+      "gpu_ms": 0.0046,
       "max_error": 0.0,
       "ok": true,
       "op": "gemm",
@@ -104,12 +104,22 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.0048,
+      "gpu_ms": 0.00496,
       "max_error": 0.0,
       "ok": true,
       "op": "gemm",
       "path": "vulkan_tiled",
       "tolerance": 0.00001806225774829855
+    },
+    {
+      "deterministic": true,
+      "dtype": "f32",
+      "gpu_ms": 0.00492,
+      "max_error": 2.384185791015625e-7,
+      "ok": true,
+      "op": "gemm",
+      "path": "vulkan_coopmat",
+      "tolerance": 0.00001894427190999916
     }
   ],
   "device": "AMD Radeon(TM) Graphics",
@@ -127,6 +137,7 @@
     "vulkan_scalar:rope:f32",
     "vulkan_i8dot:gemm_i8dot:i8",
     "vulkan_intdot:gemm:i8",
-    "vulkan_tiled:gemm:f16"
+    "vulkan_tiled:gemm:f16",
+    "vulkan_coopmat:gemm:f16"
   ]
 }

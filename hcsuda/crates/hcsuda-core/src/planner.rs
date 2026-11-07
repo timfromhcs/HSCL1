@@ -208,8 +208,11 @@ pub fn plan(op: Op, dtype: DType, shape: Shape, caps: &DeviceCaps) -> Plan {
     // 3. Matrix work: cooperative matrix first, then shared-memory tiling.
     if matches!(op, Op::Gemm | Op::Gemv) {
         let coop = PathKind::VulkanCoopMat.key(op, dtype);
+        // The kernel loads whole 16x16x16 tiles, so every dimension must divide by 16.
+        let aligned = shape.m % 16 == 0 && shape.n % 16 == 0 && shape.k % 16 == 0;
         if caps.features.cooperative_matrix
             && matches!(dtype, DType::F16 | DType::Bf16)
+            && aligned
             && caps.path_is_verified(&coop)
         {
             return Plan {
@@ -407,5 +410,18 @@ mod tests {
         let none = caps(Features::default(), &[]);
         let q = plan(Op::Rope, DType::F32, Shape::new(8, 128, 0), &none);
         assert_eq!(q.kind, PathKind::Reference);
+    }
+
+    #[test]
+    fn coopmat_is_chosen_only_for_tile_aligned_shapes() {
+        let f = Features {
+            cooperative_matrix: true,
+            ..Default::default()
+        };
+        let c = caps(f, &["vulkan_coopmat:gemm:f16", "vulkan_tiled:gemm:f16"]);
+        let aligned = plan(Op::Gemm, DType::F16, Shape::new(64, 32, 48), &c);
+        assert_eq!(aligned.kind, PathKind::VulkanCoopMat);
+        let ragged = plan(Op::Gemm, DType::F16, Shape::new(64, 30, 48), &c);
+        assert_eq!(ragged.kind, PathKind::VulkanTiled);
     }
 }
