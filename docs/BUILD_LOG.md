@@ -582,3 +582,18 @@ Live run on this host: `No apt package index found (var/lib/apt/lists); nothing 
 answer on Windows, not a failure. `--json` shape: devices, dropped_modaliases, index_packages, suggestions,
 licence_class. `docs/CLI.md` row added (the drift test requires it). Not implemented: using `ubuntu-drivers devices` as a
 second source (the index route needs no external tool), and the hwdb generator half of Task 6 (B2).
+
+## Release artefact 0.1.3-alpha.0 built (2026-11-07)
+`HSCL1-0.1.3-alpha.0-amd64.iso`, **5 026 742 272 bytes**, sha256
+**fc81ad1d93efeac61904879e9def34e39cdceb982bf7aafc070b34afdd4d1ebb**, built from the clean clone at **a55e023**
+(`git_dirty: false`), manifest version `0.1.3-alpha.0`, `workshop_default: disabled`, base checksum verified against the
+upstream-signed `SHA256SUMS` during the build, `verify-image: all checks passed`, `BUILD_EXIT=0`. Build log:
+`~/hscl1-build/out/build-0.1.3-alpha.0.log`.
+Size check against the decision recorded earlier: the xz build is **5 026 742 272 B vs 5 026 480 128 B for 0.1.2** - a
+262 KiB difference for a whole sprint of changes, i.e. the release path really does not pay the ~460 MB that `--fast`
+added to the dev image. That confirms the decision to build the release without `--fast`.
+Secure Boot chain re-measured on this exact file (`artifacts/sb-0.1.3-alpha.0/report.json`): shim = Microsoft UEFI CA
+2011 / Microsoft Windows UEFI Driver Publisher; `grubx64.efi`, `mmx64.efi`, `casper/vmlinuz` = Canonical Secure Boot
+Signing (2022 v1). Firmware acceptance is still gate G6.
+Not yet done on this artefact: the copy to `artifacts/iso/` (hash re-check on the target path), the boot gate and the e2e
+set. Those are the next two steps and they decide whether this file may be called tested.
