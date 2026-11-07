@@ -546,3 +546,14 @@ work touched or could plausibly have broken: `earlyoom_active` (active), `zram_s
 per-check output are in the report; the desktop screenshot is `artifacts/e2e-0.1.3-dev/desktop.png`.
 Note: `hscl1_version` in the guest report is `0.1.2-alpha.0` because `VERSION` was not bumped for this content-validation
 image; the release artefact is built separately after the bump (see below).
+
+## G26a follow-up: menu cache rebuild in the package (2026-11-07)
+The research round answered why `applications-merged` works on Plasma (startplasma sets
+`XDG_MENU_PREFIX=plasma-`, the base menu carries `<DefaultMergeDirs/>`, which is searched **without** the prefix) and
+that the cache is only refreshed by `kbuildsycoca6`. Without that call a freshly installed section can stay invisible
+until the next login - indistinguishable from a broken menu file. `hscl-branding` postinst now runs
+`kbuildsycoca6 --noincremental` (guarded by `command -v`, and as `$SUDO_USER`/`$PKEXEC_UID` via `runuser` so no
+root-owned cache is created), postrm does the same on remove/purge. Test written first (red): the postinst must contain
+the call, the `command -v` guard and an unprivileged runner, and postrm must rebuild too. bash -n and shellcheck (WSL)
+clean, 7 menu tests pass. Not yet verified in a VM: that the section actually appears in Kickoff after install - that
+belongs to the next image run, not to this commit.

@@ -81,3 +81,19 @@ def test_any_directory_reference_points_at_a_shipped_file():
     refs = [d.text for d in root.iter("Directory") if d.text]
     missing = [r for r in refs if not (MENU.parent / r).is_file()]
     assert not missing, f"<Directory> without a shipped file: {missing}"
+
+
+def test_the_package_rebuilds_the_ksycoca_cache_after_installing_the_menu():
+    """G26a follow-up from the 2026-11-07 research: Plasma reads applications-merged because
+    startplasma sets XDG_MENU_PREFIX=plasma- and the base menu carries <DefaultMergeDirs/>, but the
+    cache is only rebuilt when kbuildsycoca6 runs. Without it a freshly installed section can be
+    missing until the next login, which looks exactly like a broken menu file."""
+    post = ROOT / "packages/debian/hscl-branding/DEBIAN/postinst"
+    text = post.read_text(encoding="utf-8")
+    assert "kbuildsycoca6 --noincremental" in text, "postinst must rebuild the menu cache"
+    assert "command -v kbuildsycoca6" in text, "the call must be guarded: kbuildsycoca6 is not always installed"
+    # Rebuilding as root would create root-owned caches in the wrong place; the call has to run as a user.
+    assert "runuser" in text or "su " in text, "must not create a root-owned ksysca cache"
+    # Uninstall must not leave the section behind in the cache either.
+    postrm = ROOT / "packages/debian/hscl-branding/DEBIAN/postrm"
+    assert "kbuildsycoca6 --noincremental" in postrm.read_text(encoding="utf-8")

@@ -12,3 +12,10 @@ if [ "$1" = remove ] || [ "$1" = abort-install ] || [ "$1" = disappear ]; then
   dpkg-divert --package hscl-branding --quiet --rename --remove /etc/xdg/kcm-about-distrorc
   dpkg-divert --package hscl-branding --quiet --rename --remove /usr/libexec/start-kubuntu-live-env
 fi
+
+# The menu section is gone; let KDE drop it from the cache now instead of at the next login.
+if [ "$1" = remove ] || [ "$1" = purge ]; then
+  if command -v kbuildsycoca6 >/dev/null 2>&1 && [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != root ]      && command -v runuser >/dev/null 2>&1; then
+    runuser -u "$SUDO_USER" -- kbuildsycoca6 --noincremental >/dev/null 2>&1 || true
+  fi
+fi
