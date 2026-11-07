@@ -28,3 +28,9 @@
 - `runtime.conf` now declares `min_free_bytes=1073741824` (1 GiB; measured need: 61.5 MiB download + 269 MiB venv). `install-runtime` checks free space on the nearest existing parent of the venv **before** it asks and before it downloads; too little space -> exit 7, nothing changed, no venv, no interpreter call.
 - Tests (red first, 15 now pass): the refusal with an absurd minimum (no venv, no `-m` call logged) and a sanity band for the declared minimum (0.4 to 4 GiB). ShellCheck rc 0.
 - Not verified: the check on filesystems where `df -Pk` reports unusual values (network mounts, btrfs subvolumes); on the installed HSCL1 ext4/LUKS root.
+
+## 2026-11-07 - B1: python3-venv is not in the base image (found before adding the package to the ISO)
+- Check: in the cached pristine root of the base ISO (`dpkg-query --admindir`): `python3` 3.14.3 and `python3.14` 3.14.4 are installed; **`python3-venv` and `python3.14-venv` are not**, `ensurepip` is absent.
+- Consequences: a hard `Depends: python3-venv` would make `dpkg -i` fail in `scripts/remaster-iso.sh` (it installs the debs offline with `dpkg -i`), and on an installed system `install-runtime` could not create a venv. (The earlier real run in WSL worked only because that distribution has `python3-venv`.)
+- Change (red first, 16 tests pass): `python3-venv` moved to `Recommends`; `install-runtime` checks `import ensurepip` before anything else and exits 8 with an explanation, nothing changed. The hint avoids the word `sudo` (the launcher must never run it; the test forbids the word to keep that rule simple). ShellCheck rc 0.
+- Still not done: adding `hscl-cqhecs` to `scripts/remaster-iso.sh` and `distro/live/verify-image.sh`; installing `python3-venv` offline would need that `.deb` and its dependencies inside the ISO (size not measured), so on the live ISO the runtime install explains what is missing instead.

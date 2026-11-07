@@ -3,7 +3,8 @@ Version: 0.0.0
 Architecture: all
 Section: science
 Priority: optional
-Depends: hscl-base, python3 (>= 3.11), python3-venv
+Depends: hscl-base, python3 (>= 3.11)
+Recommends: python3-venv
 Maintainer: HCSMEDIA <noreply@hcsmedia.invalid>
 Description: CQ-HECS Studio launcher for HSCL1 (app shell, runtime on demand)
  A small launcher and status command for the CQ-HECS classical quantum-circuit

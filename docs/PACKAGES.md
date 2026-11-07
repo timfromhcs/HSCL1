@@ -14,7 +14,7 @@ version (e.g. `0.1.2~alpha.0`).
 | `hscl-base` | 0.0.0 | HSCL1 base files: CLI, release marker and Midnight wallpaper | - |
 | `hscl-branding` | 0.0.0 | HSCL1 branding: logos, wallpapers, os-release and About data | - |
 | `hscl-control-center` | 0.0.0 | HSCL1 Control Center (overview, appearance, security, about) | hscl-base, hscl-branding, libqt6quickcontrols2-6, qml6-module-qtquick-controls, qml6-module-qtquick-layouts, qml6-module-qtquick-window, qml6-module-qtquick-templates, qml6-module-qtqml-workerscript |
-| `hscl-cqhecs` | 0.0.0 | CQ-HECS Studio launcher for HSCL1 (app shell, runtime on demand) | hscl-base, python3 (>= 3.11), python3-venv |
+| `hscl-cqhecs` | 0.0.0 | CQ-HECS Studio launcher for HSCL1 (app shell, runtime on demand) | hscl-base, python3 (>= 3.11) |
 | `hscl-desktop` | 0.0.0 | HCS Hybrid Desktop: top bar, floating dock and HSCL1 look-and-feel for Plasma | hscl-branding, plasma-desktop |
 | `hscl-handbook` | 0.0.0 | HSCL1 handbook (offline, English, Deutsch, Français) | xdg-utils |
 | `hscl-memory` | 0.0.0 | HSCL1 memory protection: compressed swap in RAM, early out-of-memory killer, AI memory slice | earlyoom, systemd-zram-generator |

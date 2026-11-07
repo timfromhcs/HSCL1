@@ -16,7 +16,7 @@ usage: hscl-cqhecs doctor [--json]
        hscl-cqhecs uninstall-runtime [--yes]
 exit codes: 0 ok, 2 usage, 3 runtime not installed, 4 runtime present but broken,
             5 Python does not fit the pinned runtime, 6 not confirmed (nothing was changed),
-            7 not enough free disk space (nothing was changed)
+            7 not enough free disk space (nothing was changed), 8 python3-venv is missing (nothing was changed)
 USAGE
 }
 
@@ -73,6 +73,11 @@ case "$cmd" in
     if [ "$have_py" != "$want_py" ]; then
       echo "hscl-cqhecs: the pinned runtime is built for CPython $want_py, this system has $have_py. Nothing was changed." >&2
       exit 5
+    fi
+    # the base image has python3 but not python3-venv (no ensurepip); say so instead of failing half-way
+    if ! "$py" -c 'import ensurepip' >/dev/null 2>&1; then
+      echo "hscl-cqhecs: python3-venv is not installed (needed to create the environment). Install the package python3-venv with apt (as an administrator) and run this again. Nothing was changed." >&2
+      exit 8
     fi
     # free space on the nearest existing parent of the venv, checked before anything is asked or downloaded
     need="$(conf_value min_free_bytes)"

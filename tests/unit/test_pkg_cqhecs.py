@@ -44,7 +44,11 @@ def test_control_names_the_package_and_needs_a_modern_python_but_no_compiler():
     assert c["Package"] == "hscl-cqhecs"
     assert c["Architecture"] == "all"
     deps = c.get("Depends", "")
-    assert "python3 (>= 3.11)" in deps and "python3-venv" in deps  # both repos need >= 3.11; the venv is built on demand
+    assert "python3 (>= 3.11)" in deps  # both repos need >= 3.11; the venv is built on demand
+    # python3-venv is NOT installed in the base live image (checked 2026-11-07: no ensurepip), so a hard dependency would make
+    # `dpkg -i` fail during the image build; it is recommended, and install-runtime reports it when missing
+    assert "python3-venv" not in deps
+    assert "python3-venv" in c.get("Recommends", "")
     assert "build-essential" not in deps and "gcc" not in deps  # wheels exist for cp314, no compiler needed
 
 
@@ -136,7 +140,11 @@ def stub_python(tmp_path, version="3.14.3"):
 echo "$0 $*" >> "{log.as_posix()}"
 case "$1" in
   --version) echo "Python {version}" ;;
-  -c) echo "{'.'.join(version.split('.')[:2])}" ;;
+  -c)
+    case "$2" in
+      *ensurepip*) [ -n "${{STUB_NO_ENSUREPIP:-}}" ] && {{ echo "ModuleNotFoundError: No module named 'ensurepip'" >&2; exit 1; }} ;;
+      *) echo "{'.'.join(version.split('.')[:2])}" ;;
+    esac ;;
   -m)
     if [ "$2" = venv ]; then
       mkdir -p "$3/bin"
@@ -235,3 +243,15 @@ def test_runtime_conf_declares_a_realistic_minimum_free_space():
     conf = dict(l.split("=", 1) for l in (SHARE / "runtime.conf").read_text(encoding="utf-8").split() if "=" in l)
     # measured 2026-11-07: 61.5 MiB download, 269 MiB unpacked venv; require clearly more than both together
     assert 400 * 1024 * 1024 <= int(conf["min_free_bytes"]) <= 4 * 1024 * 1024 * 1024
+
+
+@needs_bash
+def test_install_runtime_explains_a_missing_python3_venv_and_changes_nothing(tmp_path):
+    stub, log = stub_python(tmp_path)
+    env = env_for(tmp_path, stub)
+    env["STUB_NO_ENSUREPIP"] = "1"
+    r = run("install-runtime", "--yes", env=env)
+    assert r.returncode == 8, r.stdout + r.stderr
+    assert "python3-venv" in r.stderr and "apt" in r.stderr
+    assert not (tmp_path / "venv").exists()
+    assert not [l for l in (log.read_text() if log.exists() else "").splitlines() if " -m venv" in l]
