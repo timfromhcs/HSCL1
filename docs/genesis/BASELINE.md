@@ -35,3 +35,8 @@ Discrepancies with the companion file: it quotes the SHAs `30c7f14...` (CQ-HECS)
 | Notes | README in EN/DE/FR; native C++/CMake path needs Vulkan SDK (per companion file, not yet re-verified in the CMake file) | `cli.py` refuses a non-loopback host unless `allow_lan` is set (loopback-by-default is real in source); port 8770 appears only in a benchmark fixture, not yet confirmed as the service default |
 
 Open: which Python the base image provides (Ubuntu 26.04 `python3`) versus `>=3.11` for both; whether `qiskit` has wheels there; install size of the CQ-HECS venv. These decide the shape of `hscl-cqhecs` and are the first B1 measurements.
+
+## B1 measurement 1: Python and wheels on the base image (2026-11-07)
+- Ubuntu 26.04 (`resolute`) default `python3` is **3.14** (packages.ubuntu.com, `python3-defaults` 3.14.3-0ubuntu2); both repos require `>=3.11`, so the system interpreter is acceptable for a venv.
+- `pip download --only-binary=:all: --platform manylinux_2_28_x86_64 --python-version 3.14 --abi cp314 "numpy>=1.24" "qiskit>=0.45"` succeeded: numpy 2.5.4 (cp314), qiskit 2.6.2 (cp310-abi3), scipy 1.18.1 (cp314), rustworkx 0.18.1, dill, stevedore, typing_extensions. **62 MB of wheels** (compressed). So the CQ-HECS Python install needs no compiler on 3.14. Not yet measured: the unpacked venv size, the `[sat]` extra (`python-sat` has no wheel confirmation), whether `cq-hecs doctor` runs on those versions.
+- Consequence for `hscl-cqhecs`: a pinned wheelhouse of about 62 MB (more with `[sat]`) cannot go into the live image by default; the package should ship the shell and an installer that builds the venv from a hash-pinned wheelhouse on explicit user action (Genesis 2.2, 3.1), with the size shown before download.
