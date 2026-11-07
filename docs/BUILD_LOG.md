@@ -534,3 +534,15 @@ prove that the welcome window stayed open after the `--dismiss-welcome` click. T
 runs, which is expected for the animated rain wallpaper compared against a still reference; `reached_desktop` therefore
 came from `looks_like_desktop()` (dark top band with tray pixels), not from the wallpaper match. Recording both so the
 next session does not read the number as a defect or as proof.
+
+## S2 in-guest e2e gate: 28/28 on the dev image (2026-11-07)
+`python scripts/workshop/e2e_cli.py artifacts/iso/HSCL1-0.1.3-dev-amd64.iso artifacts/e2e-0.1.3-dev` -> exit 0,
+`artifacts/e2e-0.1.3-dev/cli-report.json`: **28 checks, 0 non-zero**, desktop reached after **121 s**, session user
+`hscl1` (the HSCL1 live user, not the upstream `kubuntu`), Workshop `ops` = doctor, put_file, report, respin,
+restart_shell, run_hook, screenshot, status; port restarts 0, write timeouts 0. Green checks include the ones this S1
+work touched or could plausibly have broken: `earlyoom_active` (active), `zram_swap` (zram0 1.9G), `zram_algorithm`
+(zstd selected), `sysctl_memory` (swappiness 100, page-cluster 0), `ai_slice` (MemoryHigh/Max present), `firewall`
+(active), `listening_sockets`, `system_tree_owner`, `kdeconnect_listener`/`kdeconnect_process` (absent). Full list and
+per-check output are in the report; the desktop screenshot is `artifacts/e2e-0.1.3-dev/desktop.png`.
+Note: `hscl1_version` in the guest report is `0.1.2-alpha.0` because `VERSION` was not bumped for this content-validation
+image; the release artefact is built separately after the bump (see below).
