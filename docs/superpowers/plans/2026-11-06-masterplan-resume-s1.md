@@ -154,3 +154,18 @@ Plan: `2026-11-06-local-subagents.md` (L1-L8). Research: `docs/research/2026-11-
 ### 9.4 Owner-Items (unveraendert, nicht raten)
 Merge PR #22 und Dependabot #1-#4, Signing-Key fuer `SHA256SUMS`, Hardware-Testgeraete (Radeon 680M), native DE/FR-Review,
 Vercel-Produktions-Deploy, Rechtsrahmen RE-Lab (O5), AREX-Turbo-Freigabe (G39).
+
+## 10. Research round 2026-11-07 (R3): vier offene Fragen, beantwortet aus Upstream-Quellcode
+
+Der Recherche-Lauf konnte `WebSearch` nicht nutzen (0 Treffer fuer jede Anfrage) und kam an
+git.launchpad.net / codesearch.debian.net / invent.kde.org nicht heran; er hat stattdessen die
+GitHub-Spiegel der Quellen gelesen (stärkere Evidenz als Doku). Ergebnis und **Folgen**:
+
+| Frage | Antwort | Folge fuer HSCL1 |
+|---|---|---|
+| apt-`Modaliases` | `dh_modaliases` (Quellpaket `ubuntu-drivers-common`) erzeugt `${modaliases}` fuer `XB-Modaliases:`, das als **`Modaliases:`** im `Packages`-Index landet. `ubuntu-drivers` liest das Feld aus dem apt-Cache und matcht es als Glob gegen die sysfs-modaliases (Fixture-Muster: `nv(pci:v000010DEd000010C3sv*sd*bc03sc*i*)`). Read-only: `ubuntu-drivers devices`, `list`, `debug` | **B3:** `hscl hw suggest` nutzt `ubuntu-drivers` als Orakel, wenn vorhanden, sonst `Modaliases:`-Parsing; Glob-Semantik der Upstream-Muster uebernehmen (nicht selbst erfinden). Daten kommen von den Treiberpaketen, nicht von `linux-modules-*` |
+| `applications-merged/*.menu` in Plasma 6.6 | wird automatisch gelesen, **weil** `startplasma.cpp` `XDG_MENU_PREFIX=plasma-` setzt und `/etc/xdg/menus/plasma-applications.menu` mit `<DefaultMergeDirs/>` endet; `DefaultMergeDirs` sucht `applications-merged` **ohne** Prefix. Cache: `kbuildsycoca6 --noincremental`; Diagnose: `--menutest`, `--track <id>`, `QT_LOGGING_RULES="kservice.sycoca.debug=true"` | **G26a:** unsere Datei ist richtig platziert. Wenn HSCL1 je eine eigene Basismenue-Datei liefert, MUSS sie `<DefaultMergeDirs/>` enthalten (sonst verschwinden Merges lautlos). Postinst + `hscl doctor`-Check mit `--menutest` als Folgeaufgabe |
+| hwdb im postinst | `/usr/lib/udev/hwdb.d/` ist eine lesbare Quelle (Prioritaet `/etc` vor `/usr/lib`, kompiliert nach `/etc/udev/hwdb.bin`); `systemd-hwdb-update.service` (`ConditionNeedsUpdate=/etc`, vor `sysinit.target`) macht das noetige Update beim naechsten Boot. Ein postinst-Aufruf ist nur fuer **denselben** Boot noetig. Unbekannt: ob `udev` zusaetzlich einen dpkg-Trigger mitbringt | **B2:** kein postinst-Hook fuer Korrektheit; Dateien zur Paketzeit nach `/usr/lib/udev/hwdb.d` legen, zur Laufzeit nie dorthin schreiben. Ein postinst-`systemd-hwdb update` nur, wenn die Wirkung im selben Boot noetig ist (dann dokumentieren) |
+| KWin-Tiling-Defaults | Bug 466019 **weiterhin CONFIRMED/offen**. `TileManager` speichert unter `[Tiling][<virtualDesktopId>][<outputUuid>]`, Fallback-Key ist ein UUIDv5 aus Name+eisaId+Modell+Seriennummer - **beides maschinengebunden**, ein portables kwinrc-Preset ist unmoeglich; nur der hardcodierte 3-Spalten-Fallback bleibt. Supporteter Weg: KWin-Skript (oder manuelle Nutzer-Bearbeitung) | **W5.5:** "Tiling-Presets per kwinrc" ist damit widerlegt. Knwon-Limitations und ADR-006 sagen jetzt: nur per KWin-Skript, bis dahin EXPERIMENTAL. Kein Distributions-Default behaupten |
+
+Offen geblieben: dpkg-Trigger-Frage bei `udev` (nicht verifizierbar aus den gelesenen Quellen).

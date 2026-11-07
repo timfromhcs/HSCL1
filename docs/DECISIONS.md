@@ -39,7 +39,7 @@ Refs: <https://lwn.net/Articles/927262/>, <https://itsfoss.com/news/ubuntu-flavo
 ## ADR-006 Tiling presets are HSCL-owned files, KWin does not persist layouts (2026-11-06) - ACCEPTED
 Context: KWin's custom tiling editor does not save layouts (KDE bug 466019, CONFIRMED, last activity 2026-10) and layouts are lost on
 monitor changes. Promising "saved layouts" would be a claim the desktop cannot keep.
-Decision: a fixed set of reviewed tile-layout presets is written into `kwinrc` and re-applied after a monitor change; the UI says
+Decision (corrected 2026-11-07): KWin stores tiling per virtual desktop **and per output UUID** (fallback key derived from name+eisaId+model+serial), so a distribution cannot ship a portable `kwinrc` layout - the supported route is a KWin script. The UI says
 "apply layout" and documents the re-apply, never "remembered". **Not implemented yet**: no layout presets and no layout subcommand
 exist in 0.1.x (tracked as plan W5.5 in `2026-11-06-ux-ai-hardware-expansion.md`), and the docs must not offer one until a VM test
 shows the preset applied through a config read.
