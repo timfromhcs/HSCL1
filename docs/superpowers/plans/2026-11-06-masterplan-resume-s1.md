@@ -55,7 +55,8 @@
 ### Task 2: Man pages + Shell-Completions
 **Files:** Create `scripts/gen_cli_extras.py` oder `hscl completions SHELL` (clap_complete nur, wenn `cargo deny` sie erlaubt)
 - [x] `hscl completions SHELL` (clap_complete), Test deckt alle Top-Level-Befehle fuer hscl+hscl1 ab; build-deb.sh erzeugt bash/zsh/fish-Dateien aus dem Paket-Binaer; Test `test_package_completions.py` (WSL gruen)
-- [ ] Man pages (clap_mangen) - offen, naechster Weckruf
+- [ ] Man pages (clap_mangen) - offen; Entscheidung gefallen (siehe §9): `clap_mangen` 0.3.3, MIT OR Apache-2.0,
+      `hscl man --out DIR` neben `hscl completions` (ein Pfad fuer Paketbau und Test, kein build.rs)
 - [x] Commit
 
 ### Task 3: Menue-Datei + Doc-Command-Test
@@ -102,3 +103,41 @@ Research: `docs/research/2026-11-06-arex2-autodetect-reverse-engineering.md` (3 
 
 ## 8. Local subagents (owner request, 4 research rounds done)
 Plan: `2026-11-06-local-subagents.md` (L1-L8). Research: `docs/research/2026-11-06-local-subagents-prism-bonsai-turboquant.md`. Summary: keep the LocalAI Gateway and the verified PrismML Vulkan build; no TurboQuant fork binary (mainline KV rotation already on); local subagents are a verify-patch worker exposed as one MCP tool to Claude Code and OpenCode; executors compared on our own tasks before any default is chosen; memory gate before every model start. Runs in parallel with Section 7 (HSCL1 tasks stay: D1 serve spec next, then E1, F1, G1, B1...). Owner items: rotate the plaintext GitHub token and OpenCode password; confirm autostart policy.
+
+## 9. Stand 2026-11-07 (R2): gemessener Ist-Zustand, Research-Antworten, naechste Aufgaben
+
+### 9.1 Was seit dem letzten Eintrag passiert ist (mit Evidenz)
+| Punkt | Evidenz |
+|---|---|
+| `v0.1.2-alpha.0` veroeffentlicht (Prerelease, 4 ISO-Teile, Manifest, SHA256SUMS, CLI-SBOM, unsigniert) | `gh release list` |
+| Branch `codex/hscl1-v1` = `origin` + 2 neue Commits; 39 Commits vor dem Tag | `git log --oneline` |
+| PR #22 offen, mergeable, alle 10 Checks gruen - **Merge bleibt Owner** | `gh pr list` |
+| Dependabot #1-#4 offen und gruen - Merge bleibt Owner | `gh pr list` |
+| **G1 erledigt:** `scripts/stress_vm.sh` (Interlock `HSCL_IN_DISPOSABLE_VM=1` + Marker, JSON-Evidenz, 8 Tests zuerst rot) | Commit `ba1216e`, BUILD_LOG |
+| **G24 erledigt:** Doc-Command-Gate, 4 echte Drifts gefunden (2 davon falsche IMPLEMENTED-Claims) | Commit `055d778`, BUILD_LOG |
+| Offen aus S1: Man pages, Governor (G27a), forge `build/boot/diff` (G30), Menue-Datei (G26a), G3 proptest | `docs/superpowers/plans/2026-11-06-ai-api-updates-stress.md`, dieses Dokument |
+
+### 9.2 Recherche-Runde 2026-11-07 (6 Fragen, Quellen im Agentenbericht; Kurzfassung)
+| Frage | Antwort | Konsequenz / Aufgabe |
+|---|---|---|
+| `clap_mangen` | 0.3.3, **MIT OR Apache-2.0**, braucht clap ^4.6.6; upstream empfiehlt xtask statt build.rs | Task 2 fortsetzen: `hscl man --out DIR` (wie `completions`), Paketbau ruft es auf; `cargo deny` erlaubt die Lizenz |
+| Calamares-Bug bei mehreren LUKS-Devices | **nicht** 2143847; das ist der Software-DB-Crash (Fix Released 3.3.14-0ubuntu21). Der LUKS-Bug ist **#2156681**, Fix Released in 3.3.14-0ubuntu25.26.04.1; betrifft nur mehrere Devices, nicht Single-LUKS | **Korrekturaufgabe:** Bug-Nummer in Plaenen/Docs richtigstellen, KNOWN_LIMITATIONS-Zeile praezisieren (Fix ist im Archiv, aber Verhalten im Image ungemessen) |
+| Kubuntu-26.04-Support | "bis April 2029" (Monat, kein Tag); Plasma-6.6-LTS-Announcement nennt kein Datum | Kein Datum in Docs drucken, das genauer ist als "April 2029"; pruefen, ob irgendwo ein Tag steht |
+| `help2man` / `pandoc` in resolute | beide vorhanden (1.49.3 / 3.7.0.2, universe); `man-db` im Default-Set = MEASURE | Man pages brauchen kein Fremdtool (clap_mangen); `man-db` im Rootfs pruefen, wenn die Pakete gebaut sind |
+| llama.cpp Tool-Calls | `--jinja` default an, `--reasoning-format auto|none|deepseek|deepseek-legacy`, XML-Autoparser listet **Qwen3-Coder**; upstream nennt **kein "Qwen3.5"** | Unser eigener Parser (D2) bleibt der Vertrag; die Aussage "der gepinnte Build parst Qwen3.5-XML" bleibt MEASURE (Test mit dem echten Modell), nicht Claim |
+| Secure Boot + Remaster | Kette Firmware -> MS-signierter shim -> Canonical-GRUB -> signierter Kernel; **initrd und squashfs werden nicht signaturgeprueft** | Squashfs-/initrd-Aenderungen koennen die Kette nicht brechen; Beweis trotzdem noetig: `sbverify --list` auf `EFI/BOOT/BOOTX64.EFI` und casper-`vmlinuz` des gebauten ISO (Task 9) |
+
+### 9.3 Reihenfolge ab jetzt (jede Aufgabe: Test zuerst, Gate, Commit)
+1. **Task 2b Man pages** (host-only): `clap_mangen` + `hscl man --out DIR`, Test gegen den clap-Baum, `build-deb.sh` erzeugt
+   `hscl.1`/`hscl1.1`, Paket-Test; CLI.md-Zeile (Drift-Gate erzwingt sie).
+2. **Task 4a Governor** (host-only): Parser/Zustandsmaschine mit Fixtures (`/sys/class/drm`, `/proc/*/fdinfo`), G27a.
+3. **Task 4b forge `build|boot|diff`** (host-only): Subkommandos + Fake-Tests + `docs/DEV_LOOP.md`, G30.
+4. **Task 6 Menue-Datei (G26a)** + `hscl hw modaliases` (B1) - letzteres ist im S2-Image sichtbar.
+5. **G3 proptest** fuer `redact.rs`, `toolcall.rs`, `hw.rs` + zeitboxiger Fuzz-Workflow.
+6. **Task 9 Secure-Boot-Evidenz** am vorhandenen ISO (sbverify + `--list`) - billig, schliesst F1 teilweise.
+7. **Korrekturen aus 9.2** (Calamares-Bugnummer, Kubuntu-Datum) - kleine Doku-Commits, sofort.
+8. Dann **S2**: ein Image mit allen S1-Aenderungen, Boot + e2e + Screens -> `0.1.3-alpha.0` (Owner-Merge/Release-Regeln beachten).
+
+### 9.4 Owner-Items (unveraendert, nicht raten)
+Merge PR #22 und Dependabot #1-#4, Signing-Key fuer `SHA256SUMS`, Hardware-Testgeraete (Radeon 680M), native DE/FR-Review,
+Vercel-Produktions-Deploy, Rechtsrahmen RE-Lab (O5), AREX-Turbo-Freigabe (G39).
