@@ -120,6 +120,34 @@ impl Device {
         })
     }
 
+    /// Cooperative-matrix shapes the device reports (`VK_KHR_cooperative_matrix`),
+    /// one JSON object per supported (M, N, K, A/B/C/result type, scope) tuple.
+    /// Empty when the extension is not available.
+    pub fn cooperative_matrix_shapes(&self) -> Vec<serde_json::Value> {
+        let exts = available_extensions(&self.instance, self.physical);
+        if !exts.iter().any(|e| e == "VK_KHR_cooperative_matrix") {
+            return Vec::new();
+        }
+        let loader = ash::khr::cooperative_matrix::Instance::new(&self.entry, &self.instance);
+        let props =
+            unsafe { loader.get_physical_device_cooperative_matrix_properties(self.physical) };
+        let Ok(props) = props else {
+            return Vec::new();
+        };
+        props
+            .iter()
+            .map(|p| {
+                serde_json::json!({
+                    "m": p.m_size, "n": p.n_size, "k": p.k_size,
+                    "a": format!("{:?}", p.a_type), "b": format!("{:?}", p.b_type),
+                    "c": format!("{:?}", p.c_type), "result": format!("{:?}", p.result_type),
+                    "scope": format!("{:?}", p.scope),
+                    "saturating": p.saturating_accumulation == vk::TRUE,
+                })
+            })
+            .collect()
+    }
+
     pub fn name(&self) -> String {
         self.props
             .device_name_as_c_str()

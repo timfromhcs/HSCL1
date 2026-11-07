@@ -155,3 +155,27 @@ Hypothesis confirmed. `gemm_i8dot_tiled` (16x16 tile, 16 packed words per k step
 | gemm i8 | vulkan_i8dot_tiled | **0.195** (0.00) | **464** |
 
 Same-run ratio int8 tiled / f32 tiled = 0.269 / 0.195 = **1.38x faster** on GPU time (1.33x on wall time), above the 1.05x promotion rule; the untiled kernel is 4.2x slower than the tiled one. Caveat: the f32 kernel itself measured 0.382 ms in the earlier run and 0.269 ms here (iGPU clock state), so only same-run ratios are quoted. Correctness: bit-equal to the oracle on 48x128x40 and on a tail shape 37x132x29. Not measured: other shapes, int4, accuracy cost of quantising real model weights (this is a kernel speed, not a model-quality claim).
+
+## f16-storage GEMM (f32 math) versus f32 tiled (2026-11-07, Radeon 680M)
+`gemm_f16_tiled`: A and B stored as packed halves (`unpackHalf2x16`), widened to f32 in the shared tile, so half the input bytes and identical arithmetic. Correct on the odd shape 37x65x29 (max error 0, same accumulation order as the oracle, which sees f16-rounded inputs). 256x1024x256, 15 runs, 3 s warm-up, four suite runs in different orders:
+
+| kernel | GPU ms over runs |
+|---|---|
+| f16 storage, tiled | 0.257, 0.257, 0.257, 0.257 (spread <= 0.01 in three runs, 0.16 in one) |
+| f32 tiled | 0.269, 0.295, 0.382, 0.383 |
+
+Finding: the f32 kernel is **bimodal run to run (0.27-0.38 ms) regardless of suite order**, so the order hypothesis (first row at a low clock) is refuted; the cause is not identified (candidate: buffer placement or cache state; untested). The f16 kernel is stable. Best-case f32 vs f16 is 0.269 / 0.257 = 1.05x, i.e. no speed claim beyond "not slower, half the input memory". Not measured: cooperative-matrix f16 GEMM (the planner still prefers it for f16 only after it is verified), bf16, larger shapes.
+
+## Cooperative-matrix GEMM (2026-11-07, Radeon 680M, driver 26.6.1)
+`hcsuda coopmat` (new) lists what the driver reports: 11 shapes, all 16x16x16 at subgroup scope, including f16 x f16 -> f32 and int8 -> i32 (evidence: `benchmarks/amd-radeon-680m/coopmat-shapes.json`). `gemm_coopmat.comp` uses the f16xf16->f32 one: one 64-invocation subgroup per 16x16 output tile, `coopMatMulAdd` over k in steps of 16, reading the same packed-half buffers as the f16 tiled kernel. It requires m, n, k divisible by 16; the host refuses other shapes and the planner only selects it for them.
+Correctness: selftest 48x80x64, max error 2.4e-7 (tolerance 1.9e-5), deterministic. Speed, 256x1024x256, 15 runs, two full suite runs, GPU timestamps:
+
+| kernel | GPU ms (run 1 / run 2) |
+|---|---|
+| gemm coopmat f16->f32 | **0.167 / 0.168** |
+| gemm f16 storage tiled | 0.257 / 0.257 |
+| gemm f32 tiled | 0.269 / 0.282 (bimodal, see above) |
+| gemm i8 dot untiled | 0.776 / 0.812 |
+| gemm i8 dot tiled | 0.195 / 0.194 |
+
+Coopmat is 1.53x faster than f16 tiled and 1.17x faster than int8 tiled on GPU time, consistently over both runs; that is about 0.45 TFLOP/s on wall time and 0.8 TFLOP/s on GPU time. No peak figure was measured, so no efficiency is claimed. This is a first kernel without register blocking or multi-tile subgroups. Wall time shows a smaller gap (0.30-0.35 ms) because submit and fence overhead is a floor at this size. Not measured: larger shapes, int8 coopmat, bf16, multi-tile blocking.
