@@ -166,6 +166,7 @@ dependencies = [
 name = "hcsuda-io"
 version = "0.1.0"
 dependencies = [
+ "hcsuda-core",
  "serde",
  "thiserror",
 ]

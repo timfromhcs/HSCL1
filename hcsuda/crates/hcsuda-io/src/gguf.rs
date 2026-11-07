@@ -211,6 +211,44 @@ impl GgufFile {
         Self::parse(&mut buffered, len)
     }
 
+    pub fn tensor(&self, name: &str) -> Option<&TensorInfo> {
+        self.tensors.iter().find(|t| t.name == name)
+    }
+
+    /// Read the raw bytes of one tensor. The size comes from the already
+    /// validated table, and `max_bytes` bounds the allocation.
+    pub fn read_tensor_bytes(
+        &self,
+        path: &Path,
+        t: &TensorInfo,
+        max_bytes: u64,
+    ) -> Result<Vec<u8>, GgufError> {
+        let n = t
+            .n_bytes
+            .ok_or_else(|| bad_tensor(&t.name, "element type has no known size".into()))?;
+        if n > max_bytes {
+            return Err(bad_tensor(
+                &t.name,
+                format!("{n} bytes exceeds the read limit {max_bytes}"),
+            ));
+        }
+        let start = self
+            .data_offset
+            .checked_add(t.offset)
+            .filter(|s| s.checked_add(n).is_some_and(|e| e <= self.file_len))
+            .ok_or_else(|| bad_tensor(&t.name, "data lies outside the file".into()))?;
+        let mut f = std::fs::File::open(path)?;
+        if f.metadata()?.len() != self.file_len {
+            return Err(GgufError::Io(
+                "file changed size since the header was read".into(),
+            ));
+        }
+        f.seek(SeekFrom::Start(start))?;
+        let mut buf = vec![0u8; n as usize];
+        f.read_exact(&mut buf)?;
+        Ok(buf)
+    }
+
     pub fn meta(&self, key: &str) -> Option<&MetaValue> {
         self.metadata.iter().find(|(k, _)| k == key).map(|(_, v)| v)
     }
@@ -794,5 +832,43 @@ mod tests {
         ));
         let al = B::new(3, 0, 1).s("general.alignment").u32(4).u32(3);
         assert_eq!(al.parse().unwrap_err(), GgufError::BadAlignment(3));
+    }
+
+    fn temp_file(tag: &str, bytes: &[u8]) -> std::path::PathBuf {
+        let p = std::env::temp_dir().join(format!("hcsuda-io-{}-{tag}.gguf", std::process::id()));
+        std::fs::write(&p, bytes).unwrap();
+        p
+    }
+
+    #[test]
+    fn read_tensor_bytes_returns_the_right_slice_and_honours_the_limit() {
+        // Two f32 tensors of 8 elements each; fill tensor data with its own index.
+        let mut b = B::new(3, 2, 0)
+            .s("a")
+            .u32(1)
+            .u64(8)
+            .u32(0)
+            .u64(0)
+            .s("b")
+            .u32(1)
+            .u64(8)
+            .u32(0)
+            .u64(32);
+        while b.0.len() % 32 != 0 {
+            b.0.push(0);
+        }
+        let data_start = b.0.len();
+        b.0.extend((0u8..64).collect::<Vec<u8>>());
+        let path = temp_file("slice", &b.0);
+        let f = GgufFile::open(&path).unwrap();
+        assert_eq!(f.data_offset as usize, data_start);
+        let tb = f.tensor("b").unwrap().clone();
+        let got = f.read_tensor_bytes(&path, &tb, 1024).unwrap();
+        assert_eq!(got, (32u8..64).collect::<Vec<u8>>());
+        assert!(f.read_tensor_bytes(&path, &tb, 16).is_err());
+        // The file grows after the header was read: refuse instead of trusting stale offsets.
+        std::fs::write(&path, [b.0.clone(), vec![0u8; 8]].concat()).unwrap();
+        assert!(f.read_tensor_bytes(&path, &tb, 1024).is_err());
+        std::fs::remove_file(&path).ok();
     }
 }
