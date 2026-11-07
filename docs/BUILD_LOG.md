@@ -610,3 +610,19 @@ Two research rounds landed and changed plans rather than prose:
   unified-memory oversubscription). W2.5 refined, W2.10/W2.11 added, KNOWN_LIMITATIONS row for local-AI memory.
 - `make_release.py` now treats the prebuilt qcow2 as optional (AGENTS.md 7.1) and records `prebuilt: null` plus a note
   when it is absent, so a missing image cannot be confused with a forgotten field. Test written first; 8 tests pass.
+
+## W2.10: offload flags in `hscl ai serve`, verified against the real binary (2026-11-07)
+Probe first: the installed build 12128 (`llama-server --help`) already has `-lm/--load-mode`,
+`-kvo/-nkvo`, `-cmoe/-ncmoe`, `-fa`, `-ot` and `-md/--spec-draft-model` + `--spec-draft-n-max`, and prints
+"the argument has been removed. use --spec-draft-n-max" for `--draft-max` - i.e. the research was right that the old
+mmap/mlock flags are gone in the builds we ship (our pin is b12130, newer than the probed 12128).
+Implemented in `serve::ServeOpts`/`serve_argv` and exposed as `hscl ai serve --load-mode MODE`, `--kv-in-ram`,
+`--draft-model PATH [--draft-max N]`. Validation follows the existing rules: the load mode must be one of the six
+names, the draft model must be a `.gguf` inside the model storage whose name does not start with `-`, the draft budget is
+1..=16 and is refused without a draft model. Six tests: the default command carries none of the new flags; the load mode
+appears exactly once and an unknown mode is refused; `-nkvo` appears exactly once; the draft model is passed with its
+budget and is refused outside the storage or with a leading dash; a budget without a model is refused; the default budget
+is 3 (upstream's). `cargo test -p hscl` 189 passed, clippy -D warnings clean. `docs/CLI.md` rows added.
+Still open (MEASURE, not claimed): whether `mmap` or `auto` is faster on the 680M, whether `-nkvo` costs the prefill
+speed that the research predicts, and whether a draft model pays for itself here - all need `llama-bench` runs on this
+machine, and none of it is in the UI until measured.

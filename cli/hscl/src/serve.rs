@@ -23,6 +23,19 @@ pub struct ServeOpts {
     pub router_dir: Option<PathBuf>,
     pub models_max: Option<u32>,
     pub metrics: bool,
+    /// `--load-mode`: how the backend loads the model (`auto`, `none`, `mmap`, `mlock`, `mmap+mlock`, `dio`).
+    /// Verified against llama.cpp build 12128/12130 `--help` (2026-11-07): the old
+    /// `--mmap`/`--no-mmap`/`--mlock` flags were replaced by this one, and its `auto` disables mmap on Vulkan
+    /// iGPUs, which is why the profile can pin `mmap` explicitly on such a machine.
+    pub load_mode: Option<String>,
+    /// `-nkvo/--no-kv-offload`: keep the KV cache in system RAM while the weights stay on the GPU. That is the
+    /// lever that frees GPU-accessible memory on a shared-memory APU at the cost of prefill speed.
+    pub kv_in_ram: bool,
+    /// `-md/--spec-draft-model`: a small model used for speculative decoding. Only meaningful with a draft that
+    /// shares the tokenizer; the command prints the flag and the user decides (never started here).
+    pub draft_model: Option<PathBuf>,
+    /// `--spec-draft-n-max`: how many tokens the draft may propose per step (llama.cpp default is 3).
+    pub draft_max: Option<u32>,
 }
 
 /// Characters allowed in paths that end up in a command line the user may copy and paste: no quotes, `$`, backticks, `;`, `|`,
@@ -134,6 +147,41 @@ pub fn serve_argv(o: &ServeOpts, models_dir: &Path) -> Result<Vec<String>> {
         ]
         .map(String::from),
     );
+    if let Some(mode) = &o.load_mode {
+        let allowed = ["auto", "none", "mmap", "mlock", "mmap+mlock", "dio"];
+        if !allowed.contains(&mode.as_str()) {
+            bail!("load mode must be one of: {}", allowed.join(", "));
+        }
+        a.extend(["--load-mode".into(), mode.clone()]);
+    }
+    if o.kv_in_ram {
+        a.push("-nkvo".into());
+    }
+    match (&o.draft_model, o.draft_max) {
+        (Some(draft), n) => {
+            let d = path_text(draft, "draft model")?;
+            let name = draft.file_name().and_then(|x| x.to_str()).unwrap_or("");
+            if !draft
+                .extension()
+                .and_then(|e| e.to_str())
+                .is_some_and(|e| e.eq_ignore_ascii_case("gguf"))
+                || name.starts_with('-')
+            {
+                bail!("draft model must be a .gguf file whose name does not start with '-'");
+            }
+            if !inside(draft, models_dir) {
+                bail!("draft model must be inside the model storage directory");
+            }
+            a.extend(["-md".into(), d]);
+            let n = n.unwrap_or(3);
+            if !(1..=16).contains(&n) {
+                bail!("spec-draft-n-max must be between 1 and 16");
+            }
+            a.extend(["--spec-draft-n-max".into(), n.to_string()]);
+        }
+        (None, Some(_)) => bail!("--draft-max only applies with --draft-model"),
+        (None, None) => {}
+    }
     if o.metrics {
         a.push("--metrics".into());
     }
@@ -176,6 +224,10 @@ mod tests {
             router_dir: None,
             models_max: None,
             metrics: false,
+            load_mode: None,
+            kv_in_ram: false,
+            draft_model: None,
+            draft_max: None,
         }
     }
 
@@ -342,5 +394,105 @@ mod tests {
                 assert!(!a.iter().any(|v| v.contains('\n') || v.contains('\0')));
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod offload_tests {
+    //! Options verified against llama.cpp build 12128/12130 `--help` (2026-11-07): `--load-mode` replaced
+    //! `--mmap/--no-mmap/--mlock`, `-nkvo` keeps the KV cache in system RAM, and speculative decoding is
+    //! `-md` + `--spec-draft-n-max`.
+    use super::*;
+
+    fn dir() -> PathBuf {
+        PathBuf::from("/home/u/AI/Models")
+    }
+
+    fn opts() -> ServeOpts {
+        ServeOpts {
+            model: dir().join("bonsai-9b.gguf"),
+            port: 8081,
+            ctx: 4096,
+            api_key_file: PathBuf::from("/home/u/.config/hscl/ai-server.key"),
+            router_dir: None,
+            models_max: None,
+            metrics: false,
+            load_mode: None,
+            kv_in_ram: false,
+            draft_model: None,
+            draft_max: None,
+        }
+    }
+
+    #[test]
+    fn the_default_command_carries_no_offload_overrides() {
+        let a = serve_argv(&opts(), &dir()).unwrap();
+        assert!(!a
+            .iter()
+            .any(|x| x == "--load-mode" || x == "-nkvo" || x == "-md"));
+    }
+
+    #[test]
+    fn a_load_mode_is_validated_and_passed_through_once() {
+        let mut o = opts();
+        o.load_mode = Some("mmap".into());
+        let a = serve_argv(&o, &dir()).unwrap();
+        assert_eq!(a.iter().filter(|x| *x == "--load-mode").count(), 1);
+        assert_eq!(
+            a[a.iter().position(|x| x == "--load-mode").unwrap() + 1],
+            "mmap"
+        );
+        o.load_mode = Some("always".into());
+        assert!(
+            serve_argv(&o, &dir()).is_err(),
+            "an unknown load mode must be refused, not guessed"
+        );
+    }
+
+    #[test]
+    fn kv_in_ram_adds_the_no_kv_offload_flag() {
+        let mut o = opts();
+        o.kv_in_ram = true;
+        let a = serve_argv(&o, &dir()).unwrap();
+        assert_eq!(a.iter().filter(|x| *x == "-nkvo").count(), 1);
+    }
+
+    #[test]
+    fn a_draft_model_must_stay_inside_the_storage_and_is_passed_with_its_budget() {
+        let mut o = opts();
+        o.draft_model = Some(dir().join("draft-small.gguf"));
+        o.draft_max = Some(4);
+        let a = serve_argv(&o, &dir()).unwrap();
+        let i = a.iter().position(|x| x == "-md").expect("-md");
+        assert!(a[i + 1].ends_with("draft-small.gguf"));
+        let j = a
+            .iter()
+            .position(|x| x == "--spec-draft-n-max")
+            .expect("budget");
+        assert_eq!(a[j + 1], "4");
+        // Same rules as the main model: gguf, inside the storage, no leading dash.
+        o.draft_model = Some(PathBuf::from("/etc/passwd.gguf"));
+        assert!(serve_argv(&o, &dir()).is_err());
+        o.draft_model = Some(dir().join("-evil.gguf"));
+        assert!(serve_argv(&o, &dir()).is_err());
+    }
+
+    #[test]
+    fn a_draft_budget_without_a_draft_model_is_refused() {
+        let mut o = opts();
+        o.draft_max = Some(3);
+        assert!(serve_argv(&o, &dir()).is_err());
+    }
+
+    #[test]
+    fn the_default_draft_budget_matches_upstream() {
+        let mut o = opts();
+        o.draft_model = Some(dir().join("draft-small.gguf"));
+        let a = serve_argv(&o, &dir()).unwrap();
+        let j = a
+            .iter()
+            .position(|x| x == "--spec-draft-n-max")
+            .expect("budget");
+        assert_eq!(a[j + 1], "3", "llama.cpp's documented default");
     }
 }

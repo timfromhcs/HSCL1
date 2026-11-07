@@ -414,6 +414,18 @@ enum AiCmd {
         /// Router mode only: models kept in memory at the same time (1 or 2).
         #[arg(long)]
         models_max: Option<u32>,
+        /// Model loading mode for the backend (auto, none, mmap, mlock, mmap+mlock, dio).
+        #[arg(long, value_name = "MODE")]
+        load_mode: Option<String>,
+        /// Keep the KV cache in system RAM (-nkvo) while the weights stay on the GPU.
+        #[arg(long)]
+        kv_in_ram: bool,
+        /// Small draft model for speculative decoding (.gguf inside the model storage).
+        #[arg(long, value_name = "PATH")]
+        draft_model: Option<std::path::PathBuf>,
+        /// Tokens the draft model may propose per step (1 to 16, default 3).
+        #[arg(long)]
+        draft_max: Option<u32>,
         /// Also expose the Prometheus /metrics endpoint.
         #[arg(long)]
         metrics: bool,
@@ -712,6 +724,10 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
                     router_dir,
                     models_max,
                     metrics,
+                    load_mode,
+                    kv_in_ram,
+                    draft_model,
+                    draft_max,
                 },
         } => {
             let o = serve::ServeOpts {
@@ -723,6 +739,10 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
                 router_dir,
                 models_max,
                 metrics,
+                load_mode,
+                kv_in_ram,
+                draft_model,
+                draft_max,
             };
             let argv = serve::serve_argv(&o, &download::models_dir())?;
             let v = json!({"argv": argv, "executed": false, "note": "Printed only. Create the key file yourself (one random line, mode 0600) before starting the server."});
