@@ -4,7 +4,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.0026,
+      "gpu_ms": 0.0028,
       "max_error": 2.384185791015625e-7,
       "ok": true,
       "op": "saxpy",
@@ -14,7 +14,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.00136,
+      "gpu_ms": 0.0016,
       "max_error": 2.384185791015625e-7,
       "ok": true,
       "op": "triad",
@@ -24,7 +24,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.073,
+      "gpu_ms": 0.0732,
       "max_error": 1.9073486328125e-6,
       "ok": true,
       "op": "gemv",
@@ -34,7 +34,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.01232,
+      "gpu_ms": 0.01176,
       "max_error": 2.384185791015625e-7,
       "ok": true,
       "op": "gemm",
@@ -44,7 +44,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.0068,
+      "gpu_ms": 0.00656,
       "max_error": 3.259629011154175e-9,
       "ok": true,
       "op": "softmax",
@@ -54,7 +54,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.01584,
+      "gpu_ms": 0.00556,
       "max_error": 2.86102294921875e-6,
       "ok": true,
       "op": "layernorm",
@@ -64,7 +64,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.00668,
+      "gpu_ms": 0.00676,
       "max_error": 4.76837158203125e-7,
       "ok": true,
       "op": "rmsnorm",
@@ -74,7 +74,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.00096,
+      "gpu_ms": 0.00292,
       "max_error": 2.980232238769531e-7,
       "ok": true,
       "op": "rope",
@@ -84,7 +84,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.00412,
+      "gpu_ms": 0.00384,
       "max_error": 0.0,
       "ok": true,
       "op": "gemm_i8dot",
@@ -94,7 +94,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.0046,
+      "gpu_ms": 0.00456,
       "max_error": 0.0,
       "ok": true,
       "op": "gemm",
@@ -104,7 +104,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.00496,
+      "gpu_ms": 0.00516,
       "max_error": 0.0,
       "ok": true,
       "op": "gemm",
@@ -114,12 +114,22 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.00492,
+      "gpu_ms": 0.00456,
       "max_error": 2.384185791015625e-7,
       "ok": true,
       "op": "gemm",
       "path": "vulkan_coopmat",
       "tolerance": 0.00001894427190999916
+    },
+    {
+      "deterministic": true,
+      "dtype": "f32",
+      "gpu_ms": null,
+      "max_error": 4.591307174450776e-7,
+      "ok": true,
+      "op": "block",
+      "path": "vulkan_composed",
+      "tolerance": 0.0001
     }
   ],
   "device": "AMD Radeon(TM) Graphics",
@@ -138,6 +148,7 @@
     "vulkan_i8dot:gemm_i8dot:i8",
     "vulkan_intdot:gemm:i8",
     "vulkan_tiled:gemm:f16",
-    "vulkan_coopmat:gemm:f16"
+    "vulkan_coopmat:gemm:f16",
+    "vulkan_composed:block:f32"
   ]
 }

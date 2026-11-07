@@ -1,0 +1,72 @@
+#version 450
+
+// Causal multi-head attention for small sequences: ctx = softmax(Q K^T * scale) V,
+// token i attending to tokens 0..=i only. Q, K are already rotated.
+//
+// One workgroup per (token, head). The score row lives in shared memory, so the
+// sequence length is limited to MAX_T (the host refuses longer inputs). This is
+// the correctness kernel for the block test, not a flash-attention kernel.
+//
+// Push constants: { uint t; uint dim; uint heads; uint head_dim; float scale; }
+// Bindings: 0 = q, 1 = k, 2 = v, 3 = ctx   (all [t, dim] row-major)
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+layout(std430, binding = 0) readonly buffer QBuf { float q[]; };
+layout(std430, binding = 1) readonly buffer KBuf { float k[]; };
+layout(std430, binding = 2) readonly buffer VBuf { float v[]; };
+layout(std430, binding = 3) writeonly buffer CBuf { float ctx[]; };
+
+layout(push_constant) uniform Push {
+    uint t;
+    uint dim;
+    uint heads;
+    uint head_dim;
+    float scale;
+} pc;
+
+const uint MAX_T = 256u;
+shared float sc[MAX_T];
+
+void main() {
+    uint i = gl_WorkGroupID.x;
+    uint head = gl_WorkGroupID.y;
+    uint tid = gl_LocalInvocationID.x;
+    if (i >= pc.t || head >= pc.heads) {
+        return;
+    }
+    uint off = head * pc.head_dim;
+
+    for (uint j = tid; j <= i; j += 64u) {
+        float dot_qk = 0.0;
+        for (uint e = 0u; e < pc.head_dim; ++e) {
+            dot_qk += q[i * pc.dim + off + e] * k[j * pc.dim + off + e];
+        }
+        sc[j] = dot_qk * pc.scale;
+    }
+    barrier();
+
+    if (tid == 0u) {
+        float m = sc[0];
+        for (uint j = 1u; j <= i; ++j) {
+            m = max(m, sc[j]);
+        }
+        float sum = 0.0;
+        for (uint j = 0u; j <= i; ++j) {
+            float w = exp(sc[j] - m);
+            sc[j] = w;
+            sum += w;
+        }
+        for (uint j = 0u; j <= i; ++j) {
+            sc[j] = sc[j] / sum;
+        }
+    }
+    barrier();
+
+    for (uint e = tid; e < pc.head_dim; e += 64u) {
+        float acc = 0.0;
+        for (uint j = 0u; j <= i; ++j) {
+            acc += sc[j] * v[j * pc.dim + off + e];
+        }
+        ctx[i * pc.dim + off + e] = acc;
+    }
+}

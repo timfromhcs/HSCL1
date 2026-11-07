@@ -32,6 +32,9 @@ pub struct Runner {
     pub gemm_f16: Kernel,
     /// `None` when the device cannot build the cooperative-matrix pipeline.
     pub gemm_coopmat: Option<Kernel>,
+    pub eltwise: Kernel,
+    pub rope_heads: Kernel,
+    pub attn_causal: Kernel,
     pub dev: Device,
 }
 
@@ -74,6 +77,37 @@ struct PushRope {
     base: f32,
 }
 
+#[repr(C)]
+#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+struct PushEltwise {
+    n: u32,
+    mode: u32,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+struct PushRopeHeads {
+    dim: u32,
+    head_dim: u32,
+    rows: u32,
+    heads: u32,
+    pos0: u32,
+    base: f32,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+struct PushAttn {
+    t: u32,
+    dim: u32,
+    heads: u32,
+    head_dim: u32,
+    scale: f32,
+}
+
+/// Longest sequence `attn_causal` supports (its score row is in shared memory).
+pub const ATTN_MAX_TOKENS: usize = 256;
+
 impl Runner {
     pub fn new(device_index: Option<usize>) -> Result<Self> {
         if !hcsuda_vk::shaders_available() {
@@ -105,6 +139,11 @@ impl Runner {
         } else {
             None
         };
+        let eltwise = Kernel::from_shader(&dev, "eltwise", 3, 8).context("eltwise kernel")?;
+        let rope_heads =
+            Kernel::from_shader(&dev, "rope_heads", 2, 24).context("rope_heads kernel")?;
+        let attn_causal =
+            Kernel::from_shader(&dev, "attn_causal", 4, 20).context("attn_causal kernel")?;
         Ok(Self {
             dispatch,
             saxpy,
@@ -119,6 +158,9 @@ impl Runner {
             gemm_i8dot_tiled,
             gemm_f16,
             gemm_coopmat,
+            eltwise,
+            rope_heads,
+            attn_causal,
             dev,
         })
     }
@@ -297,6 +339,168 @@ impl Runner {
         self.dispatch
             .run(&self.dev, kernel, &[&a.buf, &b.buf, &c.buf], push, groups)
             .map_err(Into::into)
+    }
+
+    fn zeros(&self, n: usize) -> Result<GpuTensor> {
+        self.upload(&vec![0.0f32; n])
+    }
+
+    /// `mode` 0: c = a + b; 1: c = silu(a) * b.
+    pub fn eltwise(
+        &mut self,
+        a: &GpuTensor,
+        b: &GpuTensor,
+        c: &GpuTensor,
+        mode: u32,
+    ) -> Result<Timed> {
+        let pc = PushEltwise {
+            n: a.len as u32,
+            mode,
+        };
+        let push = bytemuck::bytes_of(&pc);
+        let groups = (a.len as u32).div_ceil(256);
+        self.dispatch
+            .run(
+                &self.dev,
+                &self.eltwise,
+                &[&a.buf, &b.buf, &c.buf],
+                push,
+                (groups, 1, 1),
+            )
+            .map_err(Into::into)
+    }
+
+    /// Split-half RoPE on every head of a `[rows, heads * head_dim]` matrix.
+    #[allow(clippy::too_many_arguments)]
+    pub fn rope_heads(
+        &mut self,
+        x: &GpuTensor,
+        y: &GpuTensor,
+        rows: usize,
+        heads: usize,
+        head_dim: usize,
+        pos0: u32,
+        base: f32,
+    ) -> Result<Timed> {
+        let pc = PushRopeHeads {
+            dim: (heads * head_dim) as u32,
+            head_dim: head_dim as u32,
+            rows: rows as u32,
+            heads: heads as u32,
+            pos0,
+            base,
+        };
+        let push = bytemuck::bytes_of(&pc);
+        let groups = ((rows * heads * head_dim / 2) as u32).div_ceil(256);
+        self.dispatch
+            .run(
+                &self.dev,
+                &self.rope_heads,
+                &[&x.buf, &y.buf],
+                push,
+                (groups, 1, 1),
+            )
+            .map_err(Into::into)
+    }
+
+    /// Causal multi-head attention; `t` must not exceed [`ATTN_MAX_TOKENS`].
+    #[allow(clippy::too_many_arguments)]
+    pub fn attn_causal(
+        &mut self,
+        q: &GpuTensor,
+        k: &GpuTensor,
+        v: &GpuTensor,
+        ctx: &GpuTensor,
+        t: usize,
+        heads: usize,
+        head_dim: usize,
+    ) -> Result<Timed> {
+        anyhow::ensure!(
+            t <= ATTN_MAX_TOKENS,
+            "attn_causal supports at most {ATTN_MAX_TOKENS} tokens, got {t}"
+        );
+        let pc = PushAttn {
+            t: t as u32,
+            dim: (heads * head_dim) as u32,
+            heads: heads as u32,
+            head_dim: head_dim as u32,
+            scale: 1.0 / (head_dim as f32).sqrt(),
+        };
+        let push = bytemuck::bytes_of(&pc);
+        self.dispatch
+            .run(
+                &self.dev,
+                &self.attn_causal,
+                &[&q.buf, &k.buf, &v.buf, &ctx.buf],
+                push,
+                (t as u32, heads as u32, 1),
+            )
+            .map_err(Into::into)
+    }
+
+    /// The transformer block of `hcsuda_core::transformer`, composed from GPU
+    /// kernels. Same shape rules as the CPU reference (checked there first).
+    pub fn block_forward_gpu(
+        &mut self,
+        cfg: &hcsuda_core::transformer::BlockConfig,
+        w: &hcsuda_core::transformer::BlockWeights,
+        x: &[f32],
+    ) -> Result<Vec<f32>> {
+        let (t, d, f) = (cfg.tokens, cfg.dim, cfg.ffn);
+        anyhow::ensure!(
+            cfg.heads > 0 && d % cfg.heads == 0 && (d / cfg.heads) % 2 == 0,
+            "dim must split into an even head dimension"
+        );
+        anyhow::ensure!(
+            x.len() == t * d,
+            "x has {} values, expected {}",
+            x.len(),
+            t * d
+        );
+        let hd = d / cfg.heads;
+
+        let gx = self.upload(x)?;
+        let (g1, g2) = (self.upload(&w.g1)?, self.upload(&w.g2)?);
+        let (wq, wk, wv, wo) = (
+            self.upload(&w.wq)?,
+            self.upload(&w.wk)?,
+            self.upload(&w.wv)?,
+            self.upload(&w.wo)?,
+        );
+        let (wg, wu, wd) = (
+            self.upload(&w.wg)?,
+            self.upload(&w.wu)?,
+            self.upload(&w.wd)?,
+        );
+
+        let h = self.zeros(t * d)?;
+        self.rmsnorm(&gx, &g1, &h, t, d, cfg.eps)?;
+        let (q, k, v) = (self.zeros(t * d)?, self.zeros(t * d)?, self.zeros(t * d)?);
+        self.gemm_tiled(&h, &wq, &q, t, d, d)?;
+        self.gemm_tiled(&h, &wk, &k, t, d, d)?;
+        self.gemm_tiled(&h, &wv, &v, t, d, d)?;
+        let (qr, kr) = (self.zeros(t * d)?, self.zeros(t * d)?);
+        self.rope_heads(&q, &qr, t, cfg.heads, hd, 0, cfg.rope_base)?;
+        self.rope_heads(&k, &kr, t, cfg.heads, hd, 0, cfg.rope_base)?;
+        let ctx = self.zeros(t * d)?;
+        self.attn_causal(&qr, &kr, &v, &ctx, t, cfg.heads, hd)?;
+        let attn = self.zeros(t * d)?;
+        self.gemm_tiled(&ctx, &wo, &attn, t, d, d)?;
+        let x1 = self.zeros(t * d)?;
+        self.eltwise(&gx, &attn, &x1, 0)?;
+
+        let h2 = self.zeros(t * d)?;
+        self.rmsnorm(&x1, &g2, &h2, t, d, cfg.eps)?;
+        let (gate, up) = (self.zeros(t * f)?, self.zeros(t * f)?);
+        self.gemm_tiled(&h2, &wg, &gate, t, d, f)?;
+        self.gemm_tiled(&h2, &wu, &up, t, d, f)?;
+        let act = self.zeros(t * f)?;
+        self.eltwise(&gate, &up, &act, 1)?;
+        let down = self.zeros(t * d)?;
+        self.gemm_tiled(&act, &wd, &down, t, f, d)?;
+        let out = self.zeros(t * d)?;
+        self.eltwise(&x1, &down, &out, 0)?;
+        self.download(&out)
     }
 
     pub fn download(&self, t: &GpuTensor) -> Result<Vec<f32>> {
