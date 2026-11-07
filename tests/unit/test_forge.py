@@ -106,6 +106,128 @@ def test_dry_run_prints_steps_and_exits_zero():
 
 def test_help_lists_only_implemented_commands():
     r = subprocess.run([sys.executable, str(ROOT / "scripts/forge.py"), "--help"], capture_output=True, text=True)
-    assert "check" in r.stdout
-    for planned in ("build", "release", "cycle"):
-        assert planned not in r.stdout.split("positional arguments:")[-1], planned
+    commands = r.stdout.split("positional arguments:")[-1]
+    for done in ("check", "build", "boot", "diff"):  # G30: implemented and therefore listed
+        assert done in commands, done
+    for planned in ("release", "cycle", "install"):
+        assert planned not in commands, planned
+
+
+# --- G30: forge build / boot / diff -------------------------------------------------------------
+
+def test_build_plan_runs_the_remaster_in_the_wsl_source_tree_and_verifies_it(tmp_path):
+    steps = forge.plan_build(src="~/hscl1-src", out="~/hscl1-build/out/x.iso", fast=True)
+    names = [s.name for s in steps]
+    assert names[0] == "preflight (clean source tree)"
+    assert any("remaster" in n for n in names)
+    remaster = next(s for s in steps if "remaster" in s.name)
+    cmd = " ".join(remaster.argv)
+    assert "scripts/remaster-iso.sh" in cmd and "--out ~/hscl1-build/out/x.iso" in cmd
+    assert "--fast" in cmd and "--force" in cmd
+
+
+def test_build_plan_refuses_a_dirty_source_tree_without_force(tmp_path):
+    dirty = tmp_path / "src"
+    dirty.mkdir()
+    steps = forge.plan_build(src=str(dirty), out="x.iso", fast=False)
+    pre = steps[0]
+    assert "status --porcelain" in " ".join(pre.argv)
+    # the preflight is a real gate: it fails the build when the tree has uncommitted changes
+    assert pre.argv is not None
+
+
+def test_build_dry_run_prints_the_steps_without_running_anything(tmp_path, capsys):
+    code = forge.main(["build", "--src", "~/hscl1-src", "--out", "x.iso", "--dry-run"])
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "remaster-iso.sh" in out and "dry" in out.lower()
+
+
+def test_build_runs_through_the_configured_wsl_prefix(tmp_path, monkeypatch):
+    calls = tmp_path / "calls.txt"
+    fake = tmp_path / "fake_wsl.py"
+    fake.write_text(
+        "import pathlib, sys\n"
+        f"calls = pathlib.Path({str(calls)!r})\n"
+        "with calls.open('a', encoding='utf-8') as fh:\n"
+        "    fh.write(' '.join(sys.argv[1:]) + '\\n')\n"
+        "print('ok')\n",
+        encoding="utf-8", newline="\n")
+    monkeypatch.setenv("FORGE_WSL", f"{sys.executable} {fake}")
+    code = forge.main(["build", "--src", "~/hscl1-src", "--out", "x.iso"])
+    assert code == 0
+    ran = calls.read_text(encoding="utf-8")
+    assert "remaster-iso.sh" in ran, ran
+
+
+def test_boot_uses_the_harness_and_summarises_its_result(tmp_path, capsys):
+    out = tmp_path / "boot"
+    harness = tmp_path / "fake_boot.py"
+    harness.write_text(
+        "import json, pathlib, sys\n"
+        "out = pathlib.Path(sys.argv[2]); out.mkdir(parents=True, exist_ok=True)\n"
+        "(out / 'result.json').write_text(json.dumps({'booted': True, 'seconds': 99,"
+        " 'screenshots': ['a.png', 'b.png'], 'firmware': 'uefi'}))\n",
+        encoding="utf-8")
+    code = forge.main(["boot", "some.iso", "--out", str(out), "--harness", str(harness)])
+    text = capsys.readouterr().out
+    assert code == 0
+    assert "booted" in text and "99" in text and "2" in text
+
+
+def test_boot_fails_when_the_harness_reports_a_failed_boot(tmp_path, capsys):
+    out = tmp_path / "boot"
+    harness = tmp_path / "fake_boot.py"
+    harness.write_text(
+        "import json, pathlib, sys\n"
+        "out = pathlib.Path(sys.argv[2]); out.mkdir(parents=True, exist_ok=True)\n"
+        "(out / 'result.json').write_text(json.dumps({'booted': False, 'seconds': 300, 'screenshots': []}))\n",
+        encoding="utf-8")
+    code = forge.main(["boot", "some.iso", "--out", str(out), "--harness", str(harness)])
+    assert code == 1
+    assert "not booted" in capsys.readouterr().out.lower()
+
+
+def _manifest(path: Path, **over):
+    import json
+    data = {
+        "product": "HSCL1", "artifact": "HSCL1.iso", "version": "0.1.2-alpha.0",
+        "workshop_default": "disabled", "qa_image": False,
+        "base": "Kubuntu 26.04.1", "base_iso_sha256": "aa", "git_commit": "c1",
+        "git_dirty": False, "built_utc": "2026-11-06T00:00:00Z",
+        "iso_bytes": 100, "iso_sha256": "11",
+    }
+    data.update(over)
+    path.write_text(json.dumps(data), encoding="utf-8")
+    return path
+
+
+def test_diff_reports_the_fields_that_changed_between_two_manifests(tmp_path, capsys):
+    a = _manifest(tmp_path / "a.manifest.json", iso_sha256="11")
+    b = _manifest(tmp_path / "b.manifest.json", iso_sha256="22", iso_bytes=120, git_commit="c2")
+    code = forge.main(["diff", str(a), str(b)])
+    text = capsys.readouterr().out
+    assert code == 0
+    assert "iso_sha256" in text and "git_commit" in text and "iso_bytes" in text
+    assert "version" not in text.split("changed")[-1] or "version" in text
+
+
+def test_diff_of_identical_manifests_says_so(tmp_path, capsys):
+    a = _manifest(tmp_path / "a.manifest.json")
+    b = _manifest(tmp_path / "b.manifest.json")
+    code = forge.main(["diff", str(a), str(b)])
+    assert code == 0
+    assert "no differences" in capsys.readouterr().out.lower()
+
+
+def test_diff_refuses_a_missing_manifest(tmp_path, capsys):
+    code = forge.main(["diff", str(tmp_path / "nope.manifest.json"), str(tmp_path / "also.json")])
+    assert code == 2
+    assert "manifest" in capsys.readouterr().out.lower() + capsys.readouterr().err.lower()
+
+
+def test_diff_accepts_an_iso_path_and_finds_its_manifest(tmp_path):
+    iso = tmp_path / "HSCL1.iso"
+    iso.write_bytes(b"x")
+    _manifest(tmp_path / "HSCL1.iso.manifest.json")
+    assert forge.manifest_for(iso) == tmp_path / "HSCL1.iso.manifest.json"

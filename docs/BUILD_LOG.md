@@ -396,3 +396,20 @@ stubbing `decide` to `State::default()` (9 of 9 rule tests failed) and restoring
 as test-first. `#![allow(dead_code)]` with a comment: the governor service (P31.3, sprint S5) is the caller; until then
 the module is covered by tests only, and no CLI command was invented that would have to guess covered/locked/battery.
 `cargo test -p hscl` 159 passed, fmt and clippy -D warnings clean.
+
+## Task 4b forge build / boot / diff (G30, 2026-11-07)
+Ten tests written first in `tests/unit/test_forge.py` (all red: `forge build ...` exited 2 with argparse "invalid choice").
+`forge build` is three visible steps in WSL - preflight (`git status --porcelain` must be empty, so a release artifact stays
+tied to a commit), the remaster, and a manifest probe that prints sha256/`git_dirty`/version from the file the build wrote.
+`--dry-run` prints them without executing. `FORGE_WSL` overrides the launcher so tests run a stand-in; it is split with
+`shlex.split(posix=False)` because the POSIX splitter ate the backslashes of a Windows path (`C:Usershcsme...`) and the
+step then failed with FileNotFoundError - a defect the test caught on the second run. Source and output paths are refused
+when they contain quotes, `$`, backticks or `;` (they are interpolated into a `bash -lc` string). `forge boot ISO --out DIR`
+runs the harness (default `scripts/qemu_boot_test.py`, `--harness` for a stand-in) and summarises `result.json`; it exits 1
+when the harness reports `booted: false` or writes no result, so it can gate a release. `forge diff A B` compares build
+manifests field by field and maps `X.iso` to `X.iso.manifest.json`; a missing manifest exits 2 with the path.
+Real runs on this host: `build --dry-run` (3 steps printed, nothing executed) and `diff` between the 0.1.1 and 0.1.2 release
+manifests - version, git commit, 5 494 800 384 -> 5 026 480 128 bytes and the sha256 change, with the 0.1.2 hash matching the
+value recorded at release time. **Not run:** a real `build` and a real `boot` (they need the WSL lab with >= 9 GB free and
+must not overlap with another VM); the ISO-content diff from the forge plan is still open. `python -m pytest
+tests/unit/test_forge.py` 22 passed.

@@ -76,7 +76,10 @@
       fixture-getesteter sysfs-Leser (`mem_info_vram/gtt_used|total`, `gpu_busy_percent`, Connector-Verzeichnisse
       ignoriert, Unsinnswerte geklemmt). Rot-Lauf belegt (Stub: 9 von 9 Regel-Tests rot). Teil 2 bleibt: systemd-User-Service,
       Control-Center-Seite, VM-Messung (S5 / P31.3, P31.5, P31.6)
-- [ ] `forge.py build|boot|diff` dokumentiert in `docs/DEV_LOOP.md`, getestet mit Fakes
+- [x] `forge.py build|boot|diff` dokumentiert in `docs/DEV_LOOP.md`, getestet mit Fakes
+      DONE 2026-11-07: 10 neue Tests (rot zuerst), `FORGE_WSL`-Override fuer den Stand-in-Launcher, Pfad-Validierung,
+      `build --dry-run` real gelaufen, `diff` real auf 0.1.1 -> 0.1.2 (version, commit, 4.6 GB -> 5.0 GB, sha256).
+      Offen: ISO-Inhalt-Diff (unmkinitramfs/unsquashfs/Paketlisten) und je ein echter `build`/`boot`-Lauf im WSL-Labor
 - [ ] Gate-Lauf: WSL pytest, Windows pytest, `forge check --strict`; PR oeffnen
 
 ## 4. Stoppregeln

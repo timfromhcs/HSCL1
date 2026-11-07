@@ -20,6 +20,26 @@ $ python scripts/workshop/e2e_probe.py ISO OUTDIR COMMANDS.json                 
 $ python -m pytest tests -q                                                         # on Linux also runs the tests Windows skips
 ```
 
+## `forge` subcommands (2026-11-07)
+
+```console
+$ python scripts/forge.py check [--strict]                 # pre-push gate (see below)
+$ python scripts/forge.py build --src ~/hscl1-src --out ~/hscl1-build/out/x.iso [--fast] [--dry-run]
+$ python scripts/forge.py boot x.iso --out artifacts/forge/boot-<stamp> [--firmware uefi|bios] [--secure-boot]
+$ python scripts/forge.py diff artifacts/iso/A.iso.manifest.json artifacts/iso/B.iso.manifest.json [--json]
+```
+
+- `build` runs three steps inside WSL: **preflight** (`git status --porcelain` must be empty - a dirty tree would produce an ISO
+  nobody can rebuild from a tag), the remaster itself, and a manifest step that prints sha256, `git_dirty` and version from the
+  file the build wrote. `FORGE_WSL` overrides the launcher (`wsl -d Ubuntu --` by default) so the steps can be tested with a
+  stand-in; the source and output paths are refused when they contain quotes, `$`, backticks or `;`.
+- `boot` runs `scripts/qemu_boot_test.py` (or `--harness`) and then summarises `result.json`: booted yes/no, seconds, number of
+  screenshots. Exit 1 when the harness says the boot failed or wrote no result, so it can gate a release.
+- `diff` compares two build manifests field by field (`version`, `git_commit`, `git_dirty`, `qa_image`, `base_iso_sha256`,
+  `iso_bytes`, `iso_sha256`, `workshop_default`, plus any other field a manifest adds). An `.iso` argument is mapped to
+  `<name>.manifest.json`. **Not implemented yet:** the ISO-content diff from the forge plan (initrd file list, squashfs file
+  list, package list) - it needs `unmkinitramfs`/`unsquashfs`, i.e. the Linux build lab.
+
 ## Harness guarantees (`scripts/workshop/vm.py`)
 
 - One persistent TCP connection to the guest port per VM; each request is sent once; stale replies are ignored.
