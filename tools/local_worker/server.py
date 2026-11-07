@@ -220,7 +220,7 @@ def make_deps(env: Mapping[str, str] | None = None) -> Deps:
     cpu_limit = float(env.get("HSCL_WORKER_CPU_LIMIT", hostgate.DEFAULT_CPU_LIMIT))
 
     def host() -> dict:
-        return hostgate.decide_host(hostgate.cpu_percent(), hostgate.qemu_running(), memgate.free_mb(), 0, reserve, cpu_limit, allow_vm)
+        return hostgate.decide_host(hostgate.cpu_percent(), hostgate.qemu_running(), memgate.free_mb(), 0, reserve, cpu_limit, allow_vm, hold=hostgate.read_hold())
 
     def make_chat(model: str) -> Callable[[list], str]:
         return lambda msgs: gateway.chat(msgs, model, max_tokens=1500, base_url=base)

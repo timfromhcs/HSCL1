@@ -147,3 +147,21 @@ def test_normal_call_still_works_and_releases_the_lock(tmp_path):
 def test_existing_four_field_deps_still_construct():
     d = server.Deps(root=Path("."), run_task=lambda *a, **k: None, make_chat=lambda m: None, gate=lambda m: {"ok": True, "reason": ""})
     assert callable(d.host) and callable(d.lock)
+
+
+# ---- host hold (tools/hcs_hold.py) -----------------------------------------------------------------------------------------------
+def test_a_hold_blocks_the_model_and_no_flag_overrides_it():
+    d = hostgate.decide_host(cpu_pct=1, qemu_running=False, free_mb=9000, need_mb=1000, reserve_mb=3000, allow_vm=True, cpu_limit=100,
+                             hold={"reason": "lora training", "pid": 42})
+    assert d["ok"] is False and "on hold" in d["reason"] and "lora training" in d["reason"]
+
+
+def test_read_hold_ignores_missing_garbage_and_dead_owner(tmp_path):
+    f = tmp_path / "hold.json"
+    assert hostgate.read_hold(f) is None
+    f.write_text("nope", encoding="utf-8")
+    assert hostgate.read_hold(f) is None
+    f.write_text(json.dumps({"reason": "x", "pid": 2**22 + 5}), encoding="utf-8")
+    assert hostgate.read_hold(f) is None
+    f.write_text(json.dumps({"reason": "build", "pid": os.getpid()}), encoding="utf-8")
+    assert hostgate.read_hold(f)["reason"] == "build"

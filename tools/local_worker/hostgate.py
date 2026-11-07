@@ -32,10 +32,13 @@ def decide_host(
     reserve_mb: int,
     cpu_limit: float = DEFAULT_CPU_LIMIT,
     allow_vm: bool = False,
+    hold: dict | None = None,
 ) -> dict:
-    """Refuse a model run when a VM is running, the CPU is saturated or memory is short. Memory is never overridable."""
+    """Refuse a model run when a heavy job holds the host, a VM is running, the CPU is saturated or memory is short. Memory and a hold are never overridable."""
     if min(cpu_pct, free_mb, need_mb, reserve_mb) < 0:
         raise ValueError("values must not be negative")
+    if hold:
+        return {"ok": False, "reason": f"host on hold: {hold.get('reason', 'heavy job')} (pid {hold.get('pid')})"}
     needed = need_mb + reserve_mb
     if free_mb < needed:
         return {"ok": False, "reason": f"short by {needed - free_mb} MiB (need {needed}, available {free_mb})"}
@@ -60,6 +63,17 @@ def effective_model_mb(
     if model in wake_mb and model in process:
         return 0 if resident_mb(process[model]) >= resident_threshold_mb else wake_mb[model]
     return base
+
+
+def read_hold(path: Path | str | None = None) -> dict | None:
+    """The active host hold (tools/hcs_hold.py, same file as the LocalAI gateway and autostart.ps1), or None. A dead owner is stale."""
+    p = Path(path) if path else Path(os.environ.get("HCS_HOLD_FILE") or (r"C:\AI\state\hold.json" if sys.platform.startswith("win") else str(Path.home() / ".hcs" / "hold.json")))
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+        pid = int(data["pid"])
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    return {"reason": str(data.get("reason", "heavy job"))[:200], "pid": pid} if SingleFlight._alive(pid) else None
 
 
 class SingleFlight:
