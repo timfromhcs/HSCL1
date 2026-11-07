@@ -717,3 +717,6 @@ Gates read by exit code: `cargo fmt/clippy -D warnings/test --all` clean (44 tes
 
 ## HCSUDA H2c: int8 dot-product GEMM (2026-11-07)
 `gemm_i8dot.comp`: int8 packed four per word along k, B transposed, `dotPacked4x8EXT` with int32 accumulation. Probe-first: `uint` operands failed to compile (`cannot convert uint to int`: the unsigned overload returns uint); switching the buffer types to `int` selects the signed overload. Device now enables `shaderIntegerDotProduct` only when the device reports it. `quant::pack_i8x4` has a layout test (written first). Selftest case `gemm_i8dot` (dtype column added so the verified list no longer says `:f32` for it): 48x128x40, **0 mismatches** vs the CPU oracle, deterministic over 3 runs, Radeon 680M. `cargo fmt/clippy -D warnings/test --all` clean (45 tests). Not measured: speed versus the f32 tiled GEMM, larger shapes, int4 path, unsigned variant.
+
+## H2c measurement: int8 dot GEMM is slower than tiled f32 as written (2026-11-07)
+New bench suite `gemm_i8dot` (same 256x1024x256 shape). Medians over 15 runs, GPU timestamps: f32 tiled 0.382 ms, int8 dot 0.814 ms, i.e. 2.1x slower; the kernel is untiled and memory-bound. Recorded in `hcsuda/docs/MEASURED.md`; planner keeps f32. Next experiment: shared-memory tiling of the packed operands.

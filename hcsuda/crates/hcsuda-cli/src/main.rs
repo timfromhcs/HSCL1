@@ -909,6 +909,57 @@ fn cmd_bench(
                     .with_gpu_stats(gpu_stats),
                 );
             }
+            "gemm_i8dot" => {
+                let (m, k, n) = (256usize, 1024usize, 256usize);
+                let a: Vec<i8> = (0..m * k)
+                    .map(|i| (((i * 7 + 3) % 255) as u8 ^ 0x15) as i8)
+                    .collect();
+                let b: Vec<i8> = (0..k * n)
+                    .map(|i| (((i * 13 + 5) % 251) as u8 ^ 0x2b) as i8)
+                    .collect();
+                let mut bt = vec![0i8; k * n];
+                for r in 0..k {
+                    for c in 0..n {
+                        bt[c * k + r] = b[r * n + c];
+                    }
+                }
+                let ops = Some(2.0 * m as f64 * n as f64 * k as f64);
+                let bytes = Some((m * k + k * n + 4 * m * n) as u64);
+                let cpu = cpu_samples(runs, || {
+                    let _ = reference::gemm_i8(&a, &b, m, k, n);
+                });
+                out_suite.push(BenchRow::from_samples(
+                    "gemm_i8dot",
+                    "i8",
+                    [m, n, k],
+                    "reference",
+                    &runner.dev.name(),
+                    &driver,
+                    cpu,
+                    ops,
+                    bytes,
+                ));
+                let ga = runner.upload_u32(&hcsuda_core::quant::pack_i8x4(&a))?;
+                let gbt = runner.upload_u32(&hcsuda_core::quant::pack_i8x4(&bt))?;
+                let gc = runner.alloc_i32(m * n)?;
+                warm_up(warmup_s, || runner.gemm_i8dot(&ga, &gbt, &gc, m, k, n))?;
+                let timings = sample(runs, reps, || runner.gemm_i8dot(&ga, &gbt, &gc, m, k, n))?;
+                let (wall, gpu_stats) = split_timings(timings);
+                out_suite.push(
+                    BenchRow::from_samples(
+                        "gemm_i8dot",
+                        "i8",
+                        [m, n, k],
+                        "vulkan_i8dot",
+                        &runner.dev.name(),
+                        &driver,
+                        wall,
+                        ops,
+                        bytes,
+                    )
+                    .with_gpu_stats(gpu_stats),
+                );
+            }
             "softmax" | "layernorm" | "rmsnorm" => {
                 let (r, c) = (32usize, 4096usize);
                 let eps = 1e-5f32;

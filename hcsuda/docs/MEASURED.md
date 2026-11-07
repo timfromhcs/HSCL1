@@ -134,3 +134,13 @@ Bugs found while building this (test and glue, not shader defects):
 - No power or thermal instrumentation; the machine ran on its normal power plan.
 
 Each of those becomes a row here only after the corresponding gate passes.
+
+## int8 dot-product GEMM versus tiled f32 (2026-11-07, Radeon 680M, driver 26.6.1)
+`hcsuda bench --suite gemm,gemm_i8dot --runs 15 --warmup-s 3`, 256x1024x256, release build, no VM or model running; JSON in `benchmarks/amd-radeon-680m/bench-gemm-i8.json`.
+
+| op | path | GPU ms | GFLOP/s (wall) |
+|---|---|---|---|
+| gemm f32 | vulkan_tiled | 0.382 (spread 0.00) | 274 |
+| gemm i8 | vulkan_i8dot (untiled) | 0.814 (spread 0.00) | 144 |
+
+Finding: the first correct int8 kernel is **2.1x slower** than the tiled f32 kernel. It reads A and B words straight from global memory (no shared-memory tiling), so it is memory-bound, not compute-bound; the accelerated 4x8 dot unit is not the limit. This is not evidence against the int8 path, only against this kernel. Hypothesis to test next: a 16x16 shared-memory tile over packed words (4x fewer bytes per MAC than f32). Promotion rule: the planner may select int8 only after it beats f32 by >= 1.05x here.
