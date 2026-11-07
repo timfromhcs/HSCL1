@@ -22,3 +22,16 @@ Discrepancies with the companion file: it quotes the SHAs `30c7f14...` (CQ-HECS)
 ## Next safe actions
 1. Shallow-clone GitHub `main` of CQ-HECS and Foundry into scratch directories on `C:`; record exact SHAs, `pyproject` metadata, ports, MCP tools, licence files, CI results.
 2. Decide the first package (`hscl-cqhecs`) only after reading its v5.0.0 install surface (Python >= 3.11 vs the base Python of Ubuntu 26.04).
+
+## Fresh shallow clones (scratch, `C:\AI\work\`, not part of HSCL1) - 2026-11-07
+| Item | CQ-HECS | hcs-foundry |
+|---|---|---|
+| HEAD | `30c7f1484af01cf71a8843cca56ff38786eeaf92` | `cfea6fab4ea4bd0ffb1517dc59e98a80f830096a` |
+| Package | `cqhecs` 5.0.0, console script `cq-hecs = cqhecs.cli:main` | `hcs-foundry` 7.5.0 (`server/pyproject.toml`, layout `server/foundry`) |
+| Python | `>=3.11` (classifiers 3.11-3.14) | `>=3.11` |
+| Dependencies | numpy>=1.24, qiskit>=0.45; extras `sat`, `dev`, `benchmark` | see `server/pyproject.toml`; lock files `requirements-lock.txt`, `requirements-train-lock.txt` (training kept separate) |
+| Licence file | Apache-2.0 (file and GitHub agree) | **MIT** ("Copyright (c) 2026 timfromhcs and hcsmedia"); GitHub shows `NOASSERTION`, so the file, not the API, is the source |
+| CI | `ci.yml`, `nightly.yml`, `release.yml` | `ci.yml` |
+| Notes | README in EN/DE/FR; native C++/CMake path needs Vulkan SDK (per companion file, not yet re-verified in the CMake file) | `cli.py` refuses a non-loopback host unless `allow_lan` is set (loopback-by-default is real in source); port 8770 appears only in a benchmark fixture, not yet confirmed as the service default |
+
+Open: which Python the base image provides (Ubuntu 26.04 `python3`) versus `>=3.11` for both; whether `qiskit` has wheels there; install size of the CQ-HECS venv. These decide the shape of `hscl-cqhecs` and are the first B1 measurements.
