@@ -264,3 +264,10 @@ def test_boot_reports_a_guest_that_did_not_reach_the_desktop(tmp_path, capsys):
     code = forge.main(["boot", "x.iso", "--out", str(out), "--harness", str(_fake_boot_harness(tmp_path, payload))])
     assert code == 1
     assert "not booted" in capsys.readouterr().out.lower()
+
+
+def test_default_check_skips_the_slow_tier_and_full_runs_everything():
+    fast = next(s for s in forge.plan_check(ROOT, have_wsl=False, changed=[]) if s.name == "pytest").argv
+    full = next(s for s in forge.plan_check(ROOT, have_wsl=False, changed=[], full=True) if s.name == "pytest").argv
+    assert "not slow" in fast
+    assert "not slow" not in full

@@ -209,10 +209,12 @@ def iso_diff(a: Path, b: Path) -> list[tuple[str, object, object]]:
     return [(k, da.get(k), db.get(k)) for k in keys if da.get(k) != db.get(k)]
 
 
-def plan_check(root: Path = ROOT, have_wsl: bool | None = None, changed: list[str] | None = None) -> list[Step]:
+def plan_check(root: Path = ROOT, have_wsl: bool | None = None, changed: list[str] | None = None, full: bool = False) -> list[Step]:
     have_wsl = wsl_available() if have_wsl is None else have_wsl
     changed = changed_test_files(root) if changed is None else changed
     pytest_argv = [sys.executable, "-m", "pytest", "tests", "-q", "-p", "no:cacheprovider"]
+    if not full:
+        pytest_argv += ["-m", "not slow"]  # the slow tier runs with --full and in CI
     try:
         import xdist  # noqa: F401
         pytest_argv += ["-n", "auto"]
@@ -260,7 +262,7 @@ def run_step(step: Step, root: Path = ROOT) -> Result:
 
 
 def cmd_check(args: argparse.Namespace) -> int:
-    steps = plan_check()
+    steps = plan_check(full=args.full)
     print("forge check will run:")
     for s in steps:
         print(f"  - {s.name}" + (f"  (SKIPPED: {s.skip_reason})" if s.skip_reason else ""))
@@ -366,6 +368,7 @@ def main(argv: list[str] | None = None) -> int:
     d.set_defaults(func=cmd_diff)
     c = sub.add_parser("check", help="local pre-push gate")
     c.add_argument("--dry-run", action="store_true", help="print the steps only")
+    c.add_argument("--full", action="store_true", help="also run the tests marked slow (CI always does)")
     c.add_argument("--strict", action="store_true", help="a SKIPPED step fails the gate")
     c.set_defaults(func=cmd_check)
     args = ap.parse_args(argv)
