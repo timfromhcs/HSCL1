@@ -333,3 +333,19 @@ with one red test (`KeyError: 'ram_available_mb'`).
   and why the RAM gate must read the counter, not a process list. Recorded for the resource plan.
 - Forge check green on both commits (pytest 204.8 s, WSL parity 41.7 s, bash -n, shellcheck, secret
   scan). Nothing was pushed and no PR was merged: PR merges stay with the owner.
+
+## Task G1 stress/fault gate script (2026-11-07)
+`scripts/stress_vm.sh` (8 tests written first in `tests/unit/test_stress_vm.py`, all red against the missing script):
+stress-ng (`--klog-check --metrics-brief`, 120 s, 4 cpu + 2 vm workers), fio (4k randrw, 70 % read, 1 GiB file,
+direct I/O) and memtester (`256M 1`), each with its own log; `summary.json` records per-tool status
+(`ok`/`failed`/`missing`), exit code, duration, argv and host facts, plus the DMI string as a *warning only*.
+Refuses with exit 2 unless `HSCL_IN_DISPOSABLE_VM=1` **and** the marker file exists (`/etc/hscl-vm-marker`;
+`HSCL_VM_MARKER` exists so the test can point at a fixture), and refuses with less than 3 GiB free. A failing or
+missing tool still writes the summary and exits 1. The tools are faked on `PATH` in the tests - fio/stress-ng/memtester
+are not installed on this dev host, so the real run stays a VM item for S2 (recorded in the plan as MC). Two host
+defects found while writing it: the WSL/Git Bash `python3` on this dev host is the Microsoft Store alias (exits 49), so
+the script now accepts `python3` or `python` and probes it with `import json`; and the Write tool produces CRLF, which
+`shellcheck` rejects with SC1017 - the file was normalised to LF and `shellcheck -S warning` is clean in WSL.
+`tests/shellutil.py` gained `run_command()` (needed to call shellcheck from a test on all three hosts; 2 tests).
+Documented in `docs/TESTING.md` under "Stress and fault gate". Windows: 13 passed, 1 skipped (shellcheck, run by
+forge/CI instead).

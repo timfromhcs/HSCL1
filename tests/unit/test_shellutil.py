@@ -49,3 +49,16 @@ def test_script_can_read_a_path_override(tmp_path):
     s.write_bytes(b'#!/bin/sh\ncat "$TARGET"\n')
     r = shellutil.run_script(s, env_overrides={"TARGET": target})
     assert r.stdout == "hello"
+
+
+@pytest.mark.skipif(not shellutil.usable(), reason="needs a POSIX shell (native bash or WSL)")
+def test_run_command_passes_overrides_to_a_plain_command():
+    r = shellutil.run_command(["sh", "-c", 'printf "%s" "${FOO-unset}"'], env_overrides={"FOO": "bar"})
+    assert r.returncode == 0, r.stderr
+    assert r.stdout == "bar"
+
+
+@pytest.mark.skipif(not shellutil.usable(), reason="needs a POSIX shell (native bash or WSL)")
+def test_run_command_reports_a_missing_executable():
+    with pytest.raises(FileNotFoundError):
+        shellutil.run_command(["definitely-not-a-command-hscl1"])

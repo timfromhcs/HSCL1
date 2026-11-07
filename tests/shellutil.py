@@ -119,6 +119,43 @@ def _wsl_command(overrides: dict[str, object | None], script: str, args: list[st
     return [launcher, "-e", "env", *env_args, *assignments, "bash", script, *args]
 
 
+def run_command(
+    argv: list[str],
+    *,
+    env_overrides: dict[str, object | None] | None = None,
+    timeout: int = 120,
+) -> subprocess.CompletedProcess:
+    """Run a POSIX command (shellcheck, awk, ...) with the detected bash environment.
+
+    Paths inside `argv` are the caller's responsibility (use `to_bash_path`); overrides are converted
+    the same way `run_script` does and, under WSL, passed through `env` so they are not reset.
+    """
+    kind = bash_kind()
+    if kind == "none":
+        raise RuntimeError("no usable bash (native or WSL) found")
+    raw = dict(env_overrides or {})
+    if kind == "wsl":
+        env_args: list[str] = []
+        assignments: list[str] = []
+        for name in sorted(raw):
+            value = raw[name]
+            if value is None:
+                env_args += ["-u", name]
+            else:
+                assignments.append(f"{name}={_env_value(value, name)}")
+        return subprocess.run(
+            [WSL or BASH, "-e", "env", *env_args, *assignments, *argv],
+            capture_output=True, text=True, timeout=timeout,
+        )
+    env = {**os.environ}
+    for key, value in raw.items():
+        if value is None:
+            env.pop(key, None)
+        else:
+            env[key] = _env_value(value, key)
+    return subprocess.run(argv, capture_output=True, text=True, env=env, timeout=timeout)
+
+
 def run_script(
     script: str | os.PathLike[str],
     *args: object,

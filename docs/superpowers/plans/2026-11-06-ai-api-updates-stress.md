@@ -54,7 +54,7 @@
 - [ ] F3 (S5) minimal `systemd-sysext` image: merge/unmerge in the VM, `SYSEXT_LEVEL` match test
 
 ## Track G - stress and fault tests
-- [ ] G1 `scripts/stress_vm.sh`: refuses unless `HSCL_IN_DISPOSABLE_VM=1` and `/etc/hscl-vm-marker` exist; runs `stress-ng --klog-check --metrics-brief`, `fio` randrw 1 GiB, `memtester 256M 1`; writes JSON to `artifacts/stress/`. Tests with fake binaries on PATH: refuses without marker; writes summary; tool failure gives non-zero exit; shellcheck clean
+- [x] G1 `scripts/stress_vm.sh`: refuses unless `HSCL_IN_DISPOSABLE_VM=1` and `/etc/hscl-vm-marker` exist; runs `stress-ng --klog-check --metrics-brief`, `fio` randrw 1 GiB, `memtester 256M 1`; writes JSON to `artifacts/stress/`. Tests with fake binaries on PATH: refuses without marker; writes summary; tool failure gives non-zero exit; shellcheck clean. DONE 2026-11-07: `scripts/stress_vm.sh`, 8 tests written first (`tests/unit/test_stress_vm.py`), shellcheck -S warning clean. Real run still MC: fio/stress-ng/memtester are not installed on this host; the gate needs the disposable VM (S2)
 - [ ] G2 (S2) QEMU `blkdebug` cases under `tests/vm/blkdebug/`: injected EIO at the Nth write must make the installer fail safely
 - [ ] G3 proptest round trips for `redact.rs`, `toolcall.rs`, `hw.rs`; scheduled workflow for time-boxed `cargo-fuzz` and `cargo-mutants -f` on parsers
 - [ ] G4 (S2) `autopkgtest` for `hscl-base` (`hscl version --json`, completions present)
