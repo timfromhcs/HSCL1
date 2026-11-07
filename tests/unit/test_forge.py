@@ -231,3 +231,13 @@ def test_diff_accepts_an_iso_path_and_finds_its_manifest(tmp_path):
     iso.write_bytes(b"x")
     _manifest(tmp_path / "HSCL1.iso.manifest.json")
     assert forge.manifest_for(iso) == tmp_path / "HSCL1.iso.manifest.json"
+
+
+def test_boot_plan_can_reach_the_live_desktop():
+    """The boot gate has to end on the desktop, not on the GRUB menu: --live maps to the harness's
+    --try-live --dismiss-welcome, which clicks through the live prompt and closes the welcome window."""
+    steps = forge.plan_boot("x.iso", "out", harness="h.py", firmware="uefi", live=True)
+    argv = steps[0].argv
+    assert "--try-live" in argv and "--dismiss-welcome" in argv
+    plain = forge.plan_boot("x.iso", "out", harness="h.py")[0].argv
+    assert "--try-live" not in plain

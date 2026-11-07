@@ -176,11 +176,15 @@ def plan_build(src: str, out: str, fast: bool = False, force: bool = True) -> li
 
 
 def plan_boot(iso: str, out: str, harness: str | Path | None = None, firmware: str = "uefi",
-              secure_boot: bool = False) -> list[Step]:
+              secure_boot: bool = False, live: bool = False) -> list[Step]:
+    """`live` clicks through the live prompt and closes the Welcome window, so the evidence ends on
+    the desktop instead of the boot menu (the harness options `--try-live --dismiss-welcome`)."""
     harness = harness or (ROOT / "scripts" / "qemu_boot_test.py")
     argv = [sys.executable, str(harness), str(iso), str(out), "--firmware", firmware]
     if secure_boot:
         argv.append("--secure-boot")
+    if live:
+        argv += ["--try-live", "--dismiss-welcome"]
     return [Step("boot", argv)]
 
 
@@ -298,7 +302,7 @@ def cmd_build(args: argparse.Namespace) -> int:
 def cmd_boot(args: argparse.Namespace) -> int:
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    for st in plan_boot(args.iso, args.out, args.harness, args.firmware, args.secure_boot):
+    for st in plan_boot(args.iso, args.out, args.harness, args.firmware, args.secure_boot, args.live):
         res = run_step(st)
         print(f"[{res.status:7}] {st.name} ({res.seconds:.1f}s) {res.detail if res.status != 'PASS' else ''}")
     result_path = out / "result.json"
@@ -349,6 +353,7 @@ def main(argv: list[str] | None = None) -> int:
     bo.add_argument("--harness", help="boot harness (default scripts/qemu_boot_test.py)")
     bo.add_argument("--firmware", choices=["uefi", "bios"], default="uefi")
     bo.add_argument("--secure-boot", action="store_true")
+    bo.add_argument("--live", action="store_true", help="click through the live prompt and close the Welcome window")
     bo.set_defaults(func=cmd_boot)
     d = sub.add_parser("diff", help="compare two build manifests (or ISOs with a .manifest.json)")
     d.add_argument("a")
