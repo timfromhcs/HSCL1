@@ -1,6 +1,11 @@
 # MASTERPLAN — HCSUDA first, then HSCL1 to stable v1.0.0
 
-> **Status: ACTIVE. This file supersedes the *ordering* of every earlier plan.**
+> **Status (reconciled 2026-11-08): the *ordering* in this file is SUPERSEDED by the Ecosystem Master priority list P0-P14**
+> (`AGENTS_HCS_ECOSYSTEM_MASTER_2026-11-07.md`, tracked in `2026-11-08-selfheal-masterplan.md` section 3). HCSUDA inference work is Master P12.
+> This file stays valid for its gates (H-G*, L*, C*), honesty rules (section 4), architecture (section 5), benchmark protocol (section 10),
+> threat model and the owner-only list. The sprint order below is historical; do not use it to pick the next task.
+>
+> *Original header:* **This file supersedes the *ordering* of every earlier plan.**
 > The gate definitions, threat model, honesty rules and evidence vocabulary of
 > `2026-11-06-autonomous-to-stable-hardened.md`, `2026-11-06-finish-line-self-heal.md`,
 > `2026-11-07-genesis-parallel.md` and `2026-11-07-hcswaver-integration.md` stay valid and are

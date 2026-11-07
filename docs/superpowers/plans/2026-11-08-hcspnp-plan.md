@@ -19,20 +19,25 @@
 | `T_dense`/`T_sparse` are theory without a checker | No "proof-checked count" claim for any tensor backend (P7) |
 | CQ-HECS suite never run from a clean checkout here; docs contradict `pyproject.toml` on Python 3.14 | P-M0 runs it and records the result before any code change |
 
-## 1. Order across the three live tracks
+## 1. Order across tracks (single source: the live ledger)
 
-| Slot | Work | Why now |
+The priority list lives in **`2026-11-08-selfheal-masterplan.md` sections 3 and 5** and follows the Ecosystem Master P0-P14. This plan keeps only
+the Track P detail below; it does not carry its own order. Locks follow the Master format (ledger section 4). Mapping of this plan's milestones:
+
+| This plan | Master | Note |
 |---|---|---|
-| 1 | Land PR #29 (HCSEASYMATH M1) | finished and waiting only for CI |
-| 2 | **P-M0** audit: clone CQ-HECS into WSL ext4, create a Python 3.14 venv, run its test suite, read the files the contract lists | contract: no code change before the audit; CPU job, nothing else heavy running |
-| 3 | **P-M1a**: write the Studio guard in the local clone, tests first, run the CQ-HECS suite. **Do not push** (P10) | unblocks P2; needs only a clone |
-| 4 | HSCL1-side slice that is not blocked: `hscl cqhecs status` (read-only, wraps `hscl-cqhecs doctor --json`), tests first. Takes `LOCK: P` on `cli/hscl/` for this slice only | small, honest, visible in the OS CLI |
-| 5 | Resume Track E (E-M2..) and, in a free slot, HCSUDA H3c-3b | none of them touch the CQ-HECS package |
-| later | P-M1b launcher `studio` + desktop entry, only after the guarded Studio exists in a pinned CQ-HECS release | decision P2/P3, needs B-P1 |
-
-**Locks (P9).** One track at a time may edit `cli/hscl/`, `apps/control-center/`, `distro/live/verify-image.sh`,
-`scripts/remaster-iso.sh`, `packages/debian/`. A track writes `LOCK: <track> (<files>)` into the self-heal ledger when it
-starts and removes it with its merge. Today: no lock held.
+| P-M0 audit | P0 | PR #29 landed, suite recorded; full file reading open |
+| P-M1a upstream fixes (local, not pushed) | P1 | bridge early-reply fix committed locally; Studio guard next |
+| P-S1 status wrapper | P2 | takes the `cli/hscl/` lock |
+| P-M1b launcher `studio` + desktop entry | P2 | blocked until a guarded Studio is pinned |
+| P-M2 proof UX | P3 | - |
+| P-M3 #SAT separator | P5 | - |
+| P-M4 learned guidance | P11 | - |
+| P-M5 tensor counting | P10 | - |
+| P-M6 streaming/storage | P9 | - |
+| P-M7 HCSUDA | P8 | - |
+| P-M8, P-M9 | P2 / P14 | - |
+| Q | P13 | - |
 
 ## 2. Milestones (numbering follows the contract)
 

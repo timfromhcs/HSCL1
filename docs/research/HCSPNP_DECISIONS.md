@@ -18,6 +18,8 @@ polynomial algorithm for NP-complete problems, or "SSD as VRAM".
 | P8 | External exact counters (Ganak, D4, sharpSAT-TD) are references, not dependencies. Their 2025 numbers (1 h, 31 GB per instance) are not reproducible on this laptop; we compare on scaled limits and say so. | Ledger stage 3. | Benchmark protocol records solver version, limits, seeds, hardware. | PLANNED |
 | P9 | **File ownership across tracks.** `cli/hscl/`, `apps/control-center/`, `distro/live/verify-image.sh`, `scripts/remaster-iso.sh`, `packages/debian/` are edited by one track at a time. The holder is written in the self-heal ledger as `LOCK: <track>`; a track that needs a locked file waits or works elsewhere. | Contract section 1.4 (parallel HCSEASYMATH work). | Ledger shows at most one LOCK per file group. | IN FORCE |
 | P10 | A pull request into `timfromhcs/CQ-HECS` is an outward action in another repository. The agent prepares the change in a local clone and **does not push it** until the owner agrees. | Authorisation so far covers HSCL1. | `git remote -v` of the clone shows no push; branch exists only locally. | IN FORCE |
+| P11 | The Ecosystem Master priority list P0-P14 governs the order of all work; this file's decisions keep their numbers. The live ledger is the only place that lists the order. | Master 7 and 8.5. | Ledger section 3 maps every milestone to a Master P-number. | IN FORCE |
+| P12 | Merge policy: merge to `main` only when every CI check is green, as a merge commit, never forced, never a release or tag. This is read as the standing owner instruction that Master rule 17 requires. Pushes into other repositories stay forbidden without approval (P10). | Owner request ("main merge" and the standing ping text: merge only on green CI) and Master rules 16-17. | Each merge is reported with its check count. | IN FORCE |
 
 ## Gaps found (with their files)
 
@@ -27,15 +29,16 @@ polynomial algorithm for NP-complete problems, or "SSD as VRAM".
 4. `python-sat` (CaDiCaL) is not in the OS runtime pin.
 5. CQ-HECS `docs/UNIFIED_SOLVER.md` says "<3.14", contradicting `pyproject.toml` and the 3.14 runtime pin.
 6. CQ-HECS suite never run from a clean checkout by this project.
-7. `src/sat_solver.cpp` (native) is unaudited; contract section 23.1 forbids listing it as a capability until audited.
+7. The hardware bridge answers early POST rejections without draining the body (platform-dependent connection resets; fixed only in a local clone).
+8. `src/sat_solver.cpp` (native) is unaudited; contract section 23.1 forbids listing it as a capability until audited.
 
 ## Blockers
 
 | ID | Item | Type | Next step |
 |---|---|---|---|
 | B-P1 | Owner approval to open PRs in `timfromhcs/CQ-HECS` | owner | prepare the Studio guard patch locally; ask when it is green |
-| B-P2 | CQ-HECS suite result | unknown | clone to WSL ext4, run, record versions and result (P-M0) |
-| B-P3 | Which CaDiCaL the installed `python-sat 1.9.dev21` selects by default | unknown | read after a throw-away install, no OS change |
+| B-P2 | CQ-HECS suite result | **answered 2026-11-08** | 2739 passed, 1 failed (real bridge defect, local fix prepared), 110 skipped; see `HCSPNP_BASELINE.md` |
+| B-P3 | Which CaDiCaL `python-sat 1.9.dev21` provides | **answered 2026-11-08** | the adapter pins `SOLVER_NAME = "cadical195"` (CaDiCaL 1.9.5); `Solver(name="cadical195", with_proof=True)` returned UNSAT with a 3-line proof on Python 3.14.4 |
 | B-P4 | RLAF code and benchmark tables | research gap | read the paper body before designing M4 |
 | B-P5 | Does `hscl-cqhecs run -- studio` work on an installed system | unverified | VM test after P-M1; one heavy job at a time |
 | B-P6 | `hcs-foundry` interfaces | not inspected | only if M4 needs a model host |
