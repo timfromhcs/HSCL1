@@ -1,0 +1,36 @@
+#version 450
+
+// Rotary position embedding, split-half layout (element i pairs with i + dim/2).
+// One invocation per (row, pair). Row r is token position pos0 + r.
+//
+// Push constants: { uint dim; uint rows; uint pos0; float base; }
+// Bindings: 0 = x, 1 = y
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+layout(std430, binding = 0) readonly buffer XBuf { float x[]; };
+layout(std430, binding = 1) writeonly buffer YBuf { float y[]; };
+
+layout(push_constant) uniform Push {
+    uint dim;
+    uint rows;
+    uint pos0;
+    float base;
+} pc;
+
+void main() {
+    uint half_dim = pc.dim / 2u;
+    uint gid = gl_GlobalInvocationID.x;
+    if (gid >= pc.rows * half_dim) {
+        return;
+    }
+    uint r = gid / half_dim;
+    uint i = gid % half_dim;
+    float pos = float(pc.pos0 + r);
+    float theta = pos * exp2(-2.0 * float(i) / float(pc.dim) * log2(pc.base));
+    float s = sin(theta);
+    float c = cos(theta);
+    float a = x[r * pc.dim + i];
+    float b = x[r * pc.dim + i + half_dim];
+    y[r * pc.dim + i] = a * c - b * s;
+    y[r * pc.dim + i + half_dim] = a * s + b * c;
+}

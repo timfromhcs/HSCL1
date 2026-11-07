@@ -91,6 +91,20 @@ impl Buffer {
         self.upload(dev, &bytes)
     }
 
+    pub fn upload_u32(&self, dev: &Device, values: &[u32]) -> Result<(), VkError> {
+        let bytes: Vec<u8> = values.iter().flat_map(|v| v.to_le_bytes()).collect();
+        self.upload(dev, &bytes)
+    }
+
+    pub fn read_i32(&self, dev: &Device, len: usize) -> Result<Vec<i32>, VkError> {
+        let mut bytes = vec![0u8; len * 4];
+        self.download(dev, &mut bytes)?;
+        Ok(bytes
+            .chunks_exact(4)
+            .map(|c| i32::from_le_bytes([c[0], c[1], c[2], c[3]]))
+            .collect())
+    }
+
     pub fn download(&self, dev: &Device, out: &mut [u8]) -> Result<(), VkError> {
         if !self.host_visible {
             return Err(VkError::Other("buffer is not host visible".into()));

@@ -1,0 +1,65 @@
+#version 450
+
+// Tiled row-major matrix product: C = A * B, A is m x k, B is k x n.
+//
+// 16x16 shared-memory tiles, one invocation per output element. Each tile is
+// loaded cooperatively, then the 16-deep inner step runs out of shared memory.
+// This is the honest "tiled" baseline: no register blocking, no double
+// buffering, no cooperative matrix. Those are separate shaders with their own
+// tolerance and their own evidence, so a number here always means this kernel.
+//
+// The accumulation order (k ascending in steps of 16, then 16 inside) differs
+// from the CPU oracle's straight k loop, which is why the differential test uses
+// the f32 reduction tolerance scaled by k rather than bit equality.
+//
+// Push constants: { uint m; uint n; uint k; }
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(std430, binding = 0) readonly buffer ABuf { float a[]; };
+layout(std430, binding = 1) readonly buffer BBuf { float b[]; };
+layout(std430, binding = 2) writeonly buffer CBuf { float c[]; };
+
+layout(push_constant) uniform Push {
+    uint m;
+    uint n;
+    uint k;
+} pc;
+
+const uint TILE = 16u;
+
+shared float tile_a[TILE][TILE];
+shared float tile_b[TILE][TILE];
+
+void main() {
+    uint row = gl_GlobalInvocationID.y;
+    uint col = gl_GlobalInvocationID.x;
+    uint lr = gl_LocalInvocationID.y;
+    uint lc = gl_LocalInvocationID.x;
+
+    float acc = 0.0;
+    uint tiles = (pc.k + TILE - 1u) / TILE;
+
+    for (uint t = 0; t < tiles; ++t) {
+        uint ak = t * TILE + lc;
+        uint bk = t * TILE + lr;
+
+        tile_a[lr][lc] = (row < pc.m && ak < pc.k) ? a[row * pc.k + ak] : 0.0;
+        tile_b[lr][lc] = (bk < pc.k && col < pc.n) ? b[bk * pc.n + col] : 0.0;
+
+        // `barrier()` orders both control flow and shared-memory accesses.
+        barrier();
+
+        for (uint i = 0; i < TILE; ++i) {
+            acc += tile_a[lr][i] * tile_b[i][lc];
+        }
+
+        // The trailing barrier is required: without it a fast invocation could
+        // overwrite tile_a/tile_b for the next tile while a slow one is still
+        // reading them.
+        barrier();
+    }
+
+    if (row < pc.m && col < pc.n) {
+        c[row * pc.n + col] = acc;
+    }
+}

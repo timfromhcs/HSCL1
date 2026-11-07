@@ -4,7 +4,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.00256,
+      "gpu_ms": 0.0026,
       "max_error": 2.384185791015625e-7,
       "ok": true,
       "op": "saxpy",
@@ -14,7 +14,7 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.00132,
+      "gpu_ms": 0.00356,
       "max_error": 2.384185791015625e-7,
       "ok": true,
       "op": "triad",
@@ -24,12 +24,72 @@
     {
       "deterministic": true,
       "dtype": "f32",
-      "gpu_ms": 0.25719,
+      "gpu_ms": 0.07352,
       "max_error": 1.9073486328125e-6,
       "ok": true,
       "op": "gemv",
       "path": "vulkan_scalar",
       "tolerance": 0.000032627416997969525
+    },
+    {
+      "deterministic": true,
+      "dtype": "f32",
+      "gpu_ms": 0.01168,
+      "max_error": 2.384185791015625e-7,
+      "ok": true,
+      "op": "gemm",
+      "path": "vulkan_tiled",
+      "tolerance": 0.000021445523142259596
+    },
+    {
+      "deterministic": true,
+      "dtype": "f32",
+      "gpu_ms": 0.00624,
+      "max_error": 3.259629011154175e-9,
+      "ok": true,
+      "op": "softmax",
+      "path": "vulkan_tiled",
+      "tolerance": 0.000042
+    },
+    {
+      "deterministic": true,
+      "dtype": "f32",
+      "gpu_ms": 0.00544,
+      "max_error": 2.86102294921875e-6,
+      "ok": true,
+      "op": "layernorm",
+      "path": "vulkan_tiled",
+      "tolerance": 0.000042
+    },
+    {
+      "deterministic": true,
+      "dtype": "f32",
+      "gpu_ms": 0.00712,
+      "max_error": 4.76837158203125e-7,
+      "ok": true,
+      "op": "rmsnorm",
+      "path": "vulkan_tiled",
+      "tolerance": 0.000042
+    },
+    {
+      "deterministic": true,
+      "dtype": "f32",
+      "gpu_ms": 0.00096,
+      "max_error": 2.980232238769531e-7,
+      "ok": true,
+      "op": "rope",
+      "path": "vulkan_scalar",
+      "tolerance": 0.000042
+    },
+    {
+      "deterministic": true,
+      "dtype": "f32",
+      "gpu_ms": 0.00396,
+      "max_error": 0.0,
+      "ok": true,
+      "op": "gemm_i8dot",
+      "path": "vulkan_i8dot",
+      "tolerance": 0.0
     }
   ],
   "device": "AMD Radeon(TM) Graphics",
@@ -39,6 +99,12 @@
   "verified_paths": [
     "vulkan_scalar:saxpy:f32",
     "vulkan_scalar:triad:f32",
-    "vulkan_scalar:gemv:f32"
+    "vulkan_scalar:gemv:f32",
+    "vulkan_tiled:gemm:f32",
+    "vulkan_tiled:softmax:f32",
+    "vulkan_tiled:layernorm:f32",
+    "vulkan_tiled:rmsnorm:f32",
+    "vulkan_scalar:rope:f32",
+    "vulkan_i8dot:gemm_i8dot:i8"
   ]
 }

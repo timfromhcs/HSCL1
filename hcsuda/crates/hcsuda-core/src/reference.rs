@@ -127,6 +127,27 @@ pub fn rmsnorm(rows: usize, cols: usize, x: &[f32], gamma: &[f32], eps: f32) -> 
     out
 }
 
+/// Rotary position embedding, split-half layout: element `i` pairs with `i + dim/2`.
+/// Row `r` is token position `pos0 + r`; pair `i` rotates by `pos * base^(-2i/dim)`.
+pub fn rope(rows: usize, dim: usize, x: &[f32], pos0: u32, base: f32) -> Vec<f32> {
+    assert_eq!(x.len(), rows * dim);
+    assert!(dim % 2 == 0, "rope needs an even dimension");
+    let half = dim / 2;
+    let mut out = x.to_vec();
+    for r in 0..rows {
+        let pos = (pos0 as usize + r) as f32;
+        for i in 0..half {
+            let theta = pos * base.powf(-2.0 * i as f32 / dim as f32);
+            let (s, c) = theta.sin_cos();
+            let a = x[r * dim + i];
+            let b = x[r * dim + i + half];
+            out[r * dim + i] = a * c - b * s;
+            out[r * dim + i + half] = a * s + b * c;
+        }
+    }
+    out
+}
+
 /// GELU with the tanh approximation (the variant used by most transformer stacks).
 pub fn gelu(x: &[f32]) -> Vec<f32> {
     let k = (2.0f32 / std::f32::consts::PI).sqrt();
@@ -221,5 +242,31 @@ mod tests {
     fn reductions() {
         assert_eq!(reduce_sum(&[1.0, 2.0, 3.0]), 6.0);
         assert_eq!(reduce_max(&[1.0, 9.0, 3.0]), 9.0);
+    }
+
+    #[test]
+    fn rope_position_zero_is_identity() {
+        let x = [1.0, 2.0, 3.0, 4.0];
+        assert_eq!(rope(1, 4, &x, 0, 10000.0), x.to_vec());
+    }
+
+    #[test]
+    fn rope_preserves_pair_norm() {
+        let x: Vec<f32> = (0..16).map(|i| (i as f32 * 0.37).sin()).collect();
+        let y = rope(2, 8, &x, 5, 10000.0);
+        for r in 0..2 {
+            for i in 0..4 {
+                let (a, b) = (x[r * 8 + i], x[r * 8 + i + 4]);
+                let (c, d) = (y[r * 8 + i], y[r * 8 + i + 4]);
+                assert!(((a * a + b * b) - (c * c + d * d)).abs() < 1e-5);
+            }
+        }
+    }
+
+    #[test]
+    fn rope_known_quarter_turn() {
+        // dim 2, i = 0: theta = pos; pos = pi/2 is not an integer, so use pos 1 and compare to sin/cos(1).
+        let y = rope(1, 2, &[1.0, 0.0], 1, 10000.0);
+        assert!((y[0] - 1f32.cos()).abs() < 1e-6 && (y[1] - 1f32.sin()).abs() < 1e-6);
     }
 }

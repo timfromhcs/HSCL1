@@ -68,8 +68,8 @@ enum Command {
     },
     /// Measure the same kernels on GPU and CPU and emit a benchmark suite.
     Bench {
-        /// Comma-separated op list; supported: saxpy,triad,gemv.
-        #[arg(long, default_value = "saxpy,triad,gemv")]
+        /// Comma-separated op list; supported: saxpy,triad,gemv,gemm.
+        #[arg(long, default_value = "saxpy,triad,gemv,gemm")]
         suite: String,
         #[arg(long, default_value_t = 5)]
         runs: u32,
@@ -79,6 +79,11 @@ enum Command {
         /// 0.08 at 50).
         #[arg(long, default_value_t = 50)]
         reps: u32,
+        /// Seconds of continuous work before the first sample, so the GPU is at
+        /// a steady clock. Without it a fast kernel measures the ramp: tiled
+        /// GEMM moved from 0.366 ms to 0.265 ms between two runs.
+        #[arg(long, default_value_t = 2)]
+        warmup_s: u32,
         #[arg(long)]
         json: bool,
         #[arg(long)]
@@ -114,10 +119,11 @@ fn run() -> Result<()> {
             suite,
             runs,
             reps,
+            warmup_s,
             json,
             device,
             out,
-        } => cmd_bench(&suite, runs, reps, json, device, out),
+        } => cmd_bench(&suite, runs, reps, warmup_s, json, device, out),
     }
 }
 
@@ -152,6 +158,42 @@ fn parse_op(name: &str) -> Result<Op> {
             let known: Vec<&str> = Op::ALL.iter().map(|o| o.name()).collect();
             format!("unknown op '{name}' (known: {})", known.join(", "))
         })
+}
+
+/// Keep dispatching until `seconds` of wall time have passed.
+///
+/// This is not politeness: on an integrated GPU the first samples run at the
+/// idle clock. Tiled GEMM measured 0.366 ms cold and 0.265 ms after the clocks
+/// settled, which is a 38% difference that has nothing to do with the kernel.
+fn warm_up<F>(seconds: u32, mut f: F) -> Result<()>
+where
+    F: FnMut() -> Result<hcsuda_vk::Timed>,
+{
+    if seconds == 0 {
+        return Ok(());
+    }
+    let deadline = Instant::now() + std::time::Duration::from_secs(seconds as u64);
+    while Instant::now() < deadline {
+        f()?;
+    }
+    Ok(())
+}
+
+/// Time `runs` calls of a CPU reference kernel, in milliseconds.
+fn cpu_samples<F>(runs: u32, mut f: F) -> Vec<f64>
+where
+    F: FnMut(),
+{
+    let mut out = Vec::with_capacity(runs as usize);
+    // One untimed call so the first sample does not measure cold caches and
+    // first-touch page faults.
+    f();
+    for _ in 0..runs {
+        let started = Instant::now();
+        f();
+        out.push(started.elapsed().as_secs_f64() * 1000.0);
+    }
+    out
 }
 
 /// Take `runs` samples, each the mean of `reps` dispatches.
@@ -307,6 +349,7 @@ fn cmd_plan(op: &str, dtype: &str, shape: Shape, json: bool, device: Option<usiz
 
 struct Case {
     op: &'static str,
+    dtype: &'static str,
     path: &'static str,
     max_error: f64,
     tolerance: f64,
@@ -342,6 +385,7 @@ fn cmd_selftest(json: bool, device: Option<usize>, out: Option<PathBuf>) -> Resu
     let deterministic = got_runs.windows(2).all(|w| w[0] == w[1]);
     cases.push(Case {
         op: "saxpy",
+        dtype: "f32",
         path: "vulkan_scalar",
         max_error,
         tolerance: tol.abs + tol.rel * 1.0,
@@ -369,6 +413,7 @@ fn cmd_selftest(json: bool, device: Option<usize>, out: Option<PathBuf>) -> Resu
     let deterministic = got_runs.windows(2).all(|w| w[0] == w[1]);
     cases.push(Case {
         op: "triad",
+        dtype: "f32",
         path: "vulkan_scalar",
         max_error,
         tolerance: tol.abs + tol.rel,
@@ -400,6 +445,7 @@ fn cmd_selftest(json: bool, device: Option<usize>, out: Option<PathBuf>) -> Resu
     let deterministic = got_runs.windows(2).all(|w| w[0] == w[1]);
     cases.push(Case {
         op: "gemv",
+        dtype: "f32",
         path: "vulkan_scalar",
         max_error,
         tolerance: gtol.abs + gtol.rel,
@@ -408,12 +454,193 @@ fn cmd_selftest(json: bool, device: Option<usize>, out: Option<PathBuf>) -> Resu
         gpu_ms: timed.and_then(|t| t.gpu_ms),
     });
 
-    let all_ok = cases.iter().all(|c| c.ok && c.deterministic);
+    // --- gemm_tiled: C = A*B, deliberately not multiples of the 16 tile so the
+    // edge masking is exercised rather than assumed.
+    let (m, k, n) = (67usize, 131usize, 95usize);
+    let a: Vec<f32> = (0..m * k)
+        .map(|i| ((i % 53) as f32 - 26.0) * 0.01)
+        .collect();
+    let b: Vec<f32> = (0..k * n)
+        .map(|i| ((i % 41) as f32 - 20.0) * 0.02)
+        .collect();
+    let want = reference::gemm(&a, &b, m, k, n);
+    let ga = runner.upload(&a)?;
+    let gb = runner.upload(&b)?;
+    let gc = runner.upload(&vec![0.0f32; m * n])?;
+    let mut got_runs = Vec::new();
+    let mut timed = None;
+    for _ in 0..3 {
+        timed = Some(runner.gemm_tiled(&ga, &gb, &gc, m, k, n)?);
+        got_runs.push(runner.download(&gc)?);
+    }
+    let got = got_runs.last().expect("three runs").clone();
+    let mtol = gpu::f32_tolerance(k);
+    let max_error = mtol.max_error(&want, &got).unwrap_or(f64::INFINITY);
+    let deterministic = got_runs.windows(2).all(|w| w[0] == w[1]);
+    cases.push(Case {
+        op: "gemm",
+        dtype: "f32",
+        path: "vulkan_tiled",
+        max_error,
+        tolerance: mtol.abs + mtol.rel,
+        ok: max_error <= mtol.abs + mtol.rel,
+        deterministic,
+        gpu_ms: timed.and_then(|t| t.gpu_ms),
+    });
 
+    // --- row-wise ops: softmax, layernorm, rmsnorm
+    let (r_rows, r_cols) = (8usize, 1024usize);
+    let eps = 1e-5f32;
+    let rx: Vec<f32> = (0..r_rows * r_cols)
+        .map(|i| ((i % 71) as f32 - 35.0) * 0.1)
+        .collect();
+    let gamma: Vec<f32> = (0..r_cols).map(|i| 1.0 + (i % 7) as f32 * 0.01).collect();
+    let beta: Vec<f32> = (0..r_cols).map(|i| (i % 5) as f32 * 0.02 - 0.04).collect();
+    let gx = runner.upload(&rx)?;
+    let gg = runner.upload(&gamma)?;
+    let gb2 = runner.upload(&beta)?;
+
+    // softmax
+    // The reference works on one row; the kernel gets `r_rows` rows.
+    let want: Vec<f32> = rx.chunks(r_cols).flat_map(reference::softmax).collect();
+    let gy = runner.upload(&vec![0.0f32; rx.len()])?;
+    let mut got_runs = Vec::new();
+    let mut timed = None;
+    for _ in 0..3 {
+        timed = Some(runner.softmax(&gx, &gy, r_rows, r_cols)?);
+        got_runs.push(runner.download(&gy)?);
+    }
+    let got = got_runs.last().expect("three runs").clone();
+    let rtol = gpu::f32_tolerance(r_cols);
+    let max_error = rtol.max_error(&want, &got).unwrap_or(f64::INFINITY);
+    let deterministic = got_runs.windows(2).all(|w| w[0] == w[1]);
+    cases.push(Case {
+        op: "softmax",
+        dtype: "f32",
+        path: "vulkan_tiled",
+        max_error,
+        tolerance: rtol.abs + rtol.rel,
+        ok: max_error <= rtol.abs + rtol.rel,
+        deterministic,
+        gpu_ms: timed.and_then(|t| t.gpu_ms),
+    });
+
+    // layernorm
+    let want = reference::layernorm(r_rows, r_cols, &rx, &gamma, &beta, eps);
+    let gy = runner.upload(&vec![0.0f32; rx.len()])?;
+    let mut got_runs = Vec::new();
+    let mut timed = None;
+    for _ in 0..3 {
+        timed = Some(runner.layernorm(&gx, &gg, &gb2, &gy, r_rows, r_cols, eps)?);
+        got_runs.push(runner.download(&gy)?);
+    }
+    let got = got_runs.last().expect("three runs").clone();
+    let max_error = rtol.max_error(&want, &got).unwrap_or(f64::INFINITY);
+    let deterministic = got_runs.windows(2).all(|w| w[0] == w[1]);
+    cases.push(Case {
+        op: "layernorm",
+        dtype: "f32",
+        path: "vulkan_tiled",
+        max_error,
+        tolerance: rtol.abs + rtol.rel,
+        ok: max_error <= rtol.abs + rtol.rel,
+        deterministic,
+        gpu_ms: timed.and_then(|t| t.gpu_ms),
+    });
+
+    // rmsnorm
+    let want = reference::rmsnorm(r_rows, r_cols, &rx, &gamma, eps);
+    let gy = runner.upload(&vec![0.0f32; rx.len()])?;
+    let mut got_runs = Vec::new();
+    let mut timed = None;
+    for _ in 0..3 {
+        timed = Some(runner.rmsnorm(&gx, &gg, &gy, r_rows, r_cols, eps)?);
+        got_runs.push(runner.download(&gy)?);
+    }
+    let got = got_runs.last().expect("three runs").clone();
+    let max_error = rtol.max_error(&want, &got).unwrap_or(f64::INFINITY);
+    let deterministic = got_runs.windows(2).all(|w| w[0] == w[1]);
+    cases.push(Case {
+        op: "rmsnorm",
+        dtype: "f32",
+        path: "vulkan_tiled",
+        max_error,
+        tolerance: rtol.abs + rtol.rel,
+        ok: max_error <= rtol.abs + rtol.rel,
+        deterministic,
+        gpu_ms: timed.and_then(|t| t.gpu_ms),
+    });
+
+    // rope
+    let (p_rows, p_dim, p_pos0, p_base) = (8usize, 128usize, 3u32, 10000.0f32);
+    let px: Vec<f32> = (0..p_rows * p_dim)
+        .map(|i| ((i % 37) as f32 - 18.0) * 0.05)
+        .collect();
+    let want = reference::rope(p_rows, p_dim, &px, p_pos0, p_base);
+    let gpx = runner.upload(&px)?;
+    let gpy = runner.upload(&vec![0.0f32; px.len()])?;
+    let mut got_runs = Vec::new();
+    let mut timed = None;
+    for _ in 0..3 {
+        timed = Some(runner.rope(&gpx, &gpy, p_rows, p_dim, p_pos0, p_base)?);
+        got_runs.push(runner.download(&gpy)?);
+    }
+    let got = got_runs.last().expect("three runs").clone();
+    let max_error = rtol.max_error(&want, &got).unwrap_or(f64::INFINITY);
+    let deterministic = got_runs.windows(2).all(|w| w[0] == w[1]);
+    cases.push(Case {
+        op: "rope",
+        dtype: "f32",
+        path: "vulkan_scalar",
+        max_error,
+        tolerance: rtol.abs + rtol.rel,
+        ok: max_error <= rtol.abs + rtol.rel,
+        deterministic,
+        gpu_ms: timed.and_then(|t| t.gpu_ms),
+    });
+
+    // int8 dot-product GEMM: exact integer result, so equality is the tolerance.
+    let (qm, qk, qn) = (48usize, 128usize, 40usize);
+    let qa: Vec<i8> = (0..qm * qk)
+        .map(|i| (((i * 7 + 3) % 255) as u8 ^ 0x15) as i8)
+        .collect();
+    let qb: Vec<i8> = (0..qk * qn)
+        .map(|i| (((i * 13 + 5) % 251) as u8 ^ 0x2b) as i8)
+        .collect();
+    let want = reference::gemm_i8(&qa, &qb, qm, qk, qn);
+    let mut qbt = vec![0i8; qk * qn];
+    for r in 0..qk {
+        for c in 0..qn {
+            qbt[c * qk + r] = qb[r * qn + c];
+        }
+    }
+    let ga = runner.upload_u32(&hcsuda_core::quant::pack_i8x4(&qa))?;
+    let gbt = runner.upload_u32(&hcsuda_core::quant::pack_i8x4(&qbt))?;
+    let gc = runner.alloc_i32(qm * qn)?;
+    let mut got_runs = Vec::new();
+    let mut timed = None;
+    for _ in 0..3 {
+        timed = Some(runner.gemm_i8dot(&ga, &gbt, &gc, qm, qk, qn)?);
+        got_runs.push(runner.download_i32(&gc)?);
+    }
+    let got = got_runs.last().expect("three runs").clone();
+    let mismatches = want.iter().zip(&got).filter(|(w, g)| w != g).count();
+    cases.push(Case {
+        op: "gemm_i8dot",
+        dtype: "i8",
+        path: "vulkan_i8dot",
+        max_error: mismatches as f64,
+        tolerance: 0.0,
+        ok: mismatches == 0 && want.len() == got.len(),
+        deterministic: got_runs.windows(2).all(|w| w[0] == w[1]),
+        gpu_ms: timed.and_then(|t| t.gpu_ms),
+    });
+
+    let all_ok = cases.iter().all(|c| c.ok && c.deterministic);
     let verified: Vec<String> = cases
         .iter()
         .filter(|c| c.ok && c.deterministic)
-        .map(|c| format!("{}:{}:f32", c.path, c.op))
+        .map(|c| format!("{}:{}:{}", c.path, c.op, c.dtype))
         .collect();
     let payload = serde_json::json!({
         "schema": hcsuda_core::SCHEMA_VERSION,
@@ -465,7 +692,7 @@ fn cmd_selftest(json: bool, device: Option<usize>, out: Option<PathBuf>) -> Resu
                 "verified    {}",
                 cases
                     .iter()
-                    .map(|c| format!("{}:{}:f32", c.path, c.op))
+                    .map(|c| format!("{}:{}:{}", c.path, c.op, c.dtype))
                     .collect::<Vec<_>>()
                     .join(", ")
             );
@@ -484,6 +711,7 @@ fn cmd_bench(
     suite: &str,
     runs: u32,
     reps: u32,
+    warmup_s: u32,
     json: bool,
     device: Option<usize>,
     out: Option<PathBuf>,
@@ -512,13 +740,33 @@ fn cmd_bench(
     let cols = 8192usize;
 
     for op in &ops {
+        // The CPU oracle is measured *first*. On an APU the GPU warm-up saturates
+        // the shared DDR5 and inflated the reference row by up to 3x (gemm:
+        // 635 ms quiet, 1135 ms after 2 s of GPU load), which would flatter the
+        // GPU for the wrong reason.
         match *op {
             "saxpy" => {
                 let x: Vec<f32> = (0..n).map(|i| ((i % 251) as f32 - 125.0) * 0.01).collect();
                 let y: Vec<f32> = (0..n).map(|i| ((i % 127) as f32 - 63.0) * 0.02).collect();
+                let cpu = cpu_samples(runs, || {
+                    let mut yc = y.clone();
+                    reference::saxpy(1.5, &x, &mut yc);
+                });
+                out_suite.push(BenchRow::from_samples(
+                    "saxpy",
+                    "f32",
+                    [n, 0, 0],
+                    "reference",
+                    &runner.dev.name(),
+                    &driver,
+                    cpu,
+                    Some(2.0 * n as f64),
+                    Some(12 * n as u64),
+                ));
+
                 let gx = runner.upload(&x)?;
                 let gy = runner.upload(&y)?;
-                runner.saxpy(1.5, &gx, &gy)?; // warm-up
+                warm_up(warmup_s, || runner.saxpy(1.5, &gx, &gy))?;
                 let timings = sample(runs, reps, || runner.saxpy(1.5, &gx, &gy))?;
                 let (wall, gpu_stats) = split_timings(timings);
                 out_suite.push(
@@ -535,16 +783,16 @@ fn cmd_bench(
                     )
                     .with_gpu_stats(gpu_stats),
                 );
-
-                let mut cpu = Vec::with_capacity(runs as usize);
-                for _ in 0..runs {
-                    let mut yc = y.clone();
-                    let started = Instant::now();
-                    reference::saxpy(1.5, &x, &mut yc);
-                    cpu.push(started.elapsed().as_secs_f64() * 1000.0);
-                }
+            }
+            "triad" => {
+                let b: Vec<f32> = (0..n).map(|i| ((i % 251) as f32 - 125.0) * 0.01).collect();
+                let c: Vec<f32> = (0..n).map(|i| ((i % 127) as f32 - 63.0) * 0.02).collect();
+                let cpu = cpu_samples(runs, || {
+                    let mut a = vec![0.0f32; n];
+                    reference::triad(&mut a, &b, &c, 1.5);
+                });
                 out_suite.push(BenchRow::from_samples(
-                    "saxpy",
+                    "triad",
                     "f32",
                     [n, 0, 0],
                     "reference",
@@ -552,16 +800,13 @@ fn cmd_bench(
                     &driver,
                     cpu,
                     Some(2.0 * n as f64),
-                    Some(12 * n as u64),
+                    Some(16 * n as u64),
                 ));
-            }
-            "triad" => {
-                let b: Vec<f32> = (0..n).map(|i| ((i % 251) as f32 - 125.0) * 0.01).collect();
-                let c: Vec<f32> = (0..n).map(|i| ((i % 127) as f32 - 63.0) * 0.02).collect();
+
                 let ga = runner.upload(&vec![0.0f32; n])?;
                 let gb = runner.upload(&b)?;
                 let gc = runner.upload(&c)?;
-                runner.triad(1.5, &ga, &gb, &gc)?;
+                warm_up(warmup_s, || runner.triad(1.5, &ga, &gb, &gc))?;
                 let timings = sample(runs, reps, || runner.triad(1.5, &ga, &gb, &gc))?;
                 let (wall, gpu_stats) = split_timings(timings);
                 out_suite.push(
@@ -578,35 +823,31 @@ fn cmd_bench(
                     )
                     .with_gpu_stats(gpu_stats),
                 );
-
-                let mut cpu = Vec::with_capacity(runs as usize);
-                for _ in 0..runs {
-                    let mut a = vec![0.0f32; n];
-                    let started = Instant::now();
-                    reference::triad(&mut a, &b, &c, 1.5);
-                    cpu.push(started.elapsed().as_secs_f64() * 1000.0);
-                }
-                out_suite.push(BenchRow::from_samples(
-                    "triad",
-                    "f32",
-                    [n, 0, 0],
-                    "reference",
-                    &runner.dev.name(),
-                    &driver,
-                    cpu,
-                    Some(2.0 * n as f64),
-                    Some(16 * n as u64),
-                ));
             }
             "gemv" => {
                 let a: Vec<f32> = (0..rows * cols)
                     .map(|i| ((i % 97) as f32 - 48.0) * 0.01)
                     .collect();
                 let xv: Vec<f32> = (0..cols).map(|i| ((i % 31) as f32 - 15.0) * 0.05).collect();
+                let cpu = cpu_samples(runs, || {
+                    let _ = reference::gemv(&a, &xv, rows, cols);
+                });
+                out_suite.push(BenchRow::from_samples(
+                    "gemv",
+                    "f32",
+                    [rows, cols, 0],
+                    "reference",
+                    &runner.dev.name(),
+                    &driver,
+                    cpu,
+                    Some(2.0 * rows as f64 * cols as f64),
+                    Some(4 * (rows * cols + cols + rows) as u64),
+                ));
+
                 let ga = runner.upload(&a)?;
                 let gx = runner.upload(&xv)?;
                 let gy = runner.upload(&vec![0.0f32; rows])?;
-                runner.gemv(&ga, &gx, &gy, rows, cols)?;
+                warm_up(warmup_s, || runner.gemv(&ga, &gx, &gy, rows, cols))?;
                 let timings = sample(runs, reps, || runner.gemv(&ga, &gx, &gy, rows, cols))?;
                 let (wall, gpu_stats) = split_timings(timings);
                 out_suite.push(
@@ -623,26 +864,116 @@ fn cmd_bench(
                     )
                     .with_gpu_stats(gpu_stats),
                 );
-
-                let mut cpu = Vec::with_capacity(runs as usize);
-                for _ in 0..runs {
-                    let started = Instant::now();
-                    let _ = reference::gemv(&a, &xv, rows, cols);
-                    cpu.push(started.elapsed().as_secs_f64() * 1000.0);
-                }
+            }
+            "gemm" => {
+                let (m, k, n) = (256usize, 1024usize, 256usize);
+                let a: Vec<f32> = (0..m * k)
+                    .map(|i| ((i % 97) as f32 - 48.0) * 0.01)
+                    .collect();
+                let b: Vec<f32> = (0..k * n)
+                    .map(|i| ((i % 41) as f32 - 20.0) * 0.02)
+                    .collect();
+                let cpu = cpu_samples(runs, || {
+                    let _ = reference::gemm(&a, &b, m, k, n);
+                });
                 out_suite.push(BenchRow::from_samples(
-                    "gemv",
+                    "gemm",
                     "f32",
-                    [rows, cols, 0],
+                    [m, n, k],
                     "reference",
                     &runner.dev.name(),
                     &driver,
                     cpu,
-                    Some(2.0 * rows as f64 * cols as f64),
-                    Some(4 * (rows * cols + cols + rows) as u64),
+                    Some(2.0 * m as f64 * n as f64 * k as f64),
+                    Some(4 * (m * k + k * n + m * n) as u64),
                 ));
+
+                let ga = runner.upload(&a)?;
+                let gb = runner.upload(&b)?;
+                let gc = runner.upload(&vec![0.0f32; m * n])?;
+                warm_up(warmup_s, || runner.gemm_tiled(&ga, &gb, &gc, m, k, n))?;
+                let timings = sample(runs, reps, || runner.gemm_tiled(&ga, &gb, &gc, m, k, n))?;
+                let (wall, gpu_stats) = split_timings(timings);
+                out_suite.push(
+                    BenchRow::from_samples(
+                        "gemm",
+                        "f32",
+                        [m, n, k],
+                        "vulkan_tiled",
+                        &runner.dev.name(),
+                        &driver,
+                        wall,
+                        Some(2.0 * m as f64 * n as f64 * k as f64),
+                        Some(4 * (m * k + k * n + m * n) as u64),
+                    )
+                    .with_gpu_stats(gpu_stats),
+                );
             }
-            other => anyhow::bail!("unsupported suite op '{other}' (supported: saxpy,triad,gemv)"),
+            "softmax" | "layernorm" | "rmsnorm" => {
+                let (r, c) = (32usize, 4096usize);
+                let eps = 1e-5f32;
+                let x: Vec<f32> = (0..r * c).map(|i| ((i % 71) as f32 - 35.0) * 0.1).collect();
+                let gamma: Vec<f32> = (0..c).map(|i| 1.0 + (i % 7) as f32 * 0.01).collect();
+                let beta: Vec<f32> = (0..c).map(|i| (i % 5) as f32 * 0.02 - 0.04).collect();
+                let op = *op;
+
+                let cpu = cpu_samples(runs, || match op {
+                    "softmax" => {
+                        for row in x.chunks(c) {
+                            let _ = reference::softmax(row);
+                        }
+                    }
+                    "layernorm" => {
+                        let _ = reference::layernorm(r, c, &x, &gamma, &beta, eps);
+                    }
+                    _ => {
+                        let _ = reference::rmsnorm(r, c, &x, &gamma, eps);
+                    }
+                });
+                out_suite.push(BenchRow::from_samples(
+                    op,
+                    "f32",
+                    [r, c, 0],
+                    "reference",
+                    &runner.dev.name(),
+                    &driver,
+                    cpu,
+                    Some(2.0 * r as f64 * c as f64),
+                    Some(4 * (r * c + c) as u64),
+                ));
+
+                let gx = runner.upload(&x)?;
+                let gg = runner.upload(&gamma)?;
+                let gb = runner.upload(&beta)?;
+                let gy = runner.upload(&vec![0.0f32; r * c])?;
+                let call = |rn: &mut gpu::Runner| -> Result<hcsuda_vk::Timed> {
+                    match op {
+                        "softmax" => rn.softmax(&gx, &gy, r, c),
+                        "layernorm" => rn.layernorm(&gx, &gg, &gb, &gy, r, c, eps),
+                        _ => rn.rmsnorm(&gx, &gg, &gy, r, c, eps),
+                    }
+                };
+                warm_up(warmup_s, || call(&mut runner))?;
+                let timings = sample(runs, reps, || call(&mut runner))?;
+                let (wall, gpu_stats) = split_timings(timings);
+                out_suite.push(
+                    BenchRow::from_samples(
+                        op,
+                        "f32",
+                        [r, c, 0],
+                        "vulkan_tiled",
+                        &runner.dev.name(),
+                        &driver,
+                        wall,
+                        Some(2.0 * r as f64 * c as f64),
+                        Some(4 * (r * c + c) as u64),
+                    )
+                    .with_gpu_stats(gpu_stats),
+                );
+            }
+            other => {
+                anyhow::bail!("unsupported suite op '{other}' (supported: saxpy,triad,gemv,gemm)")
+            }
         }
     }
 

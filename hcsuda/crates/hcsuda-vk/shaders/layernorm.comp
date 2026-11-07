@@ -1,0 +1,64 @@
+#version 450
+
+// Layer normalisation over the last dimension: one workgroup per row.
+// Two shared reductions (mean, then variance about that mean), then a
+// gamma/beta affine pass.
+//
+// Push constants: { uint cols; uint rows; float eps; }
+// Bindings: 0 = x, 1 = gamma, 2 = beta, 3 = y
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+layout(std430, binding = 0) readonly buffer XBuf { float x[]; };
+layout(std430, binding = 1) readonly buffer GBuf { float gamma[]; };
+layout(std430, binding = 2) readonly buffer BBuf { float beta[]; };
+layout(std430, binding = 3) writeonly buffer YBuf { float y[]; };
+
+layout(push_constant) uniform Push {
+    uint cols;
+    uint rows;
+    float eps;
+} pc;
+
+shared float scratch[256];
+
+void main() {
+    uint row = gl_WorkGroupID.x;
+    if (row >= pc.rows) {
+        return;
+    }
+    uint tid = gl_LocalInvocationID.x;
+    uint base = row * pc.cols;
+
+    float local_sum = 0.0;
+    for (uint c = tid; c < pc.cols; c += 256u) {
+        local_sum += x[base + c];
+    }
+    scratch[tid] = local_sum;
+    barrier();
+    for (uint s = 128u; s > 0u; s >>= 1u) {
+        if (tid < s) {
+            scratch[tid] += scratch[tid + s];
+        }
+        barrier();
+    }
+    float mean = scratch[0] / float(pc.cols);
+
+    float local_var = 0.0;
+    for (uint c = tid; c < pc.cols; c += 256u) {
+        float d = x[base + c] - mean;
+        local_var += d * d;
+    }
+    scratch[tid] = local_var;
+    barrier();
+    for (uint s = 128u; s > 0u; s >>= 1u) {
+        if (tid < s) {
+            scratch[tid] += scratch[tid + s];
+        }
+        barrier();
+    }
+    float inv = inversesqrt(scratch[0] / float(pc.cols) + pc.eps);
+
+    for (uint c = tid; c < pc.cols; c += 256u) {
+        y[base + c] = (x[base + c] - mean) * inv * gamma[c] + beta[c];
+    }
+}
