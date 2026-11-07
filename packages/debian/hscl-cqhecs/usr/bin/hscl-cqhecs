@@ -15,7 +15,8 @@ usage: hscl-cqhecs doctor [--json]
        hscl-cqhecs install-runtime [--yes]
        hscl-cqhecs uninstall-runtime [--yes]
 exit codes: 0 ok, 2 usage, 3 runtime not installed, 4 runtime present but broken,
-            5 Python does not fit the pinned runtime, 6 not confirmed (nothing was changed)
+            5 Python does not fit the pinned runtime, 6 not confirmed (nothing was changed),
+            7 not enough free disk space (nothing was changed)
 USAGE
 }
 
@@ -72,6 +73,15 @@ case "$cmd" in
     if [ "$have_py" != "$want_py" ]; then
       echo "hscl-cqhecs: the pinned runtime is built for CPython $want_py, this system has $have_py. Nothing was changed." >&2
       exit 5
+    fi
+    # free space on the nearest existing parent of the venv, checked before anything is asked or downloaded
+    need="$(conf_value min_free_bytes)"
+    probe="$venv"
+    while [ ! -d "$probe" ] && [ "$probe" != "/" ] && [ "$probe" != "." ]; do probe="$(dirname "$probe")"; done
+    free_kb="$(df -Pk "$probe" | awk 'NR==2 { print $4 }')"
+    if [ "$(awk -v f="$free_kb" -v n="$need" 'BEGIN { print (f * 1024 < n) ? 1 : 0 }')" = 1 ]; then
+      echo "hscl-cqhecs: not enough free disk space at $probe ($((free_kb / 1024)) MiB free, $((need / 1048576)) MiB needed). Nothing was changed." >&2
+      exit 7
     fi
     mib="$(awk -v b="$bytes" 'BEGIN { printf "%.1f", b / 1048576 }')"
     printf 'CQ-HECS runtime\n  python:   %s\n  venv:     %s\n  download: %s MiB from PyPI and the CQ-HECS GitHub release (SHA-256 pinned: %s)\n' "$have_py" "$venv" "$mib" "$req"

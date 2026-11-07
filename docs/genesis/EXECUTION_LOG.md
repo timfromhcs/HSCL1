@@ -23,3 +23,8 @@
 - **Defect found by this run and fixed (red first):** the first real run reported `broken` although the install worked, because the launcher probed `cq-hecs --version`; the CQ-HECS CLI has a `version` subcommand and no `--version` option. The unit-test stub now rejects `--version` (test red), the launcher probes `cq-hecs version` (13 tests green, ShellCheck clean).
 - Measured: the venv is **269 MiB** unpacked (61.5 MiB downloaded). CQ-HECS's own doctor: numpy and qiskit available; `qiskit-aer` and `stim` not installed (optional); **`native_binding` not available, Python fallbacks used**; `libvulkan.so.1` loads. So this install is the pure-Python path: no claim of acceleration, and nothing about performance has been measured.
 - Still not verified: the same install **inside an installed HSCL1 system** (the image has no terminal path while the Workshop is inert); a free-space check before download; the `[sat]` extra; the package inside the ISO (size and boot RAM unmeasured); a desktop-session launch of the `.desktop` entry.
+
+## 2026-11-07 - B1: free-space check before the runtime download
+- `runtime.conf` now declares `min_free_bytes=1073741824` (1 GiB; measured need: 61.5 MiB download + 269 MiB venv). `install-runtime` checks free space on the nearest existing parent of the venv **before** it asks and before it downloads; too little space -> exit 7, nothing changed, no venv, no interpreter call.
+- Tests (red first, 15 now pass): the refusal with an absurd minimum (no venv, no `-m` call logged) and a sanity band for the declared minimum (0.4 to 4 GiB). ShellCheck rc 0.
+- Not verified: the check on filesystems where `df -Pk` reports unusual values (network mounts, btrfs subvolumes); on the installed HSCL1 ext4/LUKS root.

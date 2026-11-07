@@ -210,3 +210,28 @@ def test_uninstall_runtime_removes_only_the_venv_and_needs_yes(tmp_path):
     assert r.returncode == 0, r.stderr
     assert not (tmp_path / "venv").exists()
     assert (data / "my-research.json").exists()  # user data is never removed
+
+
+@needs_bash
+def test_install_runtime_refuses_when_there_is_not_enough_free_disk_before_asking_or_downloading(tmp_path):
+    share = tmp_path / "share"
+    share.mkdir()
+    for f in SHARE.iterdir():
+        (share / f.name).write_text(f.read_text(encoding="utf-8"), encoding="utf-8")
+    conf = (share / "runtime.conf").read_text(encoding="utf-8").splitlines()
+    conf = [l for l in conf if not l.startswith("min_free_bytes=")] + ["min_free_bytes=900000000000000"]  # more than any disk
+    (share / "runtime.conf").write_text("\n".join(conf) + "\n", encoding="utf-8")
+    stub, log = stub_python(tmp_path)
+    env = env_for(tmp_path, stub)
+    env["HSCL_CQHECS_SHARE"] = share.as_posix()
+    r = run("install-runtime", "--yes", env=env)
+    assert r.returncode == 7, r.stdout + r.stderr
+    assert "free" in r.stderr.lower() and "disk" in r.stderr.lower()
+    assert not (tmp_path / "venv").exists()
+    assert not [l for l in (log.read_text() if log.exists() else "").splitlines() if " -m " in l]
+
+
+def test_runtime_conf_declares_a_realistic_minimum_free_space():
+    conf = dict(l.split("=", 1) for l in (SHARE / "runtime.conf").read_text(encoding="utf-8").split() if "=" in l)
+    # measured 2026-11-07: 61.5 MiB download, 269 MiB unpacked venv; require clearly more than both together
+    assert 400 * 1024 * 1024 <= int(conf["min_free_bytes"]) <= 4 * 1024 * 1024 * 1024
