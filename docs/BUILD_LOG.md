@@ -720,3 +720,6 @@ Gates read by exit code: `cargo fmt/clippy -D warnings/test --all` clean (44 tes
 
 ## H2c measurement: int8 dot GEMM is slower than tiled f32 as written (2026-11-07)
 New bench suite `gemm_i8dot` (same 256x1024x256 shape). Medians over 15 runs, GPU timestamps: f32 tiled 0.382 ms, int8 dot 0.814 ms, i.e. 2.1x slower; the kernel is untiled and memory-bound. Recorded in `hcsuda/docs/MEASURED.md`; planner keeps f32. Next experiment: shared-memory tiling of the packed operands.
+
+## H2c follow-up: tiled int8 dot GEMM beats tiled f32 (2026-11-07)
+PR #23 (H2 row ops, RoPE, int8 dot GEMM) merged into `main` as a merge commit (`48a949c`) after 14/14 CI checks passed on `aa22427`; branch re-synced. Shared-memory tiled `gemm_i8dot_tiled`: bit-equal on 48x128x40 and the tail shape 37x132x29, GPU 0.195 ms versus f32 tiled 0.269 ms in the same run = 1.38x; untiled int8 was 0.816 ms. Numbers and the f32 clock-state caveat are in `hcsuda/docs/MEASURED.md`. Planner promotion for int8 is still PLANNED (no `Op` entry yet).

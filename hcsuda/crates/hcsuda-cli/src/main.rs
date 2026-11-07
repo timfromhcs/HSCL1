@@ -636,6 +636,43 @@ fn cmd_selftest(json: bool, device: Option<usize>, out: Option<PathBuf>) -> Resu
         gpu_ms: timed.and_then(|t| t.gpu_ms),
     });
 
+    // Tiled int8 dot GEMM on a shape that is not a multiple of the tile (tail handling).
+    let (tm, tk, tn) = (37usize, 132usize, 29usize);
+    let ta: Vec<i8> = (0..tm * tk)
+        .map(|i| (((i * 11 + 1) % 253) as u8 ^ 0x4d) as i8)
+        .collect();
+    let tb: Vec<i8> = (0..tk * tn)
+        .map(|i| (((i * 17 + 9) % 249) as u8 ^ 0x66) as i8)
+        .collect();
+    let want = reference::gemm_i8(&ta, &tb, tm, tk, tn);
+    let mut tbt = vec![0i8; tk * tn];
+    for r in 0..tk {
+        for c in 0..tn {
+            tbt[c * tk + r] = tb[r * tn + c];
+        }
+    }
+    let gta = runner.upload_u32(&hcsuda_core::quant::pack_i8x4(&ta))?;
+    let gtb = runner.upload_u32(&hcsuda_core::quant::pack_i8x4(&tbt))?;
+    let gtc = runner.alloc_i32(tm * tn)?;
+    let mut got_runs = Vec::new();
+    let mut timed = None;
+    for _ in 0..3 {
+        timed = Some(runner.gemm_i8dot_tiled(&gta, &gtb, &gtc, tm, tk, tn)?);
+        got_runs.push(runner.download_i32(&gtc)?);
+    }
+    let got = got_runs.last().expect("three runs").clone();
+    let mismatches = want.iter().zip(&got).filter(|(w, g)| w != g).count();
+    cases.push(Case {
+        op: "gemm_i8dot_tiled",
+        dtype: "i8",
+        path: "vulkan_i8dot_tiled",
+        max_error: mismatches as f64,
+        tolerance: 0.0,
+        ok: mismatches == 0 && want.len() == got.len(),
+        deterministic: got_runs.windows(2).all(|w| w[0] == w[1]),
+        gpu_ms: timed.and_then(|t| t.gpu_ms),
+    });
+
     let all_ok = cases.iter().all(|c| c.ok && c.deterministic);
     let verified: Vec<String> = cases
         .iter()
@@ -951,6 +988,28 @@ fn cmd_bench(
                         "i8",
                         [m, n, k],
                         "vulkan_i8dot",
+                        &runner.dev.name(),
+                        &driver,
+                        wall,
+                        ops,
+                        bytes,
+                    )
+                    .with_gpu_stats(gpu_stats),
+                );
+                let gc2 = runner.alloc_i32(m * n)?;
+                warm_up(warmup_s, || {
+                    runner.gemm_i8dot_tiled(&ga, &gbt, &gc2, m, k, n)
+                })?;
+                let timings = sample(runs, reps, || {
+                    runner.gemm_i8dot_tiled(&ga, &gbt, &gc2, m, k, n)
+                })?;
+                let (wall, gpu_stats) = split_timings(timings);
+                out_suite.push(
+                    BenchRow::from_samples(
+                        "gemm_i8dot",
+                        "i8",
+                        [m, n, k],
+                        "vulkan_i8dot_tiled",
                         &runner.dev.name(),
                         &driver,
                         wall,

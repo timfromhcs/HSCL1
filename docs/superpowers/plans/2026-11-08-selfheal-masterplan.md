@@ -33,10 +33,10 @@ The 2-minute cron is a ping, never a pause.
 | L-0 | Branch pushed and merged with main | DONE | `70bbf09` on origin |
 | H2a | GEMM f32 tiled, softmax, layernorm, rmsnorm | TESTED, hardware-verified | `hcsuda/docs/MEASURED.md` |
 | H2b | rope kernel + oracle | TESTED, hardware-verified | 3 oracle tests; selftest `rope` err 2.98e-7 vs tol 4.2e-5, deterministic (`hcsuda/benchmarks/amd-radeon-680m/selftest.json`); planner `Op::Rope` not added yet |
-| H2c | int8 dot-product GEMM (`dotPacked4x8EXT`, i32 accumulate) | TESTED, hardware-verified (correctness) | selftest `gemm_i8dot` 48x128x40: 0 mismatches vs `reference::gemm_i8`, deterministic; measured: untiled kernel is 2.1x SLOWER than f32 tiled (0.814 vs 0.382 ms); next: shared-memory tiling, promote only at >=1.05x |
+| H2c | int8 dot-product GEMM (`dotPacked4x8EXT`, i32 accumulate) | TESTED, hardware-verified | tiled kernel bit-equal (incl. tail shape), 1.38x faster than f32 tiled in the same run (0.195 vs 0.269 ms); untiled was 2.1x slower; planner entry still missing |
 | H2d | f16 GEMM, cooperative-matrix GEMM | PLANNED | measure vs tiled f32 |
 | H3 | GGUF reader, tiny transformer | PLANNED | after H2 |
-| O-PR | PR to main, CI green, merge | PLANNED | after each green batch; merge only on green CI |
+| O-PR | PR to main, CI green, merge | PR #23 MERGED (`48a949c`, 14/14 green) | next batch: new PR from this branch |
 | O2 | alpha gaps (see §0) | PLANNED | recovery key flow design first (host-only) |
 | DOC | README/KNOWN_LIMITATIONS match artefact | PLANNED | update only with evidence |
 
