@@ -17,6 +17,7 @@ pub enum Op {
     Triad,
     Gemv,
     Gemm,
+    Rope,
     Softmax,
     LayerNorm,
     RmsNorm,
@@ -26,11 +27,12 @@ pub enum Op {
 }
 
 impl Op {
-    pub const ALL: [Op; 10] = [
+    pub const ALL: [Op; 11] = [
         Op::Saxpy,
         Op::Triad,
         Op::Gemv,
         Op::Gemm,
+        Op::Rope,
         Op::Softmax,
         Op::LayerNorm,
         Op::RmsNorm,
@@ -45,6 +47,7 @@ impl Op {
             Op::Triad => "triad",
             Op::Gemv => "gemv",
             Op::Gemm => "gemm",
+            Op::Rope => "rope",
             Op::Softmax => "softmax",
             Op::LayerNorm => "layernorm",
             Op::RmsNorm => "rmsnorm",
@@ -236,7 +239,7 @@ pub fn plan(op: Op, dtype: DType, shape: Shape, caps: &DeviceCaps) -> Plan {
 
     // 4. Elementwise work: the scalar path is cheap to verify and hard to get
     //    wrong, so it is the default GPU path for these ops.
-    if matches!(op, Op::Saxpy | Op::Triad | Op::Gelu | Op::Silu) {
+    if matches!(op, Op::Saxpy | Op::Triad | Op::Gelu | Op::Silu | Op::Rope) {
         let scalar = PathKind::VulkanScalar.key(op, dtype);
         if caps.path_is_verified(&scalar) {
             return Plan {
@@ -394,5 +397,15 @@ mod tests {
         );
         let p = plan(Op::Saxpy, DType::Bf16, Shape::default(), &c);
         assert_eq!(p.kind, PathKind::Reference);
+    }
+
+    #[test]
+    fn rope_uses_the_verified_scalar_path_and_nothing_else() {
+        let c = caps(Features::default(), &["vulkan_scalar:rope:f32"]);
+        let p = plan(Op::Rope, DType::F32, Shape::new(8, 128, 0), &c);
+        assert_eq!(p.kind, PathKind::VulkanScalar);
+        let none = caps(Features::default(), &[]);
+        let q = plan(Op::Rope, DType::F32, Shape::new(8, 128, 0), &none);
+        assert_eq!(q.kind, PathKind::Reference);
     }
 }

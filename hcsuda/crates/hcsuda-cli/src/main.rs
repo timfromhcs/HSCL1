@@ -55,6 +55,11 @@ enum Command {
         json: bool,
         #[arg(long)]
         device: Option<usize>,
+        /// Selftest JSON to take verified paths from. Default: every
+        /// `benchmarks/*/selftest.json` below the current directory or `hcsuda/`.
+        /// Evidence for another device or driver is ignored.
+        #[arg(long)]
+        evidence: Option<PathBuf>,
     },
     /// Run GPU kernels against the CPU oracle and report the differential error.
     Selftest {
@@ -113,7 +118,8 @@ fn run() -> Result<()> {
             k,
             json,
             device,
-        } => cmd_plan(&op, &dtype, Shape::new(m, n, k), json, device),
+            evidence,
+        } => cmd_plan(&op, &dtype, Shape::new(m, n, k), json, device, evidence),
         Command::Selftest { json, device, out } => cmd_selftest(json, device, out),
         Command::Bench {
             suite,
@@ -323,10 +329,66 @@ fn print_caps_human(caps: &DeviceCaps) {
     }
 }
 
-fn cmd_plan(op: &str, dtype: &str, shape: Shape, json: bool, device: Option<usize>) -> Result<()> {
+/// Candidate selftest records: the explicit file, or `benchmarks/*/selftest.json`
+/// under the current directory and under `hcsuda/`.
+fn evidence_files(explicit: Option<PathBuf>) -> Vec<PathBuf> {
+    if let Some(p) = explicit {
+        return vec![p];
+    }
+    let mut out = Vec::new();
+    for root in ["benchmarks", "hcsuda/benchmarks"] {
+        if let Ok(read) = std::fs::read_dir(root) {
+            for entry in read.flatten() {
+                let f = entry.path().join("selftest.json");
+                if f.is_file() {
+                    out.push(f);
+                }
+            }
+        }
+    }
+    out.sort();
+    out
+}
+
+fn cmd_plan(
+    op: &str,
+    dtype: &str,
+    shape: Shape,
+    json: bool,
+    device: Option<usize>,
+    evidence: Option<PathBuf>,
+) -> Result<()> {
     let op = parse_op(op)?;
     let dtype = parse_dtype(dtype)?;
-    let caps = hcsuda_vk::probe(device).context("probing Vulkan devices")?;
+    let mut caps = hcsuda_vk::probe(device).context("probing Vulkan devices")?;
+    let driver = {
+        let dev = hcsuda_vk::Device::new(device).context("opening the device")?;
+        format!("{:#x}", dev.props.driver_version)
+    };
+    let explicit = evidence.is_some();
+    for file in evidence_files(evidence) {
+        let text = match std::fs::read_to_string(&file) {
+            Ok(t) => t,
+            Err(e) if explicit => {
+                return Err(e).with_context(|| format!("reading {}", file.display()))
+            }
+            Err(_) => continue,
+        };
+        let record: serde_json::Value = match serde_json::from_str(&text) {
+            Ok(v) => v,
+            Err(e) if explicit => {
+                return Err(e).with_context(|| format!("parsing {}", file.display()))
+            }
+            Err(_) => continue,
+        };
+        match caps.apply_selftest(&record, &driver) {
+            Ok(added) if !json => eprintln!("evidence    {} ({added} paths)", file.display()),
+            Ok(_) => {}
+            Err(why) if explicit => anyhow::bail!("{}: {why}", file.display()),
+            Err(why) if !json => eprintln!("evidence    ignored {}: {why}", file.display()),
+            Err(_) => {}
+        }
+    }
     let plan = planner::plan(op, dtype, shape, &caps);
     if json {
         println!("{}", serde_json::to_string_pretty(&plan)?);
@@ -663,9 +725,9 @@ fn cmd_selftest(json: bool, device: Option<usize>, out: Option<PathBuf>) -> Resu
     let got = got_runs.last().expect("three runs").clone();
     let mismatches = want.iter().zip(&got).filter(|(w, g)| w != g).count();
     cases.push(Case {
-        op: "gemm_i8dot_tiled",
+        op: "gemm",
         dtype: "i8",
-        path: "vulkan_i8dot_tiled",
+        path: "vulkan_intdot",
         max_error: mismatches as f64,
         tolerance: 0.0,
         ok: mismatches == 0 && want.len() == got.len(),
