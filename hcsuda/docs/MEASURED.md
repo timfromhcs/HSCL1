@@ -155,3 +155,13 @@ Hypothesis confirmed. `gemm_i8dot_tiled` (16x16 tile, 16 packed words per k step
 | gemm i8 | vulkan_i8dot_tiled | **0.195** (0.00) | **464** |
 
 Same-run ratio int8 tiled / f32 tiled = 0.269 / 0.195 = **1.38x faster** on GPU time (1.33x on wall time), above the 1.05x promotion rule; the untiled kernel is 4.2x slower than the tiled one. Caveat: the f32 kernel itself measured 0.382 ms in the earlier run and 0.269 ms here (iGPU clock state), so only same-run ratios are quoted. Correctness: bit-equal to the oracle on 48x128x40 and on a tail shape 37x132x29. Not measured: other shapes, int4, accuracy cost of quantising real model weights (this is a kernel speed, not a model-quality claim).
+
+## f16-storage GEMM (f32 math) versus f32 tiled (2026-11-07, Radeon 680M)
+`gemm_f16_tiled`: A and B stored as packed halves (`unpackHalf2x16`), widened to f32 in the shared tile, so half the input bytes and identical arithmetic. Correct on the odd shape 37x65x29 (max error 0, same accumulation order as the oracle, which sees f16-rounded inputs). 256x1024x256, 15 runs, 3 s warm-up, four suite runs in different orders:
+
+| kernel | GPU ms over runs |
+|---|---|
+| f16 storage, tiled | 0.257, 0.257, 0.257, 0.257 (spread <= 0.01 in three runs, 0.16 in one) |
+| f32 tiled | 0.269, 0.295, 0.382, 0.383 |
+
+Finding: the f32 kernel is **bimodal run to run (0.27-0.38 ms) regardless of suite order**, so the order hypothesis (first row at a low clock) is refuted; the cause is not identified (candidate: buffer placement or cache state; untested). The f16 kernel is stable. Best-case f32 vs f16 is 0.269 / 0.257 = 1.05x, i.e. no speed claim beyond "not slower, half the input memory". Not measured: cooperative-matrix f16 GEMM (the planner still prefers it for f16 only after it is verified), bf16, larger shapes.

@@ -29,6 +29,7 @@ pub struct Runner {
     pub rope: Kernel,
     pub gemm_i8dot: Kernel,
     pub gemm_i8dot_tiled: Kernel,
+    pub gemm_f16: Kernel,
     pub dev: Device,
 }
 
@@ -95,6 +96,8 @@ impl Runner {
             Kernel::from_shader(&dev, "gemm_i8dot", 3, 12).context("gemm_i8dot kernel")?;
         let gemm_i8dot_tiled = Kernel::from_shader(&dev, "gemm_i8dot_tiled", 3, 12)
             .context("gemm_i8dot_tiled kernel")?;
+        let gemm_f16 =
+            Kernel::from_shader(&dev, "gemm_f16_tiled", 3, 12).context("gemm_f16 kernel")?;
         Ok(Self {
             dispatch,
             saxpy,
@@ -107,6 +110,7 @@ impl Runner {
             rope,
             gemm_i8dot,
             gemm_i8dot_tiled,
+            gemm_f16,
             dev,
         })
     }
@@ -221,6 +225,35 @@ impl Runner {
                 &self.dev,
                 &self.gemm_i8dot_tiled,
                 &[&a.buf, &bt.buf, &c.buf],
+                push,
+                groups,
+            )
+            .map_err(Into::into)
+    }
+
+    /// f16 storage, f32 math: `a` (m x k) and `b` (k x n) are packed halves
+    /// ([`hcsuda_core::tensor::pack_f16x2`]); the output is f32 (m x n).
+    pub fn gemm_f16(
+        &mut self,
+        a: &GpuTensor,
+        b: &GpuTensor,
+        c: &GpuTensor,
+        m: usize,
+        k: usize,
+        n: usize,
+    ) -> Result<Timed> {
+        let pc = PushMkn {
+            m: m as u32,
+            n: n as u32,
+            k: k as u32,
+        };
+        let push = bytemuck::bytes_of(&pc);
+        let groups = ((n as u32).div_ceil(16), (m as u32).div_ceil(16), 1);
+        self.dispatch
+            .run(
+                &self.dev,
+                &self.gemm_f16,
+                &[&a.buf, &b.buf, &c.buf],
                 push,
                 groups,
             )

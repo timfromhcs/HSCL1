@@ -1,0 +1,60 @@
+#version 450
+
+// Tiled row-major matrix product with f16 STORAGE and f32 math: C = A * B.
+//
+// A (m x k) and B (k x n) hold IEEE halves, two per uint (element 0 in the low
+// half, read with unpackHalf2x16, which is core GLSL: no 16-bit storage
+// extension needed). Elements are widened to f32 when loaded into the shared
+// tile, so the arithmetic is the same as gemm_tiled and only the memory traffic
+// changes. Works for odd k and n.
+//
+// Push constants: { uint m; uint n; uint k; }
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(std430, binding = 0) readonly buffer ABuf { uint a[]; };
+layout(std430, binding = 1) readonly buffer BBuf { uint b[]; };
+layout(std430, binding = 2) writeonly buffer CBuf { float c[]; };
+
+layout(push_constant) uniform Push {
+    uint m;
+    uint n;
+    uint k;
+} pc;
+
+const uint TILE = 16u;
+
+shared float tile_a[TILE][TILE];
+shared float tile_b[TILE][TILE];
+
+float load_half(bool a_side, uint idx) {
+    uint word = a_side ? a[idx >> 1] : b[idx >> 1];
+    return unpackHalf2x16(word)[idx & 1u];
+}
+
+void main() {
+    uint row = gl_GlobalInvocationID.y;
+    uint col = gl_GlobalInvocationID.x;
+    uint lr = gl_LocalInvocationID.y;
+    uint lc = gl_LocalInvocationID.x;
+
+    float acc = 0.0;
+    uint tiles = (pc.k + TILE - 1u) / TILE;
+
+    for (uint t = 0; t < tiles; ++t) {
+        uint ak = t * TILE + lc;
+        uint bk = t * TILE + lr;
+
+        tile_a[lr][lc] = (row < pc.m && ak < pc.k) ? load_half(true, row * pc.k + ak) : 0.0;
+        tile_b[lr][lc] = (bk < pc.k && col < pc.n) ? load_half(false, bk * pc.n + col) : 0.0;
+        barrier();
+
+        for (uint i = 0; i < TILE; ++i) {
+            acc += tile_a[lr][i] * tile_b[i][lc];
+        }
+        barrier();
+    }
+
+    if (row < pc.m && col < pc.n) {
+        c[row * pc.n + col] = acc;
+    }
+}

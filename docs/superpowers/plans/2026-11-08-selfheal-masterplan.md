@@ -34,7 +34,7 @@ The 2-minute cron is a ping, never a pause.
 | H2a | GEMM f32 tiled, softmax, layernorm, rmsnorm | TESTED, hardware-verified | `hcsuda/docs/MEASURED.md` |
 | H2b | rope kernel + oracle | TESTED, hardware-verified | 3 oracle tests; selftest `rope` err 2.98e-7 vs tol 4.2e-5, deterministic (`hcsuda/benchmarks/amd-radeon-680m/selftest.json`); `Op::Rope` in the planner |
 | H2c | int8 dot-product GEMM (`dotPacked4x8EXT`, i32 accumulate) | TESTED, hardware-verified | tiled kernel bit-equal (incl. tail shape), 1.38x faster than f32 tiled in the same run (0.195 vs 0.269 ms); untiled was 2.1x slower; planner now picks it from selftest evidence (`hcsuda plan gemm i8`) |
-| H2d | f16 GEMM, cooperative-matrix GEMM | PLANNED | measure vs tiled f32 |
+| H2d | f16 GEMM, cooperative-matrix GEMM | f16 storage GEMM TESTED + hardware-verified; coopmat PLANNED | f16: odd-shape error 0, 0.257 ms vs f32 0.27-0.38 ms (bimodal, cause unknown); next: coopmat 16x16x16 |
 | H3 | GGUF reader, tiny transformer | PLANNED | after H2 |
 | O-PR | PR to main, CI green, merge | PR #23 MERGED (`48a949c`, 14/14 green) | next batch: new PR from this branch |
 | O2 | alpha gaps (see §0) | PLANNED | recovery key flow design first (host-only) |

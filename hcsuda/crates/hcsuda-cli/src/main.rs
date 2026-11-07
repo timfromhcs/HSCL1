@@ -735,6 +735,44 @@ fn cmd_selftest(json: bool, device: Option<usize>, out: Option<PathBuf>) -> Resu
         gpu_ms: timed.and_then(|t| t.gpu_ms),
     });
 
+    // f16 storage GEMM (f32 math) on odd k: the oracle sees the same f16-rounded inputs.
+    let (hm, hk, hn) = (37usize, 65usize, 29usize);
+    let ha: Vec<f32> = (0..hm * hk)
+        .map(|i| ((i % 89) as f32 - 44.0) * 0.013)
+        .collect();
+    let hb: Vec<f32> = (0..hk * hn)
+        .map(|i| ((i % 53) as f32 - 26.0) * 0.021)
+        .collect();
+    let want = reference::gemm(
+        &hcsuda_core::tensor::round_through_f16(&ha),
+        &hcsuda_core::tensor::round_through_f16(&hb),
+        hm,
+        hk,
+        hn,
+    );
+    let gha = runner.upload_u32(&hcsuda_core::tensor::pack_f16x2(&ha))?;
+    let ghb = runner.upload_u32(&hcsuda_core::tensor::pack_f16x2(&hb))?;
+    let ghc = runner.upload(&vec![0.0f32; hm * hn])?;
+    let mut got_runs = Vec::new();
+    let mut timed = None;
+    for _ in 0..3 {
+        timed = Some(runner.gemm_f16(&gha, &ghb, &ghc, hm, hk, hn)?);
+        got_runs.push(runner.download(&ghc)?);
+    }
+    let got = got_runs.last().expect("three runs").clone();
+    let htol = gpu::f32_tolerance(hk);
+    let max_error = htol.max_error(&want, &got).unwrap_or(f64::INFINITY);
+    cases.push(Case {
+        op: "gemm",
+        dtype: "f16",
+        path: "vulkan_tiled",
+        max_error,
+        tolerance: htol.abs + htol.rel,
+        ok: max_error <= htol.abs + htol.rel,
+        deterministic: got_runs.windows(2).all(|w| w[0] == w[1]),
+        gpu_ms: timed.and_then(|t| t.gpu_ms),
+    });
+
     let all_ok = cases.iter().all(|c| c.ok && c.deterministic);
     let verified: Vec<String> = cases
         .iter()
@@ -1072,6 +1110,37 @@ fn cmd_bench(
                         "i8",
                         [m, n, k],
                         "vulkan_i8dot_tiled",
+                        &runner.dev.name(),
+                        &driver,
+                        wall,
+                        ops,
+                        bytes,
+                    )
+                    .with_gpu_stats(gpu_stats),
+                );
+            }
+            "gemm_f16" => {
+                let (m, k, n) = (256usize, 1024usize, 256usize);
+                let a: Vec<f32> = (0..m * k)
+                    .map(|i| ((i % 97) as f32 - 48.0) * 0.01)
+                    .collect();
+                let b: Vec<f32> = (0..k * n)
+                    .map(|i| ((i % 41) as f32 - 20.0) * 0.02)
+                    .collect();
+                let ops = Some(2.0 * m as f64 * n as f64 * k as f64);
+                let bytes = Some((2 * (m * k + k * n) + 4 * m * n) as u64);
+                let ga = runner.upload_u32(&hcsuda_core::tensor::pack_f16x2(&a))?;
+                let gb = runner.upload_u32(&hcsuda_core::tensor::pack_f16x2(&b))?;
+                let gc = runner.upload(&vec![0.0f32; m * n])?;
+                warm_up(warmup_s, || runner.gemm_f16(&ga, &gb, &gc, m, k, n))?;
+                let timings = sample(runs, reps, || runner.gemm_f16(&ga, &gb, &gc, m, k, n))?;
+                let (wall, gpu_stats) = split_timings(timings);
+                out_suite.push(
+                    BenchRow::from_samples(
+                        "gemm",
+                        "f16",
+                        [m, n, k],
+                        "vulkan_tiled",
                         &runner.dev.name(),
                         &driver,
                         wall,

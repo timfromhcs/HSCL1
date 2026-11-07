@@ -106,6 +106,27 @@ impl Tensor {
 }
 
 /// IEEE-754 binary16 encoding, round-to-nearest-even.
+/// Pack f32 values as IEEE half floats, two per `u32` (element 0 in the low half),
+/// the layout GLSL `unpackHalf2x16` reads. An odd length is padded with +0.
+pub fn pack_f16x2(values: &[f32]) -> Vec<u32> {
+    values
+        .chunks(2)
+        .map(|c| {
+            let lo = f32_to_f16_bits(c[0]) as u32;
+            let hi = c.get(1).map_or(0, |v| f32_to_f16_bits(*v) as u32);
+            lo | (hi << 16)
+        })
+        .collect()
+}
+
+/// Round every value through f16 and back: the exact inputs an f16-storage kernel sees.
+pub fn round_through_f16(values: &[f32]) -> Vec<f32> {
+    values
+        .iter()
+        .map(|v| f16_bits_to_f32(f32_to_f16_bits(*v)))
+        .collect()
+}
+
 pub fn f32_to_f16_bits(value: f32) -> u16 {
     let bits = value.to_bits();
     let sign = ((bits >> 16) & 0x8000) as u16;
@@ -216,5 +237,20 @@ mod tests {
     fn i8_tensor_decodes_signed() {
         let t = Tensor::from_i8(vec![3], &[-128, 0, 127]);
         assert_eq!(t.to_f32(), vec![-128.0, 0.0, 127.0]);
+    }
+
+    #[test]
+    fn pack_f16x2_layout_and_odd_length_padding() {
+        // 1.0 = 0x3c00, 2.0 = 0x4000, -1.0 = 0xbc00
+        assert_eq!(pack_f16x2(&[1.0, 2.0]), vec![0x4000_3c00]);
+        assert_eq!(pack_f16x2(&[-1.0]), vec![0x0000_bc00]);
+        assert_eq!(pack_f16x2(&[1.0, 2.0, -1.0]).len(), 2);
+    }
+
+    #[test]
+    fn round_through_f16_changes_only_unrepresentable_values() {
+        let r = round_through_f16(&[0.5, 0.1]);
+        assert_eq!(r[0], 0.5);
+        assert!(r[1] != 0.1 && (r[1] - 0.1).abs() < 1e-3);
     }
 }
