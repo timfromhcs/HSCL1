@@ -477,3 +477,16 @@ The first run reported "BOOTX64.EFI NOT PRESENT" although the shim was there: Ub
 says why. What this proves: the remastered image still ships the documented chain (MS-signed shim -> Canonical GRUB ->
 Canonical kernel), so the squashfs/initrd edits did not replace a signed component. What it does **not** prove: that
 firmware accepts the chain - that is gate G6 (OVMF + Microsoft keys, `mokutil --sb-state` in the guest), still open.
+
+## S2 attempt 1: image build with the whole S1 set (2026-11-07, started 09:35Z)
+Preflight: branch `codex/hscl1-v1` at `8e550bd`, working tree clean, `forge check --strict` green on Windows **and**
+Linux-in-WSL just before the start. The WSL clone (`~/hscl1-src`) pulled this commit and then showed three files as
+modified - `packages/debian/hscl-security/{build.sh,DEBIAN/preinst,DEBIAN/postrm}` - with a diff of **0 inserted and
+0 deleted lines**: the only change was the file mode (100755 -> 100644), a checkout artifact, not work in progress.
+Restored with `git checkout --` after confirming the content was identical; the clone is clean again.
+Resource deviation, recorded rather than hidden: the resource policy asks for >= 9 GB free host memory before a build.
+After `wsl --shutdown` the Windows "available" counter read 5 540 MB (`tools/local_worker/sysmon.py`), so the build was
+started with the documented Ersatzweg from the finish-line plan - `HSCL_SQUASH_PROCS=2 HSCL_SQUASH_MEM=384M` instead of
+3 processors / 512M - and with `--fast`. Log: `~/hscl1-build/out/build-0.1.3-dev.log`, target
+`~/hscl1-build/out/HSCL1-0.1.3-dev-amd64.iso`. If the host reaps it, that is recorded here and retried once with a
+further reduction; a build that fails for memory is not a product defect.
