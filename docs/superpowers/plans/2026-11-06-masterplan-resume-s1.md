@@ -55,8 +55,9 @@
 ### Task 2: Man pages + Shell-Completions
 **Files:** Create `scripts/gen_cli_extras.py` oder `hscl completions SHELL` (clap_complete nur, wenn `cargo deny` sie erlaubt)
 - [x] `hscl completions SHELL` (clap_complete), Test deckt alle Top-Level-Befehle fuer hscl+hscl1 ab; build-deb.sh erzeugt bash/zsh/fish-Dateien aus dem Paket-Binaer; Test `test_package_completions.py` (WSL gruen)
-- [ ] Man pages (clap_mangen) - offen; Entscheidung gefallen (siehe §9): `clap_mangen` 0.3.3, MIT OR Apache-2.0,
-      `hscl man --out DIR` neben `hscl completions` (ein Pfad fuer Paketbau und Test, kein build.rs)
+- [x] Man pages (clap_mangen) - DONE 2026-11-07: `clap_mangen` 0.3, `hscl man --out DIR` erzeugt `hscl.1`, `hscl1.1`
+      und `hscl-<command>.1` aus dem clap-Baum (3 Rust-Tests, einer davon Determinismus); `build-deb.sh` installiert nach
+      `/usr/share/man/man1` und gzip -9n; Paket-Test prueft `hscl.1.gz`/`hscl1.1.gz`; `docs/CLI.md`-Zeile (Drift-Gate)
 - [x] Commit
 
 ### Task 3: Menue-Datei + Doc-Command-Test

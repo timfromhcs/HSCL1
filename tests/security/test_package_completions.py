@@ -22,7 +22,19 @@ def test_base_package_contains_completions_for_both_program_names(tmp_path):
         '#!/bin/sh\nstage="$3"; out="$4"\ncd "$stage" && find . -type f -printf "%p\n" | sort > "$out"\n', encoding="utf-8")
     (shim / "dpkg-deb").chmod(0o755)
     fake = tmp_path / "hscl"
-    fake.write_text('#!/bin/sh\necho "# argv0=$(basename "$0") args=$*"\n', encoding="utf-8")
+    # Stand-in for the real binary: it answers `man --out DIR` by writing two pages (the real one
+    # generates them from the clap tree) and echoes its argv0 for the completion calls.
+    fake.write_text(
+        '#!/bin/sh\n'
+        'if [ "$1" = "man" ]; then\n'
+        '  out="$3"\n'
+        '  mkdir -p "$out"\n'
+        '  printf ".TH hscl 1\\n" > "$out/hscl.1"\n'
+        '  printf ".TH hscl1 1\\n" > "$out/hscl1.1"\n'
+        '  exit 0\n'
+        'fi\n'
+        'echo "# argv0=$(basename "$0") args=$*"\n',
+        encoding="utf-8", newline="\n")
     fake.chmod(0o755)
     env = {**os.environ, "PATH": f"{shim}:{os.environ['PATH']}"}
     r = subprocess.run(["bash", str(ROOT / "scripts/build-deb.sh"), "hscl-base", str(tmp_path / "out"), "--bin", str(fake)],
@@ -33,5 +45,6 @@ def test_base_package_contains_completions_for_both_program_names(tmp_path):
         "./usr/share/bash-completion/completions/hscl", "./usr/share/bash-completion/completions/hscl1",
         "./usr/share/zsh/vendor-completions/_hscl", "./usr/share/zsh/vendor-completions/_hscl1",
         "./usr/share/fish/vendor_completions.d/hscl.fish", "./usr/share/fish/vendor_completions.d/hscl1.fish",
+        "./usr/share/man/man1/hscl.1.gz", "./usr/share/man/man1/hscl1.1.gz",
     ]:
         assert want in files, want

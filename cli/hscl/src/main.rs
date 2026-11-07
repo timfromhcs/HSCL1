@@ -119,6 +119,12 @@ enum Cmd {
         #[arg(value_enum)]
         shell: clap_complete::Shell,
     },
+    /// Write roff man pages for `hscl`, `hscl1` and every command into DIR (packaged under /usr/share/man/man1).
+    Man {
+        /// Target directory; created when missing, refused when it is a file.
+        #[arg(long)]
+        out: std::path::PathBuf,
+    },
     /// Model Context Protocol server on stdio for local agents (read-only unless --allow-write).
     Mcp {
         /// Also expose write tools (theme set, graphics apply).
@@ -594,6 +600,42 @@ fn completions_script(shell: clap_complete::Shell, prog: &str) -> String {
     String::from_utf8_lossy(&buf).into_owned()
 }
 
+/// Roff man pages straight from the clap tree: `hscl.1`, `hscl1.1` (same binary, second name) and
+/// one `hscl-<command>.1` per top-level command. Nothing is templated by hand, so a page cannot
+/// describe a flag the binary does not have.
+fn write_man_pages(out: &std::path::Path) -> anyhow::Result<Vec<std::path::PathBuf>> {
+    if out.exists() && !out.is_dir() {
+        anyhow::bail!("{} exists and is not a directory", out.display());
+    }
+    std::fs::create_dir_all(out)
+        .map_err(|e| anyhow::anyhow!("cannot create {}: {e}", out.display()))?;
+    let root = <Cli as clap::CommandFactory>::command();
+    let mut written = Vec::new();
+    let mut emit = |cmd: clap::Command, file: String| -> anyhow::Result<()> {
+        let mut buf = Vec::new();
+        clap_mangen::Man::new(cmd).render(&mut buf)?;
+        let path = out.join(file);
+        std::fs::write(&path, &buf)
+            .map_err(|e| anyhow::anyhow!("cannot write {}: {e}", path.display()))?;
+        written.push(path);
+        Ok(())
+    };
+    for prog in ["hscl", "hscl1"] {
+        emit(
+            root.clone().name(prog.to_string()).bin_name(prog),
+            format!("{prog}.1"),
+        )?;
+    }
+    for sub in root.get_subcommands().filter(|c| c.get_name() != "help") {
+        let name = format!("hscl-{}", sub.get_name());
+        emit(
+            sub.clone().name(name.clone()).bin_name(name.clone()),
+            format!("{name}.1"),
+        )?;
+    }
+    Ok(written)
+}
+
 fn run(cli: Cli) -> anyhow::Result<u8> {
     let j = cli.json;
     match cli.command.unwrap_or(Cmd::Overview) {
@@ -787,6 +829,16 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
         Cmd::Completions { shell } => {
             let prog = program_name(&std::env::args().next().unwrap_or_default());
             print!("{}", completions_script(shell, prog));
+            return Ok(exit::OK);
+        }
+        Cmd::Man { out } => {
+            let files = write_man_pages(&out)?;
+            let paths: Vec<String> = files.iter().map(|p| p.display().to_string()).collect();
+            print_value(
+                j,
+                &json!({ "out": out.display().to_string(), "pages": paths }),
+                || format!("{} man pages written to {}", paths.len(), out.display()),
+            );
             return Ok(exit::OK);
         }
         Cmd::Graphics { cmd } => return run_graphics(j, cmd),
@@ -1775,5 +1827,86 @@ mod doc_command_tests {
             got,
             vec!["status --json".to_string(), "ainet detect".to_string()]
         );
+    }
+}
+
+#[cfg(test)]
+mod man_tests {
+    //! `hscl man --out DIR` (plan task 2b): the packaged man pages come from the same clap tree as
+    //! the binary, so a new command cannot ship without documentation (docs/CLI.md is the other half).
+    use super::*;
+
+    fn names(dir: &std::path::Path) -> Vec<String> {
+        std::fs::read_dir(dir)
+            .unwrap()
+            .flatten()
+            .map(|e| e.file_name().to_string_lossy().into_owned())
+            .collect()
+    }
+
+    #[test]
+    fn writes_a_page_for_the_program_and_every_top_level_command() {
+        let dir = tempfile::tempdir().unwrap();
+        let files = write_man_pages(dir.path()).unwrap();
+        let got = names(dir.path());
+        for want in ["hscl.1", "hscl1.1"] {
+            assert!(got.iter().any(|n| n == want), "{want} missing: {got:?}");
+        }
+        let root = <Cli as clap::CommandFactory>::command();
+        let mut expected = 2;
+        for c in root.get_subcommands().filter(|c| c.get_name() != "help") {
+            let want = format!("hscl-{}.1", c.get_name());
+            assert!(got.iter().any(|n| n == &want), "{want} missing: {got:?}");
+            expected += 1;
+        }
+        assert_eq!(files.len(), expected);
+        for f in &files {
+            let text = std::fs::read_to_string(f).unwrap();
+            // roff pages may open with a quoting preamble (dot-ie, dot-el), so look for the title
+            // line and the mandatory NAME section rather than the first byte.
+            assert!(
+                text.lines().any(|l| l.starts_with(".TH ")),
+                "{f:?} has no .TH title line"
+            );
+            assert!(text.contains(".SH NAME"), "{f:?} has no NAME section");
+            assert!(text.len() > 100, "{f:?} is suspiciously short");
+            assert!(
+                !text.contains("PLACEHOLDER"),
+                "{f:?} contains a placeholder"
+            );
+        }
+        let root_page = std::fs::read_to_string(dir.path().join("hscl.1")).unwrap();
+        assert!(
+            root_page.contains(PRODUCT),
+            "the root page should name the product"
+        );
+        assert!(
+            root_page.contains(&format!("hscl {}", env!("CARGO_PKG_VERSION")))
+                || root_page.contains(env!("CARGO_PKG_VERSION"))
+        );
+    }
+
+    #[test]
+    fn a_path_that_is_a_file_is_refused_without_touching_it() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("not-a-directory");
+        std::fs::write(&file, b"keep me").unwrap();
+        assert!(write_man_pages(&file).is_err());
+        assert_eq!(std::fs::read(&file).unwrap(), b"keep me");
+    }
+
+    #[test]
+    fn the_pages_are_deterministic() {
+        let a = tempfile::tempdir().unwrap();
+        let b = tempfile::tempdir().unwrap();
+        write_man_pages(a.path()).unwrap();
+        write_man_pages(b.path()).unwrap();
+        for name in ["hscl.1", "hscl-ai.1"] {
+            assert_eq!(
+                std::fs::read(a.path().join(name)).unwrap(),
+                std::fs::read(b.path().join(name)).unwrap(),
+                "{name} differs between two runs"
+            );
+        }
     }
 }

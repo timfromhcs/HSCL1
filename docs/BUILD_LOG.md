@@ -366,3 +366,16 @@ Result on the real docs: **four drift findings, all real**, two of them false st
   only `appearance theme`. The limitation row even said IMPLEMENTED. Both corrected to PLANNED (plan W5.5, tiling presets),
   because the KWin `[Tiling]` write can only be claimed after a VM test reads the applied config back.
 Gates: `cargo test -p hscl` 142 passed, `clippy -D warnings` clean, `cargo fmt --check` clean (fmt applied once).
+
+## Task 2b man pages from the clap tree (2026-11-07)
+`clap_mangen` 0.3 (MIT OR Apache-2.0 - allowed by `deny.toml`; it needs clap >= 4.6.6, which the lockfile has) and a new
+`hscl man --out DIR` next to `hscl completions`: it writes `hscl.1`, `hscl1.1` (same binary, second program name) and one
+`hscl-<command>.1` per top-level command, straight from the clap tree, so a page cannot describe a flag the binary does
+not have. Three tests written first (all red against the missing function): a page for the program and for every top-level
+command, every file a roff page with a `.TH` title line and a `.SH NAME` section, a path that is a regular file is refused
+without touching it, and two runs are byte-identical. Notes from doing it: `Command::name` needs clap's `string` feature to
+take an owned `String` (enabled in `cli/hscl/Cargo.toml`, with a comment); roff output opens with a `.\"` quoting preamble,
+so the test looks for `.TH` rather than the first byte. `scripts/build-deb.sh` (hscl-base) now calls `hscl man --out
+$stage/usr/share/man/man1` and gzips the pages (`gzip -9n`); `tests/security/test_package_completions.py` asserts both
+`hscl.1.gz` and `hscl1.1.gz` (its fake binary answers `man --out`), WSL run green. `docs/CLI.md` row added - the drift test
+G12 would have failed without it. `cargo test -p hscl` 145 passed, fmt and clippy -D warnings clean.

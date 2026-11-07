@@ -48,6 +48,12 @@ if [ -n "$bin" ] && [ "$name" = "hscl-base" ]; then
     "$exe" completions fish > "$stage/usr/share/fish/vendor_completions.d/$prog.fish"
   done
   rm -rf "$cdir"
+  # Man pages come from the same clap tree (docs/CLI.md is the drift gate). Debian policy wants them
+  # gzipped, and man-db reads hscl1.1 as the second program name of the same binary.
+  mandir="$stage/usr/share/man/man1"
+  install -d "$mandir"
+  "$bin" man --out "$mandir" >/dev/null
+  for page in "$mandir"/*.1; do gzip -9n "$page"; done
 fi
 if [ "$name" = "hscl-base" ]; then
   mkdir -p "$stage/usr/share/hscl"
