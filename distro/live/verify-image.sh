@@ -96,6 +96,12 @@ check "workshop udev rule installed"       test -s "$root/usr/lib/udev/rules.d/9
 check "workshop is not enabled anywhere"   sh -c "! find '$root/etc/systemd/system' -name 'hscl-workshop*' | grep -q ."
 check "workshop has no socket units"       sh -c "! find '$root/usr/lib/systemd/system' -name 'hscl-workshop*.socket' | grep -q ."
 check "no workshop token baked in"         test ! -e "$root/etc/hscl/workshop.token"
+check "cq-hecs launcher installed"         test -x "$root/usr/bin/hscl-cqhecs"
+check "cq-hecs desktop entry"              test -s "$root/usr/share/applications/hscl-cqhecs.desktop"
+check "cq-hecs runtime manifest"           test -s "$root/usr/share/hscl/cqhecs/requirements-cp314.txt"
+check "cq-hecs: no autostart entry"        sh -c "! find '$root/etc/xdg/autostart' -name '*cqhecs*' | grep -q ."
+check "cq-hecs: no systemd unit"           sh -c "! find '$root/etc/systemd' '$root/usr/lib/systemd' -name '*cqhecs*' | grep -q ."
+check "cq-hecs: no runtime or wheels in the image" sh -c "test ! -e '$root/opt/hscl/venvs' && ! find '$root/usr/share/hscl' '$root/opt' -name '*.whl' 2>/dev/null | grep -q ."
 # Package payload permissions: nothing shipped by an HSCL1 package may be world-writable or group-writable (a build on an NTFS checkout once produced 0777 everywhere).
 bad_modes() {
   local l f
