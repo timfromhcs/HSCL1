@@ -39,7 +39,8 @@ The 2-minute cron is a ping, never a pause.
 | H3b | tensor data read + dequant (F32/F16/BF16/Q8_0/Q4_0/Q4_K/Q6_K) vs oracle | TESTED + checked on a real model | bit-equal to official `gguf` on fixtures (worst error 0); Qwen3 attn_q/attn_v/attn_norm stats match Python; next: GPU dequant-GEMV, then H3c |
 | H3c-1 | CPU reference decoder block vs NumPy | TESTED | worst error 1.85e-6; causality + shape-error tests |
 | H3c-2 | GPU composition of the block vs the CPU block | TESTED, hardware-verified | selftest `block` err 4.6e-7; mask-off mutation fails with 0.95; <=256 tokens; correctness kernels only |
-| H3c-3 | block weights read from a real GGUF (Qwen3 layer 0 shapes) | PLANNED | after H3c-2 |
+| H3c-3a | Qwen3-style layer (GQA, QK-norm, GGUF layout) on CPU vs NumPy | TESTED | err 1.9e-6; threaded matmul bit-equal |
+| H3c-3b | stream real Qwen3 layers + final norm + tied head; logits vs llama-server for a short prompt (CPU, one layer in RAM) | PLANNED | next; one heavy job at a time |
 | O-PR | PR to main, CI green, merge | PR #23 MERGED (`48a949c`, 14/14 green) | next batch: new PR from this branch |
 | O2 | alpha gaps (see §0) | PLANNED | recovery key flow design first (host-only) |
 | DOC | README/KNOWN_LIMITATIONS match artefact | PLANNED | update only with evidence |
