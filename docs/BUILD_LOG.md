@@ -652,3 +652,6 @@ notes contain the section and every line, an empty gap raises. 9 tests pass.
 The first assembly run was started before this change and had copied only the ISO into
 `artifacts/release-0.1.3-alpha.0/`; it was stopped and restarted with the four gaps (firmware acceptance, install run on
 this image, brand OCR + shortcut audits, physical hardware) rather than shipping a set without them.
+
+## G11 shortcut audit: finding (2026-11-07)
+Searched the tracked tree (`git ls-files`, `git grep`) for any shortcut configuration (kglobalshortcutsrc, kwinrc, khotkeys, Meta bindings): **none exists**, and README/docs/website publish no shortcut table. So the AGENTS.md 4.5 table is entirely PLANNED, not a defect in a published claim. Recorded as a KNOWN_LIMITATIONS row. No install harness exists either (`scripts/forge.py` has build/boot/diff/check only), so the installer run on 0.1.3-alpha.0 needs a new harness, built test-first, one QEMU job at a time. Status stays: installer on this image NOT verified.
