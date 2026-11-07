@@ -26,7 +26,7 @@ The owner files above stay untracked until the owner decides otherwise.
 | `timfromhcs/hcs-foundry` | `cfea6fa` (2026-11-02) | not inspected beyond the SHA | `gh api repos/timfromhcs/hcs-foundry/commits/main` |
 | `timfromhcs/hcs-discovery-studio` | `fdd6ccb` (2026-11-04) | separate product; not inspected | same |
 | `timfromhcs/HCSPNP` | 404 | not a repository; never create it | `gh api repos/timfromhcs/HCSPNP` |
-| local CQ-HECS clone (WSL `~/src/CQ-HECS`) | branch `hcspnp/early-reply-drains-body`, **local only, no push** | 1 commit on top of `30c7f14`; full suite 2740 passed / 0 failed / 110 skipped | `git -C ~/src/CQ-HECS log --oneline -2` |
+| local CQ-HECS clone (WSL `~/src/CQ-HECS`) | branches `hcspnp/early-reply-drains-body` (1 commit), `hcspnp/studio-guard` (2 commits) and `hcspnp/integration` (both merged), **local only, no push**, based on `30c7f14` | bridge fix alone 2740 / 0 / 110; `hcspnp/integration` (both) 2759 / 0 / 110 | `git -C ~/src/CQ-HECS branch -vv` |
 
 ## 2. Loop (Master 8.1, unchanged in spirit)
 
@@ -40,7 +40,7 @@ Resource rule: one heavy job at a time, VM disks on `C:\AI\vmtest`, no secrets p
 | Master | Meaning | State | Our IDs / evidence |
 |---|---|---|---|
 | **P0** | sync and freeze the real baseline | **IN PROGRESS**: PR #29 landed, snapshot refreshed, clean-clone CQ-HECS suite recorded; **open: read the listed SAT files in full, supersede stale docs** | `docs/research/HCSPNP_BASELINE.md`, section 1 here |
-| **P1** | make the Studio safe and usable | **NEXT**: adversarial tests first, guard patch in the local clone, no push | P-M1a (2); finding: Studio server unguarded |
+| **P1** | make the Studio safe and usable | **PATCH TESTED LOCALLY, not pushed**: 19 adversarial tests (red against `main`), guard on `hcspnp/studio-guard`, each guard proven by mutation, browser-verified, combined suite 2759 / 0 / 110 on `hcspnp/integration`; patches in `artifacts/hcspnp/cqhecs-patches/`; **needs owner approval to leave the machine (B-P1)** | P-M1a (2) |
 | P2 | single HSCL1 command and launch path | PLANNED, lock needed | P-S1 `hscl` status wrapper, then P-M1b (blocked on P1 + a pinned release) |
 | P3 | trust / proof UX | PLANNED | P-M2 |
 | P4 | one benchmark and debugging control | PARTIAL | `scripts/forge.py` has two conditional steps (`hcseasymath (WSL)`, `doc commands (cargo)`); structured benchmark runner not started |
@@ -64,7 +64,7 @@ workflows; schemas/provenance interfaces; HCSUDA planner/capability contracts.
 | # | Master | Action | Files / owner | Test command | Depends on | State | Evidence target |
 |---|---|---|---|---|---|---|---|
 | 1 | P0 | Read in full: `sat.py`, `sat_external.py`, `drat.py`, `unified.py`, `sat_separator.py`, `omniwave/{bcp,gpu,engine,learned}.py`, `studio/app.py`, `provenance.py`, `mcp_server.py`, `src/sat_solver.cpp` (section 23.1 questions); fill the gap list | read-only in the local clone; Repo Auditor | n/a (report) | - | **NEXT** | `HCSPNP_BASELINE.md` gap list with file and line references |
-| 2 | P1 | Studio guard: write adversarial tests first (foreign Host, foreign Origin, no/wrong token, `text/plain` POST, oversized body, flood, shutdown), then the smallest patch | local clone branch `hcspnp/studio-guard`; Solver Engineer | `~/venvs/cq/bin/python -m pytest -q tests/test_studio_security.py` then the full suite | row 1 not required | PLANNED | tests fail before / pass after; full suite green; patch file list; **no push** (needs owner, B-P1) |
+| 2 | P1 | Studio guard (tests first, then patch): **done locally**. Files: `cqhecs/studio/app.py`, `cqhecs/studio/static/app.js`, `tests/test_studio_security.py` (new), `tests/test_studio.py` (helpers send the token) | local clone branch `hcspnp/studio-guard`; Solver Engineer | `~/venvs/cq/bin/python -m pytest -q tests/test_studio_security.py` then the full suite | row 1 not required | **DONE locally; waiting for owner (B-P1) before any push** | `HCSPNP_BASELINE.md` |
 | 3 | P2 | `hscl` status wrapper: read-only, wraps `hscl-cqhecs doctor --json`, typed, no shell; docs only name it after it exists | `cli/hscl/` (takes LOCK P) | `cargo test -p hscl` | lock free | PLANNED | Rust tests + doc-command test green |
 | 4 | P12 | Track E M2: evaluate / simplify / integrate (`unresolved` stays honest) / solve / plot, warm worker | `apps/hcseasymath/` | `bash scripts/hcseasymath_gate.sh` | PR #29 (done) | PLANNED | gate E6 |
 | 5 | P12 | HCSUDA H3c-3b: real Qwen3 layers, tied head, logits vs llama-server | `hcsuda/` | per `hcsuda` gates | free heavy slot (no VM, no solver run) | PAUSED | logits comparison JSON |
@@ -98,7 +98,7 @@ HCSPNP is a feature family of CQ-HECS and HSCL1, not a product or repository.
 | ID | Item | State | Evidence / next action |
 |---|---|---|---|
 | P-M0 | audit | **IN PROGRESS**: investigation (repos, web, crawl) done; clean-clone suite **2739 passed / 1 failed / 110 skipped** (177 s, 460 MB peak); one real defect found (hardware bridge answers early POST rejections without reading the body -> TCP RST -> lost 429), local fix: suite **2740 / 0 / 110**; full file reading open (row 1) | `HCSPNP_BASELINE.md`, `HCSPNP_DECISIONS.md` |
-| P-M1a | upstream fixes in the local clone, tests first, not pushed: (1) bridge early-reply fix **committed locally**, (2) Studio guard **not started** (row 2) | IN PROGRESS | B-P1 before any push |
+| P-M1a | upstream fixes in the local clone, tests first, not pushed: (1) bridge early-reply fix **committed** (`hcspnp/early-reply-drains-body`), (2) Studio guard **tested** (`hcspnp/studio-guard`, request-desync fix included) | DONE locally | B-P1 before any push |
 | P-S1 | HSCL1 status wrapper | PLANNED (row 3) | - |
 | P-M1b | launcher `studio`, desktop entry opens it | BLOCKED on the guarded Studio in a pinned CQ-HECS release | decisions P2/P3 |
 | P-M2..M9, Q | see the plan | PLANNED | - |
