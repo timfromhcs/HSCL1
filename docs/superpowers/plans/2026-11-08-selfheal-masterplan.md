@@ -52,7 +52,7 @@ Order decision: Track E runs first, H3c-3b waits for a free heavy slot. Research
 | ID | Item | State | Evidence / next action |
 |---|---|---|---|
 | E-M0 | baseline, research ledger (3 rounds), decisions D1-D10, blockers B1-B8, test matrix, integration page, AGENTS proposal; HCSUDA doc drift reconciled | DONE | `docs/research/HCSEASYMATH_*.md`, `docs/integrations/HCSEASYMATH*.md`, reconciled `hcsuda/README.md` + `CAPABILITY_MATRIX.md` |
-| E-M1 | `apps/hcseasymath/` foundation: allow-list parser, exact derivative, worker limits, loopback API with Host/Origin/token, hash-pinned cp314 lock | NEXT | steps 1-8 in the plan, tests first |
+| E-M1 | `apps/hcseasymath/` foundation: allow-list parser, exact derivative, worker limits, loopback API with Host/Origin/token, hash-pinned cp314 lock | LOCALLY DONE, CI pending | 112 tests in WSL py3.14; forge step + CI job added; next: PR, then E-M2 |
 | E-M2..M13 | see the plan | PLANNED | - |
 | H3c-3b | real Qwen3 layers + logits vs llama-server | PAUSED (resource slot, not dropped) | resumes after E-M1 or in a free slot |
 

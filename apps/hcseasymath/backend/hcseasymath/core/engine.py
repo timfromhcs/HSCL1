@@ -35,6 +35,9 @@ def _failure(request: Any, operation: str, status: str, message: str) -> dict[st
     return _result(request, operation, status, error=message, warnings=[message])
 
 
+failure_result = _failure
+
+
 def execute(request: Any) -> dict[str, Any]:
     if not isinstance(request, dict):
         return _failure(request, "unknown", "invalid_input", "request must be an object")

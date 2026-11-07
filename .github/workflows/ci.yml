@@ -101,6 +101,18 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
         run: python3 scripts/protected_paths.py --base "origin/$BASE_REF" --branch "$HEAD_REF"
 
+  hcseasymath:
+    name: HCSEASYMATH (Python 3.14, hash-locked)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.14"
+      - name: Gate (venv from requirements-test.lock, pip check, tests)
+        run: bash scripts/hcseasymath_gate.sh
+
   qml:
     name: QML tests (wallpaper effects, Control Center)
     runs-on: ubuntu-latest
