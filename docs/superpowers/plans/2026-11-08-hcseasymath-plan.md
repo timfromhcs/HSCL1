@@ -66,6 +66,14 @@ The owner asked for the new plans to be followed before further work. So:
 7. Hook the WSL gate into `scripts/forge.py` only for changed paths under `apps/hcseasymath/`, so unrelated work stays fast.
 8. Update the ledger, BUILD_LOG and CLAIMS; one PR; merge on green CI.
 
+## 2b. Coordination with Track P (HCSPNP) - added 2026-11-08
+
+Shared HSCL1 files (`cli/hscl/`, `apps/control-center/`, `distro/live/verify-image.sh`, `scripts/remaster-iso.sh`, `packages/debian/`) are edited
+by one track at a time (lock rule P9, `2026-11-08-hcspnp-plan.md`). M1 touched none of them (`apps/hcseasymath/`, `scripts/forge.py`,
+`scripts/hcseasymath_gate.sh`, `.github/workflows/ci.yml`, `tests/unit/test_forge.py`). M6 (`hscl math`, MCP tools) and M7 (Control Center card)
+need the lock; Track P's `hscl cqhecs status` slice goes first because it is small and already specified. M1 state: built and gated locally,
+PR #29 open.
+
 ## 3. Loops and limits
 
 The self-heal loop of `2026-11-08-selfheal-masterplan.md` applies unchanged. The contract's six loops (A-F)

@@ -1,0 +1,22 @@
+[project]
+name = "hcseasymath"
+version = "0.0.1"
+description = "HCSEASYMATH: local mathematical workbench (in-tree first, see docs/integrations/HCSEASYMATH.md)"
+requires-python = ">=3.14"
+license = "GPL-3.0-or-later"
+dependencies = [
+  "sympy==1.14.0",
+  "numpy==2.5.4",
+  "scipy==1.18.1",
+  "fastapi==0.162.2",
+  "uvicorn==0.54.0",
+  "pydantic==2.14.3",
+]
+
+[project.optional-dependencies]
+test = ["pytest==9.2.0", "hypothesis==6.170.15", "httpx==0.28.1"]
+
+[tool.pytest.ini_options]
+pythonpath = ["backend"]
+testpaths = ["tests"]
+addopts = "-q"

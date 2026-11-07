@@ -52,9 +52,25 @@ Order decision: Track E runs first, H3c-3b waits for a free heavy slot. Research
 | ID | Item | State | Evidence / next action |
 |---|---|---|---|
 | E-M0 | baseline, research ledger (3 rounds), decisions D1-D10, blockers B1-B8, test matrix, integration page, AGENTS proposal; HCSUDA doc drift reconciled | DONE | `docs/research/HCSEASYMATH_*.md`, `docs/integrations/HCSEASYMATH*.md`, reconciled `hcsuda/README.md` + `CAPABILITY_MATRIX.md` |
-| E-M1 | `apps/hcseasymath/` foundation: allow-list parser, exact derivative, worker limits, loopback API with Host/Origin/token, hash-pinned cp314 lock | NEXT | steps 1-8 in the plan, tests first |
+| E-M1 | `apps/hcseasymath/` foundation: allow-list parser, exact derivative, worker limits, loopback API with Host/Origin/token, hash-pinned cp314 lock | LOCALLY DONE, CI pending | 112 tests in WSL py3.14; forge step + CI job added; next: PR, then E-M2 |
 | E-M2..M13 | see the plan | PLANNED | - |
 | H3c-3b | real Qwen3 layers + logits vs llama-server | PAUSED (resource slot, not dropped) | resumes after E-M1 or in a free slot |
+
+## 2c. Track P - HCSPNP (added 2026-11-08, see `2026-11-08-hcspnp-plan.md`)
+
+HCSPNP is a feature family of CQ-HECS and HSCL1, not a product or repo (`timfromhcs/HCSPNP` is 404). Investigation: repositories, web search, crawl (`docs/research/HCSPNP_*.md`).
+
+LOCK: none held. File groups under lock rule P9: `cli/hscl/`, `apps/control-center/`, `distro/live/verify-image.sh`, `scripts/remaster-iso.sh`, `packages/debian/`.
+
+| ID | Item | State | Evidence / next action |
+|---|---|---|---|
+| P-M0 | Audit: investigation done; clean-clone CQ-HECS suite run, full file reading, first-PR file list | IN PROGRESS | ledger/baseline/decisions written; next: clone to WSL ext4 and run the suite |
+| P-M1a | Studio Host/Origin/token guard in a local CQ-HECS clone, tests first, **not pushed** | PLANNED | finding: Studio HTTP server unguarded; needs B-P1 before any push |
+| P-S1 | `hscl cqhecs status` (read-only wrapper of `hscl-cqhecs doctor --json`), tests first | PLANNED | takes `LOCK: P (cli/hscl/)` for this slice only |
+| P-M1b | launcher `studio` command, desktop entry opens it | BLOCKED on P-M1a + a pinned CQ-HECS release | decision P2/P3 |
+| P-M2..M9, Q | see the plan | PLANNED | - |
+
+Order across tracks: land PR #29 -> P-M0 -> P-M1a -> P-S1 -> resume Track E and H3c-3b in free slots.
 
 ## 3. Owner-only items (not guessed)
 

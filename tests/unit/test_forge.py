@@ -271,3 +271,48 @@ def test_default_check_skips_the_slow_tier_and_full_runs_everything():
     full = next(s for s in forge.plan_check(ROOT, have_wsl=False, changed=[], full=True) if s.name == "pytest").argv
     assert "not slow" in fast
     assert "not slow" not in full
+
+
+def test_hcseasymath_step_is_absent_unless_the_app_changed():
+    names = [s.name for s in forge.plan_check(ROOT, have_wsl=True, changed=["tests/unit/test_x.py"])]
+    assert "hcseasymath (WSL)" not in names
+
+
+def test_hcseasymath_step_runs_the_gate_script_under_wsl_when_the_app_changed():
+    steps = forge.plan_check(ROOT, have_wsl=True, changed=["apps/hcseasymath/backend/hcseasymath/cli.py"])
+    st = next(s for s in steps if s.name == "hcseasymath (WSL)")
+    assert st.argv[:4] == ["wsl", "-d", "Ubuntu", "--"]
+    assert "scripts/hcseasymath_gate.sh" in st.argv[-1]
+
+
+def test_hcseasymath_step_is_skipped_with_a_reason_without_wsl():
+    steps = forge.plan_check(ROOT, have_wsl=False, changed=["apps/hcseasymath/pyproject.toml"])
+    st = next(s for s in steps if s.name == "hcseasymath (WSL)")
+    assert st.argv is None and "WSL" in st.skip_reason
+
+
+def test_changed_paths_lists_every_modified_and_untracked_file(tmp_path):
+    def git(*a):
+        subprocess.run(["git", *a], cwd=tmp_path, check=True, capture_output=True)
+
+    git("init", "-q")
+    git("config", "user.email", "t@example.invalid")
+    git("config", "user.name", "t")
+    (tmp_path / "apps" / "hcseasymath").mkdir(parents=True)
+    (tmp_path / "apps" / "hcseasymath" / "a.py").write_text("x = 1\n", encoding="utf-8")
+    git("add", "-A")
+    git("commit", "-qm", "init")
+    (tmp_path / "apps" / "hcseasymath" / "a.py").write_text("x = 2\n", encoding="utf-8")
+    (tmp_path / "apps" / "hcseasymath" / "b.py").write_text("x = 1\n", encoding="utf-8")
+    assert forge.changed_paths(tmp_path) == ["apps/hcseasymath/a.py", "apps/hcseasymath/b.py"]
+
+
+def test_doc_command_step_runs_when_docs_or_the_cli_changed():
+    """2026-11-08: a docs row naming a non-existent `hscl` command passed forge check and failed only in CI (the Rust
+    doc-command test). The step closes that parity gap; it is absent when neither docs nor the CLI changed."""
+    for path in ("docs/KNOWN_LIMITATIONS.md", "README.md", "cli/hscl/src/main.rs"):
+        steps = forge.plan_check(ROOT, have_wsl=False, changed=[path])
+        st = next(s for s in steps if s.name == "doc commands (cargo)")
+        assert st.argv[:3] == ["cargo", "test", "-p"] and "documented_hscl_commands" in st.argv
+    names = [s.name for s in forge.plan_check(ROOT, have_wsl=False, changed=["tests/unit/test_x.py"])]
+    assert "doc commands (cargo)" not in names

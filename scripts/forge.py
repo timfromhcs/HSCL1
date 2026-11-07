@@ -106,15 +106,20 @@ def wsl_available() -> bool:
     return r.returncode == 0
 
 
-def changed_test_files(root: Path = ROOT) -> list[str]:
-    """Test files that differ from the upstream branch (or HEAD when there is none) plus untracked ones, sorted, repo-relative."""
+def changed_paths(root: Path = ROOT) -> list[str]:
+    """Every file that differs from the upstream branch (or HEAD when there is none) plus untracked ones, sorted, repo-relative."""
     def git(*a: str) -> subprocess.CompletedProcess:
         return subprocess.run(["git", "-C", str(root), *a], capture_output=True, text=True, errors="replace")
 
     base = "@{u}" if git("rev-parse", "--abbrev-ref", "@{u}").returncode == 0 else "HEAD"
     names = set(git("diff", "--name-only", base).stdout.splitlines())
     names |= set(git("ls-files", "--others", "--exclude-standard").stdout.splitlines())
-    return sorted(n for n in names if re.fullmatch(r"tests/.*test_[^/]*\.py", n) and (root / n).is_file())
+    return sorted(n for n in names if (root / n).is_file())
+
+
+def changed_test_files(root: Path = ROOT) -> list[str]:
+    """Test files that differ from the upstream branch (or HEAD when there is none) plus untracked ones, sorted, repo-relative."""
+    return [n for n in changed_paths(root) if re.fullmatch(r"tests/.*test_[^/]*\.py", n)]
 
 
 def posix(path: str | Path) -> str:
@@ -211,7 +216,14 @@ def iso_diff(a: Path, b: Path) -> list[tuple[str, object, object]]:
 
 def plan_check(root: Path = ROOT, have_wsl: bool | None = None, changed: list[str] | None = None, full: bool = False) -> list[Step]:
     have_wsl = wsl_available() if have_wsl is None else have_wsl
-    changed = changed_test_files(root) if changed is None else changed
+    if changed is None:
+        paths = changed_paths(root)
+        changed = [n for n in paths if re.fullmatch(r"tests/.*test_[^/]*\.py", n)]
+    else:
+        paths = list(changed)
+    app_changed = any(p.startswith("apps/hcseasymath/") for p in paths)
+    # The Rust test `documented_hscl_commands_resolve_in_the_cli` reads the docs; pytest does not. Run it when docs or the CLI changed.
+    docs_changed = any(p == "README.md" or re.fullmatch(r"docs/[^/]+\.md", p) or p.startswith("cli/hscl/") for p in paths)
     pytest_argv = [sys.executable, "-m", "pytest", "tests", "-q", "-p", "no:cacheprovider"]
     if not full:
         pytest_argv += ["-m", "not slow"]  # the slow tier runs with --full and in CI
@@ -238,6 +250,17 @@ def plan_check(root: Path = ROOT, have_wsl: bool | None = None, changed: list[st
         quoted = " ".join(shlex.quote(f) for f in changed)
         steps.insert(1, Step(name, ["wsl", "-d", "Ubuntu", "--", "bash", "-lc",
                                     f"cd {shlex.quote(posix)} && python3 -m pytest -q -p no:cacheprovider {quoted}"]))
+    if docs_changed:
+        steps.append(Step("doc commands (cargo)", ["cargo", "test", "-p", "hscl", "--bin", "hscl", "documented_hscl_commands", "-q"]))
+    # HCSEASYMATH needs Python 3.14 (the OS interpreter), so its gate runs under WSL Ubuntu from a hash-locked venv.
+    # Omitted entirely when the app is untouched: a SKIPPED step would fail `check --strict` for unrelated work.
+    if app_changed:
+        name = "hcseasymath (WSL)"
+        if not have_wsl:
+            steps.append(Step(name, None, skip_reason="WSL Ubuntu not available"))
+        else:
+            steps.append(Step(name, ["wsl", "-d", "Ubuntu", "--", "bash", "-lc",
+                                     f"cd {shlex.quote(posix)} && bash scripts/hcseasymath_gate.sh"]))
     return steps
 
 
