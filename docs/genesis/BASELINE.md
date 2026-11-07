@@ -1,0 +1,24 @@
+# Genesis baseline (B0), observed 2026-11-07
+
+Read-only. Nothing in CQ-HECS or hcs-foundry was modified, fetched into a working tree or pushed. Source: `AGENTS_HCS_GENESIS.md` plus the checks below.
+
+| Repo | Where | Observed | Note |
+|---|---|---|---|
+| HSCL1 | `E:\hcslinux222`, branch `codex/hscl1-v1` | `VERSION` 0.1.3-alpha.0; HEAD 7e0bc41 at this time; GitHub `main` tree d8f6533; workflows `ci.yml`, `fuzz.yml`, `release.yml`; 40+ local commits not on `origin` | `gh`: ADMIN, public |
+| CQ-HECS | local `E:\QHCS\CQ-HECS`, clean, `main` | **local clone is stale: HEAD 22fd300, `pyproject.toml` version 2.1.0, `requires-python >=3.9`, tag v2.1.0** | GitHub `main` is 30c7f14: **version 5.0.0, `requires-python >=3.11`**, Apache-2.0, pushed 2026-11-02. Work must start from a fresh checkout of GitHub `main` in a scratch directory (planned `C:\AI\work\cq-hecs`), not from the stale clone |
+| hcs-foundry | **no local clone** (only data dir `C:\Users\hcsme\.hcs-foundry`) | GitHub `main` commit cfea6fa, latest tag v7.5.0, pushed 2026-11-02; top level has `server/`, `web/`, `site/`, `tools/`, `AGENTS.md`, `PLAN.md`, `HCS_FOUNDRY_LONG_HORIZON_AGENT.md` | GitHub reports the licence as `NOASSERTION` although a `LICENSE` file exists: licence status must be read from the file before any redistribution |
+
+Discrepancies with the companion file: it quotes the SHAs `30c7f14...` (CQ-HECS) and `cfea6fa...` (Foundry) as "tree" ids; for these two they are the **commit** ids of `main` (CQ-HECS tree is the same value only by the file's wording, the API returned `30c7f14` for both commit and tree on CQ-HECS; verify before quoting in a manifest). HSCL1's quoted version 0.1.2 is outdated.
+
+## Capability map (initial, from the companion file; nothing here is implemented in HSCL1 yet)
+| Capability | Owner repo | State |
+|---|---|---|
+| CQ-HECS app shell package `hscl-cqhecs` | HSCL1 packaging, CQ-HECS source | PLANNED |
+| Foundry app shell package `hscl-foundry` | HSCL1 packaging, Foundry source | PLANNED |
+| Genesis (`apps/genesis/`, schemas, adapters, MCP) | HSCL1 subtree, later own repo | PLANNED |
+| Large model weights, datasets, training stacks | user-installed on demand | NOT IN ISO, by rule |
+| Scientific adapters (Boltz-2, OpenFold3, Evo 2, scLDM, OpenMM, PBPK ...) | Genesis | PLANNED, none verified |
+
+## Next safe actions
+1. Shallow-clone GitHub `main` of CQ-HECS and Foundry into scratch directories on `C:`; record exact SHAs, `pyproject` metadata, ports, MCP tools, licence files, CI results.
+2. Decide the first package (`hscl-cqhecs`) only after reading its v5.0.0 install surface (Python >= 3.11 vs the base Python of Ubuntu 26.04).
