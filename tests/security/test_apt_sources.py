@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-ALLOWED_SUITES = {"resolute", "resolute-updates", "resolute-security", "resolute-backports"}
+ALLOWED_SUITES = {"resolute", "resolute-updates", "resolute-security"}
 ALLOWED_HOSTS = {"archive.ubuntu.com", "security.ubuntu.com", "repo.hcs.invalid"}  # last one: reserved for a future signed HCS repo
 FORBIDDEN = re.compile(r"kali|debian|ppa\.launchpad|launchpadcontent|\[trusted=yes\]|trusted:\s*yes|allow-insecure", re.I)
 
@@ -51,6 +51,10 @@ def test_detects_bad_sources():
     assert any("suite not allowed" in v for v in violations(interim))
     trusted = "Types: deb\nURIs: http://archive.ubuntu.com/ubuntu/\nSuites: resolute\nComponents: main\nSigned-By: /x.gpg\n# x\nTrusted: yes\n"
     assert violations(trusted)
+    # AGENTS.md section 3.3 names exactly three pockets; resolute-backports is not one of them and was enabled here
+    # for a while, which this gate did not catch because it grew the allow-list with the file.
+    backports = "Types: deb\nURIs: http://archive.ubuntu.com/ubuntu/\nSuites: resolute resolute-updates resolute-backports\nComponents: main\nSigned-By: /x.gpg\n"
+    assert "suite not allowed: resolute-backports" in violations(backports)
 
 
 if __name__ == "__main__":
