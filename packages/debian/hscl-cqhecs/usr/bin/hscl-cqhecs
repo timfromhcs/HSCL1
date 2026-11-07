@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# hscl-cqhecs: safe launcher for the CQ-HECS runtime. Fixed argv, no dynamic evaluation, no system-python fallback, no network.
+set -Eeuo pipefail
+
+venv="${HSCL_CQHECS_VENV:-/opt/hscl/venvs/cqhecs}"
+data_dir="${XDG_DATA_HOME:-$HOME/.local/share}/hscl/cqhecs"
+
+usage() {
+  cat <<'USAGE'
+usage: hscl-cqhecs doctor [--json]
+       hscl-cqhecs run -- [cq-hecs arguments]
+       hscl-cqhecs install-runtime
+exit codes: 0 ok, 2 usage or not implemented, 3 runtime not installed, 4 runtime present but broken
+USAGE
+}
+
+runtime_state() {
+  if [ ! -x "$venv/bin/cq-hecs" ]; then echo missing; return; fi
+  if "$venv/bin/cq-hecs" --version >/dev/null 2>&1; then echo ok; else echo broken; fi
+}
+
+cmd="${1:-}"
+case "$cmd" in
+  doctor)
+    json=0
+    [ "${2:-}" = "--json" ] && json=1
+    state="$(runtime_state)"
+    if [ "$json" = 1 ]; then
+      printf '{"runtime":"%s","venv":"%s","data_dir":"%s","network":"not used"}\n' "$state" "$venv" "$data_dir"
+    else
+      printf 'runtime: %s\nvenv: %s\ndata dir: %s\nnetwork: not used\n' "$state" "$venv" "$data_dir"
+    fi
+    case "$state" in ok) exit 0 ;; missing) exit 3 ;; *) exit 4 ;; esac
+    ;;
+  run)
+    shift
+    [ "${1:-}" = "--" ] && shift
+    case "$(runtime_state)" in
+      ok) exec "$venv/bin/cq-hecs" "$@" ;;
+      missing) echo "hscl-cqhecs: CQ-HECS runtime not installed ($venv). Run: hscl-cqhecs doctor" >&2; exit 3 ;;
+      *) echo "hscl-cqhecs: CQ-HECS runtime present but broken ($venv). Run: hscl-cqhecs doctor" >&2; exit 4 ;;
+    esac
+    ;;
+  install-runtime)
+    echo "hscl-cqhecs: install-runtime is not implemented in this build (planned: hash-pinned wheelhouse, size shown first, explicit confirmation)." >&2
+    exit 2
+    ;;
+  -h|--help|help) usage ;;
+  *) usage >&2; exit 2 ;;
+esac

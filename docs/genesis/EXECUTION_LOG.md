@@ -1,0 +1,10 @@
+# Genesis execution log (append only)
+
+## 2026-11-07 - B1: `hscl-cqhecs` app shell (package spike)
+- Repo/branch: HSCL1 `codex/hscl1-v1`. Goal: the smallest package that follows Genesis 2.1-2.5.
+- Added: `packages/debian/hscl-cqhecs/` (control, `usr/bin/hscl-cqhecs`, `.desktop`), `tests/unit/test_pkg_cqhecs.py`, one row in the generated `docs/PACKAGES.md`.
+- Behaviour (all tested): `doctor [--json]` reports the runtime honestly (exit 3 missing, 4 broken, 0 ok); `run --` refuses without a runtime and never falls back to system Python; `install-runtime` exits 2 "not implemented"; any other subcommand is a usage error (exit 2). Fixed default venv path `/opt/hscl/venvs/cqhecs` (override `HSCL_CQHECS_VENV` for tests); data dir under XDG; `network: not used`.
+- No maintainer scripts, no wheels, no service, no autostart; payload is two files (1.9 KB `.deb`).
+- Commands and results: `python -m pytest tests/unit/test_pkg_cqhecs.py` 9 passed (Git-Bash on Windows); WSL `shellcheck -S warning` clean; `scripts/build-deb.sh hscl-cqhecs` -> `hscl-cqhecs_0.1.3~alpha.0_amd64.deb`; install/remove/purge in a throwaway `dpkg --root` tree: files appear, `remove` deletes them, no dpkg record remains; full host suite 572 passed + the two doc gates fixed (exec bit via `git add --chmod=+x`, `scripts/gen_packages_doc.py`).
+- Red-first notes: the first run had 7 of 9 failing; two later failures were test-harness issues (Git-Bash vs WSL `bash` path handling; the word "eval" in a comment tripping my own grep), not product defects.
+- **Not done / not verified:** build twice and compare hashes (timestamps differ, reproducibility not claimed); inclusion in `scripts/remaster-iso.sh` and `distro/live/verify-image.sh` (deliberately not yet: no ISO size or boot-RAM measurement exists for it); the runtime itself (`install-runtime`, hash-pinned wheelhouse, CQ-HECS 5.0.0 `doctor` on Python 3.14); the `cq-hecs` CLI contract; desktop launch in a real session; uninstall keeping user data (no user data is created yet).
