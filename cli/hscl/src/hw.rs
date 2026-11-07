@@ -74,6 +74,10 @@ pub struct Report {
     pub memory_total_mib: Option<u64>,
     pub firmware: Firmware,
     pub names_from_pci_ids: bool,
+    /// One entry per device the kernel exported a modalias for (B1). Sorted, stable.
+    pub modaliases: Vec<Modalias>,
+    /// Values that were dropped because they were empty, oversized or contained control characters.
+    pub dropped_modaliases: usize,
 }
 
 const FEATURES: &[&str] = &[
@@ -318,6 +322,7 @@ pub fn detect(root: &Path) -> Report {
     let ids = load_pci_ids(root);
     let pci = pci_devices(root, ids.as_ref());
     let gpus = gpus(root, &pci);
+    let (modaliases, dropped_modaliases) = modaliases(root);
     Report {
         gpus,
         pci,
@@ -327,6 +332,8 @@ pub fn detect(root: &Path) -> Report {
         ),
         firmware: firmware(root),
         names_from_pci_ids: ids.is_some(),
+        modaliases,
+        dropped_modaliases,
     }
 }
 
@@ -385,6 +392,27 @@ pub fn render(r: &Report) -> String {
     if !r.names_from_pci_ids {
         s.push_str("(pci.ids not found: devices are shown by numeric ID)\n");
     }
+    // The full modalias list is one line per device (often 150+), so text mode shows the counts per
+    // bus; `--json` carries the list itself for driver-hint tooling (B1 -> B3).
+    let mut per_bus: std::collections::BTreeMap<&str, usize> = Default::default();
+    for m in &r.modaliases {
+        *per_bus.entry(m.bus.as_str()).or_default() += 1;
+    }
+    let buses: Vec<String> = per_bus.iter().map(|(b, n)| format!("{b} {n}")).collect();
+    s.push_str(&format!(
+        "Modaliases: {} ({}){}\n",
+        r.modaliases.len(),
+        if buses.is_empty() {
+            "none".to_string()
+        } else {
+            buses.join(", ")
+        },
+        if r.dropped_modaliases == 0 {
+            String::new()
+        } else {
+            format!(", {} dropped as malformed", r.dropped_modaliases)
+        }
+    ));
     s
 }
 
@@ -643,5 +671,244 @@ mod proptests {
             prop_assert_eq!(got.trim(), name.trim());
             prop_assert!(devices.contains_key(&0x0010));
         }
+    }
+}
+
+/// B1: one `modalias` file per device, as the kernel exports it.
+///
+/// The modalias is what the kernel would match against a driver module; collecting it is the first
+/// step to telling the user "this device is probably covered by package X" without guessing from
+/// vendor ids. `path` is the device directory relative to `<root>/sys`, never a serial number.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+pub struct Modalias {
+    pub bus: String,
+    pub path: String,
+    pub value: String,
+}
+
+/// Buses whose `modalias` files we read. USB is included only for the modalias - the `serial` file
+/// next to it is never read, because a USB serial is a device identity, not a capability.
+pub const MODALIAS_BUSES: &[&str] = &["pci", "usb", "platform", "acpi", "i2c"];
+/// Longer values are not a real modalias (the kernel's are far below this) and are dropped.
+pub const MODALIAS_MAX: usize = 512;
+
+/// Every readable `<root>/sys/bus/<bus>/devices/*/modalias`, sorted by bus then path so two runs on
+/// the same machine produce the same list. Values with control characters or over
+/// [`MODALIAS_MAX`] bytes are dropped and counted in the second return value, because a malformed
+/// value would end up in a report or in a driver-hint lookup and should be visible, not silently
+/// truncated.
+pub fn modaliases(root: &Path) -> (Vec<Modalias>, usize) {
+    let mut found = Vec::new();
+    let mut dropped = 0usize;
+    for bus in MODALIAS_BUSES {
+        let dir = root.join("sys/bus").join(bus).join("devices");
+        let Ok(entries) = fs::read_dir(&dir) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            let dev = entry.path();
+            let Some(value) = read_trim(&dev.join("modalias")) else {
+                continue;
+            };
+            if value.is_empty() {
+                // The kernel writes an empty file for devices it cannot describe; that is normal
+                // and not a data-quality problem, so it is neither reported nor counted.
+                continue;
+            }
+            if value.len() > MODALIAS_MAX || value.chars().any(char::is_control) {
+                dropped += 1;
+                continue;
+            }
+            found.push(Modalias {
+                bus: (*bus).to_string(),
+                path: dev
+                    .strip_prefix(root)
+                    .unwrap_or(&dev)
+                    .to_string_lossy()
+                    .replace('\\', "/"),
+                value,
+            });
+        }
+    }
+    found.sort();
+    (found, dropped)
+}
+
+#[cfg(test)]
+mod modalias_tests {
+    use super::*;
+
+    fn write(root: &Path, rel: &str, content: &str) {
+        let p = root.join(rel);
+        fs::create_dir_all(p.parent().unwrap()).unwrap();
+        fs::write(p, content).unwrap();
+    }
+
+    /// Windows forbids ':' in directory names; the code under test does not care what the device
+    /// directory looks like (the same helper the other hw tests use).
+    fn s(slot: &str) -> String {
+        if cfg!(windows) {
+            slot.replace(':', "_")
+        } else {
+            slot.to_string()
+        }
+    }
+
+    #[test]
+    fn reads_pci_and_usb_modaliases_sorted_by_bus_then_path() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        write(
+            root,
+            "sys/bus/usb/devices/1-2/modalias",
+            "usb:v046DpC52Bd1201dc00dsc00dp00ic03isc00ip00in02\n",
+        );
+        write(
+            root,
+            &format!("sys/bus/pci/devices/{}/modalias", s("0000:05:00.0")),
+            "pci:v00001002d00001681sv000017AAsd00003801bc03sc00i00\n",
+        );
+        write(
+            root,
+            &format!("sys/bus/acpi/devices/{}/modalias", s("PNP0C0F:00")),
+            "acpi:PNP0C0F:PNP0C0F:\n",
+        );
+        let (got, dropped) = modaliases(root);
+        assert_eq!(dropped, 0);
+        assert_eq!(got.len(), 3);
+        let buses: Vec<&str> = got.iter().map(|m| m.bus.as_str()).collect();
+        assert_eq!(buses, ["acpi", "pci", "usb"], "sorted by bus: {buses:?}");
+        assert!(got
+            .iter()
+            .any(|m| m.bus == "pci" && m.value.starts_with("pci:v00001002")));
+        assert!(got
+            .iter()
+            .all(|m| m.path.contains('/') && !m.path.contains('\\')));
+    }
+
+    #[test]
+    fn a_tree_without_sys_returns_nothing_and_does_not_error() {
+        let dir = tempfile::tempdir().unwrap();
+        assert_eq!(modaliases(dir.path()), (Vec::new(), 0));
+    }
+
+    #[test]
+    fn control_characters_and_oversized_values_are_dropped_and_counted() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        write(
+            root,
+            &format!("sys/bus/pci/devices/{}/modalias", s("0000:01:00.0")),
+            "pci:v000010DEd00002684\n",
+        );
+        write(
+            root,
+            &format!("sys/bus/pci/devices/{}/modalias", s("0000:02:00.0")),
+            "pci:v00001\u{7}d00000000\n",
+        );
+        let long = format!("pci:v{}", "d".repeat(MODALIAS_MAX));
+        write(
+            root,
+            &format!("sys/bus/pci/devices/{}/modalias", s("0000:03:00.0")),
+            &long,
+        );
+        let (got, dropped) = modaliases(root);
+        assert_eq!(got.len(), 1, "only the clean value survives: {got:?}");
+        assert_eq!(dropped, 2);
+    }
+
+    #[test]
+    fn the_usb_serial_file_is_never_read() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        write(root, "sys/bus/usb/devices/1-2/serial", "SN123456789\n");
+        write(root, "sys/bus/usb/devices/1-2/modalias", "usb:v046DpC52B\n");
+        let (got, _) = modaliases(root);
+        assert_eq!(got.len(), 1);
+        assert!(!format!("{got:?}").contains("SN123456789"));
+    }
+
+    #[test]
+    fn an_empty_modalias_file_is_ignored_without_counting_as_dropped() {
+        let dir = tempfile::tempdir().unwrap();
+        write(
+            dir.path(),
+            &format!("sys/bus/pci/devices/{}/modalias", s("0000:01:00.0")),
+            "\n",
+        );
+        assert_eq!(modaliases(dir.path()), (Vec::new(), 0));
+    }
+
+    #[test]
+    fn the_report_carries_the_modaliases_and_the_dropped_count() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path();
+        write(
+            root,
+            &format!("sys/bus/pci/devices/{}/modalias", s("0000:01:00.0")),
+            "pci:v000010DEd00002684\n",
+        );
+        write(
+            root,
+            &format!("sys/bus/pci/devices/{}/modalias", s("0000:02:00.0")),
+            "bad\u{1}value\n",
+        );
+        let r = detect(root);
+        assert_eq!(r.modaliases.len(), 1);
+        assert_eq!(r.dropped_modaliases, 1);
+        let json = serde_json::to_string(&r).unwrap();
+        assert!(
+            json.contains("\"modaliases\""),
+            "the JSON must carry them: {json}"
+        );
+        assert!(json.contains("dropped_modaliases"));
+    }
+}
+
+#[cfg(test)]
+mod render_modalias_tests {
+    use super::*;
+
+    fn report(modaliases: Vec<Modalias>, dropped: usize) -> Report {
+        Report {
+            pci: Vec::new(),
+            gpus: Vec::new(),
+            cpu: Cpu {
+                model: Some("Test CPU".into()),
+                threads: 4,
+                features: Vec::new(),
+            },
+            memory_total_mib: Some(1024),
+            firmware: Firmware {
+                boot: "uefi".into(),
+                secure_boot: "enabled".into(),
+                setup_mode: None,
+            },
+            names_from_pci_ids: true,
+            modaliases,
+            dropped_modaliases: dropped,
+        }
+    }
+
+    fn m(bus: &str) -> Modalias {
+        Modalias {
+            bus: bus.into(),
+            path: format!("sys/bus/{bus}/devices/x"),
+            value: format!("{bus}:v0"),
+        }
+    }
+
+    #[test]
+    fn the_text_output_summarises_counts_per_bus_instead_of_listing_every_device() {
+        let out = render(&report(vec![m("pci"), m("pci"), m("usb")], 0));
+        assert!(out.contains("Modaliases: 3 (pci 2, usb 1)"), "{out}");
+        assert!(!out.contains("dropped"), "{out}");
+    }
+
+    #[test]
+    fn a_machine_without_modaliases_says_none_and_mentions_dropped_values() {
+        let out = render(&report(Vec::new(), 2));
+        assert!(out.contains("Modaliases: 0 (none)"), "{out}");
+        assert!(out.contains("2 dropped as malformed"), "{out}");
     }
 }

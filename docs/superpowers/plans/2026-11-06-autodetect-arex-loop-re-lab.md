@@ -47,8 +47,8 @@
 ### Task B1: Collect modaliases
 **Files:** Modify `cli/hscl/src/hw.rs`; Test in same file (fixture trees)
 **Interfaces:** `pub struct Modalias { pub bus: String, pub path: String, pub value: String }`; `pub fn modaliases(root: &Path) -> Vec<Modalias>` walks `sys/bus/{pci,usb,platform,acpi,i2c}/devices/*/modalias`; values longer than 512 bytes or with control characters are dropped and counted.
-- [ ] Failing tests: pci+usb fixture returns both sorted; missing `sys` returns empty; control chars/oversized dropped; output stable
-- [ ] Implement; `Report` gets `modaliases` + `dropped_modaliases`; `hscl hw detect --json` shows them (redaction: no serial numbers; USB `serial` file never read)
+- [x] Failing tests: pci+usb fixture returns both sorted; missing `sys` returns empty; control chars/oversized dropped; output stable (2026-11-07, 8 tests incl. render summary)
+- [x] Implement; `Report` gets `modaliases` + `dropped_modaliases`; `hscl hw detect --json` shows them (redaction: no serial numbers; USB `serial` file never read). DONE 2026-11-07: fixture-testet, USB-`serial` wird nachweislich nie gelesen, leere modaliases zaehlen nicht als verworfen; Textausgabe zeigt Zaehler je Bus
 
 ### Task B2: Quirk table + hwdb
 **Files:** Create `hw-quirks/README.md`, `hw-quirks/*.toml` (empty seed), `scripts/gen_hwdb.py`, `packages/debian/hscl-base/usr/lib/udev/hwdb.d/` generated at build, `tests/unit/test_gen_hwdb.py`

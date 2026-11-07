@@ -445,3 +445,17 @@ dispatch: `cargo fuzz run ... -- -max_total_time=300` per target (artifacts kept
 toolchain SHAs were read from the GitHub API on 2026-11-07, not invented). Six tests in
 `tests/unit/test_property_gates.py` guard the setup itself (markers present, proptest not a runtime dependency, the workflow
 is scheduled + time-boxed + pinned). `cargo test -p hscl` 172 passed, clippy -D warnings and fmt clean.
+
+## Task B1 modaliases in `hscl hw detect` (2026-11-07)
+`hw::modaliases(root) -> (Vec<Modalias>, dropped)` walks `sys/bus/{pci,usb,platform,acpi,i2c}/devices/*/modalias`, returns
+`sorted` entries (bus then path, `/` separators on every host) and counts values it refused. `Report` carries `modaliases`
+and `dropped_modaliases`, so `hscl hw detect --json` exposes them; text mode prints `Modaliases: 41 (pci 39, usb 2)` and
+mentions dropped values only when there are some (a full list would be 150+ lines). Eight tests written first: pci+usb+acpi
+fixtures come back sorted, a tree without `sys` returns nothing instead of erroring, control characters and values over
+512 bytes are dropped **and counted**, an empty modalias is ignored without being counted (the kernel writes empty files
+for devices it cannot describe - a normal case, not a data-quality problem), and a USB `serial` file next to a modalias is
+never read (asserted by its absence from the whole structure - a serial identifies a device, it does not describe a
+capability). Windows cannot create names with `:`, so the fixtures reuse the existing `s()` helper.
+Two test-only defects of mine were caught by running them: an assertion counted markers in a text where the host needle
+legitimately occurred twice ("in" inside "login"), which was fixed by asserting on the visible text instead of a count.
+`cargo test -p hscl` 180 passed, fmt and clippy -D warnings clean; `docs/CLI.md` row extended (the G12 drift test requires it).

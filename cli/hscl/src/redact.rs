@@ -159,11 +159,14 @@ mod proptests {
 
         #[test]
         fn prop_the_neighbouring_needle_does_not_corrupt_the_marker(user in ident(), host in ident()) {
-            // Regression for the single-pass rewrite: "aA"/"re" used to produce "[[redacted]dacted]".
-            prop_assume!(!MARKER.contains(&user) && !MARKER.contains(&host));
-            let out = redact(&format!("login {user} on {host} ok"), &user, &host);
+            // Regression for the two-pass rewrite: with user="aA" and host="re" the marker written
+            // for the user used to become "[[redacted]dacted]". A needle may legitimately match
+            // more than once ("in" inside "login"), so only the marker itself is checked here.
+            let out = redact(&format!("host {user} box {host} end"), &user, &host);
             prop_assert!(!out.contains("[["), "marker was rewritten: {out}");
-            prop_assert_eq!(out.matches(MARKER).count(), 2, "expected two markers in {}", out);
+            let visible = without_markers(&out);
+            prop_assert!(!visible.contains(&user), "user survived: {out}");
+            prop_assert!(!visible.contains(&host), "host survived: {out}");
         }
 
         #[test]
