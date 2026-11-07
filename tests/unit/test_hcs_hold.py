@@ -45,3 +45,10 @@ def test_run_refuses_when_the_host_is_already_on_hold(tmp_path):
     r = run(["run", "build", "--", sys.executable, "-c", "pass"], f)
     assert r.returncode == 3 and "already on hold" in r.stderr
     assert f.exists()  # the other holder's flag is untouched
+
+
+def test_priority_option_is_validated_and_the_command_still_runs(tmp_path):
+    f = tmp_path / "hold.json"
+    assert run(["run", "x", "--priority", "bogus", "--", sys.executable, "-c", "pass"], f).returncode == 2
+    assert run(["run", "x", "--priority", "high", "--", sys.executable, "-c", "pass"], f).returncode == 0
+    assert not f.exists()

@@ -5,7 +5,8 @@ local delegate load nothing and restart nothing. Same file format as the gateway
   hcs_hold.py status
   hcs_hold.py set "reason" [--pid N]
   hcs_hold.py clear
-  hcs_hold.py run "reason" -- COMMAND [ARGS...]    hold for exactly as long as COMMAND runs; exit code is COMMAND's
+  hcs_hold.py run "reason" [--priority above|high] -- COMMAND [ARGS...]    hold for exactly as long as COMMAND runs; exit code is COMMAND's;
+  --priority sets the Windows process priority class of COMMAND (CPU scheduling only; the GPU queue can not be prioritised from outside)
 
 The hold names its owner process; a hold whose owner is gone is stale and ignored everywhere, so a crash can not block the machine.
 `set` and `run` also ask a running gateway (127.0.0.1:8090) to unload its idle models; that call is best effort.
@@ -104,6 +105,15 @@ def main(argv: list[str]) -> int:
         print("usage: hcs_hold.py run REASON -- COMMAND [ARGS...]", file=sys.stderr)
         return 2
     command = argv[argv.index("--") + 1:]
+    opts = argv[2:argv.index("--")]
+    flags = 0
+    if "--priority" in opts:
+        level = opts[opts.index("--priority") + 1] if opts.index("--priority") + 1 < len(opts) else ""
+        if level not in {"above", "high"}:
+            print("--priority must be 'above' or 'high'", file=sys.stderr)
+            return 2
+        if sys.platform.startswith("win"):
+            flags = subprocess.HIGH_PRIORITY_CLASS if level == "high" else subprocess.ABOVE_NORMAL_PRIORITY_CLASS
     if not command:
         print("no command after --", file=sys.stderr)
         return 2
@@ -114,7 +124,7 @@ def main(argv: list[str]) -> int:
     set_hold(reason, os.getpid())
     ask_gateway_to_unload()
     try:
-        return subprocess.call(command)
+        return subprocess.call(command, creationflags=flags)
     finally:
         clear_hold()
 
