@@ -7,6 +7,7 @@ mod ai;
 mod appearance;
 mod catalog;
 mod code;
+mod cqhecs;
 mod doctor;
 mod download;
 mod gguf;
@@ -156,11 +157,22 @@ enum Cmd {
         #[command(subcommand)]
         cmd: LabCmd,
     },
+    /// CQ-HECS (solver and research Studio) as installed by the `hscl-cqhecs` package. Read-only; nothing is started or installed.
+    Cqhecs {
+        #[command(subcommand)]
+        cmd: CqhecsCmd,
+    },
     /// Desktop appearance.
     Appearance {
         #[command(subcommand)]
         cmd: AppearanceCmd,
     },
+}
+
+#[derive(Subcommand)]
+enum CqhecsCmd {
+    /// Is the package installed and is its runtime ready (reads the launcher's own `doctor --json`).
+    Status,
 }
 
 #[derive(Subcommand)]
@@ -480,6 +492,17 @@ fn labs_root() -> std::path::PathBuf {
 fn on_path(bin: &str) -> bool {
     std::env::var_os("PATH")
         .is_some_and(|p| std::env::split_paths(&p).any(|d| d.join(bin).is_file()))
+}
+
+fn run_cqhecs(j: bool, cmd: CqhecsCmd) -> anyhow::Result<u8> {
+    match cmd {
+        CqhecsCmd::Status => {
+            let launcher = std::env::var("HSCL_CQHECS_LAUNCHER").ok();
+            let v = cqhecs::status(launcher.as_deref(), std::env::var_os("PATH").as_deref());
+            print_value(j, &v, || cqhecs::render(&v));
+            Ok(0)
+        }
+    }
 }
 
 fn run_lab(j: bool, cmd: LabCmd) -> anyhow::Result<u8> {
@@ -870,6 +893,7 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
         }
         Cmd::Graphics { cmd } => return run_graphics(j, cmd),
         Cmd::Lab { cmd } => return run_lab(j, cmd),
+        Cmd::Cqhecs { cmd } => return run_cqhecs(j, cmd),
         Cmd::Hw { cmd: HwCmd::Detect } => {
             let r = hw::detect(std::path::Path::new("/"));
             print_value(j, &serde_json::to_value(&r)?, || hw::render(&r));

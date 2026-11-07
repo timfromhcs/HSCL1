@@ -55,7 +55,7 @@ Resource rule: one heavy job at a time, VM disks on `C:\AI\vmtest`, no secrets p
 Shared groups: `cli/hscl/`; `apps/control-center/`; `packages/debian/`; `distro/live/verify-image.sh`; `scripts/remaster-iso.sh`, `scripts/forge.py` and shared CI
 workflows; schemas/provenance interfaces; HCSUDA planner/capability contracts.
 
-- **No lock held.**
+- **No lock held.** Released: `LOCK: P - cli/hscl/ (main.rs, new cqhecs.rs), docs/CLI.md - agent - read-only CQ-HECS status wrapper (Master P2, row 3) - a82b7a5`, released when its PR merged.
 - Released: `LOCK: E - scripts/forge.py, .github/workflows/ci.yml (+ tests/unit/test_forge.py) - agent - hcseasymath gate step and CI job, doc-command step - 37d2f6d`;
   taken without being written down (a gap), released when PR #29 merged as `4bdcb2f`. From now on a lock line is written **before** editing these files.
 
@@ -65,7 +65,7 @@ workflows; schemas/provenance interfaces; HCSUDA planner/capability contracts.
 |---|---|---|---|---|---|---|---|
 | 1 | P0 | Read in full: `sat.py`, `sat_external.py`, `drat.py`, `unified.py`, `sat_separator.py`, `omniwave/{bcp,gpu,engine,learned}.py`, `studio/app.py`, `provenance.py`, `mcp_server.py`, `src/sat_solver.cpp` (section 23.1 questions); fill the gap list | read-only in the local clone; Repo Auditor | n/a (report) | - | **NEXT** | `HCSPNP_BASELINE.md` gap list with file and line references |
 | 2 | P1 | Studio guard (tests first, then patch): **done locally**. Files: `cqhecs/studio/app.py`, `cqhecs/studio/static/app.js`, `tests/test_studio_security.py` (new), `tests/test_studio.py` (helpers send the token) | local clone branch `hcspnp/studio-guard`; Solver Engineer | `~/venvs/cq/bin/python -m pytest -q tests/test_studio_security.py` then the full suite | row 1 not required | **DONE locally; waiting for owner (B-P1) before any push** | `HCSPNP_BASELINE.md` |
-| 3 | P2 | `hscl` status wrapper: read-only, wraps `hscl-cqhecs doctor --json`, typed, no shell; docs only name it after it exists | `cli/hscl/` (takes LOCK P) | `cargo test -p hscl` | lock free | PLANNED | Rust tests + doc-command test green |
+| 3 | P2 | `hscl cqhecs status`: read-only, wraps `hscl-cqhecs doctor --json`, fixed argv, bounded time and output | `cli/hscl/src/cqhecs.rs`, `main.rs`, `docs/CLI.md` | `cargo test -p hscl` (Windows and WSL) | lock free | **DONE (PR pending CI)** | 12 tests; real launcher checked in both states |
 | 4 | P12 | Track E M2: evaluate / simplify / integrate (`unresolved` stays honest) / solve / plot, warm worker | `apps/hcseasymath/` | `bash scripts/hcseasymath_gate.sh` | PR #29 (done) | PLANNED | gate E6 |
 | 5 | P12 | HCSUDA H3c-3b: real Qwen3 layers, tied head, logits vs llama-server | `hcsuda/` | per `hcsuda` gates | free heavy slot (no VM, no solver run) | PAUSED | logits comparison JSON |
 | 6 | P4/P5 | Benchmark corpus manifest proposal (families, hashes, seeds), `hcs.run.v2` reuse | docs first | link and command validation | rows 1, 2 | PLANNED | proposal document |
@@ -99,7 +99,7 @@ HCSPNP is a feature family of CQ-HECS and HSCL1, not a product or repository.
 |---|---|---|---|
 | P-M0 | audit | **IN PROGRESS**: investigation (repos, web, crawl) done; clean-clone suite **2739 passed / 1 failed / 110 skipped** (177 s, 460 MB peak); one real defect found (hardware bridge answers early POST rejections without reading the body -> TCP RST -> lost 429), local fix: suite **2740 / 0 / 110**; full file reading open (row 1) | `HCSPNP_BASELINE.md`, `HCSPNP_DECISIONS.md` |
 | P-M1a | upstream fixes in the local clone, tests first, not pushed: (1) bridge early-reply fix **committed** (`hcspnp/early-reply-drains-body`), (2) Studio guard **tested** (`hcspnp/studio-guard`, request-desync fix included) | DONE locally | B-P1 before any push |
-| P-S1 | HSCL1 status wrapper | PLANNED (row 3) | - |
+| P-S1 | `hscl cqhecs status` | **DONE** locally, PR pending CI (row 3) | next in this chain: typed `hscl mcp` tool (lock needed), Control Center card, `studio` only after P1 ships |
 | P-M1b | launcher `studio`, desktop entry opens it | BLOCKED on the guarded Studio in a pinned CQ-HECS release | decisions P2/P3 |
 | P-M2..M9, Q | see the plan | PLANNED | - |
 

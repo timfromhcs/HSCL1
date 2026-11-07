@@ -11,6 +11,7 @@ Only implemented commands are listed. `hscl --help` is authoritative. Every comm
 | `hscl report [--output PATH]` | JSON support report; user/host names, MAC addresses and private IPv4 addresses are redacted; `--output` never overwrites an existing file |
 | `hscl system info` | OS, kernel, CPU, memory (identifiers redacted) |
 | `hscl security status` | AppArmor, firewall, Secure Boot, LUKS devices, forbidden APT sources |
+| `hscl cqhecs status` | is the `hscl-cqhecs` package installed and its runtime ready (runs the launcher's `doctor --json`; read-only, starts nothing, no network) |
 | `hscl ai detect` | CPU/RAM/GPU/Vulkan detection (no inference is run) |
 | `hscl appearance theme list` | themes from the design tokens; `*` marks the current one |
 | `hscl appearance theme show NAME` | tokens of one theme |
