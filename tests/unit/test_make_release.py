@@ -87,3 +87,24 @@ def test_missing_evidence_is_refused(arts):
 def test_placeholders_are_detected():
     with pytest.raises(mr.ReleaseError):
         mr.check_no_placeholders('{"sha256": "GENERATE_FROM_FINAL_ARTIFACT"}', "x")
+
+
+def test_the_disk_image_is_optional_and_says_so(tmp_path):
+    """AGENTS.md 7.1: the VM image is optional and must not delay the verified ISO. The set must then
+    record its absence instead of silently omitting it - a consumer reading build-manifest.json has
+    to be able to tell "no image was built" from "the key was forgotten"."""
+    iso = tmp_path / "y.iso"
+    iso.write_bytes(b"iso-bytes")
+    (tmp_path / "y.iso.manifest.json").write_text(
+        json.dumps(wim.build(iso, "0.1.3-alpha.0", False, "b" * 64, "c" * 40, False)))
+    out = tmp_path / "rel"
+    files = mr.build_release("0.1.3-alpha.0", iso, None, out, {})
+    names = sorted(p.name for p in files)
+    assert names == ["HSCL1-0.1.3-alpha.0-amd64.iso", "SHA256SUMS", "build-manifest.json", "release-notes.md"]
+    sums = (out / "SHA256SUMS").read_text(encoding="utf-8")
+    assert sums.count("\n") == 1 and "amd64.iso" in sums
+    man = json.loads((out / "build-manifest.json").read_text(encoding="utf-8"))
+    assert man["prebuilt"] is None
+    assert "optional" in man["prebuilt_note"].lower()
+    notes = (out / "release-notes.md").read_text(encoding="utf-8")
+    assert "no disk image" in notes.lower()

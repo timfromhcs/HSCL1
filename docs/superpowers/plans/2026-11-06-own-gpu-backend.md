@@ -211,3 +211,20 @@ Reading list (titles as found; none read in full yet): EAGLE-3 arXiv 2503.01840,
 | O16 | Is the 5500 MT/s configured speed a firmware limit or a power state? Can it be raised? | owner/BIOS; not touched by us |
 | O17 | Does the Windows driver's cooperative-matrix path beat the plain path for prompt processing? | B0 on/off |
 | O18 | How much GPU memory does the Windows host really allow for a model (9.1 GiB heap, 8.6 GiB budget) with a browser open? | measure with `VK_EXT_memory_budget` during a load test |
+
+
+## Verified 2026-11-07: what the owner asked for, and what is actually possible
+Owner request: better offload, more RAM as VRAM, CPU alongside GPU, SSD as "VRAM backup", a second fast model as
+offload. Full evidence in `docs/research/2026-11-07-apu-offload-vram-spill.md`; the short version:
+
+| Request | Reality | Task |
+|---|---|---|
+| more RAM for the GPU | `ttm.pages_limit` (default half of RAM), **not** `amdgpu.gttsize` (deprecated); cmdline/modprobe + reboot; >= 4 GB desktop headroom | W2.5 |
+| CPU as GPU alongside | already how partial offload works (`-ngl`, `-ot`, `-ncmoe`); the APU shares one memory bus, so this buys capacity, not speed | W2.10 |
+| SSD as VRAM backup | **not possible** in llama.cpp: no VRAM/KV spill to disk, Vulkan has no unified-memory oversubscription (CUDA does) | W2.11 + KNOWN_LIMITATIONS |
+| second fast model as offload | that is **speculative decoding** (`-md/--spec-draft-model`, `--spec-draft-n-max`); costs its own weights+KV, gain unmeasured on this iGPU | W2.10, measure with `llama-bench` |
+| our current flags | `--mmap/--no-mmap/--mlock` **were removed upstream**; `--load-mode auto` disables mmap on Vulkan iGPUs (PR #26081); `-nkvo` is the KV-in-RAM switch | W2.10 (probe the pinned build first) |
+
+Two iGPU defects reported by users on the same 680M class: all-NaN logits fixed by
+`GGML_VK_DISABLE_INTEGER_DOT_PRODUCT=1` (#31509) and a device-lost under `--load-mode auto` fixed by `mmap` (#27360).
+Both are recorded as **opt-in workarounds**, never defaults, until measured here.
