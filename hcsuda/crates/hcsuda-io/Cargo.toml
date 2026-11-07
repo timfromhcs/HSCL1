@@ -1,0 +1,13 @@
+[package]
+name = "hcsuda-io"
+description = "HCSUDA model I/O: bounds-checked GGUF reader"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+serde.workspace = true
+thiserror.workspace = true

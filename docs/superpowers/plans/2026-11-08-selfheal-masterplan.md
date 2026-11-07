@@ -35,7 +35,9 @@ The 2-minute cron is a ping, never a pause.
 | H2b | rope kernel + oracle | TESTED, hardware-verified | 3 oracle tests; selftest `rope` err 2.98e-7 vs tol 4.2e-5, deterministic (`hcsuda/benchmarks/amd-radeon-680m/selftest.json`); `Op::Rope` in the planner |
 | H2c | int8 dot-product GEMM (`dotPacked4x8EXT`, i32 accumulate) | TESTED, hardware-verified | tiled kernel bit-equal (incl. tail shape), 1.38x faster than f32 tiled in the same run (0.195 vs 0.269 ms); untiled was 2.1x slower; planner now picks it from selftest evidence (`hcsuda plan gemm i8`) |
 | H2d | f16 GEMM, cooperative-matrix GEMM | TESTED, hardware-verified | f16 tiled 0.257 ms; coopmat 16x16x16 f16->f32 0.167 ms (1.53x), error 2.4e-7, 16-aligned shapes only; next: multi-tile blocking and int8 coopmat (both unmeasured) |
-| H3 | GGUF reader, tiny transformer | PLANNED (H2 exit gate reached) | GGUF reader first |
+| H3a | GGUF header reader (`hcsuda-io`, `hcsuda gguf info`) | TESTED + checked on 3 real models | 14 tests; real-file size identity holds for Qwen3-4B and mmproj; PQ2_0 type 142 unsized by design |
+| H3b | tensor data read + dequant (Q8_0, Q4_K, Q6_K, f16) vs oracle | PLANNED | next |
+| H3c | tiny transformer forward pass (text) / small CNN (image) | PLANNED | after H3b |
 | O-PR | PR to main, CI green, merge | PR #23 MERGED (`48a949c`, 14/14 green) | next batch: new PR from this branch |
 | O2 | alpha gaps (see §0) | PLANNED | recovery key flow design first (host-only) |
 | DOC | README/KNOWN_LIMITATIONS match artefact | PLANNED | update only with evidence |

@@ -28,6 +28,11 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Inspect model files without loading their weights.
+    Gguf {
+        #[command(subcommand)]
+        action: GgufAction,
+    },
     /// List the cooperative-matrix shapes the device reports, as JSON.
     Coopmat {
         #[arg(long)]
@@ -111,9 +116,81 @@ fn main() {
     }
 }
 
+#[derive(Subcommand)]
+enum GgufAction {
+    /// Read a GGUF header: metadata keys and the tensor table (no tensor data is read).
+    Info {
+        path: PathBuf,
+        /// Machine-readable output (includes every tensor).
+        #[arg(long)]
+        json: bool,
+        /// Print the tensor table in the text output.
+        #[arg(long)]
+        tensors: bool,
+    },
+}
+
+fn cmd_gguf_info(path: &std::path::Path, json: bool, tensors: bool) -> Result<()> {
+    let f = hcsuda_io::GgufFile::open(path)
+        .with_context(|| format!("reading GGUF header of {}", path.display()))?;
+    if json {
+        println!("{}", serde_json::to_string_pretty(&f)?);
+        return Ok(());
+    }
+    let text = |k: &str| {
+        f.meta(k)
+            .and_then(|v| v.as_str())
+            .unwrap_or("-")
+            .to_string()
+    };
+    println!("file         {}", path.display());
+    println!("gguf         v{}  alignment {}", f.version, f.alignment);
+    println!("architecture {}", text("general.architecture"));
+    println!("name         {}", text("general.name"));
+    println!("metadata     {} keys", f.metadata.len());
+    println!("tensors      {}", f.tensors.len());
+    let unknown = f.tensors.iter().filter(|t| t.n_bytes.is_none()).count();
+    println!(
+        "tensor bytes {} known{}",
+        f.known_tensor_bytes(),
+        if unknown > 0 {
+            format!(", {unknown} tensors of a type this reader cannot size")
+        } else {
+            String::new()
+        }
+    );
+    println!("data offset  {} of {} bytes", f.data_offset, f.file_len);
+    let mut by_type: std::collections::BTreeMap<String, usize> = Default::default();
+    for t in &f.tensors {
+        *by_type.entry(format!("{:?}", t.ggml_type)).or_default() += 1;
+    }
+    let summary: Vec<String> = by_type.iter().map(|(k, v)| format!("{k}x{v}")).collect();
+    println!("types        {}", summary.join(" "));
+    if tensors {
+        for t in &f.tensors {
+            println!(
+                "  {:<48} {:?} {:?} offset {} bytes {}",
+                t.name,
+                t.ggml_type,
+                t.dims,
+                t.offset,
+                t.n_bytes.map_or("?".to_string(), |b| b.to_string())
+            );
+        }
+    }
+    Ok(())
+}
+
 fn run() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
+        Command::Gguf { action } => match action {
+            GgufAction::Info {
+                path,
+                json,
+                tensors,
+            } => cmd_gguf_info(&path, json, tensors),
+        },
         Command::Coopmat { device } => {
             let dev = hcsuda_vk::Device::new(device).context("opening the device")?;
             let shapes = dev.cooperative_matrix_shapes();

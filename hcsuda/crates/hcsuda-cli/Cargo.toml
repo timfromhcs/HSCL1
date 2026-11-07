@@ -15,6 +15,7 @@ path = "src/main.rs"
 [dependencies]
 hcsuda-core = { path = "../hcsuda-core" }
 hcsuda-vk = { path = "../hcsuda-vk" }
+hcsuda-io = { path = "../hcsuda-io" }
 anyhow.workspace = true
 clap.workspace = true
 serde.workspace = true
