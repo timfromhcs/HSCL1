@@ -1,0 +1,18 @@
+[package]
+name = "hcsuda-vk"
+description = "HCSUDA Vulkan backend: device probe, allocation, dispatch, timestamps"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+hcsuda-core = { path = "../hcsuda-core" }
+anyhow.workspace = true
+ash = { version = "0.38", default-features = false, features = ["loaded", "debug"] }
+bytemuck.workspace = true
+thiserror.workspace = true
+
+[build-dependencies]

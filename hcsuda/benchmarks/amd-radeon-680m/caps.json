@@ -1,0 +1,91 @@
+{
+  "schema": 1,
+  "name": "AMD Radeon(TM) Graphics",
+  "vendor_id": 4098,
+  "device_id": 5761,
+  "device_type": "INTEGRATED_GPU",
+  "api_version": "1.4.315",
+  "driver_name": "AMD proprietary driver",
+  "driver_info": "26.6.1 (AMD proprietary shader compiler)",
+  "subgroup_size": 64,
+  "max_workgroup_invocations": 1024,
+  "max_shared_memory": 32768,
+  "max_storage_range": 4294967295,
+  "timestamp_period_ns": 10.0,
+  "heaps": [
+    {
+      "index": 0,
+      "size_bytes": 9766305792,
+      "budget_bytes": null,
+      "device_local": true,
+      "host_visible": false
+    },
+    {
+      "index": 1,
+      "size_bytes": 4883152896,
+      "budget_bytes": null,
+      "device_local": false,
+      "host_visible": true
+    },
+    {
+      "index": 2,
+      "size_bytes": 268435456,
+      "budget_bytes": null,
+      "device_local": true,
+      "host_visible": true
+    }
+  ],
+  "features": {
+    "shader_f16": true,
+    "storage_16bit": true,
+    "shader_i8": true,
+    "storage_8bit": true,
+    "shader_f64": true,
+    "shader_i64": true,
+    "buffer_device_address": true,
+    "int8_dot": true,
+    "int4_dot": true,
+    "cooperative_matrix": true,
+    "float8_ext": false,
+    "timestamps": true
+  },
+  "dtypes": {
+    "bf16": {
+      "storage": "native",
+      "compute": "emulated"
+    },
+    "f16": {
+      "storage": "native",
+      "compute": "native"
+    },
+    "f32": {
+      "storage": "native",
+      "compute": "native"
+    },
+    "f64": {
+      "storage": "native",
+      "compute": "native"
+    },
+    "fp8e4m3": {
+      "storage": "native",
+      "compute": "emulated"
+    },
+    "fp8e5m2": {
+      "storage": "native",
+      "compute": "emulated"
+    },
+    "i4": {
+      "storage": "native",
+      "compute": "native"
+    },
+    "i8": {
+      "storage": "native",
+      "compute": "native"
+    },
+    "tf32": {
+      "storage": "native",
+      "compute": "native"
+    }
+  },
+  "verified_paths": []
+}

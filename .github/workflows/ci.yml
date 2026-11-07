@@ -26,6 +26,36 @@ jobs:
       - run: cargo clippy --all-targets -- -D warnings
       - run: cargo test --all
 
+  hcsuda:
+    name: HCSUDA (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    defaults:
+      run:
+        working-directory: hcsuda
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Toolchain
+        run: rustup show
+      - name: Format
+        run: cargo fmt --all -- --check
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+      # No GPU on a hosted runner: build.rs reports shaders as unavailable and
+      # the GPU tests are not present as unit tests, so this is the CPU-only
+      # gate (codecs, planner, oracle, report schema).
+      - name: Tests (CPU only)
+        run: cargo test --all
+      - name: Dependency advisories
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cargo install cargo-audit --locked
+          cargo audit
+
   python-and-shell:
     name: Python tests, shell checks, design tokens
     runs-on: ubuntu-latest

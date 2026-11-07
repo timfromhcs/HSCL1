@@ -689,3 +689,17 @@ VM `d2` (QEMU/WHPX UEFI, dev2 ISO from `C:\AI\vmtest\dev2`, fresh qcow2). Eviden
 - **Fixed and seen on screen:** the installer title reads "Welcome to the HSCL1 **0.1.3-alpha.0** installer" (the 0.1.3-alpha.0 ISO said 0.1.2).
 - **Not working as intended:** with Erase disk + Encrypt system ticked and matching passphrases (layout: EFI 300 MiB, `hscl1_boot` 4 GiB ext4, `hscl1_root` 35.71 GiB LUKS2) there is **no** explanation of the unencrypted `/boot`: no dialog on `Next`, no text on the Partitions page, none on the Summary. The `showNotEncryptedBootMessage: true` that `76d9ab0` switched on is present in the image (gate ok) but has no visible effect in this path. My earlier commit message and docs presented it as the remedy; that is withdrawn here, and `docs/INSTALLER_FACTS.md`, the hook comment and the test docstring were corrected. The explanation (and the recovery-key explanation) remains an open gap against AGENTS.md 6.3.
 - No install was run on dev2 (nothing new to learn from it; the install path was verified on 0.1.3-alpha.0).
+
+## HCSUDA H0/H1: runtime scaffold, GPU selftest and first benchmarks (2026-11-07)
+New Cargo workspace `hcsuda/` (excluded from the root workspace), GPL-3.0-or-later while it lives in this repo.
+- **Built:** `hcsuda-core` (dtypes, FP8 E4M3/E5M2 codec, int8/packed-int4 quantisation, tensor, CPU oracle, capability record, conservative planner, benchmark report), `hcsuda-vk` (ash 0.38 instance/device, memory, descriptor + command plumbing, timestamp queries, GLSL to SPIR-V build via `glslc`), `hcsuda-cli` (`caps`, `plan`, `selftest`, `bench`, all with `--json`/`--out`), shaders `saxpy`, `triad`, `gemv`.
+- **Commands:** `cargo fmt --all -- --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test --all` -> **41 passed, 0 failed**; `hcsuda selftest` -> **PASS**; `hcsuda bench --runs 7` -> suite written to `hcsuda/benchmarks/amd-radeon-680m/`.
+- **Hardware:** AMD Radeon 680M (`0x1681`), AMD proprietary driver 26.6.1, Vulkan 1.4.315, subgroup 64, 32 KiB shared, int8/int4 dot accelerated, cooperative matrix present, **no `VK_EXT_shader_float8`**.
+- **Differential test vs CPU oracle (3 runs, determinism checked):** saxpy 2.384e-7 (tol 7.4e-5), triad 2.384e-7, gemv 1.907e-6 (tol 3.263e-5). Verified paths: `vulkan_scalar:{saxpy,triad,gemv}:f32`.
+- **Benchmark (f32, 4 Mi elements / 512x8192, 7 samples x 50 dispatches):** saxpy 0.762 ms GPU (56.95 GB/s), triad 0.725 ms (79.69 GB/s), gemv 1.303 ms (5.89 GFLOP/s) versus single-threaded oracle 28.7 / 49.7 / 68.3 ms. Spread 0.02-0.19.
+- **Methodology finding:** with 5 dispatches per sample the same kernels show spread 0.87-1.15; with 50 it is 0.02-0.19. Short bursts measure the iGPU clock ramp. `--reps` now defaults to 50 and a row above 0.25 spread is labelled noisy, not reported as a result.
+- **Test bugs found and fixed (not code bugs):** four `hcsuda-core` assertions encoded wrong expectations (tolerance scale, int4 symmetric range, packing nibble order, spread formula).
+- **NOT measured:** no f16/bf16/int8/int4/FP8 kernel, no GEMM/conv/attention, no training step, no CUDA/rocBLAS baseline, no discrete GPU, no Linux run, no power/thermal instrumentation. `gemv` is a correctness kernel (one invocation per row) and its number must not be quoted as matrix throughput.
+- **CI:** new `hcsuda` job (fmt/clippy/test on ubuntu + windows, `cargo audit` on ubuntu). Hosted runners have no GPU, so that job is the CPU-only gate by design.
+- Docs: `hcsuda/README.md`, `hcsuda/docs/MEASURED.md`, `hcsuda/docs/CAPABILITY_MATRIX.md`.
+

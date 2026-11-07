@@ -1,0 +1,133 @@
+{
+  "schema": 1,
+  "device": "AMD Radeon(TM) Graphics",
+  "driver": "0x800161",
+  "rows": [
+    {
+      "schema": 1,
+      "op": "saxpy",
+      "dtype": "f32",
+      "shape": [
+        4194304,
+        0,
+        0
+      ],
+      "path": "vulkan_scalar",
+      "device": "AMD Radeon(TM) Graphics",
+      "driver": "0x800161",
+      "runs": 7,
+      "median_ms": 0.883786,
+      "min_ms": 0.8671460000000002,
+      "max_ms": 0.945428,
+      "gpu_median_ms": 0.7618288000000001,
+      "gpu_spread": 0.06958387501233862,
+      "gflops": 9.491673323632645,
+      "gbps": 56.95003994179586,
+      "bytes_moved": 50331648
+    },
+    {
+      "schema": 1,
+      "op": "saxpy",
+      "dtype": "f32",
+      "shape": [
+        4194304,
+        0,
+        0
+      ],
+      "path": "reference",
+      "device": "AMD Radeon(TM) Graphics",
+      "driver": "0x800161",
+      "runs": 7,
+      "median_ms": 28.700699999999998,
+      "min_ms": 28.102999999999998,
+      "max_ms": 29.1129,
+      "gflops": 0.2922788642785716,
+      "gbps": 1.7536731856714296,
+      "bytes_moved": 50331648
+    },
+    {
+      "schema": 1,
+      "op": "triad",
+      "dtype": "f32",
+      "shape": [
+        4194304,
+        0,
+        0
+      ],
+      "path": "vulkan_scalar",
+      "device": "AMD Radeon(TM) Graphics",
+      "driver": "0x800161",
+      "runs": 7,
+      "median_ms": 0.8421179999999999,
+      "min_ms": 0.8293599999999998,
+      "max_ms": 0.8503660000000001,
+      "gpu_median_ms": 0.7246416000000001,
+      "gpu_spread": 0.022613109708303034,
+      "gflops": 9.961321335014809,
+      "gbps": 79.69057068011847,
+      "bytes_moved": 67108864
+    },
+    {
+      "schema": 1,
+      "op": "triad",
+      "dtype": "f32",
+      "shape": [
+        4194304,
+        0,
+        0
+      ],
+      "path": "reference",
+      "device": "AMD Radeon(TM) Graphics",
+      "driver": "0x800161",
+      "runs": 7,
+      "median_ms": 49.745,
+      "min_ms": 43.3875,
+      "max_ms": 55.110800000000005,
+      "gflops": 0.16863218413910946,
+      "gbps": 1.3490574731128757,
+      "bytes_moved": 67108864
+    },
+    {
+      "schema": 1,
+      "op": "gemv",
+      "dtype": "f32",
+      "shape": [
+        512,
+        8192,
+        0
+      ],
+      "path": "vulkan_scalar",
+      "device": "AMD Radeon(TM) Graphics",
+      "driver": "0x800161",
+      "runs": 7,
+      "median_ms": 1.42347,
+      "min_ms": 1.4051039999999997,
+      "max_ms": 1.652816,
+      "gpu_median_ms": 1.3034272000000005,
+      "gpu_spread": 0.18957376369006287,
+      "gflops": 5.893069752084694,
+      "gbps": 11.810598045620912,
+      "bytes_moved": 16812032
+    },
+    {
+      "schema": 1,
+      "op": "gemv",
+      "dtype": "f32",
+      "shape": [
+        512,
+        8192,
+        0
+      ],
+      "path": "reference",
+      "device": "AMD Radeon(TM) Graphics",
+      "driver": "0x800161",
+      "runs": 7,
+      "median_ms": 68.2957,
+      "min_ms": 39.5513,
+      "max_ms": 93.9486,
+      "gflops": 0.12282776221636209,
+      "gbps": 0.2461653076255167,
+      "bytes_moved": 16812032
+    }
+  ]
+}

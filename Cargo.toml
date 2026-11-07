@@ -1,6 +1,8 @@
 [workspace]
 resolver = "2"
 members = ["cli/hscl"]
+# HCSUDA is its own workspace (own release cadence, own CI job); it is not a path dependency of hscl.
+exclude = ["hcsuda"]
 
 [workspace.package]
 version = "0.1.3-alpha.0"

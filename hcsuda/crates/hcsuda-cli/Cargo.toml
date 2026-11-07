@@ -1,0 +1,22 @@
+[package]
+name = "hcsuda-cli"
+description = "HCSUDA command line: caps, plan, selftest, bench"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+
+[[bin]]
+name = "hcsuda"
+path = "src/main.rs"
+
+[dependencies]
+hcsuda-core = { path = "../hcsuda-core" }
+hcsuda-vk = { path = "../hcsuda-vk" }
+anyhow.workspace = true
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+bytemuck.workspace = true
