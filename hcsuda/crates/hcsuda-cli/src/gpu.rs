@@ -27,6 +27,7 @@ pub struct Runner {
     pub layernorm: Kernel,
     pub rmsnorm: Kernel,
     pub rope: Kernel,
+    pub gemm_i8dot: Kernel,
     pub dev: Device,
 }
 
@@ -89,6 +90,8 @@ impl Runner {
             Kernel::from_shader(&dev, "layernorm", 4, 12).context("layernorm kernel")?;
         let rmsnorm = Kernel::from_shader(&dev, "rmsnorm", 3, 12).context("rmsnorm kernel")?;
         let rope = Kernel::from_shader(&dev, "rope", 2, 16).context("rope kernel")?;
+        let gemm_i8dot =
+            Kernel::from_shader(&dev, "gemm_i8dot", 3, 12).context("gemm_i8dot kernel")?;
         Ok(Self {
             dispatch,
             saxpy,
@@ -99,6 +102,7 @@ impl Runner {
             layernorm,
             rmsnorm,
             rope,
+            gemm_i8dot,
             dev,
         })
     }
@@ -132,6 +136,62 @@ impl Runner {
             buf,
             len: values.len(),
         })
+    }
+
+    /// Upload packed words (four int8 per `u32`); `len` counts words.
+    pub fn upload_u32(&self, values: &[u32]) -> Result<GpuTensor> {
+        let buf = Buffer::storage(&self.dev, (values.len() * 4) as u64)
+            .context("allocating storage buffer")?;
+        buf.upload_u32(&self.dev, values)
+            .context("uploading buffer")?;
+        Ok(GpuTensor {
+            buf,
+            len: values.len(),
+        })
+    }
+
+    /// Output buffer of `len` zeroed i32 values.
+    pub fn alloc_i32(&self, len: usize) -> Result<GpuTensor> {
+        let buf = Buffer::storage(&self.dev, (len * 4) as u64).context("allocating buffer")?;
+        buf.upload(&self.dev, &vec![0u8; len * 4])
+            .context("zeroing buffer")?;
+        Ok(GpuTensor { buf, len })
+    }
+
+    pub fn download_i32(&self, t: &GpuTensor) -> Result<Vec<i32>> {
+        t.buf
+            .read_i32(&self.dev, t.len)
+            .context("reading back buffer")
+    }
+
+    /// int8 x int8 -> int32 product. `a` is m x k packed along k, `bt` is B transposed
+    /// (n x k) packed along k; `k` must be a multiple of 4.
+    pub fn gemm_i8dot(
+        &mut self,
+        a: &GpuTensor,
+        bt: &GpuTensor,
+        c: &GpuTensor,
+        m: usize,
+        k: usize,
+        n: usize,
+    ) -> Result<Timed> {
+        anyhow::ensure!(k % 4 == 0, "gemm_i8dot needs k % 4 == 0");
+        let pc = PushMkn {
+            m: m as u32,
+            n: n as u32,
+            k: k as u32,
+        };
+        let push = bytemuck::bytes_of(&pc);
+        let groups = ((n as u32).div_ceil(16), (m as u32).div_ceil(16), 1);
+        self.dispatch
+            .run(
+                &self.dev,
+                &self.gemm_i8dot,
+                &[&a.buf, &bt.buf, &c.buf],
+                push,
+                groups,
+            )
+            .map_err(Into::into)
     }
 
     pub fn download(&self, t: &GpuTensor) -> Result<Vec<f32>> {

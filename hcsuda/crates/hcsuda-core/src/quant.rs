@@ -28,6 +28,19 @@ pub fn quantize_i8(values: &[f32]) -> QTensor {
     QTensor { scale, values }
 }
 
+/// Pack int8 values four per `u32` (element 0 in the low byte), the layout
+/// `dotPacked4x8EXT` consumes. The slice length must be a multiple of 4.
+pub fn pack_i8x4(values: &[i8]) -> Vec<u32> {
+    assert!(
+        values.len() % 4 == 0,
+        "pack_i8x4 needs a multiple of 4 values"
+    );
+    values
+        .chunks_exact(4)
+        .map(|c| u32::from_le_bytes([c[0] as u8, c[1] as u8, c[2] as u8, c[3] as u8]))
+        .collect()
+}
+
 /// Symmetric int4 quantisation (range -8..=7) packed two per byte.
 /// The even element is stored in the low nibble.
 pub fn quantize_i4_packed(values: &[f32]) -> (f32, Vec<u8>) {
@@ -124,5 +137,11 @@ mod tests {
     fn i4_dequantize_scales() {
         let back = dequantize_i4(&[0xF1], 0.5, 2);
         assert_eq!(back, vec![0.5, -0.5]);
+    }
+
+    #[test]
+    fn pack_i8x4_layout_and_negative_values() {
+        assert_eq!(pack_i8x4(&[1, 2, 3, 4]), vec![0x0403_0201]);
+        assert_eq!(pack_i8x4(&[-1, 0, 0, -128]), vec![0x8000_00ff]);
     }
 }

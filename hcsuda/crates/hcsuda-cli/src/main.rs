@@ -349,6 +349,7 @@ fn cmd_plan(op: &str, dtype: &str, shape: Shape, json: bool, device: Option<usiz
 
 struct Case {
     op: &'static str,
+    dtype: &'static str,
     path: &'static str,
     max_error: f64,
     tolerance: f64,
@@ -384,6 +385,7 @@ fn cmd_selftest(json: bool, device: Option<usize>, out: Option<PathBuf>) -> Resu
     let deterministic = got_runs.windows(2).all(|w| w[0] == w[1]);
     cases.push(Case {
         op: "saxpy",
+        dtype: "f32",
         path: "vulkan_scalar",
         max_error,
         tolerance: tol.abs + tol.rel * 1.0,
@@ -411,6 +413,7 @@ fn cmd_selftest(json: bool, device: Option<usize>, out: Option<PathBuf>) -> Resu
     let deterministic = got_runs.windows(2).all(|w| w[0] == w[1]);
     cases.push(Case {
         op: "triad",
+        dtype: "f32",
         path: "vulkan_scalar",
         max_error,
         tolerance: tol.abs + tol.rel,
@@ -442,6 +445,7 @@ fn cmd_selftest(json: bool, device: Option<usize>, out: Option<PathBuf>) -> Resu
     let deterministic = got_runs.windows(2).all(|w| w[0] == w[1]);
     cases.push(Case {
         op: "gemv",
+        dtype: "f32",
         path: "vulkan_scalar",
         max_error,
         tolerance: gtol.abs + gtol.rel,
@@ -475,6 +479,7 @@ fn cmd_selftest(json: bool, device: Option<usize>, out: Option<PathBuf>) -> Resu
     let deterministic = got_runs.windows(2).all(|w| w[0] == w[1]);
     cases.push(Case {
         op: "gemm",
+        dtype: "f32",
         path: "vulkan_tiled",
         max_error,
         tolerance: mtol.abs + mtol.rel,
@@ -511,6 +516,7 @@ fn cmd_selftest(json: bool, device: Option<usize>, out: Option<PathBuf>) -> Resu
     let deterministic = got_runs.windows(2).all(|w| w[0] == w[1]);
     cases.push(Case {
         op: "softmax",
+        dtype: "f32",
         path: "vulkan_tiled",
         max_error,
         tolerance: rtol.abs + rtol.rel,
@@ -533,6 +539,7 @@ fn cmd_selftest(json: bool, device: Option<usize>, out: Option<PathBuf>) -> Resu
     let deterministic = got_runs.windows(2).all(|w| w[0] == w[1]);
     cases.push(Case {
         op: "layernorm",
+        dtype: "f32",
         path: "vulkan_tiled",
         max_error,
         tolerance: rtol.abs + rtol.rel,
@@ -555,6 +562,7 @@ fn cmd_selftest(json: bool, device: Option<usize>, out: Option<PathBuf>) -> Resu
     let deterministic = got_runs.windows(2).all(|w| w[0] == w[1]);
     cases.push(Case {
         op: "rmsnorm",
+        dtype: "f32",
         path: "vulkan_tiled",
         max_error,
         tolerance: rtol.abs + rtol.rel,
@@ -582,6 +590,7 @@ fn cmd_selftest(json: bool, device: Option<usize>, out: Option<PathBuf>) -> Resu
     let deterministic = got_runs.windows(2).all(|w| w[0] == w[1]);
     cases.push(Case {
         op: "rope",
+        dtype: "f32",
         path: "vulkan_scalar",
         max_error,
         tolerance: rtol.abs + rtol.rel,
@@ -590,11 +599,48 @@ fn cmd_selftest(json: bool, device: Option<usize>, out: Option<PathBuf>) -> Resu
         gpu_ms: timed.and_then(|t| t.gpu_ms),
     });
 
+    // int8 dot-product GEMM: exact integer result, so equality is the tolerance.
+    let (qm, qk, qn) = (48usize, 128usize, 40usize);
+    let qa: Vec<i8> = (0..qm * qk)
+        .map(|i| (((i * 7 + 3) % 255) as u8 ^ 0x15) as i8)
+        .collect();
+    let qb: Vec<i8> = (0..qk * qn)
+        .map(|i| (((i * 13 + 5) % 251) as u8 ^ 0x2b) as i8)
+        .collect();
+    let want = reference::gemm_i8(&qa, &qb, qm, qk, qn);
+    let mut qbt = vec![0i8; qk * qn];
+    for r in 0..qk {
+        for c in 0..qn {
+            qbt[c * qk + r] = qb[r * qn + c];
+        }
+    }
+    let ga = runner.upload_u32(&hcsuda_core::quant::pack_i8x4(&qa))?;
+    let gbt = runner.upload_u32(&hcsuda_core::quant::pack_i8x4(&qbt))?;
+    let gc = runner.alloc_i32(qm * qn)?;
+    let mut got_runs = Vec::new();
+    let mut timed = None;
+    for _ in 0..3 {
+        timed = Some(runner.gemm_i8dot(&ga, &gbt, &gc, qm, qk, qn)?);
+        got_runs.push(runner.download_i32(&gc)?);
+    }
+    let got = got_runs.last().expect("three runs").clone();
+    let mismatches = want.iter().zip(&got).filter(|(w, g)| w != g).count();
+    cases.push(Case {
+        op: "gemm_i8dot",
+        dtype: "i8",
+        path: "vulkan_i8dot",
+        max_error: mismatches as f64,
+        tolerance: 0.0,
+        ok: mismatches == 0 && want.len() == got.len(),
+        deterministic: got_runs.windows(2).all(|w| w[0] == w[1]),
+        gpu_ms: timed.and_then(|t| t.gpu_ms),
+    });
+
     let all_ok = cases.iter().all(|c| c.ok && c.deterministic);
     let verified: Vec<String> = cases
         .iter()
         .filter(|c| c.ok && c.deterministic)
-        .map(|c| format!("{}:{}:f32", c.path, c.op))
+        .map(|c| format!("{}:{}:{}", c.path, c.op, c.dtype))
         .collect();
     let payload = serde_json::json!({
         "schema": hcsuda_core::SCHEMA_VERSION,
@@ -646,7 +692,7 @@ fn cmd_selftest(json: bool, device: Option<usize>, out: Option<PathBuf>) -> Resu
                 "verified    {}",
                 cases
                     .iter()
-                    .map(|c| format!("{}:{}:f32", c.path, c.op))
+                    .map(|c| format!("{}:{}:{}", c.path, c.op, c.dtype))
                     .collect::<Vec<_>>()
                     .join(", ")
             );

@@ -80,8 +80,12 @@ impl Device {
         let mut coop = vk::PhysicalDeviceCooperativeMatrixFeaturesKHR::default()
             .cooperative_matrix(features.cooperative_matrix);
 
+        // Core in Vulkan 1.3; enable only when the device reports it.
+        let mut dotf = vk::PhysicalDeviceShaderIntegerDotProductFeatures::default()
+            .shader_integer_dot_product(int_dot_supported(&instance, chosen));
         let mut features2 = vk::PhysicalDeviceFeatures2::default()
             .features(vk::PhysicalDeviceFeatures::default())
+            .push_next(&mut dotf)
             .push_next(&mut f16i8)
             .push_next(&mut s16)
             .push_next(&mut s8)
@@ -204,6 +208,13 @@ fn query_subgroup_size(instance: &ash::Instance, pd: vk::PhysicalDevice) -> u32 
     let mut props2 = vk::PhysicalDeviceProperties2::default().push_next(&mut subgroup);
     unsafe { instance.get_physical_device_properties2(pd, &mut props2) };
     subgroup.subgroup_size
+}
+
+fn int_dot_supported(instance: &ash::Instance, pd: vk::PhysicalDevice) -> bool {
+    let mut dotf = vk::PhysicalDeviceShaderIntegerDotProductFeatures::default();
+    let mut f2 = vk::PhysicalDeviceFeatures2::default().push_next(&mut dotf);
+    unsafe { instance.get_physical_device_features2(pd, &mut f2) };
+    dotf.shader_integer_dot_product == vk::TRUE
 }
 
 fn query_features(instance: &ash::Instance, pd: vk::PhysicalDevice) -> Features {
