@@ -1799,7 +1799,10 @@ mod doc_command_tests {
             let mut all = commands_in(&text);
             all.extend(inline_commands(&text));
             for command in all {
-                if command.trim().is_empty() {
+                // `hscl ...` in prose is a meta-reference to "the CLI", not an invocation; the
+                // release process doc uses it that way. Skipping only a leading placeholder keeps
+                // the gate strict for every real command.
+                if command.trim().is_empty() || command.trim_start().starts_with("...") {
                     continue;
                 }
                 checked += 1;
@@ -1818,6 +1821,19 @@ mod doc_command_tests {
             "documented commands that do not exist:\n{}",
             problems.join("\n")
         );
+    }
+
+    #[test]
+    fn a_placeholder_command_is_not_treated_as_an_invocation() {
+        // docs/RELEASE_PROCESS.md writes "`hscl ...`" meaning "the CLI"; collecting it as a command
+        // made the gate fail on a document that is correct (2026-11-07).
+        let inline = inline_commands("run `hscl ...` or `sudo hscl status`");
+        assert!(inline.contains(&"...".to_string()), "{inline:?}");
+        let keep: Vec<&String> = inline
+            .iter()
+            .filter(|c| !c.trim_start().starts_with("..."))
+            .collect();
+        assert_eq!(keep.len(), 1, "{inline:?}");
     }
 
     #[test]

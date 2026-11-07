@@ -1,6 +1,6 @@
 # Known limitations (truthful list)
 
-Status of this document: maintained with every phase. Last update: 2026-11-06 (research round, release `0.1.2-alpha.0`).
+Status of this document: maintained with every phase. Last update: 2026-11-07 (S1 build-up; release candidate `0.1.3-alpha.0`).
 
 HSCL1 is **pre-alpha**. Nothing below has been tested on physical hardware. Rows are corrected whenever an earlier status turns out to
 be stale - a limitation list that lags behind reality is a false claim in the other direction.
