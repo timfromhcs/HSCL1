@@ -1,5 +1,6 @@
 """Found 2026-11-07 in the LUKS install run: the installer never says that /boot stays unencrypted (AGENTS.md 6.3 wants it explained).
-Calamares has a built-in, translated message for this; the image must switch it on, and the image gate must check it."""
+The image switches Calamares' built-in message on and the image gate checks the CONFIG VALUE only. Seen on the dev2 image: the message does not show
+in the automatic erase+encrypt path, so these tests do not prove that users are told (that remains open, see INSTALLER_FACTS.md)."""
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]

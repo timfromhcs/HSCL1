@@ -104,7 +104,8 @@ patch_file "$ROOTFS/etc/calamares/modules/oemid.conf" 's/^batch-identifier: kubu
 
 # Partition/filesystem names that end up on the installed disk
 patch_file "$ROOTFS/etc/calamares/modules/partition.conf" 's/"kubuntu_boot"/"hscl1_boot"/; s/"kubuntu_2604"/"hscl1_root"/'
-# With encryption, /boot stays unencrypted (docs/INSTALLER_FACTS.md); Calamares has a translated message for exactly that.
+# With encryption, /boot stays unencrypted (docs/INSTALLER_FACTS.md). Calamares has a message for that, but it was NOT seen in the automatic
+# erase+encrypt path of the dev2 image (only the config value is verified); an HSCL1 explanation is still an open gap.
 patch_file "$ROOTFS/etc/calamares/modules/partition.conf" 's/^showNotEncryptedBootMessage:.*/showNotEncryptedBootMessage: true/'
 
 # Replace upstream marketing shortcuts on the live desktop with HSCL1 entries
