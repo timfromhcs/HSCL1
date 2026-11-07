@@ -83,7 +83,7 @@ def test_launcher_is_strict_and_has_no_eval_or_arbitrary_exec():
     assert re.search(r"^set -[a-zA-Z]*e[a-zA-Z]*u|^set -Eeuo pipefail", text, re.M)
     assert not re.search(r"\beval\b", text)
     assert "sudo" not in text
-    assert "/opt/hscl/venvs/cqhecs" in text  # fixed default location, never the system python
+    assert '"$data_dir/venv"' in text  # user-level venv (no root helper needed), never the system python
 
 
 @needs_bash
@@ -106,13 +106,107 @@ def test_run_without_runtime_refuses_and_does_not_fall_back_to_system_python(tmp
 
 
 @needs_bash
-def test_install_runtime_is_not_pretended():
-    r = run("install-runtime")
-    assert r.returncode == 2
-    assert "not implemented" in r.stderr.lower()
-
-
-@needs_bash
 def test_unknown_subcommand_is_a_usage_error():
     r = run("rm", "-rf", "/")
     assert r.returncode == 2
+
+
+SHARE = PKG / "usr/share/hscl/cqhecs"
+
+
+def test_requirements_are_fully_hash_pinned_and_use_no_other_index_or_editable_installs():
+    lines = [l for l in (SHARE / "requirements-cp314.txt").read_text(encoding="utf-8").splitlines() if l.strip() and not l.startswith("#")]
+    assert len(lines) >= 5
+    for l in lines:
+        assert re.search(r"--hash=sha256:[0-9a-f]{64}$", l), l
+        assert re.match(r"^[A-Za-z0-9_.-]+(==\S+| @ https://github\.com/timfromhcs/CQ-HECS/releases/download/v5\.0\.0/\S+\.whl)", l), l
+    text = " ".join(lines)
+    assert "-e " not in text and "--index-url" not in text and "--extra-index-url" not in text and "git+" not in text
+    assert any(l.startswith("cqhecs @ ") for l in lines)
+    conf = dict(l.split("=", 1) for l in (SHARE / "runtime.conf").read_text(encoding="utf-8").split() if "=" in l)
+    assert conf["python"] == "3.14" and conf["requirements"] == "requirements-cp314.txt"
+    assert 1 < int(conf["download_bytes"]) < 200 * 1024 * 1024
+
+
+def stub_python(tmp_path, version="3.14.3"):
+    """A stand-in interpreter: logs every call, `-m venv DIR` fabricates DIR/bin/{python,cq-hecs}; no network, nothing real is installed."""
+    log = tmp_path / "calls.log"
+    stub = tmp_path / "python3"
+    stub.write_text(f"""#!/usr/bin/env bash
+echo "$0 $*" >> "{log.as_posix()}"
+case "$1" in
+  --version) echo "Python {version}" ;;
+  -c) echo "{'.'.join(version.split('.')[:2])}" ;;
+  -m)
+    if [ "$2" = venv ]; then
+      mkdir -p "$3/bin"
+      cp "$0" "$3/bin/python"
+      {{ echo '#!/usr/bin/env bash'; echo 'echo "cq-hecs 5.0.0"'; }} > "$3/bin/cq-hecs"
+      chmod +x "$3/bin/cq-hecs"
+    fi ;;
+esac
+exit 0
+""", encoding="utf-8")
+    return stub, log
+
+
+def env_for(tmp_path, stub):
+    return {
+        "HSCL_CQHECS_VENV": (tmp_path / "venv").as_posix(),
+        "HSCL_CQHECS_PYTHON": stub.as_posix(),
+        "HSCL_CQHECS_SHARE": SHARE.as_posix(),
+        "XDG_DATA_HOME": (tmp_path / "data").as_posix(),
+    }
+
+
+@needs_bash
+def test_install_runtime_needs_an_explicit_yes_and_touches_nothing_without_it(tmp_path):
+    stub, log = stub_python(tmp_path)
+    r = run("install-runtime", env=env_for(tmp_path, stub))
+    assert r.returncode == 6, r.stderr
+    assert "61.5 MiB" in r.stdout  # the size is shown before anything happens
+    assert not (tmp_path / "venv").exists()
+    pip_or_venv = [l for l in (log.read_text() if log.exists() else "").splitlines() if " -m " in l]
+    assert not pip_or_venv
+
+
+@needs_bash
+def test_install_runtime_with_yes_builds_a_venv_and_installs_only_from_the_hashed_file(tmp_path):
+    stub, log = stub_python(tmp_path)
+    r = run("install-runtime", "--yes", env=env_for(tmp_path, stub))
+    assert r.returncode == 0, r.stdout + r.stderr
+    calls = log.read_text().splitlines()
+    venv = (tmp_path / "venv").as_posix()
+    assert any(f"-m venv {venv}" in c for c in calls), calls
+    pip = [c for c in calls if "-m pip install" in c]
+    assert len(pip) == 1, calls
+    for flag in ("--require-hashes", "--only-binary=:all:", "--no-input", "--disable-pip-version-check"):
+        assert flag in pip[0], pip[0]
+    assert f"-r {SHARE.as_posix()}/requirements-cp314.txt" in pip[0]
+    assert "--index-url" not in pip[0] and "sudo" not in pip[0]
+    d = run("doctor", "--json", env=env_for(tmp_path, stub))
+    assert d.returncode == 0 and json.loads(d.stdout)["runtime"] == "ok"
+
+
+@needs_bash
+def test_install_runtime_refuses_a_python_the_pins_do_not_fit(tmp_path):
+    stub, log = stub_python(tmp_path, version="3.12.3")
+    r = run("install-runtime", "--yes", env=env_for(tmp_path, stub))
+    assert r.returncode == 5
+    assert "3.14" in r.stderr
+    assert not (tmp_path / "venv").exists()
+
+
+@needs_bash
+def test_uninstall_runtime_removes_only_the_venv_and_needs_yes(tmp_path):
+    stub, _ = stub_python(tmp_path)
+    run("install-runtime", "--yes", env=env_for(tmp_path, stub))
+    data = tmp_path / "data" / "hscl" / "cqhecs"
+    data.mkdir(parents=True, exist_ok=True)
+    (data / "my-research.json").write_text("{}", encoding="utf-8")
+    assert run("uninstall-runtime", env=env_for(tmp_path, stub)).returncode == 6
+    assert (tmp_path / "venv").exists()
+    r = run("uninstall-runtime", "--yes", env=env_for(tmp_path, stub))
+    assert r.returncode == 0, r.stderr
+    assert not (tmp_path / "venv").exists()
+    assert (data / "my-research.json").exists()  # user data is never removed

@@ -1,0 +1,12 @@
+# Hash-pinned runtime for CQ-HECS 5.0.0 on CPython 3.14, Linux x86_64 (manylinux). pip --require-hashes --only-binary=:all:.
+# Source of the pins: `pip download --only-binary=:all: --platform manylinux_2_28_x86_64 --python-version 3.14 --abi cp314
+# "numpy>=1.24" "qiskit>=0.45"` on 2026-11-07, SHA-256 computed from the downloaded files. The cqhecs wheel hash equals the one
+# published in the v5.0.0 release `sha256sums.txt`. No extras (python-sat, dev, benchmark) are included.
+dill==0.4.1 --hash=sha256:1e1ce33e978ae97fcfcff5638477032b801c46c7c65cf717f95fbc2248f79a9d
+numpy==2.5.4 --hash=sha256:d549420b8858885cea8838a727842249218b9c1da24dd517e25c9c7a948310a3
+qiskit==2.6.2 --hash=sha256:e8578003e39facf72289fafae1542e38646e5cae7c93665f004046efa5797669
+rustworkx==0.18.1 --hash=sha256:1ebd2441a51c68a784df8c62dc2e6f1a9f58c0eb1c2e21fd59776e08f55c0c0b
+scipy==1.18.1 --hash=sha256:ac0333bdf38309aa3dcbe7e3fa7ea29e7a2c37c6ea306a757b700ded8e4596ad
+stevedore==5.9.1 --hash=sha256:5c8ff3a9f336cc1a06ac0f597bc79d11a2f950bfd32e290ca56b5a301fafafbf
+typing_extensions==4.16.0 --hash=sha256:481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8
+cqhecs @ https://github.com/timfromhcs/CQ-HECS/releases/download/v5.0.0/cqhecs-5.0.0-py3-none-any.whl --hash=sha256:ebd87db75afdb13f2cfefd39ea90942c3338135481553137d40d75c61d1a8295

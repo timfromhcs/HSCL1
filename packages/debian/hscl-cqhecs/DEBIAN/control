@@ -5,10 +5,12 @@ Section: science
 Priority: optional
 Depends: hscl-base, python3 (>= 3.11), python3-venv
 Maintainer: HCSMEDIA <noreply@hcsmedia.invalid>
-Description: CQ-HECS Studio launcher for HSCL1 (app shell, no runtime included)
+Description: CQ-HECS Studio launcher for HSCL1 (app shell, runtime on demand)
  A small launcher and status command for the CQ-HECS classical quantum-circuit
- simulator. The package ships no Python wheels and makes no network access:
- the isolated runtime (/opt/hscl/venvs/cqhecs) is a separate, explicit step.
- Nothing starts automatically. CQ-HECS is a classical circuit simulator, not
- a quantum-chemistry or molecular-dynamics solver.
+ simulator. The package itself ships no Python wheels and installing it uses no
+ network. The isolated runtime (a venv in your own data directory, built from a
+ SHA-256 pinned file) is created only by "hscl-cqhecs install-runtime --yes",
+ which shows the download size first. Nothing starts automatically.
+ CQ-HECS is a classical circuit simulator, not a quantum-chemistry or
+ molecular-dynamics solver.
  Made with love by hcsmedia.
