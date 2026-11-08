@@ -1298,3 +1298,24 @@ Decision rule: pick the one that unblocks the most downstream work. HCSUDA H3c-3
   - Rust unit tests: Added 4 tests in `cli/hscl/src/language.rs` and updated `cli/hscl/src/mcp.rs` tests. All 206 tests passed with 0 failures (`cargo test -p hscl`).
   - Python unit tests: Created `tests/unit/test_language_cli.py` (5 tests) asserting CLI output, environment variable overrides (`HSCL_CONFIG_DIR`), JSON payloads, dry-run safety, and error handling on invalid language codes.
   - Verified `cargo fmt -- --check` and `cargo clippy -p hscl -- -D warnings` 100% clean.
+
+### V1-L HSCL1 Release Candidate v0.1.4-alpha.0 & In-Guest Verification (2026-11-08)
+
+- **In-Guest Live Track Verification (`scripts/dev/verify_in_guest_tracks.py`):**
+  - Booted candidate ISO under QEMU with WHPX acceleration and connected via hypervisor Workshop RPC.
+  - Track L (Language CLI): Verified `hscl language list` reports active language and Tier-1 options (`en`, `de`, `fr`); `hscl --json language status` executed cleanly in guest.
+  - Track K (Shortcuts): Verified `hscl-shortcuts` helper and `/etc/xdg/kglobalshortcutsrc` bindings (`Meta+Tab`, `Meta+Shift+Tab`, launcher on `Alt+F1`).
+  - Track C (Privacy & Mount Isolation): Verified ephemeral memory layout, root overlayfs (`/cow`, `/cdrom`), `/dev/zram0` partition with priority 100, `fs.suid_dumpable = 0`, and zero host disks automounted.
+  - Track B (Security Lab): Verified Podman is absent by default from base host per threat model, and `hscl lab status` executes cleanly.
+  - Report recorded in `artifacts/in_guest_verification/verification_report.json` with `overall_success: true`.
+- **Version Bump & Packaging:**
+  - Updated workspace version to `0.1.4-alpha.0` across `VERSION`, `Cargo.toml`, `Cargo.lock`, and `packages/debian/hscl-branding/etc/calamares/branding/hscl1/branding.desc`.
+  - Built fresh Debian packages `0.1.4~alpha.0` via `scripts/build-deb.sh`.
+- **ISO Remaster & Split Integrity:**
+  - Remastered `HSCL1-0.1.4-alpha.0-amd64.iso` (5,488,312,320 bytes, SHA-256 `a7e055a7e9192b6007e4295a396bc5d771e3676877943de67fc313e4254d1f6f`).
+  - Generated 3 GitHub-compatible split parts via `scripts/release-split.sh`:
+    - `HSCL1-0.1.4-alpha.0-amd64.iso.part000`: 1,992,294,400 bytes (`bb47493b4191b62cb35cec0b29080ff69fcf41b1f199f20e756cf3fd006cff86`)
+    - `HSCL1-0.1.4-alpha.0-amd64.iso.part001`: 1,992,294,400 bytes (`7c9de4008b55001706661744ce60c2125461c81c18b6b09599be9a982b5a2e35`)
+    - `HSCL1-0.1.4-alpha.0-amd64.iso.part002`: 1,503,723,520 bytes (`e6effefff63bfc0211ddcf64172d255a85405c647360d9c155ed681e1f0ab5f6`)
+  - Verified stream concatenation bit-identity with `scripts/release-join.sh --verify-only` (exit 0).
+  - Generated SPDX SBOM `SBOM-hscl-cli.spdx.json` containing 98 packages.

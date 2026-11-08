@@ -9,7 +9,7 @@
 *Made with love by hcsmedia* · Publisher: HCSMEDIA
 
 [![CI](https://github.com/timfromhcs/HSCL1/actions/workflows/ci.yml/badge.svg)](https://github.com/timfromhcs/HSCL1/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-0.1.3--alpha.0-blue.svg)](https://github.com/timfromhcs/HSCL1/releases/tag/v0.1.3-alpha.0)
+[![Release](https://img.shields.io/badge/release-0.1.4--alpha.0-blue.svg)](https://github.com/timfromhcs/HSCL1/releases/tag/v0.1.4-alpha.0)
 ![status](https://img.shields.io/badge/status-pre--alpha-orange)
 ![licence](https://img.shields.io/badge/licence-GPL--3.0--or--later-blue)
 ![base](https://img.shields.io/badge/base-Ubuntu%2026.04%20LTS-E95420)
@@ -22,9 +22,9 @@
 
 <br>
 
-<img src="docs/img/showcase/01_desktop_clean.png" alt="HSCL1 v0.1.3-alpha.0 Live Desktop (KDE Plasma 6.6 LTS, Top Bar, Dock, Midnight Theme) — real capture from QEMU 9.2.0 with WHPX" width="940">
+<img src="docs/img/showcase/01_desktop_clean.png" alt="HSCL1 v0.1.4-alpha.0 Live Desktop (KDE Plasma 6.6 LTS, Top Bar, Dock, Midnight Theme) — real capture from QEMU 9.2.0 with WHPX" width="940">
 
-*HSCL1 v0.1.3-alpha.0 running live in QEMU/WHPX — clean first boot with HCS top status bar, centered floating dock, and Midnight theme.*
+*HSCL1 v0.1.4-alpha.0 running live in QEMU/WHPX — clean first boot with HCS top status bar, centered floating dock, and Midnight theme.*
 
 </div>
 
@@ -37,7 +37,7 @@
 3. **Zero Telemetry & Rigorous Attestation:** Zero analytics, 100% offline documentation in 3 languages (English, German, French), Argon2id full-disk encryption, and an unbending evidence-based contract—every feature is verified by automated VM tests and cryptographic proof.
 
 > [!IMPORTANT]
-> **Status: Pre-Alpha (`0.1.3-alpha.0`).**
+> **Status: Pre-Alpha (`0.1.4-alpha.0`).**
 > HSCL1 is currently verified **in virtual machines only** (UEFI, BIOS, and Secure-Boot firmware via QEMU 9.2.0 with WHPX / KVM acceleration). It has **not** yet been tested on bare-metal physical hardware, and releases are **unsigned** (SHA-256 integrity checksums provided). Read [Known limitations](docs/KNOWN_LIMITATIONS.md) and the [evidence ledger](docs/CLAIMS.md) before installing. Do not use HSCL1 on systems requiring security certifications.
 
 > [!NOTE]
@@ -54,7 +54,7 @@ Test the verified pre-alpha live ISO in a hardware-accelerated disposable virtua
 ```powershell
 # Run with 4 GB RAM and dismiss first-run dialogs automatically:
 python scripts/qemu_boot_test.py `
-  --iso "path\to\HSCL1-0.1.3-alpha.0-amd64.iso" `
+  --iso "path\to\HSCL1-0.1.4-alpha.0-amd64.iso" `
   --mem 4096 `
   --dismiss-welcome
 ```
@@ -64,7 +64,7 @@ python scripts/qemu_boot_test.py `
 # Run with hardware KVM acceleration and UEFI firmware:
 qemu-system-x86_64 -enable-kvm -m 4096 -smp 4 \
   -bios /usr/share/ovmf/OVMF.fd \
-  -cdrom HSCL1-0.1.3-alpha.0-amd64.iso \
+  -cdrom HSCL1-0.1.4-alpha.0-amd64.iso \
   -vga std -device virtio-net-pci,netdev=net0 \
   -netdev user,id=net0
 ```
@@ -246,7 +246,7 @@ Pre-release assets are hosted on [GitHub Releases](https://github.com/timfromhcs
 ```console
 # 1. Download release assets (parts + SHA256SUMS)
 $ mkdir hscl1-release && cd hscl1-release
-$ gh release download v0.1.3-alpha.0 --repo timfromhcs/HSCL1
+$ gh release download v0.1.4-alpha.0 --repo timfromhcs/HSCL1
 
 # 2. Clone repository to obtain verified join script
 $ git clone https://github.com/timfromhcs/HSCL1 ../HSCL1-src
@@ -258,12 +258,12 @@ $ bash ../HSCL1-src/scripts/release-join.sh . --verify-only
 $ bash ../HSCL1-src/scripts/release-join.sh .
 ```
 
-### Release Checksums (v0.1.3-alpha.0)
+### Release Checksums (v0.1.4-alpha.0)
 ```text
-8625ee7c3801e77cb7a217b6dfa26b9bc165faf48a47d561da18eeaaeb4ea678  HSCL1-0.1.3-alpha.0-amd64.iso.part000
-406ab82dd9bc989b8f1ee67ce7c786e9dfbd51f31a9f133ebe0cf23585dfe787  HSCL1-0.1.3-alpha.0-amd64.iso.part001
-34e1a4ad7d5c32c520383cd2f55fcf30dc383737285acbaf637e95c1be6f87af  HSCL1-0.1.3-alpha.0-amd64.iso.part002
-2e30b750a741fdbcf8ea3ffd0efe15a7ab36b9bcb559bb0defc1906ec7129fc3  HSCL1-0.1.3-alpha.0-amd64.iso
+bb47493b4191b62cb35cec0b29080ff69fcf41b1f199f20e756cf3fd006cff86  HSCL1-0.1.4-alpha.0-amd64.iso.part000
+7c9de4008b55001706661744ce60c2125461c81c18b6b09599be9a982b5a2e35  HSCL1-0.1.4-alpha.0-amd64.iso.part001
+e6effefff63bfc0211ddcf64172d255a85405c647360d9c155ed681e1f0ab5f6  HSCL1-0.1.4-alpha.0-amd64.iso.part002
+a7e055a7e9192b6007e4295a396bc5d771e3676877943de67fc313e4254d1f6f  HSCL1-0.1.4-alpha.0-amd64.iso
 ```
 
 > [!TIP]
@@ -325,7 +325,7 @@ $ scripts/dev/wsl-cycle.sh iso --fast
 
 **HSCL1 (Hypercharged Supreme Computing Layout 1)** ist eine moderne Linux-Workstation auf Basis von Ubuntu 26.04 LTS (Kubuntu) und KDE Plasma 6.6 LTS mit eigenem Oberflächendesign (schlanke Top-Bar, schwebendes App-Dock, shader-basierte animierte Wallpaper), dem Kommandozeilenwerkzeug `hscl`, einem nativen Qt6/QML Control Center, einem vollständigen Offline-Handbuch (EN/DE/FR), integrierter Speicherverwaltung, lokalen KI- und Coding-Werkzeugen sowie isolierten Security-Lab-Workflows.
 
-**Status: Pre-Alpha (`0.1.3-alpha.0`).** Bislang ausschließlich in virtuellen Maschinen (QEMU mit WHPX/KVM) getestet, nicht auf physischer Hardware. Die Releases sind unverschlüsselt/unsigniert (Integritätssicherung über SHA-256-Prüfsummen). HSCL1 ist weder Tails noch ein offizielles Kali Linux und erhebt keinen universellen Anonymitätsanspruch. Alle verifizierten Fakten und Grenzen sind transparent in [`docs/CLAIMS.md`](docs/CLAIMS.md) und [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md) dokumentiert.
+**Status: Pre-Alpha (`0.1.4-alpha.0`).** Bislang ausschließlich in virtuellen Maschinen (QEMU mit WHPX/KVM) getestet, nicht auf physischer Hardware. Die Releases sind unverschlüsselt/unsigniert (Integritätssicherung über SHA-256-Prüfsummen). HSCL1 ist weder Tails noch ein offizielles Kali Linux und erhebt keinen universellen Anonymitätsanspruch. Alle verifizierten Fakten und Grenzen sind transparent in [`docs/CLAIMS.md`](docs/CLAIMS.md) und [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md) dokumentiert.
 
 Das ISO-Abbild überschreitet das GitHub-Größenlimit und wird in 3 Split-Parts bereitgestellt, die mit `scripts/release-join.sh` geprüft und zusammengesetzt werden. **Der Installer schreibt auf den ausgewählten Datenträger – bitte ausschließlich disposable virtuelle Disks verwenden.**
 
@@ -337,7 +337,7 @@ Das ISO-Abbild überschreitet das GitHub-Größenlimit und wird in 3 Split-Parts
 
 **HSCL1 (Hypercharged Supreme Computing Layout 1)** est une station de travail Linux moderne basée sur Ubuntu 26.04 LTS (Kubuntu) et KDE Plasma 6.6 LTS, dotée d'une interface originale (barre supérieure épurée, dock d'applications flottant, fonds d'écran animés dynamiques), de l'outil CLI `hscl`, d'un Centre de contrôle natif en Qt6/QML, d'un manuel hors-ligne trilingue (EN/DE/FR), d'une gestion intelligente de la mémoire et d'un laboratoire de sécurité isolé.
 
-**État : Pré-alpha (`0.1.3-alpha.0`).** Testé exclusivement dans des machines virtuelles (QEMU avec accélération WHPX/KVM), aucun test sur matériel physique réel. Les publications ne sont pas signées cryptographiquement (sommes de contrôle SHA-256 fournies). HSCL1 n'est ni Tails, ni une version officielle de Kali, et ne garantit aucun anonymat absolu. Les preuves et limitations sont détaillées dans [`docs/CLAIMS.md`](docs/CLAIMS.md) et [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md).
+**État : Pré-alpha (`0.1.4-alpha.0`).** Testé exclusivement dans des machines virtuelles (QEMU avec accélération WHPX/KVM), aucun test sur matériel physique réel. Les publications ne sont pas signées cryptographiquement (sommes de contrôle SHA-256 fournies). HSCL1 n'est ni Tails, ni une version officielle de Kali, et ne garantit aucun anonymat absolu. Les preuves et limitations sont détaillées dans [`docs/CLAIMS.md`](docs/CLAIMS.md) et [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md).
 
 L'image ISO dépassant 2 Gio, elle est distribuée sous forme de segments numérotés vérifiables et assemblables via `scripts/release-join.sh`. **L'installateur applique les changements sur le disque sélectionné – utilisez uniquement des disques virtuels jetables.**
 
