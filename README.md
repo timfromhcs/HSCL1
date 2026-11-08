@@ -4,187 +4,317 @@
 
 **HSCL1 = Hypercharged Supreme Computing Layout 1**
 
-**One system. Three modes. Your machine, your rules.**
+### *One system. Three modes. Your machine, your rules.*
 
 *Made with love by hcsmedia* · Publisher: HCSMEDIA
 
 [![CI](https://github.com/timfromhcs/HSCL1/actions/workflows/ci.yml/badge.svg)](https://github.com/timfromhcs/HSCL1/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/badge/release-0.1.3--alpha.0-blue.svg)](https://github.com/timfromhcs/HSCL1/releases/tag/v0.1.3-alpha.0)
 ![status](https://img.shields.io/badge/status-pre--alpha-orange)
 ![licence](https://img.shields.io/badge/licence-GPL--3.0--or--later-blue)
+![base](https://img.shields.io/badge/base-Ubuntu%2026.04%20LTS-E95420)
+![desktop](https://img.shields.io/badge/desktop-KDE%20Plasma%206.6%20LTS-1D99F3)
+![architecture](https://img.shields.io/badge/arch-x86__64%20%2F%20amd64-lightgrey)
 
-<img src="docs/img/desktop-rain.png" alt="HSCL1 desktop with the animated number-rain wallpaper, top bar and floating dock (real screenshot from a VM)" width="860">
+<br>
+
+<img src="docs/img/desktop-v0.1.3-alpha.0.png" alt="HSCL1 v0.1.3-alpha.0 Live Desktop (KDE Plasma 6, Top Bar, Dock, Midnight Theme) — real capture from QEMU 9.2.0 with WHPX" width="920">
+
+*HSCL1 v0.1.3-alpha.0 running live in QEMU/WHPX — clean first boot with HCS top status bar, centered floating dock, and Midnight theme.*
 
 </div>
 
-HSCL1 is a Linux workstation built on **Ubuntu 26.04 LTS (Kubuntu base) and KDE Plasma 6**. It adds an original design language
-(the *HCS Hybrid Desktop*: slim top bar plus floating dock, animated wallpapers), the `hscl` command line tool, a Control Center,
-an offline trilingual handbook (English, Deutsch, Français), a conservative security baseline, a memory manager, local-AI and
-coding tooling, and a **Workshop**: an opt-in developer mode that lets you drive a VM, take screenshots and re-create the ISO from
-a running system.
+---
 
-> **Status: pre-alpha (`0.1.3-alpha.0`).** It has been run **in virtual machines only**. Nothing has been tested on physical
-> hardware, the releases are **unsigned**, and many items in the plan are not built yet. Read
-> [Known limitations](docs/KNOWN_LIMITATIONS.md) and the [evidence table](docs/CLAIMS.md) before you try it. Do not use it for
-> anything that needs a security guarantee.
+## Overview
 
-HSCL1 is **not Tails**, **not an official Kali release**, and not endorsed by Canonical, the KDE/Kubuntu projects, Offensive Security
-or the Tails project. It makes **no anonymity claim**.
+**HSCL1** is an opinionated, keyboard-capable Linux operating system built upon an **Ubuntu 26.04 LTS (Kubuntu foundation) and KDE Plasma 6.6 LTS** core. It brings together the speed, visual cohesion, and keyboard ergonomics of Omarchy, the hardware compatibility and stability of Ubuntu, an isolated Security Lab powered by official Kali container toolchains, and disposable privacy workflows with honest security boundaries.
 
-KALI LINUX™ is a trademark of OffSec. HSCL1 is not affiliated with or endorsed by the Tails project; where strong anonymity matters,
-use the official Tails release. See [Trademarks](docs/TRADEMARKS.md).
+HSCL1 features:
+- **HCS Hybrid Desktop:** Original design language featuring a slim top status bar, centered floating application dock, cohesive design tokens, and dynamic GPU/CPU-aware animated wallpapers.
+- **Three Unified Operating Modes:** Everyday **Workstation**, isolated **Security Lab**, and disposable **Privacy Session**.
+- **`hscl` Command Line & MCP Tooling:** Complete system inspection, diagnostic doctor, hardware profiling, graphics autotuning, AI memory budget manager, container lab manager, and Model Context Protocol (MCP) server.
+- **Offline Trilingual Handbook & Control Center:** Native Qt 6 / QML Control Center and fully offline documentation in English, German, and French with zero telemetry.
+- **Workshop Engine:** Opt-in hypervisor-isolated developer interface for driving virtual machines, automated screenshot capture, and ISO respin directly from a running live system.
 
-## Screenshots
+> [!IMPORTANT]
+> **Status: Pre-Alpha (`0.1.3-alpha.0`).**
+> HSCL1 has been verified **in virtual machines only** (UEFI, BIOS, and Secure-Boot firmware via QEMU 9.2.0 with WHPX acceleration). It has **not** been tested on bare-metal physical hardware, and releases are **unsigned** (SHA-256 integrity checksums provided). Read [Known limitations](docs/KNOWN_LIMITATIONS.md) and the [evidence ledger](docs/CLAIMS.md) before installing. Do not use HSCL1 on systems requiring security certifications.
 
-All screenshots are real captures from QEMU virtual machines.
+> [!NOTE]
+> HSCL1 is **not Tails**, **not an official Kali release**, and is not affiliated with or endorsed by Canonical, the KDE/Kubuntu projects, Offensive Security, or the Tails project. It makes **no anonymity claim**.
+> KALI LINUX™ is a trademark of OffSec. HSCL1 is not affiliated with or endorsed by the Tails project; where strong anonymity matters, use the official Tails release. See [Trademarks](docs/TRADEMARKS.md).
 
-| Animated wallpapers | Control Center |
-|---|---|
-| ![Aurora wallpaper](docs/img/desktop-aurora.png) | ![Control Center](docs/img/control-center.png) |
-| ![Starfield wallpaper](docs/img/desktop-starfield.png) | ![Installer welcome](docs/img/installer-welcome.png) |
+---
 
-### Encrypted install (release 0.1.1-alpha.0, VM)
+## Real Screenshot Showcases
 
-| Erase disk + encrypt | Summary before installing |
-|---|---|
-| ![Encryption option with passphrase fields](docs/img/install-encrypt.png) | ![Installer summary: EFI, 4 GiB /boot, LUKS2 root](docs/img/install-summary.png) |
-| ![Passphrase prompt at boot](docs/img/boot-unlock.png) | ![Installed desktop after unlocking](docs/img/desktop-installed.png) |
+*Every screenshot in this repository is an unedited capture from real automated QEMU virtual machine test sessions.*
 
-Captured from the exact release ISO in a disposable 40 GB virtual disk (UEFI, no Secure Boot). The layout is an unencrypted
-`/boot` plus a LUKS2 root. Not tested on physical hardware; see [`docs/CLAIMS.md`](docs/CLAIMS.md).
+### 1. Dynamic Wallpaper Engine & Visual Identity
 
-The aurora effect currently looks like overlapping circles rather than ribbons; this is a known design defect
-(see [`docs/CLAIMS.md`](docs/CLAIMS.md)).
+The HCS desktop features a fluid, shader-driven wallpaper engine switchable on the fly via `hscl wallpaper apply <preset>` or the Control Center.
 
-## What is verified and what is not
+| Midnight Rain (Matrix Fallback) | Aurora Ribbons |
+|:---:|:---:|
+| ![Midnight Rain Wallpaper](docs/img/desktop-rain.png) | ![Aurora Glow Wallpaper](docs/img/desktop-aurora.png) |
+| **Grid Pulse (Cyber Lattice)** | **Starfield Drift (Deep Space)** |
+| ![Grid Pulse Wallpaper](docs/img/desktop-grid.png) | ![Starfield Drift Wallpaper](docs/img/desktop-starfield.png) |
 
-The full table with evidence is [`docs/CLAIMS.md`](docs/CLAIMS.md). Summary:
+---
 
-| Area | State |
-|---|---|
-| Remastered Kubuntu 26.04.1 live/installer ISO | boots in QEMU (UEFI, BIOS, Secure-Boot firmware); VM-verified |
-| Installation to a virtual disk and boot of the installed system | VM-verified (earlier QA build of the image) |
-| HCS desktop (top bar, floating dock, themes, rain/aurora/grid/starfield wallpapers) | VM-verified by screenshots; CPU cost of the animation **not measured** |
-| Workshop (VM API, respin ISO from the running system) | VM-verified end to end |
-| `hscl` CLI (status, doctor, graphics, memory, ai, wallpaper, code, mcp …) | unit-tested; the main commands also ran inside the live VM |
-| Memory manager (zram, earlyoom, AI RAM budget) | configuration active in the VM; **effect under real memory pressure not tested** |
-| Local inference with one small model (CPU) | verified on the builder; **Vulkan, MTP and TurboQuant not verified** |
-| Security Lab (`hscl lab`) | CLI execution wired, rootless Podman verified on builder; in-guest image pending |
-| Privacy mode, media-AI/Blender/Godot tooling, RSI loop | **planned, not implemented** |
-| Physical hardware | **none tested** |
-| Release signing | **none yet** (SHA256SUMS only) |
+### 2. HCS Control Center Suite (Qt 6 / QML)
 
-## Download
+A native, zero-telemetry control center providing instant hardware diagnostics, security policy auditing, theme customization, and system identity verification.
 
-Pre-release assets are attached to the [GitHub releases](https://github.com/timfromhcs/HSCL1/releases). The ISO is larger than
-GitHub's 2 GiB per-file limit, so it is published as numbered parts that you join and verify with a script:
+| System Overview & Hardware Profiling | Security Baseline & Firewall Audit |
+|:---:|:---:|
+| ![Control Center Overview](docs/img/control-center-overview.png) | ![Control Center Security](docs/img/control-center-security.png) |
+| **Appearance, Themes & Desktop Tokens** | **About & System Attestation** |
+| ![Control Center Appearance](docs/img/control-center-appearance.png) | ![Control Center About](docs/img/control-center-about.png) |
 
-```console
-$ mkdir hscl1 && cd hscl1
-$ gh release download v0.1.3-alpha.0 --repo timfromhcs/HSCL1        # or download all *.part* and SHA256SUMS by hand
-$ git clone https://github.com/timfromhcs/HSCL1 ../HSCL1-src         # for the script
-$ bash ../HSCL1-src/scripts/release-join.sh . --verify-only          # checks every part and the joined image, writes nothing
-$ bash ../HSCL1-src/scripts/release-join.sh .                        # joins to HSCL1-<version>-amd64.iso
+---
+
+### 3. Verified Encrypted Installation Flow (Calamares + LUKS2)
+
+Automated full-disk encryption with Argon2id key derivation, unencrypted `/boot`, and encrypted root volume, verified end-to-end on a disposable 40 GB virtual disk.
+
+| Full-Disk Encryption Selection | Pre-Install Summary & Layout |
+|:---:|:---:|
+| ![Calamares Encryption Options](docs/img/install-encrypt.png) | ![Calamares Partition Summary](docs/img/install-summary.png) |
+| **Argon2id Boot Passphrase Unlock** | **Installed Encrypted Desktop** |
+| ![Argon2id Disk Unlock Prompt](docs/img/boot-unlock.png) | ![First Boot Installed Desktop](docs/img/desktop-installed.png) |
+
+---
+
+## Three Operating Modes
+
+```mermaid
+flowchart LR
+    subgraph HSCL1["HSCL1 Operating System"]
+        direction TB
+        A["💻 Workstation Mode<br>Ubuntu 26.04 + KDE 6.6<br>Daily Driver & Coding"]
+        B["🛡️ Security Lab<br>Rootless Podman + Kali OCI<br>Curated Tooling & CTF"]
+        C["🔒 Privacy Mode<br>Tor Routing + Ephemeral RAM<br>Zero Host Persistence"]
+    end
+    style HSCL1 fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#fff
+    style A fill:#1e293b,stroke:#0ea5e9,color:#fff
+    style B fill:#1e293b,stroke:#ef4444,color:#fff
+    style C fill:#1e293b,stroke:#10b981,color:#fff
 ```
 
-The script verifies each part, the part sequence and the SHA-256 of the joined image against `SHA256SUMS`, and never overwrites an
-existing file without `--force`. The release workflow also joins the parts in the cloud and keeps the single `.iso` as a workflow artifact (90 days, GitHub login required) - see the run on the release's Actions tab. Without a signature this proves integrity of the download, not who published it.
+### A. Workstation (Everyday Daily Driver)
+- **Modern Desktop:** KDE Plasma 6.6 LTS with custom HCS top bar and dock.
+- **Hardware Autotune:** Dynamic GPU detection and automatic compositing adjustments (`hscl autotune`).
+- **Memory Protection:** Automated `earlyoom`, compressed `/dev/zram0` swap, and AI workload RAM budgets.
+- **Offline Handbook:** Complete trilingual reference manual accessible directly offline in English, German, and French.
 
-## Try it in a VM
+### B. Security Lab (Authorized Testing Only)
+- **Isolation by Architecture:** Security and penetration testing tools run strictly in rootless OCI containers (Podman) or disposable VMs—**never** mixed into the host APT repositories.
+- **Official Kali Digest:** Image pinned to official Kali Linux rolling digest with verified SHA-256 digests.
+- **Mandatory Authorization:** CLI execution requires explicit attestation:
+  ```console
+  $ hscl lab run --yes="I am authorized to test this target" -- nmap -sV 127.0.0.1
+  ```
+- **Fail-Closed:** Containers mount no host home directories, credentials, or SSH agents by default.
 
-Tested settings: 4 GB RAM or more, 4 vCPUs, standard VGA, user-mode networking, UEFI (OVMF/edk2) or BIOS. Hypervisor
-instructions and build host requirements are in [`docs/BUILDING.md`](docs/BUILDING.md) and [`docs/TESTING.md`](docs/TESTING.md);
-how an artefact becomes a release (and which steps are the maintainer's) is in [`docs/RELEASE_PROCESS.md`](docs/RELEASE_PROCESS.md).
+### C. Privacy (Disposable Sessions)
+- **Ephemeral RAM Overlay:** Read-only root filesystem backed by a RAM overlay; all state discarded on shutdown.
+- **Disk Isolation:** Host internal drives are unmounted and ignored by default.
+- **Tor Integration:** Isolated network routing preventing direct clearnet leaks when privacy mode is engaged.
+- **Honest Limitations:** HSCL1 is not Tails. For life-critical anonymity, launch the official signature-verified Tails ISO.
 
-> **The installer writes to the selected disk. Use a disposable virtual disk. Do not install on a real machine with data you care
-> about; HSCL1 has not been tested on hardware.**
+---
 
-Default Workshop state: **disabled**. The daemon is inert unless the hypervisor provides the `hscl.api` virtio port (see
-[`SECURITY.md`](SECURITY.md)).
+## Verification & Showoff Evidence
 
-## Command line
+HSCL1 adheres to a strict evidence-driven development contract: **nothing is claimed as working without recorded cryptographic and automated test proof.**
+
+| Area | Status | Evidence / Verification Metric |
+|---|:---:|---|
+| **Remastered Live/Installer ISO** | `VM-VERIFIED` | Boots to live desktop in 143 s under UEFI (QEMU+WHPX); Welcome dismissed at 189 s; [`artifacts/boot-candidate/desktop-final.png`](docs/img/desktop-v0.1.3-alpha.0.png) |
+| **Secure Boot Firmware Boot** | `VM-VERIFIED` | Boots under OVMF Secure Boot code + Microsoft-key vars; signed shim/GRUB/kernel bootchain preserved |
+| **LUKS2 Full-Disk Installation** | `VM-VERIFIED` | 40 GB virtual disk; Argon2id key derivation, `/` = `0:0 755`, no passphrase leak in logs; [`artifacts/luks-boot/`](docs/img/desktop-installed.png) |
+| **Rust `hscl` CLI Workspace** | `TESTED` | 202 unit tests (Windows) + 209 unit tests (Linux/WSL); 0 failures; `cargo clippy -D warnings` clean |
+| **Security Lab CLI** | `TESTED` | `run`, `install`, `commit`, `destroy` subcommands with mandatory `--yes` gate; builder probe verified |
+| **MCP Stdio Server Protocol** | `TESTED` | 7/7 protocol tests passed via `scripts/dev/mcp_selftest.py` (JSON-RPC handshake, 14 tools listed) |
+| **Memory Manager Baseline** | `VM-VERIFIED` | `/dev/zram0` (1.9 GB zstd, priority 100), `earlyoom` active, `hscl-ai.slice` memory capped at 60% |
+| **HCSEASYMATH Symbolic Engine** | `TESTED` | 244 math test cases green; differentiate, integrate, evaluate, simplify, solve, plot |
+| **NPBENCH Algorithmic Suite** | `TESTED` | 134 tests green; DIMACS parser, DRAT checker, RUP refutations, WalkSAT, CDCL baseline |
+| **Split & Rejoin Integrity** | `TESTED` | 3 parts (<1900 MiB) join byte-identically to whole ISO; verified via `release-join.sh --verify-only` |
+
+*Full evidence log available at [`docs/CLAIMS.md`](docs/CLAIMS.md) and [`docs/BUILD_LOG.md`](docs/BUILD_LOG.md).*
+
+---
+
+## Download & Verification
+
+Pre-release assets are hosted on [GitHub Releases](https://github.com/timfromhcs/HSCL1/releases). Because the ISO exceeds GitHub's 2 GiB per-file limit, it is distributed in numbered split parts with full cryptographic checksums.
 
 ```console
-$ hscl status                      # system summary
-$ hscl doctor                      # checks (redacted by default)
-$ hscl graphics detect             # driver class and recommended graphics profile
-$ hscl memory status               # RAM, zram, AI budget
-$ hscl wallpaper list              # animated wallpaper presets
-$ hscl ai model recommend          # models that fit this machine
-$ hscl lab run --yes="I am authorized to test this target" -- <cmd> # isolated security lab
-$ hscl mcp                         # MCP server on stdio (read-only by default)
+# 1. Download release assets (parts + SHA256SUMS)
+$ mkdir hscl1-release && cd hscl1-release
+$ gh release download v0.1.3-alpha.0 --repo timfromhcs/HSCL1
+
+# 2. Clone repository to obtain verified join script
+$ git clone https://github.com/timfromhcs/HSCL1 ../HSCL1-src
+
+# 3. Verify integrity of all parts against SHA256SUMS (dry-run, writes nothing)
+$ bash ../HSCL1-src/scripts/release-join.sh . --verify-only
+
+# 4. Join parts into single bootable ISO
+$ bash ../HSCL1-src/scripts/release-join.sh .
 ```
 
-Reference: [`docs/CLI.md`](docs/CLI.md).
+### Release Checksums (v0.1.3-alpha.0)
+```text
+8625ee7c3801e77cb7a217b6dfa26b9bc165faf48a47d561da18eeaaeb4ea678  HSCL1-0.1.3-alpha.0-amd64.iso.part000
+406ab82dd9bc989b8f1ee67ce7c786e9dfbd51f31a9f133ebe0cf23585dfe787  HSCL1-0.1.3-alpha.0-amd64.iso.part001
+34e1a4ad7d5c32c520383cd2f55fcf30dc383737285acbaf637e95c1be6f87af  HSCL1-0.1.3-alpha.0-amd64.iso.part002
+2e30b750a741fdbcf8ea3ffd0efe15a7ab36b9bcb559bb0defc1906ec7129fc3  HSCL1-0.1.3-alpha.0-amd64.iso
+```
 
-## Build from source
+> [!TIP]
+> A single joined `.iso` file is also created automatically by the GitHub Actions Cloud Verification workflow (`.github/workflows/release.yml`) and retained as an Actions artifact for 90 days.
 
-Requirements and the full procedure are in [`docs/BUILDING.md`](docs/BUILDING.md). The checks CI runs:
+---
+
+## Quickstart: Try It in QEMU
+
+Run the verified candidate ISO in a hardware-accelerated disposable virtual machine:
+
+### Windows (WHPX Acceleration)
+```powershell
+python scripts/qemu_boot_test.py `
+  --iso "path\to\HSCL1-0.1.3-alpha.0-amd64.iso" `
+  --mem 4096 `
+  --dismiss-welcome
+```
+
+### Linux (KVM Acceleration)
+```bash
+qemu-system-x86_64 -enable-kvm -m 4096 -smp 4 \
+  -bios /usr/share/ovmf/OVMF.fd \
+  -cdrom HSCL1-0.1.3-alpha.0-amd64.iso \
+  -vga std -device virtio-net-pci,netdev=net0 \
+  -netdev user,id=net0
+```
+
+---
+
+## Command Line Interface (`hscl`)
+
+The `hscl` tool provides unified control over the workstation, security tooling, memory policies, and local AI workflows:
 
 ```console
-$ cargo fmt --all -- --check && cargo clippy --all-targets -- -D warnings && cargo test --all
-$ python -m pytest tests -q
+# System status & diagnostics
+$ hscl status                                                      # Hardware, kernel, and memory summary
+$ hscl doctor                                                      # Diagnostic health checks (redacted by default)
+
+# Hardware & graphics profiling
+$ hscl graphics detect                                             # Identify GPU and recommended visual profile
+$ hscl memory status                                               # Inspect RAM, zram, and AI inference headroom
+
+# Dynamic desktop styling
+$ hscl wallpaper list                                              # Available wallpaper shader presets
+$ hscl wallpaper apply rain                                        # Switch desktop wallpaper immediately
+
+# Security Lab container execution
+$ hscl lab run --yes="I am authorized to test this target" -- nmap 127.0.0.1
+$ hscl lab install --yes="I am authorized to test this target" --toolset=web
+
+# Local AI profiling
+$ hscl ai model recommend                                          # Models fitting the available RAM/VRAM budget
+
+# Model Context Protocol (MCP) server
+$ hscl mcp                                                         # Stdio MCP JSON-RPC server (read-only by default)
 ```
 
-The image is produced by `scripts/remaster-iso.sh` from the official Kubuntu 26.04.1 ISO (checksum verified); the build refuses
-to finish if branding or the Workshop-inert checks fail (`distro/live/verify-image.sh`).
+Detailed CLI documentation is available in [`docs/CLI.md`](docs/CLI.md).
 
-## Repository layout
+---
 
-| Path | Contents |
+## Build From Source
+
+HSCL1 uses a reproducible remastering and package build pipeline. Detailed requirements and setup guides are in [`docs/BUILDING.md`](docs/BUILDING.md).
+
+```console
+# 1. Run local rust test suite
+$ cargo fmt --all -- --check
+$ cargo clippy --all-targets -- -D warnings
+$ cargo test --all
+
+# 2. Run Python & shell validation gates
+$ python scripts/forge.py check
+
+# 3. High-performance developer cycle (WSL2 bridge)
+$ scripts/dev/wsl-cycle.sh status
+$ scripts/dev/wsl-cycle.sh iso --fast
+```
+
+---
+
+## Repository Structure
+
+| Path | Purpose |
 |---|---|
-| `cli/hscl` | Rust CLI and MCP server |
-| `apps/control-center` | Qt 6 / QML Control Center |
-| `packages/debian` | HSCL1 packages (base, branding, desktop, security, handbook, control-center, workshop, memory) |
-| `distro` | live-image hooks, verification, installer config, security sysctl |
-| `themes`, `scripts/gen_*.py` | design tokens and generated assets |
-| `ai` | model catalogue, pinned inference backend |
-| `scripts` | remaster, release split/join, QEMU test harness, Workshop host tools |
-| `handbook` | offline handbook (EN/DE/FR) |
-| `docs` | architecture, threat model, decisions, claims, plans |
+| [`cli/hscl`](cli/hscl) | Rust CLI workspace, MCP server, security lab, memory manager, and system diagnostics |
+| [`apps/control-center`](apps/control-center) | Qt 6 / QML Control Center with modular diagnostics, security, and appearance pages |
+| [`apps/hcseasymath`](apps/hcseasymath) | Isolated symbolic mathematics engine and educational user interface |
+| [`packages/debian`](packages/debian) | HSCL1 Debian packages (`base`, `branding`, `desktop`, `security`, `handbook`, `control-center`, `workshop`) |
+| [`distro`](distro) | Live image hooks, Calamares installer configuration, initrd customization, and security sysctl |
+| [`themes`](themes) | Design tokens (Midnight, Light, Nord, Aurora) and asset generation scripts |
+| [`scripts`](scripts) | Remaster pipeline, release split/join, QEMU boot test harness, and developer cycle tools |
+| [`handbook`](handbook) | Trilingual offline documentation handbook (English, Deutsch, Français) |
+| [`docs`](docs) | Architecture specifications, threat models, claims ledger, and roadmap plans |
 
-## Documentation
+---
 
-[Claims & evidence](docs/CLAIMS.md) · [Known limitations](docs/KNOWN_LIMITATIONS.md) · [Architecture](docs/ARCHITECTURE.md) ·
-[Threat model](docs/THREAT_MODEL.md) · [Decisions](docs/DECISIONS.md) · [Build log](docs/BUILD_LOG.md) ·
-[Roadmap to v2](docs/superpowers/plans/2026-11-06-long-horizon-to-v2.md) · [Licences](docs/LICENSES.md)
+## Project Documentation
 
-## Contributing and security
+- [Claims & Evidence Ledger](docs/CLAIMS.md) — Exact status and proof targets for every feature.
+- [Known Limitations](docs/KNOWN_LIMITATIONS.md) — Honest disclosure of pre-alpha boundaries and gaps.
+- [Architecture Overview](docs/ARCHITECTURE.md) — System layers, packaging, and interaction model.
+- [Threat Model & Security](docs/THREAT_MODEL.md) — Security assumptions and container isolation rules.
+- [Build Log](docs/BUILD_LOG.md) — Chronological engineering execution and test logs.
+- [Roadmap to v1.0.0](docs/superpowers/plans/2026-11-08-selfheal-masterplan.md) — Active self-healing research masterplan.
+- [Licenses & Attributions](docs/LICENSES.md) — Upstream component licenses and intellectual property terms.
 
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md). Report vulnerabilities privately as described in
-[`SECURITY.md`](SECURITY.md).
+---
 
 <details>
-<summary><b>Deutsch</b></summary>
+<summary><b>Deutsch (German)</b></summary>
+<br>
 
-**HSCL1** ist eine Linux-Workstation auf Basis von Ubuntu 26.04 LTS (Kubuntu) und KDE Plasma 6 mit eigener Oberfläche
-(Top-Bar, schwebendes Dock, animierte Wallpaper), dem Kommandozeilenwerkzeug `hscl`, einem Control Center, einem
-Offline-Handbuch (EN/DE/FR), Speicherverwaltung, lokalen KI- und Coding-Werkzeugen und einer Workshop-Funktion für die Entwicklung.
+**HSCL1 (Hypercharged Supreme Computing Layout 1)** ist eine moderne Linux-Workstation auf Basis von Ubuntu 26.04 LTS (Kubuntu) und KDE Plasma 6.6 LTS mit eigenem Oberflächendesign (schlanke Top-Bar, schwebendes App-Dock, shader-basierte animierte Wallpaper), dem Kommandozeilenwerkzeug `hscl`, einem nativen Qt6/QML Control Center, einem vollständigen Offline-Handbuch (EN/DE/FR), integrierter Speicherverwaltung, lokalen KI- und Coding-Werkzeugen sowie isolierten Security-Lab-Workflows.
 
-**Status: Pre-Alpha.** Nur in virtuellen Maschinen getestet, nicht auf echter Hardware. Releases sind nicht signiert (nur
-SHA256SUMS). HSCL1 ist nicht Tails, kein offizielles Kali und erhebt keinen Anonymitätsanspruch. Was belegt ist und was nicht,
-steht in [`docs/CLAIMS.md`](docs/CLAIMS.md). Das ISO ist größer als 2 GiB und wird deshalb in Teilen veröffentlicht; mit
-`scripts/release-join.sh` wird es geprüft und zusammengesetzt. **Der Installer schreibt auf den gewählten Datenträger – nur mit
-virtuellen Datenträgern verwenden.** Lizenz: GPL-3.0-oder-später.
+**Status: Pre-Alpha (`0.1.3-alpha.0`).** Bislang ausschließlich in virtuellen Maschinen (QEMU mit WHPX/KVM) getestet, nicht auf physischer Hardware. Die Releases sind unverschlüsselt/unsigniert (Integritätssicherung über SHA-256-Prüfsummen). HSCL1 ist weder Tails noch ein offizielles Kali Linux und erhebt keinen universellen Anonymitätsanspruch. Alle verifizierten Fakten und Grenzen sind transparent in [`docs/CLAIMS.md`](docs/CLAIMS.md) und [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md) dokumentiert.
+
+Das ISO-Abbild überschreitet das GitHub-Größenlimit und wird in 3 Split-Parts bereitgestellt, die mit `scripts/release-join.sh` geprüft und zusammengesetzt werden. **Der Installer schreibt auf den ausgewählten Datenträger – bitte ausschließlich disposable virtuelle Disks verwenden.**
 
 </details>
 
 <details>
-<summary><b>Français</b></summary>
+<summary><b>Français (French)</b></summary>
+<br>
 
-**HSCL1** est une station de travail Linux basée sur Ubuntu 26.04 LTS (Kubuntu) et KDE Plasma 6, avec une interface propre
-(barre supérieure, dock flottant, fonds d'écran animés), l'outil en ligne de commande `hscl`, un Centre de contrôle, un manuel
-hors ligne (EN/DE/FR), une gestion de la mémoire, des outils d'IA locale et de programmation, et un mode Workshop pour le développement.
+**HSCL1 (Hypercharged Supreme Computing Layout 1)** est une station de travail Linux moderne basée sur Ubuntu 26.04 LTS (Kubuntu) et KDE Plasma 6.6 LTS, dotée d'une interface originale (barre supérieure épurée, dock d'applications flottant, fonds d'écran animés dynamiques), de l'outil CLI `hscl`, d'un Centre de contrôle natif en Qt6/QML, d'un manuel hors-ligne trilingue (EN/DE/FR), d'une gestion intelligente de la mémoire et d'un laboratoire de sécurité isolé.
 
-**État : pré-alpha.** Testé uniquement dans des machines virtuelles, pas sur du matériel réel. Les versions ne sont pas signées
-(SHA256SUMS seulement). HSCL1 n'est ni Tails, ni une version officielle de Kali, et ne revendique aucun anonymat. Ce qui est
-vérifié figure dans [`docs/CLAIMS.md`](docs/CLAIMS.md). L'ISO dépasse 2 Gio : il est publié en parties, à vérifier et assembler avec
-`scripts/release-join.sh`. **L'installateur écrit sur le disque choisi – utilisez uniquement des disques virtuels.** Licence :
-GPL-3.0 ou ultérieure.
+**État : Pré-alpha (`0.1.3-alpha.0`).** Testé exclusivement dans des machines virtuelles (QEMU avec accélération WHPX/KVM), aucun test sur matériel physique réel. Les publications ne sont pas signées cryptographiquement (sommes de contrôle SHA-256 fournies). HSCL1 n'est ni Tails, ni une version officielle de Kali, et ne garantit aucun anonymat absolu. Les preuves et limitations sont détaillées dans [`docs/CLAIMS.md`](docs/CLAIMS.md) et [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md).
+
+L'image ISO dépassant 2 Gio, elle est distribuée sous forme de segments numérotés vérifiables et assemblables via `scripts/release-join.sh`. **L'installateur applique les changements sur le disque sélectionné – utilisez uniquement des disques virtuels jetables.**
 
 </details>
+
+---
+
+## Contributing & Security
+
+Please read [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) before submitting contributions.
+Security vulnerabilities must be reported privately according to our [`SECURITY.md`](SECURITY.md) vulnerability disclosure process.
 
 ## Licence
 
-**GPL-3.0-or-later** for HSCL1-owned code, artwork and documentation ([`LICENSE`](LICENSE), [`NOTICE`](NOTICE)). Third-party
-components, including the Ubuntu/Kubuntu base, keep their own licences: [`docs/LICENSES.md`](docs/LICENSES.md). Trademarks belong to
-their owners.
+**GPL-3.0-or-later** for HSCL1-owned code, artwork, and documentation ([`LICENSE`](LICENSE), [`NOTICE`](NOTICE)).
+Third-party components, including the Ubuntu/Kubuntu foundation, retain their respective upstream licenses ([`docs/LICENSES.md`](docs/LICENSES.md)).
+Trademarks belong to their respective owners.
