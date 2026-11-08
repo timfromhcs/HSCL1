@@ -119,6 +119,25 @@ def _wsl_command(overrides: dict[str, object | None], script: str, args: list[st
     return [launcher, "-e", "env", *env_args, *assignments, "bash", script, *args]
 
 
+_ENV_MISSING = re.compile(r"^env: '?(?P<name>[^':\n]+)'?: No such file or directory", re.MULTILINE)
+
+
+def _raise_if_missing_executable(result: subprocess.CompletedProcess, argv: list[str]) -> None:
+    """Translate WSL's missing-executable result into the native FileNotFoundError contract.
+
+    A POSIX host raises `FileNotFoundError` from `subprocess.run` when `argv[0]` is absent. Under
+    WSL the Windows-side launch succeeds and `env(1)` inside the guest reports the miss as exit
+    code 127, so callers that catch `FileNotFoundError` to mean "tool not installed" would silently
+    see a failed run instead. Only env's own message is translated: a command that exits 127 by
+    itself keeps its exit code.
+    """
+    if result.returncode != 127 or not argv:
+        return
+    for match in _ENV_MISSING.finditer(result.stderr or ""):
+        if match.group("name") == argv[0]:
+            raise FileNotFoundError(2, "No such file or directory", argv[0])
+
+
 def run_command(
     argv: list[str],
     *,
@@ -129,6 +148,7 @@ def run_command(
 
     Paths inside `argv` are the caller's responsibility (use `to_bash_path`); overrides are converted
     the same way `run_script` does and, under WSL, passed through `env` so they are not reset.
+    A missing executable raises `FileNotFoundError` on every host, as it does natively.
     """
     kind = bash_kind()
     if kind == "none":
@@ -143,10 +163,12 @@ def run_command(
                 env_args += ["-u", name]
             else:
                 assignments.append(f"{name}={_env_value(value, name)}")
-        return subprocess.run(
+        result = subprocess.run(
             [WSL or BASH, "-e", "env", *env_args, *assignments, *argv],
             capture_output=True, text=True, timeout=timeout,
         )
+        _raise_if_missing_executable(result, argv)
+        return result
     env = {**os.environ}
     for key, value in raw.items():
         if value is None:

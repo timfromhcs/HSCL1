@@ -62,3 +62,10 @@ def test_run_command_passes_overrides_to_a_plain_command():
 def test_run_command_reports_a_missing_executable():
     with pytest.raises(FileNotFoundError):
         shellutil.run_command(["definitely-not-a-command-hscl1"])
+
+
+@pytest.mark.skipif(not shellutil.usable(), reason="needs a POSIX shell (native bash or WSL)")
+def test_run_command_keeps_a_real_exit_code_127():
+    """Under WSL a missing executable also exits 127; only env's own message is translated."""
+    r = shellutil.run_command(["sh", "-c", "exit 127"])
+    assert r.returncode == 127
