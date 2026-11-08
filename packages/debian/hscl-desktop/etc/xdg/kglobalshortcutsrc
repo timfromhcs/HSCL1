@@ -1,0 +1,49 @@
+[hscl-control-center.desktop]
+_k_friendly_name=HSCL1 Control Center
+_launch=Meta+,,none,HSCL1 Control Center
+
+[hscl-shortcuts.desktop]
+_k_friendly_name=HSCL1 Shortcuts
+_launch=Meta+K,none,HSCL1 Shortcuts
+
+[ksmserver]
+Lock Session=Meta+L\tScreensaver,Meta+L\tScreensaver,Lock Session
+
+[kwin]
+Overview=Meta+W,Meta+W,Toggle Overview
+Show Desktop=Meta+D,Meta+D,Show Desktop
+Switch to Desktop 1=Meta+1,none,Switch to Desktop 1
+Switch to Desktop 2=Meta+2,none,Switch to Desktop 2
+Switch to Desktop 3=Meta+3,none,Switch to Desktop 3
+Switch to Desktop 4=Meta+4,none,Switch to Desktop 4
+Switch to Desktop 5=Meta+5,none,Switch to Desktop 5
+Switch to Desktop 6=Meta+6,none,Switch to Desktop 6
+Switch to Desktop 7=Meta+7,none,Switch to Desktop 7
+Switch to Desktop 8=Meta+8,none,Switch to Desktop 8
+Switch to Desktop 9=Meta+9,none,Switch to Desktop 9
+Walk Through Windows=Meta+Tab\tAlt+Tab,Alt+Tab,Walk Through Windows
+Walk Through Windows (Reverse)=Meta+Shift+Tab\tAlt+Shift+Tab,Alt+Shift+Tab,Walk Through Windows (Reverse)
+Window Maximize=Meta+Up,Meta+Up,Maximize Window
+Window Minimize=Meta+Down,Meta+Down,Minimize Window
+Window Quick Tile Left=Meta+Left,Meta+Left,Quick Tile Window to the Left
+Window Quick Tile Right=Meta+Right,Meta+Right,Quick Tile Window to the Right
+
+[org.kde.dolphin.desktop]
+_k_friendly_name=Dolphin
+_launch=Meta+E,Meta+E,Dolphin
+
+[org.kde.konsole.desktop]
+_k_friendly_name=Konsole
+_launch=Meta+Return\tCtrl+Alt+T,none,Konsole
+
+[org.kde.krunner.desktop]
+_k_friendly_name=KRunner
+_launch=Meta+Space\tAlt+Space,Alt+Space,KRunner
+
+[org.kde.spectacle.desktop]
+_k_friendly_name=Spectacle
+RectangularRegionScreenShot=Meta+Shift+S\tMeta+Shift+Print,Meta+Shift+Print,Capture Rectangular Region
+_launch=Print,Print,Spectacle
+
+[plasmashell]
+activate application launcher=Alt+F1,none,Activate Application Launcher
