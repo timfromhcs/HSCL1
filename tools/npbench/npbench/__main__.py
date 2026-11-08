@@ -16,7 +16,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List
 
-from . import runner, suites as S
+from . import graph_runner, runner, suites as S
 
 SCHEMA = "npbench.report.v1"
 MAX_BUDGET_S = 3600.0
@@ -60,6 +60,13 @@ def _run(args: argparse.Namespace) -> int:
         return 2
     records: List[Dict[str, Any]] = []
     for spec in specs:
+        if spec["family"] in S.GRAPH_FAMILIES:
+            graph, truth = S.build_graph_instance(spec)
+            for solver in solvers:
+                rec = graph_runner.run_graph_instance({**spec, "expected": truth}, graph, solver, budget_s=args.budget, seed=args.seed)
+                if rec is not None:  # None: this solver exists, but not for this task
+                    records.append(rec)
+            continue
         formula, truth = S.build_instance(spec)
         for solver in solvers:
             records.append(runner.run_instance({"id": spec["id"], "family": spec["family"], "expected": truth}, formula, solver,

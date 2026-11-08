@@ -20,6 +20,13 @@ correctness and small sizes, not competitors to CaDiCaL or Kissat.
   disagreements, refused, unavailable). Exit 0 all fine, 1 disagreement / refused claim / error / unavailable solver,
   2 usage error, existing report without `--force`, or a heavy suite without `--allow-heavy`. A timeout is not a failure.
 
+- `npbench/graph.py`, `gen_graph.py`, `graph_solvers.py`, `graph_runner.py`: colouring, clique and Hamiltonian cycle.
+  Strict `.col` reader; generators with theorem-backed values (Mycielski, queens with gcd(n,6)=1, Turan, complete,
+  generalised Petersen) and planted ones (one-sided facts only); solvers `sat` (CNF + CDCL), `dsatur`, `bk`, `backtrack`.
+  A yes-answer needs a verified witness. A no-answer needs a RUP proof (colouring, Hamiltonian cycle) or, for a clique,
+  a proper colouring with k-1 colours; an exhausted search alone is reported as UNKNOWN.
+  `python -m npbench run --suite graphs --solvers sat,dsatur,bk,backtrack`.
+
 Run from `tools/npbench` (or put it on `PYTHONPATH`). Reports belong under the ignored `artifacts/npbench/`.
 
-Tests: `python -m pytest tests/unit/test_npbench_sat.py tests/unit/test_npbench_cli.py`
+Tests: `python -m pytest tests/unit/test_npbench_sat.py tests/unit/test_npbench_cli.py tests/unit/test_npbench_graph.py`
