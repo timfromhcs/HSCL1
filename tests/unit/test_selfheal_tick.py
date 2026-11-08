@@ -81,14 +81,70 @@ def test_a_light_row_runs_while_the_heavy_lock_is_held(tmp_path):
     assert make(tmp_path, [row("light", "pass")]).run(dry_run=False)["outcome"] == "ok"
 
 
-def test_the_third_consecutive_failure_blocks_the_row_and_the_next_row_is_picked(tmp_path):
-    rows = [row("bad", "raise SystemExit(3)"), row("good", "pass")]
-    outcomes = [make(tmp_path, rows).run(dry_run=False) for _ in range(5)]
-    assert [o["row"] for o in outcomes[:3]] == ["bad", "bad", "bad"]
-    assert [o["outcome"] for o in outcomes[:3]] == ["failed", "failed", "blocked"]
-    assert [o["row"] for o in outcomes[3:]] == ["good", "good"]
+def test_the_third_consecutive_failure_blocks_a_single_row(tmp_path):
+    rows = [row("bad", "raise SystemExit(3)")]
+    outcomes = [make(tmp_path, rows).run(dry_run=False) for _ in range(3)]
+    assert [o["outcome"] for o in outcomes] == ["failed", "failed", "blocked"]
+    assert make(tmp_path, rows).run(dry_run=False)["outcome"] == "idle"
     state = json.loads((tmp_path / "state.json").read_text())
     assert state["rows"]["bad"]["blocked"] is True
+
+
+def test_rotation_gives_every_row_a_turn_and_blocking_takes_three_rotations(tmp_path):
+    rows = [row("bad", "raise SystemExit(3)"), row("good", "pass")]
+    outcomes = [make(tmp_path, rows).run(dry_run=False) for _ in range(6)]
+    assert [(o["row"], o["outcome"]) for o in outcomes] == [
+        ("bad", "failed"), ("good", "ok"),
+        ("bad", "failed"), ("good", "ok"),
+        ("bad", "blocked"), ("good", "ok"),
+    ]
+    assert json.loads((tmp_path / "state.json").read_text())["rows"]["bad"]["blocked"] is True
+
+
+def test_the_rotation_visits_all_rows_in_file_order_and_wraps(tmp_path):
+    rows = [row("a", "pass"), row("b", "pass"), row("c", "pass")]
+    seen = [make(tmp_path, rows).run(dry_run=False)["row"] for _ in range(7)]
+    assert seen == ["a", "b", "c", "a", "b", "c", "a"]
+
+
+def test_an_unknown_last_row_starts_the_rotation_at_the_top(tmp_path):
+    (tmp_path / "state.json").write_text(json.dumps({"rows": {}, "last_row": "gone"}))
+    assert make(tmp_path, [row("a", "pass"), row("b", "pass")]).run(dry_run=False)["row"] == "a"
+
+
+def test_a_blocked_row_is_skipped_by_the_rotation(tmp_path):
+    (tmp_path / "state.json").write_text(
+        json.dumps({"rows": {"a": {"failures": 3, "blocked": True}, "last_row": None}})
+    )
+    rows = [row("a", "pass"), row("b", "pass")]
+    assert [make(tmp_path, rows).run(dry_run=False)["row"] for _ in range(3)] == ["b", "b", "b"]
+
+
+def test_a_busy_heavy_slot_does_not_idle_a_tick_when_a_light_row_is_due(tmp_path):
+    (tmp_path / "heavy.lock").write_text(json.dumps({"pid": 1, "started": time.time()}))
+    rows = [row("vm", "pass", heavy=True), row("light", "pass")]
+    res = make(tmp_path, rows).run(dry_run=False)
+    assert (res["row"], res["outcome"]) == ("light", "ok")
+    assert (tmp_path / "heavy.lock").exists(), "the light row must neither take nor remove the heavy lock"
+
+
+def test_a_heavy_row_runs_when_its_slot_is_free_and_the_rotation_reaches_it(tmp_path):
+    rows = [row("light", "pass"), row("vm", "pass", heavy=True)]
+    seen = [(make(tmp_path, rows).run(dry_run=False)["row"],
+             (tmp_path / "heavy.lock").exists()) for _ in range(4)]
+    assert [r for r, _ in seen] == ["light", "vm", "light", "vm"]
+    assert not any(held for _, held in seen), "the heavy lock is released after every tick"
+
+
+def test_dry_run_reports_the_next_row_in_the_rotation_and_does_not_advance_it(tmp_path):
+    rows = [row("a", "pass"), row("b", "pass")]
+    make(tmp_path, rows).run(dry_run=False)
+    state = (tmp_path / "state.json").read_text()
+    first = make(tmp_path, rows).run(dry_run=True)
+    second = make(tmp_path, rows).run(dry_run=True)
+    assert (first["row"], second["row"]) == ("b", "b"), "dry run must not move the pointer"
+    assert (tmp_path / "state.json").read_text() == state
+    assert not (tmp_path / "heavy.lock").exists()
 
 
 def test_a_success_resets_the_failure_count(tmp_path):
@@ -148,6 +204,14 @@ def test_the_log_has_no_environment_and_rows_with_secret_shaped_arguments_are_re
         tick.validate_rows([{"id": "x", "argv": [], "heavy": False}])
     with pytest.raises(tick.RowError):
         tick.validate_rows([{"id": "dup", "argv": ["a"]}, {"id": "dup", "argv": ["b"]}])
+
+
+def test_dry_run_predicts_a_deferral_when_the_heavy_slot_is_taken(tmp_path):
+    # A dry run must be an honest preview, so it reads the heavy lock file instead of taking anything.
+    (tmp_path / "heavy.lock").write_text(json.dumps({"pid": 1, "started": time.time()}))
+    res = make(tmp_path, [row("vm", "pass", heavy=True)]).run(dry_run=True)
+    assert (res["outcome"], res["row"]) == ("deferred", "vm")
+    assert (tmp_path / "heavy.lock").exists()
 
 
 def test_the_worker_does_not_inherit_the_callers_environment(tmp_path, monkeypatch):

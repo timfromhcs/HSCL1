@@ -196,6 +196,44 @@ class Tick:
         finally:
             self.glock.release()
 
+    def _rotation(self, state: dict[str, Any]) -> list[dict[str, Any]]:
+        """The live rows in round-robin order: the row after the last one comes first, wrapping around.
+
+        A blocked row is left out. When ``last_row`` is unknown (fresh state, or a rows file that changed) the
+        rotation starts at the top of the file, so a first tick behaves like the old first-fit choice.
+        """
+        order = [r["id"] for r in self.rows]
+        if not order:
+            return []
+        position = {rid: i for i, rid in enumerate(order)}
+        live = [r for r in self.rows if not state["rows"].get(r["id"], {}).get("blocked")]
+        if not live:
+            return []
+        last = state.get("last_row")
+        start = (position[last] + 1) % len(order) if last in position else 0
+        return sorted(live, key=lambda r: (position[r["id"]] - start) % len(order))
+
+    def _pick(
+        self, state: dict[str, Any], *, dry_run: bool
+    ) -> tuple[dict[str, Any] | None, bool, list[dict[str, Any]]]:
+        """The row a tick would run, whether the heavy slot was taken for it, and the rotation that was walked.
+
+        A heavy row whose slot is busy is skipped rather than chosen, so a busy heavy slot cannot idle the whole
+        tick when a light row is available. In a dry run nothing is taken: the heavy slot is only *predicted*
+        through the lock file, which keeps dry-run side-effect free.
+        """
+        ordered = self._rotation(state)
+        for candidate in ordered:
+            if not candidate.get("heavy"):
+                return candidate, False, ordered
+            if dry_run:
+                if not self.hlock.held_by_other():
+                    return candidate, False, ordered
+                continue
+            if self.hlock.acquire():
+                return candidate, True, ordered
+        return None, False, ordered
+
     def _decide(self, _held: _Lock | None, *, dry_run: bool) -> dict[str, Any]:
         try:
             state = self._load_state()
@@ -203,20 +241,17 @@ class Tick:
             res = {"outcome": "refused: corrupt state", "row": None}
             self._log(row=None, outcome=res["outcome"], detail=str(exc)[:120])
             return res
-        chosen = next((r for r in self.rows if not state["rows"].get(r["id"], {}).get("blocked")), None)
+        chosen, heavy, ordered = self._pick(state, dry_run=dry_run)
         if chosen is None:
-            res = {"outcome": "idle", "row": None}
-            self._log(row=None, outcome="idle")
+            # No live row at all is idle; live rows that are all heavy behind a busy slot are deferred.
+            res = ({"outcome": "idle", "row": None} if not ordered
+                   else {"outcome": "deferred", "row": ordered[0]["id"]})
+            self._log(row=res["row"], outcome=res["outcome"])
             return res
         rid, argv = chosen["id"], chosen["argv"]
         if dry_run:
             res = {"outcome": "dry-run", "row": rid, "argv": argv}
             self._log(row=rid, argv=argv, outcome="dry-run")
-            return res
-        heavy = bool(chosen.get("heavy"))
-        if heavy and not self.hlock.acquire():
-            res = {"outcome": "deferred", "row": rid}
-            self._log(row=rid, argv=argv, outcome="deferred")
             return res
         try:
             outcome, code, seconds = self._execute(argv)

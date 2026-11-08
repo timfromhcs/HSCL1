@@ -970,3 +970,23 @@ Commands and results: `python -m pytest tests/unit/test_npbench_diff.py -q` -> *
 Docs: `docs/research/HCSPNP_BASELINE.md` (part 5, the measured matrix), `docs/CLAIMS.md` (differential matrix row), `docs/KNOWN_LIMITATIONS.md` (skip condition + native parser not executed), ledger row 20 now **5a + 5b DONE**.
 
 - Not done: the native C++ parser was not built or run; no fix was applied to the clone (B-P1, owner push); `d2`/`e` remain real strictness bugs in the upstream Python parser, documented, not patched.
+
+## W2-4: scheduler row rotation (ledger row 22, 2026-11-08, session 3)
+
+`scripts/selfheal/tick.py` chose the row with `next(r for r in rows if not blocked)`, so with `rows.json` holding `git-status` and `git-last-commit` only the first could ever execute. The chooser is now **round-robin over the live rows in file order**: the row after `state["last_row"]` first, the rest following in file order and wrapping.
+
+Rules written down in `docs/research/SELFHEAL_SCHEDULER_DESIGN.md` (which also stopped claiming "design only, no code"):
+- blocked rows are excluded from the rotation (`BLOCKED` still means never again automatically);
+- a heavy row whose heavy slot is busy is **skipped, not chosen**, so a busy slot cannot idle a tick while a light row is available; `deferred` survives only for "every live row is heavy and the slot is taken";
+- an unknown `last_row` (fresh state, changed rows file) starts at the top, so the first tick behaves like the old first-fit choice;
+- dry-run never advances the pointer and predicts a deferral by **reading** the heavy lock file instead of taking it, so it stays side-effect free (two dry runs report the same row - the honest answer to "what would the next real tick run").
+
+Two intended consequences, documented so they are not "fixed" later: the **three-attempt rule now spans three rotations** (with `[bad, good]` the sequence is failed, ok, failed, ok, blocked, ok - better for a transient failure than three back-to-back strikes), and `idle` (no live row) is now distinct from `deferred` (live rows, all heavy, slot busy).
+
+Tests: `tests/unit/test_selfheal_tick.py` grew from 14 to **22**. The old `test_the_third_consecutive_failure_blocks_the_row_and_the_next_row_is_picked` encoded first-fit and asserted `["bad","bad","bad"]`; it was **rewritten to the new contract** (single-row blocking, plus the rotation sequence `bad, good, bad, good, blocked, good`) rather than changing the code to keep the old assertion. New tests: rotation visits every row in file order and wraps; unknown `last_row` starts at the top; a blocked row is skipped; a busy heavy slot does not idle a tick when a light row is due (and the light row neither takes nor removes the heavy lock); a heavy row does run and always releases its lock; dry-run reports the same next row twice without changing `state.json`; dry-run predicts a deferral from a held heavy lock and leaves the lock file in place.
+
+Mutations (`artifacts/loop/mutate_tick.py`, backup copy + sha256, never `git checkout`): rotation removed; `start` pinned to 0; blocked filter removed; the busy heavy slot taken anyway; dry-run ignoring the heavy lock; the wrap modulo removed. **6 of 6 killed, survivors: none**, original and final sha256 identical (`edbbf89ff1302b8f...`). One earlier mutation was discarded as an **equivalent mutant** (a clamped wrap produced the identical ordering) and replaced with the real no-modulo mutation - recorded here so the discard is not mistaken for a test gap.
+
+Commands and results: `python -m pytest tests/unit/test_selfheal_tick.py -q` -> **22 passed** (Windows); WSL run green via the forge changed-test step.
+
+- Not done: nothing is registered with Windows Task Scheduler or cron (owner decision, unchanged); tick output is still log-file only.
