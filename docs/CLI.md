@@ -89,12 +89,32 @@ Privacy posture, ephemeral session isolation, fail-closed Tor browser workflows,
 `hscl privacy tails verify` streams and calculates the SHA256 checksum of an official Tails ISO image and checks it against upstream releases.
 `hscl privacy tails launch` builds or executes an isolated QEMU/KVM virtual machine launch command with snapshot mode and no host drive mounts.
 
+## `hscl security` (IMPLEMENTED, unit-tested)
+
+Security posture, firewall profiles, AppArmor mandatory access control, disk encryption, and audit reports (AGENTS.md section 6.1, 6.2, 6.3 & 8.2).
+
+`hscl security status` provides an overall posture summary covering AppArmor, UFW firewall, Secure Boot, open LUKS volumes, and forbidden APT repository hygiene.
+`hscl security firewall status` inspects UFW service state, incoming/outgoing default policies, and active firewall profile.
+`hscl security firewall profile list` lists defined profiles (`standard`, `public-wifi`, `lab`, `privacy`).
+`hscl security firewall profile set <NAME>` validates profile names and plans/executes configuration (`--dry-run` previews without root).
+`hscl security apparmor status` reports kernel module state and loaded profile counts (enforce vs complain mode).
+`hscl security audit [--output PATH]` runs a comprehensive security baseline audit and optionally writes a JSON report (never overwriting existing files).
+`hscl security encryption status` checks mapped `CRYPT-LUKS` volumes, crypttab entries, and root disk encryption.
+`hscl security recovery check` inspects disaster recovery snapshot directories (`/var/backups/hscl`, Timeshift, snapper).
+
 
 ## More commands (rows taken from `--help`; the drift test `cli_doc_lists_every_command` keeps this page complete)
 
 | Command | What it does |
 |---|---|
 | `hscl overview` | Friendly overview of HSCL1 and where to start (also what `hscl1` with no arguments prints) |
+| `hscl security firewall status` | Inspect UFW firewall status, default policies, and active profile |
+| `hscl security firewall profile list` | List defined firewall profiles with descriptions and policies |
+| `hscl security firewall profile set` | Apply or preview a firewall profile (standard, public-wifi, lab, privacy) |
+| `hscl security apparmor status` | Show AppArmor kernel module state and loaded profile counts |
+| `hscl security audit` | Comprehensive security posture audit; writes report with --output |
+| `hscl security encryption status` | Report open LUKS encrypted volumes and crypttab entries |
+| `hscl security recovery check` | Check backup snapshots and disaster recovery readiness |
 | `hscl privacy status` | Live privacy posture: ephemeral overlay, memory swap, dump safety, and Tor readiness |
 | `hscl privacy tor status` | Check Tor daemon status and Tor Browser availability |
 | `hscl privacy tor launch` | Launch Tor Browser with fail-closed protection (no direct-browser fallback) |

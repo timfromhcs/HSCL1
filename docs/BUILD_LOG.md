@@ -1344,3 +1344,24 @@ Decision rule: pick the one that unblocks the most downstream work. HCSUDA H3c-3
   - Python unit tests: Created `tests/unit/test_privacy_cli.py` (5 tests) asserting CLI output, JSON payloads, fail-closed behavior, boundary disclaimer assertions, Tails ISO streaming verification, and QEMU isolation command generation.
   - Updated MCP tool count assertions in `tests/unit/test_hscl_mcp.py` (18 read-only tools, 22 write tools).
   - Verified `cargo fmt -- --check` and `cargo clippy -p hscl -- -D warnings` 100% clean.
+
+### V1-N HSCL1 Security Subcommand Hardening & Firewall Profiles (2026-11-09)
+
+- **CLI Implementation (AGENTS.md section 6.1, 6.2, 6.3 & 8.2):**
+  - Expanded `Security` command tree to full specification:
+    - `hscl security status`: Overall security summary (AppArmor, UFW, Secure Boot, LUKS, forbidden APT sources).
+    - `hscl security firewall status`: Inspects UFW enabled state, incoming/outgoing default policies, active profile.
+    - `hscl security firewall profile list`: Lists defined profiles (`standard`, `public-wifi`, `lab`, `privacy`).
+    - `hscl security firewall profile set <NAME>`: Validates profile and safely applies or plans commands (`--dry-run` previews without root privilege).
+    - `hscl security apparmor status`: Inspects kernel module and loaded profiles (enforce vs complain mode counts).
+    - `hscl security audit [--output PATH]`: Executes full baseline posture audit; `--output` writes formatted JSON report with safe create-new check (never overwriting).
+    - `hscl security encryption status`: Inspects mapped `CRYPT-LUKS` block devices, crypttab entries, and root disk encryption.
+    - `hscl security recovery check`: Checks disaster recovery readiness across snapshot directories (`/var/backups/hscl`, Timeshift, snapper).
+  - Updated `cli/hscl/src/security.rs` with pure inspection helpers (`parse_apparmor_profiles`, `parse_ufw_conf`, `parse_crypttab`, `plan_firewall_profile_set`).
+- **Documentation & Handbook Synchronization:**
+  - Added section `## hscl security` and table rows in `docs/CLI.md`, passing `cli_doc_lists_every_command`.
+  - Updated offline handbook `cli.md` across English, German, and French (`handbook/{en,de,fr}/src/cli.md`).
+- **Automated Test Coverage:**
+  - Rust unit tests: Added 5 unit tests in `cli/hscl/src/security.rs`. All 219 tests passed with 0 failures (`cargo test -p hscl`).
+  - Python unit tests: Created `tests/unit/test_security_cli.py` (7 tests) asserting CLI output, JSON payloads, dry-run commands, report writing, overwrite prevention, and recovery checks.
+  - Verified `cargo fmt -- --check` and `cargo clippy -p hscl -- -D warnings` 100% clean.
