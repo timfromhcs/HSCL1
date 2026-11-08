@@ -165,11 +165,138 @@ def _simplify(request: dict[str, Any], started: float) -> dict[str, Any]:
     )
 
 
+_REAL_DOMAIN = (
+    "solutions are searched in the real domain only; the equation is the expression set to zero"
+)
+
+
+def _solve(request: dict[str, Any], started: float) -> dict[str, Any]:
+    expr, var = _expression_and_variable(request)
+    try:
+        solution = symbolic.solve_equation(expr, var)
+    except symbolic.SolveUnsupported as exc:
+        return _result(
+            request, "solve", "unresolved",
+            normalized_expression=str(expr),
+            error=f"the solver has no method for this equation ({exc}); no roots are claimed",
+            assumptions=[_REAL_DOMAIN],
+            timings_ms={"total": round((time.perf_counter() - started) * 1000.0, 3)},
+        )
+    elapsed = {"total": round((time.perf_counter() - started) * 1000.0, 3)}
+    common: dict[str, Any] = {
+        "normalized_expression": str(expr),
+        "assumptions": [_REAL_DOMAIN],
+        "timings_ms": elapsed,
+    }
+    if solution in (sp.S.Reals, sp.S.Complexes):
+        return _result(
+            request, "solve", "unresolved",
+            error="the solver reports that the equation holds on the whole domain; no list of roots is claimed",
+            warnings=["every value in the domain satisfies it, so there is no finite root list"], **common,
+        )
+    candidates = symbolic.finite_roots(solution)
+    if candidates is None:
+        return _result(
+            request, "solve", "unresolved",
+            error=(
+                f"the solution set is a {type(solution).__name__}, not a finite list of roots; "
+                "no roots are claimed"
+            ),
+            **common,
+        )
+
+    parameters = sorted(expr.free_symbols - {var}, key=lambda s: s.name)
+    if not candidates:
+        if parameters:
+            return _result(
+                request, "solve", "unresolved",
+                error=(
+                    "no root was found for this variable, but the equation contains the parameter(s) "
+                    + ", ".join(s.name for s in parameters)
+                    + "; the answer depends on them and is not claimed"
+                ),
+                **common,
+            )
+        warnings = [
+            "the solver found no real solution; the absence is not independently verified",
+        ]
+        complex_count = _complex_root_count(expr, var)
+        if complex_count is True:
+            warnings.append("the equation has infinitely many complex roots; they are not returned")
+        elif complex_count:
+            warnings.append(
+                f"the equation has {complex_count} complex root(s), which this version does not return"
+            )
+        return _result(
+            request, "solve", "partial",
+            result_expression="EmptySet", exactness="none", warnings=warnings, **common,
+        )
+
+    kept: list[sp.Expr] = []
+    kinds: list[str] = []
+    dropped = 0
+    unverified: list[str] = []
+    for root in candidates:
+        kind, note = symbolic.verify_root(root, expr, var)
+        if kind == "failed":
+            dropped += 1
+            continue
+        kept.append(root)
+        kinds.append(kind)
+        if kind == "unverified":
+            unverified.append(note)
+    if not kept:
+        return _result(
+            request, "solve", "internal_error",
+            error="every root failed the substitution check; no solution is returned",
+            warnings=["the solver's roots did not solve the equation"], **common,
+        )
+
+    fields = dict(common, result_expression=str(sp.FiniteSet(*kept)))
+    fields["exactness"] = "symbolic_exact" if set(kinds) == {"symbolic"} else (
+        "numeric" if set(kinds) == {"numeric"} else "none"
+    )
+    checks = [f"each of the {len(kept)} returned root(s) was substituted back into the equation"]
+    warnings: list[str] = []
+    if dropped:
+        warnings.append(f"{dropped} root(s) failed the substitution check and were dropped")
+    if unverified:
+        warnings.append(f"{len(unverified)} root(s) could not be verified: {unverified[0]}")
+    if dropped or unverified:
+        return _result(request, "solve", "partial", checks=checks, warnings=warnings, **fields)
+    if set(kinds) == {"numeric"}:
+        warnings.append("the substitution check is numeric only (not proven symbolically)")
+        return _result(request, "solve", "ok", checks=checks, warnings=warnings, **fields)
+    if parameters:
+        fields["assumptions"] = [
+            *_REAL_DOMAIN,
+            "the roots contain the parameter(s) "
+            + ", ".join(s.name for s in parameters)
+            + "; their membership in the real domain is not decided",
+        ]
+    return _result(request, "solve", "ok", checks=checks, **fields)
+
+
+def _complex_root_count(expr: sp.Expr, var: sp.Symbol) -> int | bool:
+    """How many roots the equation has over the complexes: a count, ``True`` for infinitely many, 0 for none."""
+    try:
+        solution = sp.solveset(expr, var, domain=sp.Complexes)
+    except (NotImplementedError, ValueError, TypeError):
+        return 0
+    if solution in (sp.S.Complexes, sp.S.Reals):
+        return True
+    roots = symbolic.finite_roots(solution)
+    if roots is None:
+        return True
+    return len(roots)
+
+
 _HANDLERS: dict[str, Callable[[dict[str, Any], float], dict[str, Any]]] = {
     "differentiate": _differentiate,
     "integrate": _integrate,
     "evaluate": _evaluate,
     "simplify": _simplify,
+    "solve": _solve,
 }
 OPERATIONS = tuple(_HANDLERS)
 

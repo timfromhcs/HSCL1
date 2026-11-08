@@ -99,3 +99,71 @@ def verify_equivalence(candidate: sp.Expr, original: sp.Expr) -> tuple[str, str]
     if usable >= _MIN_NUMERIC_POINTS:
         return "numeric", f"result agrees numerically with the input at {usable} sample points"
     return "unverified", f"only {usable} usable sample points"
+
+
+class SolveUnsupported(Exception):
+    """``solveset`` has no method for this equation (it raises ``NotImplementedError``)."""
+
+
+def solve_equation(expr: sp.Expr, variable: sp.Symbol) -> sp.Set:
+    """Solutions of ``expr == 0`` in the real domain, as a SymPy set.
+
+    ``solveset`` is used instead of ``solve``: it returns a set (so "a list of all roots" is never
+    invented), it takes the domain explicitly, and it does not depend on the shape of the output.
+    """
+    try:
+        return sp.solveset(expr, variable, domain=sp.S.Reals)
+    except NotImplementedError as exc:
+        raise SolveUnsupported(str(exc) or "no method for this equation") from None
+
+
+def finite_roots(solution: sp.Set) -> list[sp.Expr] | None:
+    """The elements of a finite solution set, or ``None`` when the set is not a finite list.
+
+    ``EmptySet`` is a ``FiniteSet`` and yields ``[]``. A ``Union`` of finite sets is flattened. For an
+    ``Intersection`` with a finite set (``solveset`` returns ``Intersection({-a}, Reals)`` when a
+    parameter is present) the finite part is used; the caller must disclose that membership of the
+    other sets was not decided.
+    """
+    if solution is sp.S.EmptySet:
+        return []
+    if isinstance(solution, sp.FiniteSet):
+        return list(solution.args)
+    if isinstance(solution, sp.Union):
+        roots: list[sp.Expr] = []
+        for part in solution.args:
+            elements = finite_roots(part)
+            if elements is None:
+                return None
+            roots.extend(elements)
+        return roots
+    if isinstance(solution, sp.Intersection):
+        for part in solution.args:
+            if isinstance(part, (sp.FiniteSet, sp.Union)):
+                elements = finite_roots(part)
+                if elements is not None:
+                    return elements
+        return None
+    return None
+
+
+def verify_root(root: sp.Expr, equation: sp.Expr, variable: sp.Symbol) -> tuple[str, str]:
+    """Substitute ``root`` back into ``equation`` and say how strong the check was.
+
+    Returns ``(kind, note)`` with kind one of ``symbolic`` (substitution gives exactly 0), ``numeric``
+    (the residual is a number that is zero to 1e-12 relative, not proven), ``unverified`` (the
+    residual still contains symbols) or ``failed`` (a non-zero residual).
+    """
+    residual = sp.simplify(equation.subs(variable, root))
+    if residual == 0:
+        return "symbolic", f"substituting {root} gives exactly 0"
+    if not residual.free_symbols:
+        try:
+            value = sp.N(residual, 30)
+            magnitude = abs(sp.N(root, 30))
+        except (ZeroDivisionError, ValueError, TypeError, OverflowError):
+            return "unverified", "the residual could not be evaluated"
+        if value.is_finite is True and abs(value) <= _TOLERANCE * (1 + magnitude):
+            return "numeric", f"substituting {root} leaves a residual of {value} (numerically zero)"
+        return "failed", f"substituting {root} leaves the non-zero residual {value}"
+    return "unverified", "the residual still contains symbols, so it cannot be checked numerically"
