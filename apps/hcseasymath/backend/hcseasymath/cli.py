@@ -36,10 +36,20 @@ def doctor(as_json: bool) -> int:
     return 0
 
 
-def serve(port: int) -> int:
+def serve(port: int, warm: bool = False) -> int:
     import uvicorn
 
     from .api.app import create_app
+    from .jobs.worker import run_isolated
+
+    warm_worker = None
+    run = run_isolated
+    if warm:
+        from .jobs.warm import WarmWorker
+
+        warm_worker = WarmWorker()
+        warm_worker.start()
+        run = warm_worker.run
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -47,11 +57,15 @@ def serve(port: int) -> int:
     sock.listen(16)
     bound = sock.getsockname()[1]
     token = secrets.token_urlsafe(32)
-    app = create_app(token=token, port=bound)
+    app = create_app(token=token, port=bound, run=run)
     # The launcher reads this single line; the token is shown to the user who started the app.
     print(json.dumps({"url": f"http://127.0.0.1:{bound}/", "token": token}), flush=True)
     config = uvicorn.Config(app, log_level="warning", access_log=False, server_header=False)
-    uvicorn.Server(config).run(sockets=[sock])
+    try:
+        uvicorn.Server(config).run(sockets=[sock])
+    finally:
+        if warm_worker is not None:
+            warm_worker.stop()
     return 0
 
 
@@ -62,10 +76,11 @@ def main(argv: list[str] | None = None) -> int:
     d.add_argument("--json", action="store_true")
     s = sub.add_parser("serve", help="run the loopback API until stopped")
     s.add_argument("--port", type=int, default=0, help="0 picks a free port")
+    s.add_argument("--warm", action="store_true", help="Linux only: keep a pre-imported zygote and fork one child per request")
     args = parser.parse_args(argv)
     if args.command == "doctor":
         return doctor(args.json)
-    return serve(args.port)
+    return serve(args.port, warm=args.warm)
 
 
 if __name__ == "__main__":
