@@ -86,7 +86,7 @@ workflows; schemas/provenance interfaces; HCSUDA planner/capability contracts.
 
 Default lock groups added by the Unified Master (20.3): `scripts/selfheal/` (now implemented), `apps/hcseasymath` API/schema/worker, a future `apps/hcsphysics`.
 
-- **No lock held.** Released: `LOCK: E - apps/hcseasymath/ (core/symbolic.py, core/engine.py, api/app.py, schemas) - agent - integrate operation and graded derivative check - a82b7a5`; taken without a written line (same gap as C6), released when its PR merges. Released: `LOCK: P - cli/hscl/ (main.rs, new cqhecs.rs), docs/CLI.md - agent - read-only CQ-HECS status wrapper (Master P2, row 3) - a82b7a5`, released when its PR merged.
+- **No lock held.** Released: `LOCK: P - cli/hscl/ (src/mcp.rs), docs/CLI.md, docs/superpowers/plans/2026-11-08-selfheal-masterplan.md - agent - add hscl_cqhecs_status, hscl_memory_status, hscl_lab_status, and hscl_wallpaper_list/apply tools to hscl mcp - 067a55f`. Released: `LOCK: E - apps/hcseasymath/ (core/symbolic.py, core/engine.py, api/app.py, schemas) - agent - integrate operation and graded derivative check - a82b7a5`; taken without a written line (same gap as C6), released when its PR merges. Released: `LOCK: P - cli/hscl/ (main.rs, new cqhecs.rs), docs/CLI.md - agent - read-only CQ-HECS status wrapper (Master P2, row 3) - a82b7a5`, released when its PR merged.
 - Released: `LOCK: E - scripts/forge.py, .github/workflows/ci.yml (+ tests/unit/test_forge.py) - agent - hcseasymath gate step and CI job, doc-command step - 37d2f6d`;
   taken without being written down (a gap), released when PR #29 merged as `4bdcb2f`. From now on a lock line is written **before** editing these files.
 
