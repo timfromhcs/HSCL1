@@ -25,3 +25,45 @@ RollOverDesktops=true
 
 [KSplash]
 Theme=org.kde.Breeze
+
+[kglobalshortcutsrc][hscl-control-center.desktop]
+_launch=Meta+,
+
+[kglobalshortcutsrc][hscl-shortcuts.desktop]
+_launch=Meta+K
+
+[kglobalshortcutsrc][ksmserver]
+Lock Session=Meta+L\tScreensaver
+
+[kglobalshortcutsrc][kwin]
+Show Desktop=Meta+D
+Switch to Desktop 1=Meta+1
+Switch to Desktop 2=Meta+2
+Switch to Desktop 3=Meta+3
+Switch to Desktop 4=Meta+4
+Switch to Desktop 5=Meta+5
+Switch to Desktop 6=Meta+6
+Switch to Desktop 7=Meta+7
+Switch to Desktop 8=Meta+8
+Switch to Desktop 9=Meta+9
+Walk Through Windows=Meta+Tab\tAlt+Tab
+Walk Through Windows (Reverse)=Meta+Shift+Tab\tAlt+Shift+Tab
+Window Maximize=Meta+Up
+Window Minimize=Meta+Down
+Window Quick Tile Left=Meta+Left
+Window Quick Tile Right=Meta+Right
+
+[kglobalshortcutsrc][org.kde.dolphin.desktop]
+_launch=Meta+E
+
+[kglobalshortcutsrc][org.kde.konsole.desktop]
+_launch=Meta+Return\tCtrl+Alt+T
+
+[kglobalshortcutsrc][org.kde.krunner.desktop]
+_launch=Meta+Space\tAlt+Space
+
+[kglobalshortcutsrc][org.kde.spectacle.desktop]
+RectangularRegionScreenShot=Meta+Shift+S\tMeta+Shift+Print
+
+[kglobalshortcutsrc][plasmashell]
+activate application launcher=Alt+F1

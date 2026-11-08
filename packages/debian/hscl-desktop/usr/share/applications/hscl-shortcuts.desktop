@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=HSCL1 Keyboard Shortcuts
+Name[de]=HSCL1-Tastenkombinationen
+Name[fr]=Raccourcis clavier HSCL1
+Comment=Keyboard shortcut reference and cheat sheet
+Comment[de]=Tastenkombinations-Referenz und Übersicht
+Comment[fr]=Référence des raccourcis clavier
+Exec=hscl-shortcuts
+Icon=help-about
+Categories=Utility;Help;
+Keywords=shortcuts;keyboard;hotkeys;tastatur;raccourcis;

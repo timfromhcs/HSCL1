@@ -1254,3 +1254,28 @@ Decision rule: pick the one that unblocks the most downstream work. HCSUDA H3c-3
   - Verifies `fs.suid_dumpable = 0` preventing core dumps from leaking to persistent disks.
   - Verifies casper overlay preservation for ephemeral live sessions without automounting host drives.
 - **Verification & PR Merge:** Passed 4/4 tests locally on Windows (0.22s) and WSL Linux (0.54s). Created PR #45; all 16 of 16 CI checks passed 100% green on GitHub Actions, squash-merged to `main` as `933050a`.
+
+### V1-J HSCL1 Keyboard Shortcuts & Navigation Implementation (2026-11-08)
+
+- **Configuration & Defaults:** Implemented system-wide keyboard shortcuts in `packages/debian/hscl-desktop/etc/xdg/kglobalshortcutsrc` and Look-and-Feel package `contents/defaults` fulfilling `AGENTS.md` 4.5:
+  - `Meta` standalone triggers Application Menu (via `Alt+F1` binding).
+  - `Meta + Space`: KRunner launcher search.
+  - `Meta + Enter` and `Ctrl + Alt + T`: Konsole terminal.
+  - `Meta + E`: Dolphin file manager.
+  - `Meta + D`: Show desktop.
+  - `Meta + Tab`: KWin application switcher (and `Meta + Shift + Tab` in reverse).
+  - `Meta + K`: HSCL1 Shortcuts reference cheat sheet.
+  - `Meta + ,`: HSCL1 Control Center.
+  - `Meta + L`: Lock screen.
+  - `Meta + Shift + S`: Spectacle rectangular region screenshot.
+  - `Meta + Left / Right`: KWin quick tile left / right.
+  - `Meta + Up / Down`: Maximize and minimize / restore window.
+  - `Meta + 1..9`: Deterministic virtual desktop switching 1 to 9.
+- **Reference Tool & Documentation:**
+  - Added `packages/debian/hscl-desktop/usr/bin/hscl-shortcuts` with dual-mode support (ASCII table in CLI/terminal, graphical handbook in desktop environment) localized for EN/DE/FR.
+  - Added desktop entry `hscl-shortcuts.desktop`.
+  - Authored authoritative `docs/SHORTCUTS.md` with complete key bindings and customization instructions.
+  - Updated offline handbook `desktop.md` across EN/DE/FR chapters.
+- **Automated Test Coverage:**
+  - Created `tests/unit/test_shortcuts.py` asserting valid INI structure, mapping of all required shortcuts, zero key collisions, documentation completeness, and handbook parity.
+  - Passed 7/7 tests locally on Windows and WSL Linux. Executable bit and ShellCheck verified clean.

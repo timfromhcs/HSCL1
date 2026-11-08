@@ -1,0 +1,106 @@
+#!/bin/sh
+# HSCL1 Keyboard Shortcut Reference & Cheat Sheet (Meta+K)
+# Made with love by hcsmedia.
+set -e
+
+case "${LC_ALL:-${LC_MESSAGES:-${LANG:-en}}}" in
+  de*) lang=de ;;
+  fr*) lang=fr ;;
+  *)   lang=en ;;
+esac
+
+show_cli() {
+  case "$lang" in
+    de)
+      cat << 'EOF'
+========================================================================
+HSCL1 Tastenkombinationen (Referenz)
+========================================================================
+Tastenkombination       Aktion
+------------------------------------------------------------------------
+Meta                    Start- / Anwendungsmenü öffnen
+Meta + Leertaste        Programmsuche (KRunner) fokussieren
+Meta + Eingabetaste     Terminal (Konsole) öffnen
+Ctrl + Alt + T          Terminal öffnen (Klassischer Fallback)
+Meta + E                Dateimanager (Dolphin) öffnen
+Meta + D                Desktop anzeigen
+Meta + Tab              Fenster wechseln (Task-Switcher)
+Meta + K                Diese Tastenkombinations-Referenz öffnen
+Meta + ,                HSCL1-Kontrollzentrum öffnen
+Meta + L                Bildschirm sperren
+Meta + Umschalt + S     Bereichs-Screenshot aufnehmen
+Meta + Links / Rechts   Fenster links / rechts anheften
+Meta + Oben             Fenster maximieren
+Meta + Unten            Fenster minimieren / wiederherstellen
+Meta + 1..9             Zu virtuellem Desktop 1 bis 9 wechseln
+========================================================================
+EOF
+      ;;
+    fr)
+      cat << 'EOF'
+========================================================================
+Raccourcis clavier HSCL1 (Référence)
+========================================================================
+Raccourci               Action
+------------------------------------------------------------------------
+Meta                    Ouvrir le menu d'applications
+Meta + Espace           Recherche d'applications (KRunner)
+Meta + Entrée           Ouvrir le terminal (Konsole)
+Ctrl + Alt + T          Ouvrir le terminal (Raccourci Linux classique)
+Meta + E                Ouvrir le gestionnaire de fichiers (Dolphin)
+Meta + D                Afficher le bureau
+Meta + Tab              Changer de fenêtre
+Meta + K                Ouvrir cette référence des raccourcis
+Meta + ,                Ouvrir le centre de contrôle HSCL1
+Meta + L                Verrouiller l'écran
+Meta + Maj + S          Capture d'écran de région rectangulaire
+Meta + Gauche / Droite  Aligner la fenêtre à gauche / droite
+Meta + Haut             Maximiser la fenêtre
+Meta + Bas              Minimiser / restaurer la fenêtre
+Meta + 1..9             Basculer vers le bureau virtuel 1 à 9
+========================================================================
+EOF
+      ;;
+    *)
+      cat << 'EOF'
+========================================================================
+HSCL1 Keyboard Shortcuts (Reference)
+========================================================================
+Shortcut                Action
+------------------------------------------------------------------------
+Meta                    Open Start / Applications menu
+Meta + Space            Focus launcher search (KRunner)
+Meta + Enter            Open terminal (Konsole)
+Ctrl + Alt + T          Open terminal (Classic Linux fallback)
+Meta + E                Open file manager (Dolphin)
+Meta + D                Show desktop
+Meta + Tab              Switch applications
+Meta + K                Open this shortcut reference
+Meta + ,                Open HSCL1 Control Center
+Meta + L                Lock screen
+Meta + Shift + S        Rectangular region screenshot
+Meta + Left / Right     Snap window left / right
+Meta + Up               Maximize window
+Meta + Down             Minimize / restore window
+Meta + 1..9             Switch to virtual desktop 1 to 9
+========================================================================
+EOF
+      ;;
+  esac
+}
+
+# If CLI argument asks for help/text or no graphical display is present:
+if [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "--cli" ] || [ -z "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]; then
+  show_cli
+  exit 0
+fi
+
+# In a graphical desktop session:
+if command -v hscl-handbook >/dev/null 2>&1; then
+  exec hscl-handbook desktop
+elif command -v kdialog >/dev/null 2>&1; then
+  text="$(show_cli)"
+  exec kdialog --title "HSCL1 Shortcuts" --msgbox "$text"
+else
+  show_cli
+fi
