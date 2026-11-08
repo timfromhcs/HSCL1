@@ -1206,3 +1206,17 @@ Decision rule: pick the one that unblocks the most downstream work. HCSUDA H3c-3
   - New Troubleshooting & VM Tips matrix covering WHPX/KVM acceleration, RAM allocation, UEFI vs BIOS, and first-run dialogs.
   - Verified trademark attestation and mechanical checks via `scripts/check_trademarks.py` passing 100% clean.
   - Rust CLI documentation test `cargo test -p hscl --bin hscl documented_hscl_commands` passing 100% green.
+
+### V1-E MCP Tool Expansion & Stdio JSON-RPC Automated Test Suite (2026-11-08)
+
+- **Model Context Protocol Expansion:** Added 5 new validated tools to `cli/hscl/src/mcp.rs`:
+  - `hscl_cqhecs_status`: CQ-HECS runtime status (read-only, wraps `cqhecs status` and launcher's doctor JSON).
+  - `hscl_memory_status`: Memory budget, zram devices, and AI headroom (read-only).
+  - `hscl_lab_status`: Security Lab container runtime, Podman presence, and toolset configurations (read-only).
+  - `hscl_wallpaper_list`: Available shader presets and current settings (read-only).
+  - `hscl_wallpaper_apply`: Switch active desktop wallpaper shader preset (requires `--allow-write`, schema-validated preset ID).
+  - Total tool inventory: 15 read-only tools by default, 18 tools with `--allow-write`.
+- **Automated Test Coverage:**
+  - Rust workspace: Added tool mapping and rejected argument assertions in `cli/hscl/src/mcp.rs`. All 202 tests on Windows and 209 tests in WSL Linux passed 100% green. Clean `cargo fmt` and `cargo clippy -D warnings`.
+  - Python test suite: Added `tests/unit/test_hscl_mcp.py` verifying JSON-RPC 2.0 stdio initialization, tools/list, tool execution, output payloads, and error rejection across Windows and WSL Linux.
+  - Executable bit and trademark checks verified 100% clean.

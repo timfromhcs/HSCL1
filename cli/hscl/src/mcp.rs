@@ -102,6 +102,24 @@ fn tools() -> Vec<Tool> {
             },
         },
         Tool { name: "hscl_graphics_detect", desc: "Detected graphics hardware and the profile it maps to.", write: false, schema: empty, args: |a| { no_extra(a, &[])?; Ok(v(&["graphics", "detect"])) } },
+        Tool { name: "hscl_memory_status", desc: "RAM, zram swap, and local AI memory headroom.", write: false, schema: empty, args: |a| { no_extra(a, &[])?; Ok(v(&["memory", "status"])) } },
+        Tool { name: "hscl_cqhecs_status", desc: "CQ-HECS runtime status (read-only, wraps doctor --json).", write: false, schema: empty, args: |a| { no_extra(a, &[])?; Ok(v(&["cqhecs", "status"])) } },
+        Tool { name: "hscl_lab_status", desc: "Security Lab container engine and toolset configuration.", write: false, schema: empty, args: |a| { no_extra(a, &[])?; Ok(v(&["lab", "status"])) } },
+        Tool { name: "hscl_wallpaper_list", desc: "Available wallpaper shader presets and current settings.", write: false, schema: empty, args: |a| { no_extra(a, &[])?; Ok(v(&["wallpaper", "list"])) } },
+        Tool {
+            name: "hscl_wallpaper_apply",
+            desc: "Switch the active desktop wallpaper preset. Needs --allow-write.",
+            write: true,
+            schema: || json!({"type": "object", "properties": {"name": {"type": "string"}}, "required": ["name"], "additionalProperties": false}),
+            args: |a| {
+                no_extra(a, &["name"])?;
+                let n = str_arg(a, "name")?;
+                if !valid_id(n, 32) {
+                    return Err(anyhow!("invalid wallpaper preset name"));
+                }
+                Ok(v(&["wallpaper", "apply", n]))
+            },
+        },
         Tool { name: "hscl_theme_list", desc: "Available HCS themes and the current one.", write: false, schema: empty, args: |a| { no_extra(a, &[])?; Ok(v(&["appearance", "theme", "list"])) } },
         Tool {
             name: "hscl_theme_set",
@@ -342,6 +360,11 @@ mod tests {
             &r,
         );
         call("hscl_graphics_apply", json!({"force":true}), true, &r);
+        call("hscl_cqhecs_status", json!({}), false, &r);
+        call("hscl_memory_status", json!({}), false, &r);
+        call("hscl_lab_status", json!({}), false, &r);
+        call("hscl_wallpaper_list", json!({}), false, &r);
+        call("hscl_wallpaper_apply", json!({"name":"rain"}), true, &r);
         let c = r.0.borrow();
         assert_eq!(c[0], ["status"]);
         assert_eq!(
@@ -353,6 +376,11 @@ mod tests {
             ["appearance", "theme", "set", "hcs-nord", "--dry-run"]
         );
         assert_eq!(c[3], ["graphics", "apply", "--force"]);
+        assert_eq!(c[4], ["cqhecs", "status"]);
+        assert_eq!(c[5], ["memory", "status"]);
+        assert_eq!(c[6], ["lab", "status"]);
+        assert_eq!(c[7], ["wallpaper", "list"]);
+        assert_eq!(c[8], ["wallpaper", "apply", "rain"]);
     }
 
     #[test]
@@ -366,6 +394,12 @@ mod tests {
             ("hscl_ai_profile", json!({"model":"x y"})),
             ("hscl_ai_profile", json!({"model":"UPPER"})),
             ("hscl_status", json!({"extra":1})),
+            ("hscl_cqhecs_status", json!({"extra":1})),
+            ("hscl_memory_status", json!({"extra":1})),
+            ("hscl_lab_status", json!({"extra":1})),
+            ("hscl_wallpaper_list", json!({"extra":1})),
+            ("hscl_wallpaper_apply", json!({"name":"bad/name"})),
+            ("hscl_wallpaper_apply", json!({})),
             ("hscl_graphics_apply", json!({"evil":true})),
         ] {
             let resp = call(name, args, true, &r);
