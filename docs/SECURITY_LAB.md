@@ -5,9 +5,10 @@ HSCL1 is not an official Kali product.
 
 ## What exists
 
-`hscl lab` builds a rootless `podman` command from typed options and prints it. It **never runs a shell** and has **no field** for `--privileged`,
-host network/PID/IPC, devices, extra capabilities or arbitrary mounts. Execution through the CLI is deliberately not wired up yet: it comes after the
-VM run (plan P4.3) proves the commands work.
+`hscl lab` builds a rootless `podman` command from typed options. It **never runs a shell** and has **no field** for `--privileged`,
+host network/PID/IPC, devices, extra capabilities or arbitrary mounts. CLI execution subcommands (`run`, `install`, `commit`, `destroy`)
+require the explicit `--yes="I am authorized to test this target"` attestation, check podman availability, and execute commands directly via argv without a shell.
+In-guest integration inside an HSCL1 VM remains open (plan P4.3).
 
 ```console
 $ hscl lab status                                   # podman installed? lab folder? toolsets
@@ -34,6 +35,6 @@ $ hscl lab spec --project web1 --phase commit|destroy
 
 - Podman and its dependencies are not in the image (measured 2026-11-06); plan P4.0.
 - `containers/kali/image.pin` records a digest; pull/inspect now agree on the WSL builder (2026-11-08). The example above remains notation, not a literal image reference.
-- The generated restricted run and basic-toolset install were exercised rootlessly on the builder, not inside an HSCL1 guest. See [builder probe](research/2026-11-08-security-lab-builder-probe.md). CLI execution remains unwired and image integration/VM evidence is still required.
+- The generated restricted run and basic-toolset install were exercised rootlessly on the builder, not inside an HSCL1 guest. See [builder probe](research/2026-11-08-security-lab-builder-probe.md). In-guest image integration and VM evidence remain open (HSCL1 guest/runtime still open).
 - The Ubuntu Podman package installed without recommendations needs a user-mode network helper: default networking failed until `passt` supplied `pasta`. Include that dependency in the eventual lab package; never work around this by selecting host networking or rootful Podman.
 - Disposable VM profiles, GUI tools, wireless/USB work: not implemented.
