@@ -121,6 +121,27 @@ ADR (receiver location, runtime, port choice with a conflict check, pairing) and
 `hcs.miner.event.v1`, `hcs.miner.heartbeat.v1`, `hcs.miner.batch.v1`, `hcs.miner.ack.v1` under
 `docs/miner/`. No receiver code, no device contact, no firmware change (M2/M4/M5).
 
+### Wave 5 - NP benchmark harness (owner request, light; P4/P5, ledger rows 16-21)
+
+Added by the owner's instruction in the running session (2026-11-08): research NP-hard and "hardest"
+problems on the web, find out how to build them as code benchmarks, adapt the plans, build them in and
+try to build solvers. This does not reorder P0-P14: the work sits inside **P4** (one benchmark control)
+and **P5** (benchmark corpus). The research and its limits are in `docs/research/NP_BENCHMARK_RESEARCH.md`.
+
+| Step | Row | Work | Done when |
+|---|---|---|---|
+| W5-1 | 16 | SAT slice: strict DIMACS, generators with known answers, independent model and RUP verifiers, CDCL and WalkSAT baselines, runner with PAR-2 | **DONE**: 40 tests, 8 mutations red-then-reverted |
+| W5-2 | 17 | Suite manifest, CLI, JSON report, light default suite | **NEXT** |
+| W5-3 | 18 | Colouring, clique, Hamiltonian cycle (known-answer generators, independent verifiers, exact and greedy solvers) | tests + sweep |
+| W5-4 | 19 | TSP and knapsack / subset sum | tests + sweep |
+| W5-5 | 20 | DRAT checker, optional external adapters, differential parser test vs CQ-HECS (read-only) | test report |
+| W5-6 | 21 | Beyond NP: small exact #SAT and QBF tools | later |
+
+Rules that carry over: a solver answer is never evidence (verifier or checked proof, otherwise `UNKNOWN`);
+a contradiction with a known answer is a recorded `disagreement`; an unavailable solver is `unavailable`
+(no silent fallback); pure Python solvers are baselines and the reports never call them competitive;
+no licence-unclear tool (Concorde, LKH, OR-Tools: not confirmed) is bundled or called before a licence check.
+
 ### Not in this session (blocked or heavy)
 
 | Item | Why not now |
