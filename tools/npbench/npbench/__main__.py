@@ -16,7 +16,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List
 
-from . import graph_runner, runner, suites as S
+from . import graph_runner, opt_runner, runner, suites as S
 
 SCHEMA = "npbench.report.v1"
 MAX_BUDGET_S = 3600.0
@@ -60,6 +60,13 @@ def _run(args: argparse.Namespace) -> int:
         return 2
     records: List[Dict[str, Any]] = []
     for spec in specs:
+        if spec["family"] in S.OPT_FAMILIES:
+            instance, truth = S.build_opt_instance(spec)
+            for solver in solvers:
+                rec = opt_runner.run_opt_instance({**spec, "expected": truth}, instance, solver, budget_s=args.budget, seed=args.seed)
+                if rec is not None:
+                    records.append(rec)
+            continue
         if spec["family"] in S.GRAPH_FAMILIES:
             graph, truth = S.build_graph_instance(spec)
             for solver in solvers:

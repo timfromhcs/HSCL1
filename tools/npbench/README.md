@@ -27,6 +27,12 @@ correctness and small sizes, not competitors to CaDiCaL or Kissat.
   a proper colouring with k-1 colours; an exhausted search alone is reported as UNKNOWN.
   `python -m npbench run --suite graphs --solvers sat,dsatur,bk,backtrack`.
 
+- `npbench/tsp.py`, `gen_tsp.py`, `tsp_solvers.py`, `knap.py`, `gen_knap.py`, `knap_solvers.py`, `opt_runner.py`: TSP and knapsack / subset sum
+  decision tasks (is there a tour of length <= bound; is there a selection reaching a profit target). A yes needs a verified
+  tour or selection. A TSP no needs integer potentials whose 1-tree bound, recomputed by the verifier, exceeds the limit; a
+  knapsack no needs the exact fractional bound below the target. An exact DP without such a certificate is UNKNOWN.
+  `python -m npbench run --suite optimization --solvers dp,nn2opt,lagrange,greedy,ub`.
+
 Run from `tools/npbench` (or put it on `PYTHONPATH`). Reports belong under the ignored `artifacts/npbench/`.
 
-Tests: `python -m pytest tests/unit/test_npbench_sat.py tests/unit/test_npbench_cli.py tests/unit/test_npbench_graph.py`
+Tests: `python -m pytest tests/unit/test_npbench_sat.py tests/unit/test_npbench_cli.py tests/unit/test_npbench_graph.py tests/unit/test_npbench_opt.py`
