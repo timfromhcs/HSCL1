@@ -990,3 +990,58 @@ Mutations (`artifacts/loop/mutate_tick.py`, backup copy + sha256, never `git che
 Commands and results: `python -m pytest tests/unit/test_selfheal_tick.py -q` -> **22 passed** (Windows); WSL run green via the forge changed-test step.
 
 - Not done: nothing is registered with Windows Task Scheduler or cron (owner decision, unchanged); tick output is still log-file only.
+
+## W2-6: MINER-1 documents — ADR and schema drafts (ledger row 12, 2026-11-08, session 3)
+
+Created `docs/miner/` with five files:
+1. `ARCHITECTURE.md` — ADR-2026-11-08-MINER-001 covering:
+   - Receiver location: headless service in existing Rust workspace (`services/hcs-miner-ingest/`)
+   - Exposed via `hscl` CLI as `hscl miner ...` subcommands
+   - Port 8765 proposed default with conflict check procedure (must run on target HSCL1 host)
+   - Pairing ceremony with physical presence proof (USB console `pair <code>` or BOOT button per upstream PR #2055)
+   - TLS with pinned self-signed cert + HMAC-SHA-256 per-device auth from pairing
+   - 30-second heartbeat with flow control, advisory policy, pause/revoke signals
+   - Open owner decisions documented (M3/M4): cert management, physical presence method, receiver auto-start, port confirmation
+
+2. `hcs.miner.event.v1.schema.json` — Base event envelope with:
+   - Schema identifier, device_id (UUID), boot_id (16 hex), sequence (monotonic), event_id (idempotency key)
+   - 70 event_type enum values across lifecycle, network, stratum, ASIC, software, research families
+   - Monotonic + wall-clock timestamps with explicit clock_quality (ntp_synced/rtc_estimated/unknown)
+   - Firmware metadata (version, source_sha, idf_version)
+   - Device metadata (board, asic_model, device_model)
+   - Extensible payload, privacy_class (local_research/private_backup/public_dataset)
+   - Integrity: body_sha256 + HMAC-SHA256 signature (64 hex chars)
+
+3. `hcs.miner.heartbeat.v1.schema.json` — Heartbeat constrains event schema:
+   - event_type const = "network.receiver_heartbeat_ok"
+   - Payload: uptime, wall_time_quality, current_ip, wifi_state, rssi_dbm, last_acked_sequence, pending_queue_depth, oldest_pending_age_seconds, mining_state, thermal_summary (asic_temp_c, vr_temp_c, thermal_state, fan_pwm_percent, fan_rpm), protocol_version
+
+4. `hcs.miner.batch.v1.schema.json` — Batch upload:
+   - sequence_start/end, batch_id (SHA-256 of batch content), events array (ref to event schema, max 500)
+   - Same integrity fields as event
+
+5. `hcs.miner.ack.v1.schema.json` — Receiver acknowledgement:
+   - ack_sequence, ack_hashes (array of event_ids), accepted_schema_versions
+   - receiver_time_utc, clock_offset_hint_ms, flow_control (max_batch_bytes, max_events_per_batch, max_pending_bytes)
+   - Optional advisory policy (nullable object with policy_version, recommendations array, Ed25519 signature 128 hex chars)
+   - pause_requested, revoke_requested boolean flags
+
+**Validation:**
+- All four schemas validate against JSON Schema Draft 2020-12 meta-schema
+- Sample instances validate successfully (event, heartbeat, batch, ACK with/without advisory)
+- Cross-references resolved via local registry (no HTTP fetch)
+- No device contact, no listener created — documents only
+
+**Commands and results:**
+- `python -m json.tool` on all four schemas -> syntax OK
+- `jsonschema.Draft202012Validator.check_schema()` on all four -> meta-schema validation OK
+- Instance validation with local registry -> 5/5 sample instances validate
+- `forge check` after commit -> **OK** (pytest 454.8s, bash -n 88.3s, shellcheck 2.0s, secret scan 1.5s)
+
+**Open decisions (require owner input):**
+- M3: Certificate management (self-signed TOFU vs pre-provisioned from HSCL1 PKI)
+- M3: Physical presence proof method (USB console vs BOOT button per upstream #2055)
+- M3: Receiver auto-start (on-demand vs systemd service)
+- M4: Port 8765 conflict check on target HSCL1 build host
+
+**Not done:** No receiver code, no firmware branch changes, no device contact, no dataset generation, no training pipeline, no Miner Lab UI.
