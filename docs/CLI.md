@@ -75,12 +75,32 @@ Changes take effect on the next user login or desktop session restart.
 `hscl language set <LANG>` validates the requested language code and safely updates desktop configuration.
 `--dry-run` previews file changes without modifying disk state; `--json` outputs structured JSON.
 
+## `hscl privacy` (IMPLEMENTED, unit-tested)
+
+Privacy posture, ephemeral session isolation, fail-closed Tor browser workflows, and official Tails ISO verification (AGENTS.md section 6.5 & 8.2).
+
+`hscl privacy status` checks whether the root filesystem is backed by a volatile RAM overlayfs (`/cow` or tmpfs), verifies that swap is restricted to compressed in-RAM `zram` with swap priority 100 without active persistent disk swap partitions, confirms dumpability protection (`fs.suid_dumpable = 0`), inspects whether internal host disks are unmounted, and checks Tor daemon/browser readiness.
+
+`hscl privacy tor status` reports local Tor SOCKS proxy availability and Tor Browser launcher status.
+`hscl privacy tor launch` enforces a strict fail-closed policy: if Tor Browser is not installed or available, it refuses to launch a normal browser or fall back to direct unencrypted egress. `--dry-run` previews the command.
+
+`hscl privacy session explain` outputs a complete architectural breakdown of ephemeral overlayfs behavior, memory isolation, and honest boundaries distinguishing HSCL1 from authentic Tails.
+
+`hscl privacy tails verify` streams and calculates the SHA256 checksum of an official Tails ISO image and checks it against upstream releases.
+`hscl privacy tails launch` builds or executes an isolated QEMU/KVM virtual machine launch command with snapshot mode and no host drive mounts.
+
 
 ## More commands (rows taken from `--help`; the drift test `cli_doc_lists_every_command` keeps this page complete)
 
 | Command | What it does |
 |---|---|
 | `hscl overview` | Friendly overview of HSCL1 and where to start (also what `hscl1` with no arguments prints) |
+| `hscl privacy status` | Live privacy posture: ephemeral overlay, memory swap, dump safety, and Tor readiness |
+| `hscl privacy tor status` | Check Tor daemon status and Tor Browser availability |
+| `hscl privacy tor launch` | Launch Tor Browser with fail-closed protection (no direct-browser fallback) |
+| `hscl privacy session explain` | Comprehensive explanation of ephemeral overlayfs, zram memory swap, suid_dumpable, and boundaries vs Tails |
+| `hscl privacy tails verify` | Verify an official Tails ISO image file (SHA256 checksum and optional expected hash) |
+| `hscl privacy tails launch` | Generate or run an isolated QEMU/KVM launcher for an official Tails ISO (no host storage attached) |
 | `hscl language status` | Show current language configuration and active environment |
 | `hscl language list` | List supported languages (en, de, fr) |
 | `hscl language set` | Set the user desktop language (en, de, fr); `--dry-run` previews without writing |

@@ -13,6 +13,8 @@ $ hscl ai detect
 $ hscl appearance theme list
 $ hscl language status
 $ hscl language list
+$ hscl privacy status
+$ hscl privacy session explain
 ```
 
 | Code de sortie | Signification |

@@ -203,6 +203,16 @@ fn tools() -> Vec<Tool> {
                 Ok(r)
             },
         },
+        Tool {
+            name: "hscl_privacy_status",
+            desc: "Inspect live privacy posture: ephemeral overlay, memory swap, dump safety, and Tor readiness.",
+            write: false,
+            schema: empty,
+            args: |a| {
+                no_extra(a, &[])?;
+                Ok(v(&["privacy", "status"]))
+            },
+        },
     ]
 }
 
@@ -420,6 +430,7 @@ mod tests {
             true,
             &r,
         );
+        call("hscl_privacy_status", json!({}), false, &r);
         let c = r.0.borrow();
         assert_eq!(c[0], ["status"]);
         assert_eq!(
@@ -438,6 +449,7 @@ mod tests {
         assert_eq!(c[8], ["wallpaper", "apply", "rain"]);
         assert_eq!(c[9], ["language", "status"]);
         assert_eq!(c[10], ["language", "set", "de", "--dry-run"]);
+        assert_eq!(c[11], ["privacy", "status"]);
     }
 
     #[test]
@@ -461,6 +473,7 @@ mod tests {
             ("hscl_language_set", json!({"lang":"de;evil"})),
             ("hscl_language_set", json!({})),
             ("hscl_language_status", json!({"extra":1})),
+            ("hscl_privacy_status", json!({"extra":1})),
         ] {
             let resp = call(name, args, true, &r);
             assert_eq!(resp["error"]["code"], -32602, "{name}");
