@@ -853,3 +853,11 @@ Probing the running contract instead of trusting the tests found a real defect: 
 - Tests: `test_evaluate_can_send_its_value_over_http`, `test_a_field_belonging_to_another_operation_is_refused_over_http`, `test_an_unknown_body_field_is_rejected_instead_of_silently_dropped` (API) and `test_a_field_the_operation_does_not_use_is_refused_not_silently_ignored`, `test_evaluate_keeps_the_value_field_it_uses` (engine).
 - Gate: `bash scripts/hcseasymath_gate.sh` -> **202 passed, 1 warning in 15.01s** (197 before).
 - Not changed: the worker is still Linux-only (`os.killpg`), so these API tests use the in-process `run=execute` like the existing ones; the process isolation path is exercised by the worker tests.
+
+## HCSEASYMATH `plot` data (Track E M2 / ledger row 14, 2026-11-08, autonomous tick)
+Sixth operation, **data only**: `plot` returns `samples` (`[x, y]` pairs), never an image claim and never a `result_expression`. Fields: `x_min`, `x_max` (exact, symbol-free, finite, real; parsed by the allow-list parser) and `points` (strict integer, 2..1000, default 200); range capped at 1e6. Points are evenly spaced including both ends and are evaluated exactly, then converted to float.
+- Discontinuity policy: a sample where the function is undefined, infinite or not real becomes `null` and is **not connected**; some nulls -> `partial` with a count warning, all null -> `unresolved` with no samples. Complex values are never reduced to their real part.
+- Schema: one new optional field `samples` on the result (`null` for every other operation). API: `x_min`, `x_max`, `points` declared on the request model (lesson of the `evaluate` defect: undeclared fields are dropped); a string `points` is a 422.
+- Tests first: 20 in `tests/unit/test_plot.py` + 2 HTTP tests. Mutation shown red then reverted: complex/undefined values let through -> `test_complex_values_are_null_not_real_part` and `test_all_undefined_is_unresolved_without_samples` fail.
+- Gate: `bash scripts/hcseasymath_gate.sh` -> **230 passed, 1 warning in 14.3s** (202 before). Process slip recorded: a `git checkout` used to revert the mutation also reverted the uncommitted plot code; restored from a backup copy, gate re-run green. Revert mutations from a backup, not with `git checkout`.
+- Not done: warm worker (W1-4), one-page UI still calls only `differentiate`.

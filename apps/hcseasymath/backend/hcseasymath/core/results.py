@@ -44,6 +44,8 @@ class MathResult(BaseModel):
     warnings: list[str] = []
     #: How the result was verified, for example "derivative of the result equals the input symbolically".
     checks: list[str] = []
+    #: ``plot`` only: [x, y] pairs; y is null where the function is undefined or not real.
+    samples: list[list[float | None]] | None = None
     error: str | None = None
     timings_ms: dict[str, float] = {}
     provenance: dict[str, str] = {}

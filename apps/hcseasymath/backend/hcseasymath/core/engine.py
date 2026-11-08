@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import re
 import time
 from typing import Any, Callable
@@ -291,19 +292,84 @@ def _complex_root_count(expr: sp.Expr, var: sp.Symbol) -> int | bool:
     return len(roots)
 
 
+MAX_PLOT_POINTS = 1000
+MAX_PLOT_RANGE = 1_000_000
+
+
+def _plot_bound(request: dict[str, Any], name: str) -> sp.Expr:
+    text = request.get(name)
+    if not isinstance(text, str):
+        raise ExpressionError("invalid_input", f"missing '{name}'")
+    bound = parse(text)
+    if bound.free_symbols or not bound.is_finite or not bound.is_real:
+        raise ExpressionError("invalid_input", f"'{name}' must be a finite real number")
+    return bound
+
+
+def _plot(request: dict[str, Any], started: float) -> dict[str, Any]:
+    expr, var = _expression_and_variable(request)
+    if expr.free_symbols - {var}:
+        raise ExpressionError("invalid_input", "plot needs a single-variable expression")
+    lo, hi = _plot_bound(request, "x_min"), _plot_bound(request, "x_max")
+    count = request.get("points", 200)
+    if type(count) is not int or count < 2:
+        raise ExpressionError("invalid_input", "'points' must be an integer of at least 2")
+    if count > MAX_PLOT_POINTS:
+        raise ExpressionError("resource_limit", f"'points' is capped at {MAX_PLOT_POINTS}")
+    if not hi > lo:
+        raise ExpressionError("invalid_input", "'x_max' must be greater than 'x_min'")
+    if hi - lo > MAX_PLOT_RANGE or max(abs(lo), abs(hi)) > MAX_PLOT_RANGE:
+        raise ExpressionError("resource_limit", f"the range is capped at {MAX_PLOT_RANGE}")
+    samples: list[list[float | None]] = []
+    missing = 0
+    for i in range(count):
+        x = lo + (hi - lo) * sp.Rational(i, count - 1)
+        y: float | None = None
+        value = expr.subs(var, x)
+        if value.is_real is not False and not value.has(sp.zoo, sp.nan, sp.oo, -sp.oo):
+            num = complex(sp.N(value, 17)) if value.is_number else None
+            if num is not None and num.imag == 0 and math.isfinite(num.real):
+                y = num.real
+        if y is None:
+            missing += 1
+        samples.append([float(x), y])
+    elapsed = {"total": round((time.perf_counter() - started) * 1000.0, 3)}
+    notes = [f"{count} evenly spaced samples on [{lo}, {hi}]; data only, points are not interpolated"]
+    if missing == count:
+        return _result(
+            request, "plot", "unresolved", normalized_expression=str(expr),
+            error="the function is undefined or not real at every sample point; no data is claimed",
+            warnings=["no usable sample"], assumptions=notes, timings_ms=elapsed,
+        )
+    if missing:
+        return _result(
+            request, "plot", "partial", normalized_expression=str(expr), samples=samples,
+            exactness="numeric", assumptions=notes, timings_ms=elapsed,
+            warnings=[f"{missing} of {count} samples are undefined or not real and are null"],
+        )
+    return _result(
+        request, "plot", "ok", normalized_expression=str(expr), samples=samples,
+        exactness="numeric", assumptions=notes, timings_ms=elapsed,
+    )
+
+
 _HANDLERS: dict[str, Callable[[dict[str, Any], float], dict[str, Any]]] = {
     "differentiate": _differentiate,
     "integrate": _integrate,
     "evaluate": _evaluate,
     "simplify": _simplify,
     "solve": _solve,
+    "plot": _plot,
 }
 OPERATIONS = tuple(_HANDLERS)
 
 
 _COMMON_FIELDS = {"operation", "expression", "variable"}
 #: The only extra request fields an operation may use. Anything else is a typed refusal, not a silent ignore.
-_OPERATION_FIELDS: dict[str, set[str]] = {"evaluate": {"value"}}
+_OPERATION_FIELDS: dict[str, set[str]] = {
+    "evaluate": {"value"},
+    "plot": {"x_min", "x_max", "points"},
+}
 
 
 def execute(request: Any) -> dict[str, Any]:

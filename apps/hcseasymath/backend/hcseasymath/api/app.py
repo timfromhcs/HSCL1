@@ -50,6 +50,9 @@ class ExpressionRequest(BaseModel):
     variable: str = Field(max_length=16)
     #: Only the ``evaluate`` operation uses it; the engine refuses it for every other operation.
     value: str | None = Field(default=None, max_length=DEFAULT_LIMITS.max_chars)
+    x_min: str | None = Field(default=None, max_length=DEFAULT_LIMITS.max_chars)
+    x_max: str | None = Field(default=None, max_length=DEFAULT_LIMITS.max_chars)
+    points: int | None = Field(default=None, strict=True)
 
 
 class _BodyLimit:
