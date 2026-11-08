@@ -18,7 +18,7 @@
 
 <br>
 
-<img src="docs/img/desktop-v0.1.3-alpha.0.png" alt="HSCL1 v0.1.3-alpha.0 Live Desktop (KDE Plasma 6, Top Bar, Dock, Midnight Theme) — real capture from QEMU 9.2.0 with WHPX" width="920">
+<img src="docs/img/showcase/01_desktop_clean.png" alt="HSCL1 v0.1.3-alpha.0 Live Desktop (KDE Plasma 6, Top Bar, Dock, Midnight Theme) — real capture from QEMU 9.2.0 with WHPX" width="920">
 
 *HSCL1 v0.1.3-alpha.0 running live in QEMU/WHPX — clean first boot with HCS top status bar, centered floating dock, and Midnight theme.*
 
@@ -49,7 +49,7 @@ HSCL1 features:
 
 ## Real Screenshot Showcases
 
-*Every screenshot in this repository is an unedited capture from real automated QEMU virtual machine test sessions.*
+*Every screenshot in this repository is an unedited capture from real automated QEMU virtual machine test sessions driven via the Workshop API and QMP.*
 
 ### 1. Dynamic Wallpaper Engine & Visual Identity
 
@@ -57,33 +57,55 @@ The HCS desktop features a fluid, shader-driven wallpaper engine switchable on t
 
 | Midnight Rain (Matrix Fallback) | Aurora Ribbons |
 |:---:|:---:|
-| ![Midnight Rain Wallpaper](docs/img/desktop-rain.png) | ![Aurora Glow Wallpaper](docs/img/desktop-aurora.png) |
+| ![Midnight Rain Wallpaper](docs/img/showcase/02_wallpaper_rain.png) | ![Aurora Glow Wallpaper](docs/img/showcase/02_wallpaper_aurora.png) |
 | **Grid Pulse (Cyber Lattice)** | **Starfield Drift (Deep Space)** |
-| ![Grid Pulse Wallpaper](docs/img/desktop-grid.png) | ![Starfield Drift Wallpaper](docs/img/desktop-starfield.png) |
+| ![Grid Pulse Wallpaper](docs/img/showcase/02_wallpaper_grid.png) | ![Starfield Drift Wallpaper](docs/img/showcase/02_wallpaper_starfield.png) |
 
 ---
 
-### 2. HCS Control Center Suite (Qt 6 / QML)
+### 2. Desktop Navigation & Core Applications
+
+Familiar window ergonomics, centered floating dock, discoverable application launcher, Dolphin file manager, Kate text editor, and offline handbook viewer.
+
+| Kickoff Application Launcher | Dolphin File Manager (HCS Theme) |
+|:---:|:---:|
+| ![Application Launcher](docs/img/showcase/03_app_launcher_kickoff.png) | ![Dolphin File Manager](docs/img/showcase/10_app_dolphin.png) |
+| **Kate Text Editor (Syntax Highlighting)** | **Trilingual Offline Handbook** |
+| ![Kate Text Editor](docs/img/showcase/14_app_kate.png) | ![Offline Handbook](docs/img/showcase/13_offline_handbook.png) |
+
+---
+
+### 3. HCS Control Center Suite (Qt 6 / QML)
 
 A native, zero-telemetry control center providing instant hardware diagnostics, security policy auditing, theme customization, and system identity verification.
 
 | System Overview & Hardware Profiling | Security Baseline & Firewall Audit |
 |:---:|:---:|
-| ![Control Center Overview](docs/img/control-center-overview.png) | ![Control Center Security](docs/img/control-center-security.png) |
+| ![Control Center Overview](docs/img/showcase/04_control_center_overview.png) | ![Control Center Security](docs/img/showcase/06_control_center_security.png) |
 | **Appearance, Themes & Desktop Tokens** | **About & System Attestation** |
-| ![Control Center Appearance](docs/img/control-center-appearance.png) | ![Control Center About](docs/img/control-center-about.png) |
+| ![Control Center Appearance](docs/img/showcase/05_control_center_appearance.png) | ![Control Center About](docs/img/showcase/07_control_center_about.png) |
 
 ---
 
-### 3. Verified Encrypted Installation Flow (Calamares + LUKS2)
+### 4. Interactive Terminal & CLI Diagnostics (`hscl`)
+
+Built-in developer terminal with full hardware diagnostic output, redacting health checks, and containerized security lab controls.
+
+| `hscl status`, `doctor` & `memory status` | `hscl lab` Isolated Security Suite |
+|:---:|:---:|
+| ![Terminal Status and Doctor](docs/img/showcase/08_terminal_hscl_status_doctor.png) | ![Terminal Security Lab](docs/img/showcase/09_terminal_hscl_lab.png) |
+
+---
+
+### 5. Verified Encrypted Installation Flow (Calamares + LUKS2)
 
 Automated full-disk encryption with Argon2id key derivation, unencrypted `/boot`, and encrypted root volume, verified end-to-end on a disposable 40 GB virtual disk.
 
-| Full-Disk Encryption Selection | Pre-Install Summary & Layout |
+| Calamares Installer Welcome Screen | Timezone & Regional Localization |
 |:---:|:---:|
-| ![Calamares Encryption Options](docs/img/install-encrypt.png) | ![Calamares Partition Summary](docs/img/install-summary.png) |
-| **Argon2id Boot Passphrase Unlock** | **Installed Encrypted Desktop** |
-| ![Argon2id Disk Unlock Prompt](docs/img/boot-unlock.png) | ![First Boot Installed Desktop](docs/img/desktop-installed.png) |
+| ![Calamares Welcome](docs/img/showcase/11_installer_welcome.png) | ![Calamares Location](docs/img/showcase/12_installer_location.png) |
+| **Full-Disk Encryption Selection** | **Argon2id Boot Passphrase Unlock** |
+| ![Calamares Encryption Options](docs/img/install-encrypt.png) | ![Argon2id Disk Unlock Prompt](docs/img/boot-unlock.png) |
 
 ---
 
@@ -132,9 +154,9 @@ HSCL1 adheres to a strict evidence-driven development contract: **nothing is cla
 
 | Area | Status | Evidence / Verification Metric |
 |---|:---:|---|
-| **Remastered Live/Installer ISO** | `VM-VERIFIED` | Boots to live desktop in 143 s under UEFI (QEMU+WHPX); Welcome dismissed at 189 s; [`artifacts/boot-candidate/desktop-final.png`](docs/img/desktop-v0.1.3-alpha.0.png) |
+| **Remastered Live/Installer ISO** | `VM-VERIFIED` | Boots to live desktop in 140 s under UEFI (QEMU+WHPX); Welcome dismissed; [`docs/img/showcase/01_desktop_clean.png`](docs/img/showcase/01_desktop_clean.png) |
 | **Secure Boot Firmware Boot** | `VM-VERIFIED` | Boots under OVMF Secure Boot code + Microsoft-key vars; signed shim/GRUB/kernel bootchain preserved |
-| **LUKS2 Full-Disk Installation** | `VM-VERIFIED` | 40 GB virtual disk; Argon2id key derivation, `/` = `0:0 755`, no passphrase leak in logs; [`artifacts/luks-boot/`](docs/img/desktop-installed.png) |
+| **LUKS2 Full-Disk Installation** | `VM-VERIFIED` | 40 GB virtual disk; Argon2id key derivation, `/` = `0:0 755`, no passphrase leak in logs; [`docs/img/desktop-installed.png`](docs/img/desktop-installed.png) |
 | **Rust `hscl` CLI Workspace** | `TESTED` | 202 unit tests (Windows) + 209 unit tests (Linux/WSL); 0 failures; `cargo clippy -D warnings` clean |
 | **Security Lab CLI** | `TESTED` | `run`, `install`, `commit`, `destroy` subcommands with mandatory `--yes` gate; builder probe verified |
 | **MCP Stdio Server Protocol** | `TESTED` | 7/7 protocol tests passed via `scripts/dev/mcp_selftest.py` (JSON-RPC handshake, 14 tools listed) |
