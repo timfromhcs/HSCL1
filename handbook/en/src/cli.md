@@ -9,6 +9,8 @@ $ hscl status
 $ hscl doctor
 $ hscl system info
 $ hscl security status
+$ hscl security firewall status
+$ hscl security audit
 $ hscl ai detect
 $ hscl appearance theme list
 $ hscl language status

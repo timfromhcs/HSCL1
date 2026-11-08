@@ -649,8 +649,77 @@ enum SystemCmd {
 
 #[derive(Subcommand)]
 enum SecurityCmd {
-    /// Firewall, AppArmor, Secure Boot, encryption, APT source hygiene.
+    /// Overall security summary: AppArmor, firewall, Secure Boot, encryption, APT sources.
     Status,
+    /// Firewall configuration and profile management.
+    Firewall {
+        #[command(subcommand)]
+        cmd: FirewallCmd,
+    },
+    /// AppArmor mandatory access control posture.
+    Apparmor {
+        #[command(subcommand)]
+        cmd: ApparmorCmd,
+    },
+    /// Comprehensive security posture audit; writes report with --output.
+    Audit {
+        /// Write JSON audit report to this new file (never overwrites).
+        #[arg(long, value_name = "PATH")]
+        output: Option<std::path::PathBuf>,
+    },
+    /// Disk encryption and LUKS volume status.
+    Encryption {
+        #[command(subcommand)]
+        cmd: EncryptionCmd,
+    },
+    /// Recovery snapshots and disaster readiness check.
+    Recovery {
+        #[command(subcommand)]
+        cmd: RecoveryCmd,
+    },
+}
+
+#[derive(Subcommand)]
+enum FirewallCmd {
+    /// Inspect UFW firewall status, default policies, and active profile.
+    Status,
+    /// Firewall profiles (standard, public-wifi, lab, privacy).
+    Profile {
+        #[command(subcommand)]
+        cmd: FirewallProfileCmd,
+    },
+}
+
+#[derive(Subcommand)]
+enum FirewallProfileCmd {
+    /// List defined firewall profiles with descriptions and policies.
+    List,
+    /// Apply or preview a firewall profile (standard, public-wifi, lab, privacy).
+    Set {
+        /// Profile name: standard, public-wifi, lab, or privacy.
+        name: String,
+        /// Show commands without executing.
+        #[arg(long)]
+        dry_run: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum ApparmorCmd {
+    /// Show AppArmor kernel module state and loaded profile counts.
+    Status,
+}
+
+#[derive(Subcommand)]
+enum EncryptionCmd {
+    /// Report open LUKS encrypted volumes and crypttab entries.
+    Status,
+}
+
+#[derive(Subcommand)]
+enum RecoveryCmd {
+    /// Check backup snapshots and disaster recovery readiness.
+    Check,
 }
 
 #[derive(Subcommand)]
@@ -1055,13 +1124,7 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
             let v = serde_json::to_value(&u)?;
             print_value(j, &v, || updates::render(&u));
         }
-        Cmd::Security {
-            cmd: SecurityCmd::Status,
-        } => {
-            let sec = security::collect();
-            let v = serde_json::to_value(&sec)?;
-            print_value(j, &v, || security::render(&sec));
-        }
+        Cmd::Security { cmd } => return run_security(j, cmd),
         Cmd::Ai {
             cmd:
                 AiCmd::Serve {
@@ -1973,6 +2036,204 @@ fn run_language(j: bool, cmd: LanguageCmd) -> anyhow::Result<u8> {
                     )
                 });
             }
+        }
+    }
+    Ok(exit::OK)
+}
+
+fn run_security(j: bool, cmd: SecurityCmd) -> anyhow::Result<u8> {
+    match cmd {
+        SecurityCmd::Status => {
+            let sec = security::collect();
+            let v = serde_json::to_value(&sec)?;
+            print_value(j, &v, || security::render(&sec));
+        }
+        SecurityCmd::Firewall {
+            cmd: FirewallCmd::Status,
+        } => {
+            let fw = security::firewall_status();
+            let v = serde_json::to_value(&fw)?;
+            print_value(j, &v, || {
+                let st_str = match fw.enabled {
+                    security::State::Yes => "enabled",
+                    security::State::No => "disabled",
+                    security::State::Unknown => "unknown (not readable)",
+                };
+                format!(
+                    "ufw service:      {st_str}\n\
+                     default incoming: {}\n\
+                     default outgoing: {}\n\
+                     active profile:   {}\n\
+                     profiles:         {}",
+                    fw.default_incoming,
+                    fw.default_outgoing,
+                    fw.active_profile,
+                    fw.profiles_available.join(", ")
+                )
+            });
+        }
+        SecurityCmd::Firewall {
+            cmd: FirewallCmd::Profile {
+                cmd: FirewallProfileCmd::List,
+            },
+        } => {
+            let current = security::firewall_status();
+            let items: Vec<_> = security::PROFILES
+                .iter()
+                .map(|p| {
+                    json!({
+                        "name": p.name,
+                        "summary": p.summary,
+                        "incoming": p.incoming_policy,
+                        "outgoing": p.outgoing_policy,
+                        "description": p.description,
+                        "is_active": p.name == current.active_profile,
+                    })
+                })
+                .collect();
+            let v = json!({
+                "active": current.active_profile,
+                "profiles": items,
+            });
+            print_value(j, &v, || {
+                let mut lines = Vec::new();
+                for p in security::PROFILES {
+                    let mark = if p.name == current.active_profile {
+                        "*"
+                    } else {
+                        " "
+                    };
+                    lines.push(format!(
+                        "{mark} {:<12} {:<38} (in: {}, out: {})",
+                        p.name, p.summary, p.incoming_policy, p.outgoing_policy
+                    ));
+                }
+                lines.join("\n")
+            });
+        }
+        SecurityCmd::Firewall {
+            cmd:
+                FirewallCmd::Profile {
+                    cmd: FirewallProfileCmd::Set { name, dry_run },
+                },
+        } => {
+            let cmds = security::set_firewall_profile(&name, dry_run)?;
+            let v = json!({
+                "profile": name,
+                "dry_run": dry_run,
+                "commands": cmds,
+            });
+            print_value(j, &v, || {
+                let prefix = if dry_run {
+                    "[dry-run] Planned commands for profile"
+                } else {
+                    "Applied commands for profile"
+                };
+                format!("{prefix} '{name}':\n  {}", cmds.join("\n  "))
+            });
+        }
+        SecurityCmd::Apparmor {
+            cmd: ApparmorCmd::Status,
+        } => {
+            let ap = security::apparmor_status();
+            let v = serde_json::to_value(&ap)?;
+            print_value(j, &v, || {
+                let st_str = match ap.enabled {
+                    security::State::Yes => "enabled",
+                    security::State::No => "disabled",
+                    security::State::Unknown => "unknown (not readable)",
+                };
+                format!(
+                    "AppArmor:         {st_str}\n\
+                     profiles loaded:  {}\n\
+                     enforce mode:     {}\n\
+                     complain mode:    {}",
+                    ap.profiles_loaded, ap.enforce_mode, ap.complain_mode
+                )
+            });
+        }
+        SecurityCmd::Audit { output } => {
+            let audit = security::audit_collect(None);
+            if let Some(p) = &output {
+                security::write_audit_report(p, &audit)?;
+            }
+            let v = serde_json::to_value(&audit)?;
+            print_value(j, &v, || {
+                let mut out = format!(
+                    "HSCL1 Security Posture Audit\n\
+                     ============================\n\
+                     AppArmor:         {:?}\n\
+                     UFW Firewall:     {:?}\n\
+                     Secure Boot:      {:?}\n\
+                     Disk Encryption:  {} mapped volume(s)\n\
+                     Core Dump Memory: {}\n\
+                     Forbidden Repos:  {}\n\n\
+                     Verdict: {}",
+                    audit.apparmor.enabled,
+                    audit.firewall.enabled,
+                    audit.secure_boot,
+                    audit.encryption.luks_mapped_volumes,
+                    if audit.suid_dumpable_secure {
+                        "secure (fs.suid_dumpable = 0)"
+                    } else {
+                        "warning (core dumps enabled)"
+                    },
+                    if audit.forbidden_apt_sources.is_empty() {
+                        "none (clean)"
+                    } else {
+                        "DETECTED FORBIDDEN SOURCES"
+                    },
+                    audit.overall_verdict
+                );
+                if let Some(p) = output {
+                    out.push_str(&format!("\nAudit report written to: {}", p.display()));
+                }
+                out
+            });
+        }
+        SecurityCmd::Encryption {
+            cmd: EncryptionCmd::Status,
+        } => {
+            let enc = security::encryption_status();
+            let v = serde_json::to_value(&enc)?;
+            print_value(j, &v, || {
+                let root_str = if enc.root_is_encrypted {
+                    "yes (LUKS detected)"
+                } else {
+                    "no (unencrypted root)"
+                };
+                let mut out = format!(
+                    "LUKS mapped volumes:  {}\n\
+                     Root encrypted:       {}\n\
+                     crypttab entries:     {}",
+                    enc.luks_mapped_volumes,
+                    root_str,
+                    enc.crypttab_entries.len()
+                );
+                for c in &enc.crypttab_entries {
+                    out.push_str(&format!("\n  - {c}"));
+                }
+                out
+            });
+        }
+        SecurityCmd::Recovery {
+            cmd: RecoveryCmd::Check,
+        } => {
+            let rec = security::recovery_check();
+            let v = serde_json::to_value(&rec)?;
+            print_value(j, &v, || {
+                let dir_str = if rec.backup_dir_exists {
+                    "present"
+                } else {
+                    "not created"
+                };
+                format!(
+                    "backup directories:   {dir_str}\n\
+                     snapshots found:      {}\n\
+                     notice:               {}",
+                    rec.snapshots_found, rec.notice
+                )
+            });
         }
     }
     Ok(exit::OK)
