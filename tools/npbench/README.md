@@ -1,11 +1,12 @@
-# npbench: NP benchmark harness (slice 1: SAT)
+# npbench: NP benchmark harness (slices 1-5a: SAT, suites/CLI, graphs, optimisation, DRAT)
 
 Standard library only. Research and limits: `docs/research/NP_BENCHMARK_RESEARCH.md`. Plan: ledger rows 16-21.
 
 What is here
 - `npbench/cnf.py` strict DIMACS parser and writer, full-model verifier.
 - `npbench/gen_sat.py` generators: random k-SAT, threshold ratio 4.26, planted, factoring circuit (known answer).
-- `npbench/proof.py` independent RUP refutation checker.
+- `npbench/proof.py` independent RUP refutation checker (flat lemma list, no deletions).
+- `npbench/drat.py` DRAT line reader and deletion-aware RUP checker; RAT is **not** implemented and is reported as `rat_unsupported`.
 - `npbench/solvers/cdcl.py` CDCL baseline with proof log; `npbench/solvers/walksat.py` local search (SAT or UNKNOWN).
 - `npbench/runner.py` runs a solver and reports only verified verdicts, flags a contradiction with a known answer, reports PAR-2.
 
@@ -35,4 +36,15 @@ correctness and small sizes, not competitors to CaDiCaL or Kissat.
 
 Run from `tools/npbench` (or put it on `PYTHONPATH`). Reports belong under the ignored `artifacts/npbench/`.
 
-Tests: `python -m pytest tests/unit/test_npbench_sat.py tests/unit/test_npbench_cli.py tests/unit/test_npbench_graph.py tests/unit/test_npbench_opt.py`
+## Proof checking: which checker accepted (`runner.run_instance(..., proof_checker=...)`)
+
+- `rup` (default) - `npbench/proof.py`: a flat lemma list, no deletions, reverse unit propagation per lemma.
+- `drat` - `npbench/drat.py`: the **DRAT line format** (comments, `d` deletions, one `0` per line, caps before
+  allocation, strict tokens) and RUP per addition against the clause database that is active at that line.
+  **RAT is not implemented.** A step that is not RUP is reported `rat_unsupported` and the proof keeps the verdict
+  `unknown`; an empty clause that is not RUP is `invalid_step`; a proof without the empty clause is
+  `incomplete_proof`; anything unparseable is `malformed`. Only `verdict == "unsat"` is a refutation.
+- The solver record says which checker ran: `certification` is `RUP_CHECKED` or `DRAT_RUP_CHECKED`. An unknown
+  checker name raises `UnknownProofChecker` instead of falling back to one that exists.
+
+Tests: `python -m pytest tests/unit/test_npbench_sat.py tests/unit/test_npbench_cli.py tests/unit/test_npbench_graph.py tests/unit/test_npbench_opt.py tests/unit/test_npbench_drat.py`

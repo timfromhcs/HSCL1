@@ -346,7 +346,42 @@ A batch that cannot fill this stops at a stable checkpoint and fills it before t
 
 ---
 
-## 11. Definition of done for Wave 2
+## 12. Owner request (2026-11-08, session 3): a VM-usable HSCL1 image at v1 stable
+
+**Status: PLANNED. Explicitly gated on v1 stable — it does not start before the v1 release gates are green,
+and nothing about it may be reported as done earlier.**
+
+What "usable in a VM with GUI, keyboard, internet and everything" means as testable requirements:
+
+| Requirement | How it is proven | Status |
+|---|---|---|
+| Boots in a VM | QEMU/KVM UEFI (OVMF) and BIOS runs of the **released** artifact, `artifacts/` screenshots + serial log | PLANNED |
+| GUI desktop | Plasma session reached, wallpaper, panel, dock, launcher open, one application started - screenshot per step | PLANNED |
+| Keyboard input | keystrokes delivered into the guest (QEMU monitor `sendkey` / `-device usb-kbd`), text typed into a real field, layout switch tested for EN/DE/FR | PLANNED |
+| Internet | guest reaches the network through user-mode NAT (`-netdev user`) and through a bridged setup; DNS, HTTP and HTTPS verified inside the guest; **no host-only claim** | PLANNED |
+| Everyday work | browser opens a page, terminal runs a command, settings window opens, file manager shows the home directory | PLANNED |
+| Deliverable | a documented VM path (qcow2 image **and/or** an ISO + a tested recipe), SHA256SUMS, a VM guide with exact QEMU and VirtualBox settings, and a known-limitations row stating what was not tested | PLANNED |
+| Honesty | the image is derived from the released v1 artifact; a rebuilt image is not called "the release"; no GPU/3D-acceleration claim without measurement | PLANNED |
+
+Hard rules for this item:
+
+1. **No shortcut.** The VM image is built from the tagged v1 artifact (or from the same build inputs), never from a
+   local dev tree that differs from the release.
+2. **Disposable disks only.** Every VM test uses a throw-away qcow2 outside the repository; no physical disk, no
+   user data.
+3. **No credential leakage.** The image ships no account, no key, no token; first boot creates the user, or the
+   documented default is credential-free with a forced password change.
+4. **Secure Boot honesty.** If the v1 ISO does not prove firmware acceptance, the VM guide says so and does not
+   imply it.
+5. **Network scope.** Internet access is proven inside the guest; a "works everywhere" claim is never made - the
+   tested combinations are listed.
+
+Preconditions before it may start: v1 release gates from `AGENTS.md` section 14.2, a green CI on the release
+commit, a signed-or-explicitly-unsigned artifact, and a free heavy slot. Until then this section stays a plan.
+
+---
+
+## 13. Definition of done for Wave 2
 
 Wave 2 is done when, and only when:
 
@@ -357,6 +392,7 @@ Wave 2 is done when, and only when:
 - [ ] W2-3 beyond-NP slice green with its exponential limit stated
 - [ ] W2-6 schemas validate (no listener, no device)
 - [ ] W2-7 one-page UI covers every operation and shows status/warnings verbatim
+- [ ] the v1-gated VM deliverable (section 12) is still PLANNED and named as such
 - [ ] every batch has a `BUILD_LOG.md` entry with command + exit code
 - [ ] PR #37 green and mergeable
 - [ ] no claim in `CLAIMS.md` without an artifact behind it
