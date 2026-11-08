@@ -1,7 +1,7 @@
 """The one-page UI served from the same origin as the API.
 
-No external URL, no ``innerHTML`` (results are written with ``textContent``), the token is
-read from the URL fragment (never sent to the server) and removed from the address bar.
+No external URL, no ``innerHTML`` (results are written with ``textContent`` or DOM SVG nodes),
+the token is read from the URL fragment (never sent to the server) and removed from the address bar.
 The CSP allows exactly the inline script and style by hash.
 """
 
@@ -19,14 +19,25 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid 
 pre{background:#1c1f28;padding:1rem;border-radius:6px;overflow:auto;white-space:pre-wrap}
 .err{color:#ff8b8b}
 .field-group{margin-top:1rem}
-.hidden{display:none}
-#plot-svg{width:100%;height:auto;max-height:300px;background:#1c1f28;border-radius:6px}
+.hidden{display:none !important}
+#plot-svg{width:100%;height:auto;max-height:300px;background:#1c1f28;border-radius:6px;margin-top:1rem}
+#plot-svg svg{width:100%;height:auto;display:block}
 """
 
 _SCRIPT = """
 (function () {
-  var token = new URLSearchParams(location.hash.slice(1)).get("token");
-  history.replaceState(null, "", location.pathname);
+  var token = "";
+  function readToken() {
+    var fromHash = new URLSearchParams(location.hash.slice(1)).get("token");
+    if (fromHash) {
+      token = fromHash;
+      try {
+        history.replaceState(null, "", location.pathname);
+      } catch (e) {}
+    }
+  }
+  readToken();
+  window.addEventListener("hashchange", readToken);
 
   var out = document.getElementById("out");
   var plotSvg = document.getElementById("plot-svg");
@@ -34,13 +45,10 @@ _SCRIPT = """
   var goBtn = document.getElementById("go");
   var exprInput = document.getElementById("expr");
   var varInput = document.getElementById("var");
-  var valueGroup = document.getElementById("value-group");
   var valueInput = document.getElementById("value");
-  var plotGroups = {
-    x_min: document.getElementById("x_min-group"),
-    x_max: document.getElementById("x_max-group"),
-    points: document.getElementById("points-group")
-  };
+  var xMinInput = document.getElementById("x_min");
+  var xMaxInput = document.getElementById("x_max");
+  var pointsInput = document.getElementById("points");
 
   var opFields = {
     differentiate: ["expr", "var"],
@@ -69,30 +77,60 @@ _SCRIPT = """
   });
 
   goBtn.addEventListener("click", function () {
+    if (!token) readToken();
     var op = opSelect.value;
     out.className = "";
     out.textContent = "...";
-    plotSvg.style.display = "none";
-    plotSvg.innerHTML = "";
+    plotSvg.classList.add("hidden");
+    while (plotSvg.firstChild) {
+      plotSvg.removeChild(plotSvg.firstChild);
+    }
 
-    var body = { operation: op };
-    opFields[op].forEach(function(field) {
-      var el = document.getElementById(field);
-      if (el) body[field] = el.value;
-    });
+    var body = {
+      expression: exprInput.value,
+      variable: varInput.value
+    };
+    if (op === "evaluate") {
+      body.value = valueInput.value;
+    } else if (op === "plot") {
+      if (xMinInput && xMinInput.value) body.x_min = xMinInput.value;
+      if (xMaxInput && xMaxInput.value) body.x_max = xMaxInput.value;
+      if (pointsInput && pointsInput.value) {
+        var parsedPoints = parseInt(pointsInput.value, 10);
+        if (!isNaN(parsedPoints)) body.points = parsedPoints;
+      }
+    }
 
     fetch("/api/v1/symbolic/" + op, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": "Bearer " + (token || "") },
       body: JSON.stringify(body)
-    }).then(function (r) { return r.json(); }).then(function (j) {
+    }).then(function (r) {
+      return r.json().then(function (j) {
+        return { ok: r.ok, data: j };
+      });
+    }).then(function (res) {
+      var j = res.data;
       if (j.status === "ok" || j.status === "partial" || j.status === "unresolved") {
         renderResult(j, op);
       } else {
         out.className = "err";
-        out.textContent = j.status + ": " + (j.error || j.detail || "");
+        var errDetail = j.error || "";
+        if (!errDetail && j.detail) {
+          if (Array.isArray(j.detail)) {
+            errDetail = j.detail.map(function (d) {
+              return (d.loc ? d.loc.join(".") + ": " : "") + d.msg;
+            }).join("; ");
+          } else {
+            errDetail = j.detail;
+          }
+        }
+        out.textContent = (j.status || "error") + ": " + errDetail;
       }
-    }).catch(function () { out.className = "err"; out.textContent = "request failed"; });
+    }).catch(function () {
+      out.className = "err";
+      out.textContent = "request failed";
+    });
   });
 
   function renderResult(j, op) {
@@ -127,7 +165,7 @@ _SCRIPT = """
     var maxY = Math.max.apply(null, ys);
 
     var width = plotSvg.clientWidth || 400;
-    var height = 300;
+    var height = 240;
     var padding = 40;
 
     var scaleX = (width - 2 * padding) / (maxX - minX || 1);
@@ -136,15 +174,17 @@ _SCRIPT = """
     var pathData = valid.map(function(p, i) {
       var x = padding + (p[0] - minX) * scaleX;
       var y = height - padding - (p[1] - minY) * scaleY;
-      return (i === 0 ? "M" : "L") + x + "," + y;
+      return (i === 0 ? "M" : "L") + x.toFixed(1) + "," + y.toFixed(1);
     }).join(" ");
 
     var svgNS = ["http:", "//www.w3.org/2000/svg"].join("");
-    plotSvg.innerHTML = "";
+    while (plotSvg.firstChild) {
+      plotSvg.removeChild(plotSvg.firstChild);
+    }
     var svg = document.createElementNS(svgNS, "svg");
     svg.setAttribute("viewBox", "0 0 " + width + " " + height);
-    svg.style.width = "100%";
-    svg.style.height = "auto";
+    svg.setAttribute("aria-label", "Function plot");
+    svg.setAttribute("role", "img");
 
     var path = document.createElementNS(svgNS, "path");
     path.setAttribute("d", pathData);
@@ -154,23 +194,23 @@ _SCRIPT = """
     svg.appendChild(path);
 
     var xAxis = document.createElementNS(svgNS, "line");
-    xAxis.setAttribute("x1", padding);
-    xAxis.setAttribute("y1", height - padding);
-    xAxis.setAttribute("x2", width - padding);
-    xAxis.setAttribute("y2", height - padding);
+    xAxis.setAttribute("x1", padding.toString());
+    xAxis.setAttribute("y1", (height - padding).toString());
+    xAxis.setAttribute("x2", (width - padding).toString());
+    xAxis.setAttribute("y2", (height - padding).toString());
     xAxis.setAttribute("stroke", "#3a4052");
     svg.appendChild(xAxis);
 
     var yAxis = document.createElementNS(svgNS, "line");
-    yAxis.setAttribute("x1", padding);
-    yAxis.setAttribute("y1", padding);
-    yAxis.setAttribute("x2", padding);
-    yAxis.setAttribute("y2", height - padding);
+    yAxis.setAttribute("x1", padding.toString());
+    yAxis.setAttribute("y1", padding.toString());
+    yAxis.setAttribute("x2", padding.toString());
+    yAxis.setAttribute("y2", (height - padding).toString());
     yAxis.setAttribute("stroke", "#3a4052");
     svg.appendChild(yAxis);
 
     plotSvg.appendChild(svg);
-    plotSvg.style.display = "block";
+    plotSvg.classList.remove("hidden");
   }
 
   showFieldsForOp(opSelect.value);
@@ -183,12 +223,11 @@ def _hash(text: str) -> str:
 
 
 CSP = (
-    "default-src 'none'; "
+    "default-src 'self'; "
     f"script-src {_hash(_SCRIPT)}; "
     f"style-src {_hash(_STYLE)}; "
     "connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
 )
-CSP = CSP.replace("default-src 'none'", "default-src 'self'", 1)
 
 HTML = f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
@@ -234,6 +273,6 @@ HTML = f"""<!doctype html>
 
 <button id="go" type="button">Differentiate</button>
 <pre id="out" aria-live="polite"></pre>
-<div id="plot-svg" style="display:none"></div>
+<div id="plot-svg" class="hidden"></div>
 </main><script>{_SCRIPT}</script></body></html>
 """

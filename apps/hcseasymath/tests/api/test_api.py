@@ -33,6 +33,11 @@ def test_health_and_capabilities_need_no_token_but_report_real_state():
     assert caps["limits"]["max_chars"] == 500
 
 
+def test_favicon_returns_204_without_requiring_token():
+    c = make()
+    assert c.get("/favicon.ico").status_code == 204
+
+
 def test_a_foreign_host_header_is_rejected_to_stop_dns_rebinding():
     c = make()
     r = c.get("/api/v1/health", headers={"Host": "evil.example:8765"})

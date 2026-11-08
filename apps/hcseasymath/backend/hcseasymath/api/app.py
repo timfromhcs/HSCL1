@@ -16,7 +16,7 @@ from typing import Any, Callable
 import anyio.to_thread
 import sympy as sp
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from pydantic import BaseModel, ConfigDict, Field
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
@@ -139,6 +139,10 @@ def create_app(
                 "Cache-Control": "no-store",
             },
         )
+
+    @app.get("/favicon.ico", include_in_schema=False)
+    def favicon() -> Response:
+        return Response(status_code=204)
 
     @app.get("/api/v1/health")
     def health() -> dict[str, str]:
