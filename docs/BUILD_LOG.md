@@ -1149,3 +1149,13 @@ Decision rule: pick the one that unblocks the most downstream work. HCSUDA H3c-3
 - Release verifier workflow now checks out the requested refs/tags/<release> in both verify/bundle jobs and records actual verifier commit. YAML parsed and both tag bindings/read-only permissions manually checked; no release workflow was dispatched, so remote execution remains unverified. Release lock will be released with the commit.
 - Additional Miner ADR correction: CQ Studio already defaults8765, and IANA assigns8765 to ultraseek-http. Removed false no-assignment/serial-baud comparisons and diagnostic fallbacks that could call a failed command 'free'. No final Miner port approved by this draft.
 - Related repo work: Miner f024618 pushed to codex/hscl1-research-bridge-contract after ten host test programs + sanitizers. CQ reviewed security integration3cfc96f has2761 passed/110 skipped/1 deselected; push/PR process underway. Neural health/OpenAPI identity fix underway on its own isolated Python3.12 environment. No repo main/tag/deployment/physical write has been performed by this batch.
+
+### V1-B Security Lab CLI execution & developer lifecycle tooling (2026-11-08)
+
+- **Security Lab CLI execution:** Wired `hscl lab run`, `hscl lab install`, `hscl lab commit`, and `hscl lab destroy` subcommands in `cli/hscl/src/main.rs` with `LAB_ATTESTATION = "I am authorized to test this target"`. Requires `--yes="I am authorized to test this target"`, checks podman availability, dispatches to `lab::run_argv`, `lab::install_argv`, `lab::commit_argv`, `lab::destroy_argv` directly without invoking a shell, inherits stdin/stdout/stderr for interactive runs, and emits JSON/human formatted results. Documented in `docs/CLI.md`.
+- **Developer lifecycle tooling:** Added `scripts/dev/mcp_selftest.py` exercising stdio JSON-RPC handshake, capability negotiation, tool listing (14 tools), and structured error handling. Added `scripts/dev/wsl-cycle.sh` connecting the Windows workspace on `E:\` with the high-performance Linux build workspace in WSL2. Both scripts added with `--chmod=+x`.
+- **Gate results:**
+  - Rust workspace: `cargo fmt --check` clean, `cargo clippy --all-targets -D warnings` clean, `cargo test --all` passed (202 tests in Windows, 209 tests in WSL).
+  - MCP protocol self-test: 7/7 checks passed on Windows and WSL.
+  - Full Forge gate: `artifacts/forge/20261108-172606/summary.json` (pytest 286.8s PASS, bash -n 2.8s PASS, shellcheck 1.5s PASS, secret scan 0.4s PASS, doc commands 0.3s PASS).
+
