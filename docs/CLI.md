@@ -63,12 +63,27 @@ suggestions and the licence classes.
 
 See `docs/SECURITY_LAB.md`: `status`, `setup`, `toolsets`, `spec` (prints the exact rootless `podman` command, executes nothing).
 
+## `hscl language` (IMPLEMENTED, unit-tested)
+
+Desktop language configuration and switching (AGENTS.md section 10.3).
+HSCL1 supports three Tier-1 languages: English (`en`), Deutsch (`de`), and Français (`fr`).
+Language changes apply without reinstalling the OS, without root privileges, and preserve all user data by updating `~/.config/plasma-localerc` and `~/.config/locale.conf`.
+Changes take effect on the next user login or desktop session restart.
+
+`hscl language status` inspects the active environment and configuration files.
+`hscl language list` displays all supported languages and highlights the currently active selection.
+`hscl language set <LANG>` validates the requested language code and safely updates desktop configuration.
+`--dry-run` previews file changes without modifying disk state; `--json` outputs structured JSON.
+
 
 ## More commands (rows taken from `--help`; the drift test `cli_doc_lists_every_command` keeps this page complete)
 
 | Command | What it does |
 |---|---|
 | `hscl overview` | Friendly overview of HSCL1 and where to start (also what `hscl1` with no arguments prints) |
+| `hscl language status` | Show current language configuration and active environment |
+| `hscl language list` | List supported languages (en, de, fr) |
+| `hscl language set` | Set the user desktop language (en, de, fr); `--dry-run` previews without writing |
 | `hscl system updates` | Pending APT updates (read-only simulation; installs nothing) |
 | `hscl ai model list` | All catalog models with fit information for this machine |
 | `hscl ai model recommend` | Models that fit this machine, best first |

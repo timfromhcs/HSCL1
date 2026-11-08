@@ -1279,3 +1279,22 @@ Decision rule: pick the one that unblocks the most downstream work. HCSUDA H3c-3
 - **Automated Test Coverage:**
   - Created `tests/unit/test_shortcuts.py` asserting valid INI structure, mapping of all required shortcuts, zero key collisions, documentation completeness, and handbook parity.
   - Passed 7/7 tests locally on Windows and WSL Linux. Executable bit and ShellCheck verified clean.
+
+### V1-K HSCL1 Language Subcommand Implementation & Testing (2026-11-08)
+
+- **CLI Implementation (AGENTS.md section 10.3):**
+  - Added `Language` subcommand with `Status`, `List`, and `Set` in `cli/hscl/src/main.rs`.
+  - Created `cli/hscl/src/language.rs` supporting Tier-1 languages: English (`en`), Deutsch (`de`), and Français (`fr`).
+  - Supported resolution of locale specifiers (`en`, `de`, `fr`, `de_DE`, `fr_FR.UTF-8`).
+  - Implemented safe per-user configuration updates modifying `~/.config/plasma-localerc` and `~/.config/locale.conf` without requiring root privileges and preserving all user data.
+  - Implemented `--dry-run` to preview file operations without disk modifications.
+  - Implemented full `--json` support across `status`, `list`, and `set`.
+  - Added MCP tools `hscl_language_status`, `hscl_language_list`, and write tool `hscl_language_set` in `cli/hscl/src/mcp.rs`.
+- **Documentation & Handbook Synchronization:**
+  - Updated `docs/CLI.md` with leaf command references and usage documentation, passing the `cli_doc_lists_every_command` drift gate.
+  - Updated offline handbook `cli.md` in English, German, and French (`handbook/{en,de,fr}/src/cli.md`).
+  - Updated `docs/KNOWN_LIMITATIONS.md` line 21 with implemented status and unit test coverage.
+- **Automated Test Coverage:**
+  - Rust unit tests: Added 4 tests in `cli/hscl/src/language.rs` and updated `cli/hscl/src/mcp.rs` tests. All 206 tests passed with 0 failures (`cargo test -p hscl`).
+  - Python unit tests: Created `tests/unit/test_language_cli.py` (5 tests) asserting CLI output, environment variable overrides (`HSCL_CONFIG_DIR`), JSON payloads, dry-run safety, and error handling on invalid language codes.
+  - Verified `cargo fmt -- --check` and `cargo clippy -p hscl -- -D warnings` 100% clean.
