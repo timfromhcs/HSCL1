@@ -18,6 +18,7 @@ mod lab;
 mod language;
 mod mcp;
 mod memory;
+mod privacy;
 mod profile;
 mod redact;
 mod report;
@@ -173,6 +174,11 @@ enum Cmd {
     Language {
         #[command(subcommand)]
         cmd: LanguageCmd,
+    },
+    /// Privacy mode, ephemeral sessions, and Tor workflows (AGENTS.md section 6.5 & 8.2).
+    Privacy {
+        #[command(subcommand)]
+        cmd: PrivacyCmd,
     },
 }
 
@@ -562,6 +568,68 @@ enum LanguageCmd {
         /// Language code: en, de, or fr.
         lang: String,
         /// Show changes without writing files.
+        #[arg(long)]
+        dry_run: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum PrivacyCmd {
+    /// Live privacy posture: ephemeral overlay, memory swap, dump safety, and Tor readiness.
+    Status,
+    /// Tor network and browser tooling.
+    Tor {
+        #[command(subcommand)]
+        cmd: TorCmd,
+    },
+    /// Architecture, ephemeral session properties, and honest threat model boundaries.
+    Session {
+        #[command(subcommand)]
+        cmd: SessionCmd,
+    },
+    /// Official Tails verification and isolated VM launcher.
+    Tails {
+        #[command(subcommand)]
+        cmd: TailsCmd,
+    },
+}
+
+#[derive(Subcommand)]
+enum TorCmd {
+    /// Check Tor daemon status and Tor Browser availability.
+    Status,
+    /// Launch Tor Browser with fail-closed protection (no direct-browser fallback).
+    Launch {
+        /// Print the launch command without executing.
+        #[arg(long)]
+        dry_run: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum SessionCmd {
+    /// Comprehensive explanation of ephemeral overlayfs, zram memory swap, suid_dumpable, and boundaries vs Tails.
+    Explain,
+}
+
+#[derive(Subcommand)]
+enum TailsCmd {
+    /// Verify an official Tails ISO image file (SHA256 checksum and optional expected hash).
+    Verify {
+        /// Path to official Tails ISO.
+        image: std::path::PathBuf,
+        /// Expected SHA256 checksum (64 hex characters).
+        #[arg(long)]
+        expected_sha256: Option<String>,
+    },
+    /// Generate or run an isolated QEMU/KVM launcher for an official Tails ISO (no host storage attached).
+    Launch {
+        /// Path to official Tails ISO.
+        image: std::path::PathBuf,
+        /// Allocate RAM in megabytes (default: 4096).
+        #[arg(long, default_value = "4096")]
+        ram_mb: u32,
+        /// Print the QEMU launch command without executing.
         #[arg(long)]
         dry_run: bool,
     },
@@ -1219,6 +1287,7 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
             cmd: AppearanceCmd::Theme { cmd },
         } => return run_theme(j, cmd),
         Cmd::Language { cmd } => return run_language(j, cmd),
+        Cmd::Privacy { cmd } => return run_privacy(j, cmd),
         Cmd::Doctor { full } => {
             let report = doctor::run(full);
             let v = serde_json::to_value(&report)?;
@@ -1904,6 +1973,165 @@ fn run_language(j: bool, cmd: LanguageCmd) -> anyhow::Result<u8> {
                     )
                 });
             }
+        }
+    }
+    Ok(exit::OK)
+}
+
+fn run_privacy(j: bool, cmd: PrivacyCmd) -> anyhow::Result<u8> {
+    match cmd {
+        PrivacyCmd::Status => {
+            let st = privacy::get_privacy_status(None);
+            let v = serde_json::to_value(&st)?;
+            print_value(j, &v, || {
+                let ephem_str = if st.ephemeral_overlay {
+                    "active (volatile RAM overlayfs)"
+                } else {
+                    "inactive (persistent root)"
+                };
+                let zram_str = if st.zram_swap_active {
+                    "active (compressed zram in RAM)"
+                } else {
+                    "inactive"
+                };
+                let disk_swap_str = if st.persistent_swap_active {
+                    "WARNING: active persistent disk swap detected"
+                } else {
+                    "none (safe for ephemeral session)"
+                };
+                let suid_str = if st.suid_dumpable_disabled {
+                    "disabled (fs.suid_dumpable = 0)"
+                } else {
+                    "enabled (dumpable)"
+                };
+                let auto_str = if st.internal_disks_automounted.is_empty() {
+                    "none (host disks unmounted)"
+                } else {
+                    "disks mounted:"
+                };
+                let tor_str = if st.tor_service_active {
+                    "active (ports 9050/9150)"
+                } else {
+                    "inactive"
+                };
+                let browser_str = match &st.tor_browser_path {
+                    Some(p) => format!("installed ({p})"),
+                    None => "not installed".to_string(),
+                };
+
+                let mut out = format!(
+                    "ephemeral overlay:     {ephem_str}\n\
+                     root filesystem:       {}\n\
+                     zram memory swap:      {zram_str}\n\
+                     persistent disk swap:  {disk_swap_str}\n\
+                     core dumps:            {suid_str}\n\
+                     internal disk mounts:  {auto_str}\n\
+                     tor service:           {tor_str}\n\
+                     tor browser:           {browser_str}",
+                    st.root_fstype
+                );
+                for d in &st.internal_disks_automounted {
+                    out.push_str(&format!("\n  - {d}"));
+                }
+                out.push_str(&format!("\n\nNotice: {}", st.disclaimer));
+                out
+            });
+        }
+        PrivacyCmd::Tor {
+            cmd: TorCmd::Status,
+        } => {
+            let st = privacy::get_tor_status();
+            let v = serde_json::to_value(&st)?;
+            print_value(j, &v, || {
+                let s_str = if st.service_active {
+                    "active"
+                } else {
+                    "inactive"
+                };
+                let b_str = match &st.browser_path {
+                    Some(p) => format!("installed ({p})"),
+                    None => "not installed".to_string(),
+                };
+                format!(
+                    "tor service:    {s_str}\n\
+                     tor browser:    {b_str}\n\
+                     fail-closed:    enforced (no direct browser fallback)\n\
+                     notice:         {}",
+                    st.notice
+                )
+            });
+        }
+        PrivacyCmd::Tor {
+            cmd: TorCmd::Launch { dry_run },
+        } => {
+            let msg = privacy::tor_launch(dry_run)?;
+            let v = json!({
+                "action": "tor_launch",
+                "dry_run": dry_run,
+                "message": msg,
+            });
+            print_value(j, &v, || msg);
+        }
+        PrivacyCmd::Session {
+            cmd: SessionCmd::Explain,
+        } => {
+            let expl = privacy::SESSION_EXPLANATION;
+            let v = json!({
+                "title": "HSCL1 Privacy Mode: Architecture & Threat Model",
+                "explanation": expl,
+                "disclaimer": privacy::MANDATORY_DISCLAIMER,
+            });
+            print_value(j, &v, || expl.to_string());
+        }
+        PrivacyCmd::Tails {
+            cmd:
+                TailsCmd::Verify {
+                    image,
+                    expected_sha256,
+                },
+        } => {
+            let report = privacy::verify_tails_iso(&image, expected_sha256.as_deref())?;
+            let v = serde_json::to_value(&report)?;
+            print_value(j, &v, || {
+                let ver_str = if report.verified { "PASS" } else { "FAIL" };
+                let exp_str = report
+                    .expected_sha256
+                    .as_deref()
+                    .unwrap_or("none provided (hash calculated)");
+                format!(
+                    "image:      {}\n\
+                     size:       {} bytes ({:.2} GB)\n\
+                     sha256:     {}\n\
+                     expected:   {}\n\
+                     status:     {}\n\
+                     upstream:   {}",
+                    report.image.display(),
+                    report.size_bytes,
+                    (report.size_bytes as f64) / (1024.0 * 1024.0 * 1024.0),
+                    report.calculated_sha256,
+                    exp_str,
+                    ver_str,
+                    report.tails_doc_url
+                )
+            });
+        }
+        PrivacyCmd::Tails {
+            cmd:
+                TailsCmd::Launch {
+                    image,
+                    ram_mb,
+                    dry_run,
+                },
+        } => {
+            let report = privacy::launch_tails_vm(&image, ram_mb, dry_run)?;
+            let v = serde_json::to_value(&report)?;
+            print_value(j, &v, || {
+                let mode_str = if report.dry_run { "[dry-run] " } else { "" };
+                format!(
+                    "{mode_str}Tails VM launch command:\n  {}\n\nSafety notice:\n  {}",
+                    report.command, report.safety_notice
+                )
+            });
         }
     }
     Ok(exit::OK)

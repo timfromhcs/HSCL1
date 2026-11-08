@@ -102,6 +102,12 @@ def main() -> int:
         swapon --show || true
         echo "=== DUMPABLE SYSCTL ==="
         sysctl fs.suid_dumpable || true
+        echo "=== HSCL PRIVACY STATUS ==="
+        /usr/bin/hscl privacy status || true
+        echo "=== HSCL PRIVACY STATUS (JSON) ==="
+        /usr/bin/hscl --json privacy status || true
+        echo "=== HSCL PRIVACY SESSION EXPLAIN ==="
+        /usr/bin/hscl privacy session explain || true
         """
         r_priv = run_cmd(vm, cmd_privacy)
         report["tracks"]["track_c_privacy"] = {

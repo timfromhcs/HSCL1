@@ -1319,3 +1319,28 @@ Decision rule: pick the one that unblocks the most downstream work. HCSUDA H3c-3
     - `HSCL1-0.1.4-alpha.0-amd64.iso.part002`: 1,503,723,520 bytes (`e6effefff63bfc0211ddcf64172d255a85405c647360d9c155ed681e1f0ab5f6`)
   - Verified stream concatenation bit-identity with `scripts/release-join.sh --verify-only` (exit 0).
   - Generated SPDX SBOM `SBOM-hscl-cli.spdx.json` containing 98 packages.
+
+### V1-M HSCL1 Privacy Subcommand Implementation & Testing (2026-11-09)
+
+- **CLI Implementation (AGENTS.md section 6.5 & 8.2):**
+  - Added `Privacy` subcommand with `Status`, `Tor(Status, Launch)`, `Session(Explain)`, and `Tails(Verify, Launch)` in `cli/hscl/src/main.rs`.
+  - Created `cli/hscl/src/privacy.rs` implementing live privacy posture inspection:
+    - Pure functions `parse_mounts`, `parse_swaps`, and `parse_suid_dumpable` allowing full unit testing across platforms.
+    - Inspects ephemeral overlayfs status (`/cow`, `/cdrom`, or tmpfs overlay).
+    - Inspects memory layout: compressed in-RAM `zram` with swap priority 100 vs physical disk swap detection.
+    - Inspects process dumpability protection (`fs.suid_dumpable = 0`).
+    - Detects unmounted vs automounted internal physical host disks (`/media` or `/mnt`).
+    - Inspects Tor daemon SOCKS proxy (ports 9050/9150) and Tor Browser availability.
+    - Strict fail-closed policy: `hscl privacy tor launch` refuses to fall back to unencrypted standard browsers when Tor Browser is absent.
+    - `hscl privacy session explain` provides comprehensive breakdown of ephemeral overlayfs properties and honest boundaries vs Tails.
+    - `hscl privacy tails verify` streams and computes SHA256 checksums on official Tails ISO files.
+    - `hscl privacy tails launch` generates isolated QEMU/KVM virtual machine launch commands in snapshot mode with zero host storage mounts.
+    - Added MCP read-only tool `hscl_privacy_status` in `cli/hscl/src/mcp.rs`.
+- **Documentation & Handbook Synchronization:**
+  - Updated `docs/CLI.md` with leaf command references and usage documentation, passing the `cli_doc_lists_every_command` drift gate.
+  - Updated offline handbook `cli.md` in English, German, and French (`handbook/{en,de,fr}/src/cli.md`).
+- **Automated Test Coverage:**
+  - Rust unit tests: Added 8 unit tests in `cli/hscl/src/privacy.rs` and updated `cli/hscl/src/mcp.rs` tests. All 214 tests passed with 0 failures (`cargo test -p hscl`).
+  - Python unit tests: Created `tests/unit/test_privacy_cli.py` (5 tests) asserting CLI output, JSON payloads, fail-closed behavior, boundary disclaimer assertions, Tails ISO streaming verification, and QEMU isolation command generation.
+  - Updated MCP tool count assertions in `tests/unit/test_hscl_mcp.py` (18 read-only tools, 22 write tools).
+  - Verified `cargo fmt -- --check` and `cargo clippy -p hscl -- -D warnings` 100% clean.
