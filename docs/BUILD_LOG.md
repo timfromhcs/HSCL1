@@ -813,3 +813,6 @@ PR #32 merged (`ce0e40b`, 16/16 checks). Release notes read for checkout v5-v7 a
 
 ## HCSEASYMATH evaluate operation (2026-11-08)
 Added `evaluate` (exact substitution of a symbol-free value parsed by the allow-list parser; zoo/nan/oo give `unresolved` with no result). Gate in WSL: 143 passed (was 134); the capabilities test now lists three operations. Not yet done: simplify, solve, plot, warm worker.
+
+## Miner Research Bridge contract read; plans reconciled (MINER-0, 2026-11-08)
+Read `AGENTS_HSCL1_BITAXE_MINER_RESEARCH_BRIDGE_MASTER_2026-11-08.md` (2392 lines, untracked). Verified read-only via GitHub: ESP-Miner master and research-branch heads, 8 ahead / 0 behind, 22 files, partition table, upstream PR states, RLAF abstract (arXiv 2505.16053). Not verified: 22 other sources, CI of the research branch, any device (no contact with .61/.66). Decisions M1-M7, conflicts C10-C12, ledger rows 11-13. No code, schema or device action. Edits to ESP-Miner / CQ-HECS and any flashing need owner approval.
