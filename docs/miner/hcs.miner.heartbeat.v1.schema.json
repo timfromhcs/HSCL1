@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hcsmedia.github.io/schemas/hcs.miner.heartbeat.v1.json",
+  "title": "HCS Miner Heartbeat v1",
+  "type": "object",
+  "description": "30-second heartbeat from miner to HSCL1 receiver. Contains liveness, state summary, and flow control.",
+  "required": [
+    "schema",
+    "device_id",
+    "boot_id",
+    "sequence",
+    "event_id",
+    "event_type",
+    "event_time_monotonic_ns",
+    "event_time_utc",
+    "clock_quality",
+    "firmware",
+    "device",
+    "payload",
+    "privacy_class",
+    "integrity"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "hcs.miner.event.v1"
+    },
+    "device_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "boot_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{16}$"
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "event_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$"
+    },
+    "event_type": {
+      "type": "string",
+      "const": "network.receiver_heartbeat_ok"
+    },
+    "event_time_monotonic_ns": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "event_time_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "clock_quality": {
+      "type": "string",
+      "enum": ["ntp_synced", "rtc_estimated", "unknown"]
+    },
+    "firmware": {
+      "type": "object",
+      "required": ["version", "source_sha", "idf_version"],
+      "additionalProperties": false,
+      "properties": {
+        "version": { "type": "string" },
+        "source_sha": { "type": "string", "pattern": "^[a-f0-9]{40}$|^unknown$" },
+        "idf_version": { "type": "string" }
+      }
+    },
+    "device": {
+      "type": "object",
+      "required": ["board", "asic_model", "device_model"],
+      "additionalProperties": false,
+      "properties": {
+        "board": { "type": "string" },
+        "asic_model": { "type": "string" },
+        "device_model": { "type": "string", "enum": ["Ultra", "Supra", "Gamma", "Unknown"] }
+      }
+    },
+    "payload": {
+      "type": "object",
+      "required": [
+        "uptime_seconds",
+        "wall_time_quality",
+        "current_ip",
+        "wifi_state",
+        "last_acked_sequence",
+        "pending_queue_depth",
+        "oldest_pending_age_seconds",
+        "mining_state",
+        "thermal_summary",
+        "protocol_version"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "uptime_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Monotonic uptime in seconds"
+        },
+        "wall_time_quality": {
+          "type": "string",
+          "enum": ["ntp_synced", "rtc_estimated", "unknown"],
+          "description": "Quality of the device's wall clock"
+        },
+        "current_ip": {
+          "type": "string",
+          "format": "ipv4",
+          "description": "Current LAN IP address"
+        },
+        "wifi_state": {
+          "type": "string",
+          "enum": ["connected", "connecting", "disconnected", "ap_mode"],
+          "description": "Wi-Fi association state"
+        },
+        "rssi_dbm": {
+          "type": "integer",
+          "maximum": 0,
+          "minimum": -100,
+          "description": "Wi-Fi RSSI in dBm (negative). Null if not available."
+        },
+        "last_acked_sequence": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Highest sequence number acknowledged by receiver"
+        },
+        "pending_queue_depth": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of unacknowledged events in device queue"
+        },
+        "oldest_pending_age_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Age of oldest unacknowledged event in seconds"
+        },
+        "mining_state": {
+          "type": "string",
+          "enum": ["running", "paused", "research_mode", "starting", "stopping"],
+          "description": "Current mining state"
+        },
+        "thermal_summary": {
+          "type": "object",
+          "required": ["asic_temp_c", "vr_temp_c", "thermal_state"],
+          "additionalProperties": false,
+          "properties": {
+            "asic_temp_c": {
+              "type": "number",
+              "description": "ASIC temperature in Celsius. Null if sensor unavailable."
+            },
+            "vr_temp_c": {
+              "type": "number",
+              "description": "Voltage regulator temperature in Celsius. Null if sensor unavailable."
+            },
+            "thermal_state": {
+              "type": "string",
+              "enum": ["normal", "warm", "hot", "throttling", "critical", "unknown"],
+              "description": "Thermal state classification"
+            },
+            "fan_pwm_percent": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100,
+              "description": "Fan PWM duty cycle percent"
+            },
+            "fan_rpm": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Fan RPM if tachometer available"
+            }
+          }
+        },
+        "protocol_version": {
+          "type": "integer",
+          "const": 1,
+          "description": "Heartbeat protocol version"
+        }
+      }
+    },
+    "privacy_class": {
+      "type": "string",
+      "const": "local_research"
+    },
+    "integrity": {
+      "type": "object",
+      "required": ["body_sha256", "signature"],
+      "additionalProperties": false,
+      "properties": {
+        "body_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "signature": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    }
+  }
+}
