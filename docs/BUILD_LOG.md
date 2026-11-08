@@ -950,3 +950,23 @@ New `tools/npbench/npbench/drat.py` and `tests/unit/test_npbench_drat.py` (29 te
 - Docs: `tools/npbench/README.md` (new proof-checking section, RAT boundary), `docs/CLAIMS.md` (two rows: harness slices 1-4, DRAT slice 5a), `docs/KNOWN_LIMITATIONS.md` (RAT not implemented; correctness-not-competitiveness scope). Ledger row 20 now says 5a DONE / 5b NEXT.
 - **Owner request recorded, not started:** a VM-usable HSCL1 image (GUI, keyboard, internet, everyday apps) is added as wave2 plan section 12 and ledger row 24, **gated on v1 stable**. Status PLANNED; built later from the v1 artifact with disposable disks only.
 - Not done: RAT checking, differential parser matrix (5b), any external solver proof, no external instance sets (licence question open), no VM, no image build.
+
+## NPBENCH-5b: differential DIMACS parser matrix against CQ-HECS (ledger row 20, W2-2, 2026-11-08, session 3)
+
+New `tests/unit/test_npbench_diff.py` + `tests/helpers/cqhecs_parser_probe.py`. The audit's P1 row was a reading result; it is now executable. Eleven input classes: `00_baseline`, `a_count_mismatch`, `b_no_header`, `c_percent` (SATLIB), `d_underscore` (`num_vars=2`), `d2_underscore_with_room` (`num_vars=10`), `e_upper_cnf`, `f_repeated_lit`, `g_second_header`, `h_literal_above`, `i_unterminated`.
+
+- Half 1 (always runs): our strict parser (`npbench.cnf`) must produce the recorded outcome **and** the recorded clause list for every class. This pins the behaviour, so a regression fails immediately.
+- Half 2 (real): `cqhecs.sat.parse_dimacs` is imported in a **separate** interpreter (`~/venvs/cq/bin/python`) because `cqhecs.sat` needs qiskit and cannot be imported into the gate venv. The probe reads a JSON case list on stdin and prints one JSON answer per case; it never writes to the clone. It **skips with an explicit reason** when the clone (`HSCL1_CQHECS_CLONE`) or the interpreter (`HSCL1_CQHECS_PYTHON`) is missing - a CI runner has neither, and a fake differential test would be worse than a skipped one.
+- Two aggregate tests keep the matrix from becoming vacuous: the exactly-agreed set and the exactly-differing set are both asserted by name, so deleting a case or editing a recorded row without a measurement fails.
+
+Measured (clone `/home/tim/src/CQ-HECS` @ `5ed3d2e`, branch `hcspnp/integration`, 2026-11-08): **three classes differ** - `d2` (CQ-HECS accepts `1_0` as literal 10 when `num_vars=10`, we reject the token), `e` (`p CNF` accepted there, rejected here), `f` (both accept, CQ-HECS deduplicates `1 1 2` to `(1,2)`, we keep `(1,1,2)` verbatim). Six classes agree on the outcome; `d` agrees only by coincidence (`int("1_0")==10` then rejected for exceeding `num_vars=2`, versus a token refusal here). The native `sat_solver.cpp` parser is still **not executed** (`cpp/` is not built here), so the native column of P1 stays an audit finding. Full matrix appended to `docs/research/HCSPNP_BASELINE.md` (new "part 5").
+
+One result was corrected rather than accommodated: the first version asserted "at least four classes differ"; the measurement says three, so the threshold was replaced by the **exact** set - stricter, and it now fails if a row is edited without a measurement.
+
+Mutation check (`artifacts/loop/mutate_diff.py`, backup copy + sha256, never `git checkout`): recorded `theirs` flipped, our expectation flipped, our clause list wrong, a case deleted, a recorded `theirs` clause list wrong. On Windows **4 of 5 killed** - the fifth (`theirs` clause list) survives there by design because the differential half is skipped; the same script under WSL kills **5 of 5**, which is the evidence that the differential half is real. File restored byte-identically both times (sha256 `073b648c316f44a1...`).
+
+Commands and results: `python -m pytest tests/unit/test_npbench_diff.py -q` -> **13 passed, 11 skipped** (Windows, skip reason printed); `wsl ... HSCL1_CQHECS_PYTHON=~/venvs/cq/bin/python python3 -m pytest tests/unit/test_npbench_diff.py -q` -> **24 passed**.
+
+Docs: `docs/research/HCSPNP_BASELINE.md` (part 5, the measured matrix), `docs/CLAIMS.md` (differential matrix row), `docs/KNOWN_LIMITATIONS.md` (skip condition + native parser not executed), ledger row 20 now **5a + 5b DONE**.
+
+- Not done: the native C++ parser was not built or run; no fix was applied to the clone (B-P1, owner push); `d2`/`e` remain real strictness bugs in the upstream Python parser, documented, not patched.

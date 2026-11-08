@@ -109,3 +109,45 @@ Consequences for parts 2-3: **C1 and C4 are violations of this module's own conv
 | P5 | **Clean `UNSAT` without certification is a normal output of the default portfolio path** (`certify=False` or an exhausted certificate budget gives `UNSAT` + `certified=False`, `certification="UNCERTIFIED"`). That is honest here because the property exists; it only becomes a problem where the property is ignored (`unified.py`, ABI). | `sat.py:880-933` | Covered by C2/C3. |
 
 Answer to contract question 23.1 "differential tests": **still unconfirmed** for the *native* solver. This part adds a concrete reason to write one first: P1 shows the entry points already disagree on inputs, so a differential harness must start with the parser.
+
+## Audit row 1, part 5: P1 measured - the differential parser matrix (2026-11-08, session 3)
+
+The P1 row above was produced by reading code. It is now measured: `tests/unit/test_npbench_diff.py` runs eleven
+input classes against **our** strict parser (`tools/npbench/npbench/cnf.py`) and, in a second half, against the
+real `cqhecs.sat.parse_dimacs` inside its own interpreter (`tests/helpers/cqhecs_parser_probe.py`, because
+`cqhecs.sat` imports qiskit and cannot be imported into the gate venv).
+
+Measured in the clone at `/home/tim/src/CQ-HECS` @ `5ed3d2e`, branch `hcspnp/integration`, with
+`~/venvs/cq/bin/python`:
+
+| class | input | CQ-HECS Python | our parser | same? |
+|---|---|---|---|---|
+| `00_baseline` | `p cnf 2 1` / `1 2 0` | accept, `2`, `((1,2),)` | accept, `((1,2),)` | yes |
+| `a_count_mismatch` (P1 a) | `p cnf 2 3` / `1 2 0` | reject `header declares 3 clauses, parsed 1` | reject | yes (message differs) |
+| `b_no_header` (P1 b) | `1 2 0` | reject `clause before the 'p cnf' header` | reject | yes |
+| `c_percent` (P1 c) | `... % 0` (SATLIB) | accept, stops at `%` | accept, `((1,2),)` | yes |
+| `d_underscore` (P1 d) | `p cnf 2 1` / `1_0 2 0` | reject `literal 10 exceeds num_vars=2` | reject | yes, **different mechanism**: `int("1_0") == 10` |
+| `d2_underscore_with_room` | `p cnf 10 1` / `1_0 0` | **accept**, `((10,),)` | **reject** | **no** |
+| `e_upper_cnf` (P1 e) | `p CNF 2 1` | **accept**, `((1,2),)` | **reject** | **no** |
+| `f_repeated_lit` (P1 f) | `p cnf 2 1` / `1 1 2 0` | accept, **deduplicated** `((1,2),)` | accept, **verbatim** `((1,1,2),)` | **no** (clause list) |
+| `g_second_header` (P1 g) | two `p` lines | reject `duplicate problem header` | reject | yes |
+| `h_literal_above` | `1 9 0` with `num_vars=2` | reject | reject | yes |
+| `i_unterminated` | `1 2` without `0` | reject `last clause is not terminated by 0` | reject | yes |
+
+Three classes differ in outcome or content (`d2`, `e`, `f`); six agree on the outcome while `d` shows that the
+agreement is coincidental (the mechanisms differ). Two P1 sub-findings are **confirmed** and are *outcome* bugs in
+the Python entry point relative to a strict reading of DIMACS: `d2` accepts the non-numeric token `1_0` as literal
+10, and `e` accepts an upper-case `p CNF` header. The `f` difference is not a bug in either parser (deduplication
+is meaning-preserving) but it means a proof about one clause list is not a proof about the other, which is why
+`formula_sha256` vs `formula_original_sha256` matter.
+
+What this settles and what it does not:
+
+- **Settled:** the two entry points of the same file really do disagree, so any differential harness for CQ-HECS
+  must start at the parser. The matrix is now executable, not a reading exercise.
+- **Settled:** our parser's behaviour is pinned for all eleven classes, so a regression in `npbench.cnf` fails
+  immediately.
+- **Not settled:** the *native* C++ parser is still only read, never executed (`cpp/` is not built here), so the
+  native column of the P1 table remains an audit finding, not a measurement. Stated as such in
+  `KNOWN_LIMITATIONS.md`.
+- **Not done, and owned elsewhere:** nothing in the clone was changed; P1's fix belongs to B-P1 (owner push).
