@@ -131,8 +131,8 @@ and **P5** (benchmark corpus). The research and its limits are in `docs/research
 | Step | Row | Work | Done when |
 |---|---|---|---|
 | W5-1 | 16 | SAT slice: strict DIMACS, generators with known answers, independent model and RUP verifiers, CDCL and WalkSAT baselines, runner with PAR-2 | **DONE**: 40 tests, 8 mutations red-then-reverted |
-| W5-2 | 17 | Suite manifest, CLI, JSON report, light default suite | **NEXT** |
-| W5-3 | 18 | Colouring, clique, Hamiltonian cycle (known-answer generators, independent verifiers, exact and greedy solvers) | tests + sweep |
+| W5-2 | 17 | Suite manifest, CLI, JSON report, light default suite | **DONE**: 13 tests, 7 mutations |
+| W5-3 | 18 | Colouring, clique, Hamiltonian cycle (known-answer generators, independent verifiers, exact and greedy solvers) | **NEXT**: tests + sweep |
 | W5-4 | 19 | TSP and knapsack / subset sum | tests + sweep |
 | W5-5 | 20 | DRAT checker, optional external adapters, differential parser test vs CQ-HECS (read-only) | test report |
 | W5-6 | 21 | Beyond NP: small exact #SAT and QBF tools | later |
