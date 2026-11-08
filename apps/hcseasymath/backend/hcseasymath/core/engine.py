@@ -301,6 +301,11 @@ _HANDLERS: dict[str, Callable[[dict[str, Any], float], dict[str, Any]]] = {
 OPERATIONS = tuple(_HANDLERS)
 
 
+_COMMON_FIELDS = {"operation", "expression", "variable"}
+#: The only extra request fields an operation may use. Anything else is a typed refusal, not a silent ignore.
+_OPERATION_FIELDS: dict[str, set[str]] = {"evaluate": {"value"}}
+
+
 def execute(request: Any) -> dict[str, Any]:
     if not isinstance(request, dict):
         return _failure(request, "unknown", "invalid_input", "request must be an object")
@@ -310,6 +315,10 @@ def execute(request: Any) -> dict[str, Any]:
     handler = _HANDLERS.get(operation)
     if handler is None:
         return _failure(request, operation, "unsupported", f"unknown operation '{operation}'")
+    extra = set(request) - _COMMON_FIELDS - _OPERATION_FIELDS.get(operation, set())
+    if extra:
+        names = ", ".join(sorted(map(str, extra)))
+        return _failure(request, operation, "invalid_input", f"field(s) not used by this operation: {names}")
 
     started = time.perf_counter()
     try:

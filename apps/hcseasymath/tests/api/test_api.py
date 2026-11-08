@@ -72,6 +72,25 @@ def test_no_cors_headers_are_ever_sent():
     assert "access-control-allow-origin" not in {k.lower() for k in r.headers}
 
 
+def test_evaluate_can_send_its_value_over_http():
+    """The request model drops unknown fields, so `value` has to be declared or evaluate can never run."""
+    c = make()
+    r = c.post("/api/v1/symbolic/evaluate", json={**BODY, "value": "1"}, headers=AUTH)
+    assert r.status_code == 200 and r.json()["status"] == "ok", r.text
+
+
+def test_a_field_belonging_to_another_operation_is_refused_over_http():
+    c = make()
+    r = c.post(URL, json={**BODY, "value": "1"}, headers=AUTH)
+    assert r.status_code == 400 and "value" in r.json()["error"]
+
+
+def test_an_unknown_body_field_is_rejected_instead_of_silently_dropped():
+    c = make()
+    r = c.post(URL, json={**BODY, "surprise": 1}, headers=AUTH)
+    assert r.status_code == 422
+
+
 def test_status_codes_follow_the_result_status():
     c = make()
     bad = c.post(URL, json={"expression": "__import__('os')", "variable": "x"}, headers=AUTH)

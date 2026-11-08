@@ -845,3 +845,11 @@ Fifth operation. The engine uses `sp.solveset(expr, variable, domain=Reals)`, ne
 - One real defect found by the tests: `isinstance(sol, (sp.Reals, sp.Complexes))` raises `TypeError` because those are instances, not types; identity/equality comparison is used instead. `sp.EmptySet` is not a `FiniteSet` in SymPy 1.14 either, so it is handled explicitly.
 - Gate: `bash scripts/hcseasymath_gate.sh` -> **197 passed, 1 warning in 14.85s** (171 before). `OPERATIONS` and `/api/v1/capabilities` list five operations.
 - Still open in Track E M2: `plot` data, warm worker, and the one-page UI (it still calls only `differentiate`; recorded in the README).
+
+## HCSEASYMATH: `evaluate` was unreachable over HTTP (defect found by probing, 2026-11-08)
+Probing the running contract instead of trusting the tests found a real defect: `ExpressionRequest` declared only `expression` and `variable`, and pydantic drops unknown fields, so a client's `value` never reached the engine. `POST /api/v1/symbolic/evaluate` with `{"expression":"x**2","variable":"x","value":"3"}` answered `400 invalid_input: missing 'value'` - the operation existed, was tested through `execute`, and could not be used by any HTTP client since it was added.
+- Fix: `value` is now a declared optional field (bounded by `DEFAULT_LIMITS.max_chars`), the route dumps with `exclude_none=True`, and the model uses `extra="forbid"` so an unknown field is a 422 instead of being silently dropped.
+- Second half of the same defect class: the engine now refuses a field that the chosen operation does not use (`field(s) not used by this operation: value`), so a misplaced field can never be ignored silently. `_OPERATION_FIELDS` names the one exception (`evaluate` -> `value`).
+- Tests: `test_evaluate_can_send_its_value_over_http`, `test_a_field_belonging_to_another_operation_is_refused_over_http`, `test_an_unknown_body_field_is_rejected_instead_of_silently_dropped` (API) and `test_a_field_the_operation_does_not_use_is_refused_not_silently_ignored`, `test_evaluate_keeps_the_value_field_it_uses` (engine).
+- Gate: `bash scripts/hcseasymath_gate.sh` -> **202 passed, 1 warning in 15.01s** (197 before).
+- Not changed: the worker is still Linux-only (`os.killpg`), so these API tests use the in-process `run=execute` like the existing ones; the process isolation path is exercised by the worker tests.
