@@ -1220,3 +1220,19 @@ Decision rule: pick the one that unblocks the most downstream work. HCSUDA H3c-3
   - Rust workspace: Added tool mapping and rejected argument assertions in `cli/hscl/src/mcp.rs`. All 202 tests on Windows and 209 tests in WSL Linux passed 100% green. Clean `cargo fmt` and `cargo clippy -D warnings`.
   - Python test suite: Added `tests/unit/test_hscl_mcp.py` verifying JSON-RPC 2.0 stdio initialization, tools/list, tool execution, output payloads, and error rejection across Windows and WSL Linux.
   - Executable bit and trademark checks verified 100% clean.
+
+### V1-F HCSEASYMATH Browser UI Alignment, CSP Hardening & Verification (2026-11-08)
+
+- **In-Browser E2E Discovery:** Real Playwright headless browser connection to `hcseasymath serve` on port 8765 identified client-server contract mismatches and strict CSP hash violations.
+- **Payload Schema Alignment:** Corrected `apps/hcseasymath/backend/hcseasymath/api/page.py` form submissions to match backend Pydantic models with `extra="forbid"`. Replaced `{ operation: op, expr: ..., var: ... }` with `{ expression: ..., variable: ..., value: ... }` and integer-parsed `points`.
+- **Strict CSP Compliance:** Eliminated inline `style` attributes (`style="display:none"` and `.style.display = ...`) which violated strict CSP hash policies. Replaced with `.hidden` CSS class toggling (`classList.add("hidden")`/`classList.remove("hidden")`) and stylesheet rules.
+- **DOM Security:** Replaced `innerHTML = ""` with standard DOM child removal loop (`while (plotSvg.firstChild) plotSvg.removeChild(...)`).
+- **Dynamic Hash Token Refresh:** Added `readToken()` and `window.addEventListener("hashchange", readToken)` so token extraction persists across hash changes.
+- **Favicon 204 Endpoint:** Added `GET /favicon.ico` returning HTTP 204 No Content to prevent 404 client log noise, with regression test in `apps/hcseasymath/tests/api/test_api.py`.
+- **In-Browser Verification Evidence:** Verified all 6 symbolic operations (differentiate, integrate, evaluate, simplify, solve, plot SVG) returning exact symbolic outputs and responsive coordinate SVGs.
+- **Gate Results & Merge:** `scripts/hcseasymath_gate.sh` passed 245/245 tests in 25.84s. PR #42 created, all 16 of 16 CI checks passed 100% green on GitHub Actions, and squash-merged to `main` (`4e0e756`).
+
+### V1-G CQ-HECS Studio Security Hardening & Integration Closure (2026-11-08)
+
+- **CQ-HECS Local Studio Guard:** Reviewed and closed PR #53 on `timfromhcs/CQ-HECS` (`fa1cc87`). Enforces Host/Origin allow-lists, per-launch bearer tokens on `/api/`, bounded rejected request body draining, and URL fragment token stripping.
+- **Verification:** 17 of 17 CI checks passed green on GitHub Actions (Linux ASan/UBSan native, Python 3.12-3.14 suites, Windows C++20 Vulkan, Web emulator WASM). Local clone in `/home/tim/src/CQ-HECS` synchronized to `main`.
