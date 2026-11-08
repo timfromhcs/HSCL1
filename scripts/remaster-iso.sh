@@ -11,6 +11,7 @@
 # an overlayfs, so repeated builds skip the unpack; mksquashfs runs with bounded memory; a memory guard refuses
 # to start when free memory is too low. There is a single output: the main ISO.
 set -Eeuo pipefail
+export PATH="$HOME/.cargo/bin:$PATH"
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 base="$HOME/hscl1-build/upstream/kubuntu-26.04.1-desktop-amd64.iso"

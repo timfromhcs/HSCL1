@@ -13,6 +13,7 @@
 #
 # Exit code is nonzero as soon as a step fails; every step logs to stdout with a step tag.
 set -Eeuo pipefail
+export PATH="$HOME/.cargo/bin:$PATH"
 
 REPO_E=/mnt/e/hcslinux222
 REPO_L="$HOME/src/HSCL1-build"
@@ -65,14 +66,15 @@ case "$cmd" in
     cd "$REPO_L"
     cargo test --release -p hscl
     mode=release; [ "${1:-}" = "--fast" ] && { mode=fast; shift || true; }
-    out_arg=""
-    [ -n "${1:-}" ] && { out_arg="--out $1"; shift || true; }
-    if [ -n "$out_arg" ]; then
-      log "remaster ISO ($mode) -> $1"
-      sudo -E env PATH="$PATH" scripts/remaster-iso.sh $([ "$mode" = fast ] && echo --fast) $out_arg --force
+    fast_flag=()
+    [ "$mode" = fast ] && fast_flag=(--fast)
+    if [ -n "${1:-}" ]; then
+      out_path="$1"; shift || true
+      log "remaster ISO ($mode) -> $out_path"
+      scripts/remaster-iso.sh "${fast_flag[@]}" --out "$out_path" --force
     else
       log "remaster ISO ($mode)"
-      sudo -E env PATH="$PATH" scripts/remaster-iso.sh $([ "$mode" = fast ] && echo --fast) \
+      scripts/remaster-iso.sh "${fast_flag[@]}" \
         --out "$OUT/HSCL1-dev-$(date -u +%m%d%H%M).iso" --force
     fi
     newest_iso
