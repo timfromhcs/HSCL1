@@ -44,7 +44,7 @@ The firmware source is the user's fork `timfromhcs/ESP-Miner` (branch `feat/tims
 
 **Rationale:**
 - Root `AGENTS.md` section 3.3 specifies the HSCL1 codebase already has a Rust workspace and `hscl` CLI
-- The receiver must be testable without the GUI (Control Center is marked as planned, not shipped)
+- The receiver must be testable without the GUI; the existing Qt Control Center does not yet expose a Miner receiver
 - Rust provides memory safety for a long-running network service handling untrusted input
 - Single binary deployment aligns with HSCL1's packaging model
 - No new runtime stack introduced (decision M3 in research ledger)
@@ -56,7 +56,7 @@ The firmware source is the user's fork `timfromhcs/ESP-Miner` (branch `feat/tims
 | **Process model** | Long-running daemon, started on demand via `hscl miner receiver start` |
 | **Default state** | **Off by default** — explicit opt-in required (root `AGENTS.md` rule 9: no silent telemetry) |
 | **Binding** | Single private LAN interface (configurable), not `0.0.0.0` |
-| **Port** | Configurable, proposed default `8765` (see Section 3 for conflict check) |
+| **Port** | Configurable; `8765` is an unapproved proposal with known existing users (Section 3) |
 | **Protocol** | HTTPS with pinned host certificate (see Section 4) |
 | **Authentication** | Per-device HMAC-SHA-256 over canonical request (method, path, timestamp, sequence, body hash) |
 | **Pairing** | One-time challenge/response ceremony with physical presence proof |
@@ -85,29 +85,21 @@ The `hscl` CLI is the **only** user-facing entry point. The receiver daemon has 
 
 ## 3. Port Choice and Conflict Check
 
-### 3.1 Proposed Default: 8765
+### 3.1 Port Proposal: 8765 Is Not Approved Yet
 
-**Conflict check procedure (must be run on the target HSCL1 build host before finalizing):**
+The target-host bind and conflict check remains required. CQ-HECS Studio already defaults to 8765 (`cqhecs/studio/app.py` at integration 5ed3d2e); whether sockets conflict depends on their actual bound addresses. Inspect the effective bind configuration, not only whether a process happens to be running.
+
+The previous claim that 8765 has no IANA assignment was incorrect: [IANA registers ultraseek-http for TCP/UDP 8765](https://www.iana.org/assignments/service-names-port-numbers?search=8765). A registration neither proves local occupancy nor makes this a collision-free HCS default. Prior comparisons of serial baud rates with network ports are withdrawn.
+
+Diagnostic examples (tool errors are failures, never proof that a port is free):
 
 ```bash
-# Check if port is already in use
-ss -ltn | grep ':8765 ' || echo "Port 8765 free"
-
-# Check common service registrations
-grep -i '8765' /etc/services || echo "Not in /etc/services"
-
-# Check HSCL1 firewall convention (nftables)
-nft list ruleset | grep -i '8765' || echo "No nftables rule for 8765"
-
-# Check Docker/Podman common ports
-# 8765 is not a standard Docker/Podman port (2375, 2376, 5000, 8080, 8443, 9000)
+ss -ltn 'sport = :8765'
+getent services 8765
+nft list ruleset
 ```
 
-**Documented conflicts to check:**
-- No IANA assignment for 8765
-- Not used by common mining software (CGMiner 4028, BFGMiner 4028, Awesome Miner 8080)
-- Not used by ESP-IDF tooling (esptool 8080, idf.py monitor 115200)
-- Not used by HSCL1's own services (per current firewall convention)
+A future receiver must report bind failures clearly and never terminate another service or silently choose an exposed interface. Finalize an explicit configured port only after the target-host service/firewall check and integration tests.
 
 ### 3.2 Configuration
 
@@ -116,7 +108,7 @@ The port **must be configurable** via:
 2. Config file at `$XDG_CONFIG_HOME/hscl/miner.toml` (or `/etc/hscl/miner.toml` for system-wide)
 3. Environment variable `HSCL_MINER_RECEIVER_PORT`
 
-Default falls back to `8765` only if no configuration specifies otherwise and the conflict check passes.
+No final default is approved by this draft. If 8765 remains a candidate, require explicit configuration plus the target-host conflict/bind test; do not infer availability from a failed diagnostic command.
 
 ---
 
@@ -124,61 +116,33 @@ Default falls back to `8765` only if no configuration specifies otherwise and th
 
 ### 4.1 Threat Model
 
-| Threat | Mitigation |
-|--------|------------|
-| LAN adversary spoofs miner | Per-device HMAC key derived during pairing; device proves possession of private key |
-| LAN adversary replays pairing | Short-lived challenge (60s), single-use, bound to device identity |
-| Compromised miner firmware | Pairing requires physical presence proof (button press or USB console) |
-| HSCL1 receiver spoofed | Host certificate pinned during pairing; miner verifies cert fingerprint |
-| Secrets in logs/crash dumps | Redaction pipeline before any logging; keys never in plaintext in memory dumps |
+**Security correction (2026-11-08): the previous public-identifier HKDF sketch is withdrawn.** This remains a draft; no receiver or firmware pairing implementation is attested by this document.
 
-### 4.2 Pairing Ceremony (Initial Method)
+| Threat | Required control / limit |
+|--------|--------------------------|
+| LAN adversary spoofs miner | Independent high-entropy per-pair secret, provisioned over an authenticated physical channel; MAC/hostname/build hash are metadata only |
+| Replay | Fresh single-use challenge and monotonic request sequence, bound to the reviewed transcript and identities |
+| Compromised miner firmware | Outside pairing's protection: malicious firmware can steal/use its keys. A button press does not repair compromised firmware |
+| Spoofed receiver / first-use MITM | Authenticate receiver fingerprint through the trusted physical provisioning channel; a fingerprint returned over the same unauthenticated LAN connection proves nothing |
+| Secrets in logs/crash dumps | Never log keys; restrict/disable core dumps and minimize secret copies/lifetimes. Process memory can contain plaintext keys; compromise/dump exposure cannot be ruled out |
 
-```
-HSCL1 (Operator)                          Miner (Physical Device)
-     │                                         │
-     │  1. hscl miner pair 192.168.178.61      │
-     │────────────────────────────────────────►│
-     │                                         │
-     │  2. Returns: challenge_id,              │
-     │     challenge_code (6-digit),           │
-     │     cert_fingerprint (SHA-256)          │
-     │◄────────────────────────────────────────│
-     │                                         │
-     │  3. Operator reads challenge_code,      │
-     │     confirms on miner via:              │
-     │     - USB console: `pair <code>`        │
-     │     - OR physical BOOT button (if       │
-     │       supported by board/firmware)      │
-     │                                         │
-     │  4. Miner derives HMAC key from         │
-     │     challenge + device secret,          │
-     │     sends signed response               │
-     │────────────────────────────────────────►│
-     │                                         │
-     │  5. HSCL1 verifies signature,           │
-     │     stores device_id + HMAC key         │
-     │     in secret store (not Git)           │
-     │                                         │
-     │  6. Both sides confirm PAIRED state     │
-```
+### 4.2 Pairing Ceremony (Candidate, Not Implemented)
 
-### 4.3 Key Derivation
+1. Operator explicitly enables pairing on the chosen physical device over a trusted USB console. A BOOT press may demonstrate presence, but alone does not authenticate a peer or establish a shared secret.
+2. The host obtains a new 32-byte secret from its OS cryptographic RNG for this pairing. Provision it, the receiver certificate fingerprint and identity bindings through the authenticated physical channel. Never put it in a URL, shell argument, log, Git or ordinary unauthenticated HTTP response.
+3. Both peers prove possession using a reviewed authenticated pairing protocol bound to fresh challenges, both identities and the receiver fingerprint. A six-digit display code is only a user confirmation aid; it is not keying material. Exact transcript encoding, canonicalization and failure handling need security review before code.
+4. Persist only after both peers confirm the same pairing. Abort/delete pending material on timeout, mismatch or failed authentication. Store secrets with restricted access on each endpoint; no blanket encrypted-at-rest claim is made for ESP NVS.
+5. Test simulated peers, attacker-chosen public identifiers, wrong peer/certificate, replay, timeout, repeated attempts, revocation and restart before any real-device rollout.
 
-```
-device_secret = HKDF-SHA256(
-    IKM = firmware_unique_id || boot_id,
-    salt = "hcs-miner-pairing-v1",
-    info = challenge_id || device_mac || hostname
-)
-hmac_key = device_secret[0:32]
-```
+### 4.3 Secret Material and Derivation Requirements
 
-The `firmware_unique_id` is derived from eFuse MAC + firmware build hash (available on ESP32-S3). This ensures each device/firmware combination has a unique key.
+Device MAC, hostname, firmware build hash and boot identifier are not authentication secrets. HKDF cannot create secret entropy from values known to an attacker; see [RFC 5869 section 3](https://www.rfc-editor.org/rfc/rfc5869.html#section-3). The former `IKM = firmware_unique_id || boot_id` construction must not be implemented.
+
+Use independently generated 256-bit secret material and a reviewed key schedule with explicit domain separation and unambiguous identity/transcript binding. This ADR deliberately does not prescribe an unreviewed wire protocol or a homemade password exchange. If device-side random generation is selected later, check the pinned ESP-IDF version's entropy prerequisites before generating keys; [Espressif RNG guidance](https://docs.espressif.com/projects/esp-idf/en/stable/esp32s3/api-reference/system/random.html) distinguishes active hardware-entropy conditions from pseudo-random-only operation. Current stable documentation is not proof of the firmware's exact pinned API behavior.
 
 ### 4.4 Pairing Expiry and Rotation
 
-- Pairing token expires after **24 hours** if not completed
+- An active pairing challenge expires after **60 seconds**, is single-use and has bounded attempts; no 24-hour bearer credential is accepted. A longer operator registration workflow must not preserve an active authentication challenge.
 - Completed pairing: HMAC key valid until explicit revocation
 - Re-pairing requires explicit owner action (`hscl miner pair --revoke <device_id>` then new pairing)
 - Key rotation: not in v1; future work with forward secrecy
@@ -276,3 +240,4 @@ All miner-initiated. No miner-to-miner or miner-to-internet connections introduc
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
 | 0.1 | 2026-11-08 | HSCL1 Autonomous Agent | Initial draft |
+| 0.2 | 2026-11-08 | HSCL1 takeover audit | Withdraw public-ID-derived secret; require cryptographic randomness and authenticated physical provisioning; correct compromise/dump/first-use boundaries and challenge expiry; still draft, no implementation |

@@ -1,5 +1,15 @@
 # Local AI + coding tools + MCP + Wallpaper Studio (research-backed plan)
 
+> **Reconciled 2026-11-08:** The current OS release execution plan is
+> [v1 release plan](2026-11-08-v1-release-plan.md); ecosystem priorities and evidence
+> remain in the [live master ledger](2026-11-08-selfheal-masterplan.md).
+> See [the per-plan audit](../../PLAN_INDEX.md) for current continuation notes.
+> Older snapshots, release ladders and competing next-task orders below are historical;
+> preserve the domain specifications and gates. Root `AGENTS.md` and later owner
+> instructions govern conflicts. Model assistance for this continuation is local only;
+> no Qwen Mythos/cloud inference.
+
+
 > Executed autonomously after this plan. Evidence in `docs/BUILD_LOG.md`. AGENTS.md wins on conflict (§9 local AI, §19 branding/licences).
 > Owner requests of 2026-11-05: wallpaper animation creator; low-VRAM mode; more agentic coding tools and backends adapted to the hardware
 > automatically; small open LLMs selectable for download with **abliterated variants proposed**; coding tools built into the OS with HCS

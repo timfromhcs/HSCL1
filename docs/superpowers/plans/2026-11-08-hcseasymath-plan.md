@@ -1,5 +1,15 @@
 # HCSEASYMATH execution plan (Track E)
 
+> **Reconciled 2026-11-08:** The current OS release execution plan is
+> [v1 release plan](2026-11-08-v1-release-plan.md); ecosystem priorities and evidence
+> remain in the [live master ledger](2026-11-08-selfheal-masterplan.md).
+> See [the per-plan audit](../../PLAN_INDEX.md) for current continuation notes.
+> Older snapshots, release ladders and competing next-task orders below are historical;
+> preserve the domain specifications and gates. Root `AGENTS.md` and later owner
+> instructions govern conflicts. Model assistance for this continuation is local only;
+> no Qwen Mythos/cloud inference.
+
+
 > Status: **ACTIVE** from 2026-11-08. Written after reading the owner contract
 > `AGENTS_HCSEASYMATH_HSCL1_FIRST.md` (untracked, 2141 lines) and after three research
 > rounds, recorded in `docs/research/HCSEASYMATH_RESEARCH_LEDGER.md`.

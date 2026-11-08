@@ -1,5 +1,15 @@
 # One main ISO: Live + Installer + Workshop (QA, API/MCP, respin) + full HCS look
 
+> **Reconciled 2026-11-08:** The current OS release execution plan is
+> [v1 release plan](2026-11-08-v1-release-plan.md); ecosystem priorities and evidence
+> remain in the [live master ledger](2026-11-08-selfheal-masterplan.md).
+> See [the per-plan audit](../../PLAN_INDEX.md) for current continuation notes.
+> Older snapshots, release ladders and competing next-task orders below are historical;
+> preserve the domain specifications and gates. Root `AGENTS.md` and later owner
+> instructions govern conflicts. Model assistance for this continuation is local only;
+> no Qwen Mythos/cloud inference.
+
+
 > Executed autonomously, slice by slice, each with tests/evidence in `docs/BUILD_LOG.md`. AGENTS.md wins on conflict.
 > Supersedes the two-variant (release/QA) build of the previous plan: there is **one main ISO**.
 

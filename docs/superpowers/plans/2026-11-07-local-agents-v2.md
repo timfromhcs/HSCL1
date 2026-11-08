@@ -1,5 +1,15 @@
 # Plan: local sub-agents v2 (priority over the HSCL1 image work, set by the owner 2026-11-07)
 
+> **Reconciled 2026-11-08:** The current OS release execution plan is
+> [v1 release plan](2026-11-08-v1-release-plan.md); ecosystem priorities and evidence
+> remain in the [live master ledger](2026-11-08-selfheal-masterplan.md).
+> See [the per-plan audit](../../PLAN_INDEX.md) for current continuation notes.
+> Older snapshots, release ladders and competing next-task orders below are historical;
+> preserve the domain specifications and gates. Root `AGENTS.md` and later owner
+> instructions govern conflicts. Model assistance for this continuation is local only;
+> no Qwen Mythos/cloud inference.
+
+
 Order the owner gave: (1) fix the local sub-agents here and in OpenCode, (2) add diffusion LLMs and vision towers as efficient extras, (3) update the plans, (4) build this first and well, (5) then use the new agents in the RSI loop so they learn better, cheaper and faster. The HSCL1 image work is paused (state at the end).
 
 ## Rules that came out of the last hours (all measured, not guessed)

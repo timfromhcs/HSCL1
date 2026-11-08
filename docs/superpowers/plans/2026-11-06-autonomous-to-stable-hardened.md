@@ -1,5 +1,15 @@
 # HSCL1 master plan v3: fast loop, honest evidence, stable hardened v2.0.0 (rewrite of 2026-11-06, revision 3)
 
+> **Reconciled 2026-11-08:** The current OS release execution plan is
+> [v1 release plan](2026-11-08-v1-release-plan.md); ecosystem priorities and evidence
+> remain in the [live master ledger](2026-11-08-selfheal-masterplan.md).
+> See [the per-plan audit](../../PLAN_INDEX.md) for current continuation notes.
+> Older snapshots, release ladders and competing next-task orders below are historical;
+> preserve the domain specifications and gates. Root `AGENTS.md` and later owner
+> instructions govern conflicts. Model assistance for this continuation is local only;
+> no Qwen Mythos/cloud inference.
+
+
 > **For the autonomous agent.** This file replaces revision 2 of itself (still in git history) and supersedes
 > `2026-11-06-long-horizon-to-v2.md`. The sibling plans stay valid for their scope: `2026-11-06-ux-ai-hardware-expansion.md` (product work W0-W24)
 > and `2026-11-06-forge-loop.md` (the control script and release loop in detail). **When two plans disagree, this file wins.**

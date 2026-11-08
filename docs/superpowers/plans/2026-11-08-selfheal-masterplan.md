@@ -1,5 +1,26 @@
 # LIVE MASTER LEDGER (self-heal masterplan v7) — execution index for all tracks
 
+> **Later owner decision (2026-11-08):** updates and pushes in the owner's related
+> repositories, explicitly CQ-HECS, Miner and sub-repos, are authorized. B-P1 and
+> the repository-write part of M4/P10 are cleared. Historical forbidden-push rows
+> below are superseded. Current work: reviewed CQ-HECS integration security branch
+> and ESP-Miner integration audit/feature branch, each with its own tests and PR.
+> No force/direct-main experiment, gate waiver, firmware flash or device operation
+> is implied. Release/signing/physical-evidence requirements remain separate.
+
+> **2026-11-08 takeover reconciliation:** current source `d9a6f02`, fetched main
+> `bbb98dd`, 0 behind / 27 ahead; PR #37 has 16/16 successful checks on that head.
+> The [v1 execution plan](2026-11-08-v1-release-plan.md) now governs the concrete
+> OS release batches under P14; [all-plan index](../../PLAN_INDEX.md) preserves
+> domain gates and reconciles historical snapshots below. No Qwen Mythos/cloud
+> inference in this continuation. Existing uncommitted baseline/log work preserved.
+> Completed source milestones: NPBENCH-6 (`42cc255`), scheduler rotation
+> (`1f4a6df`), MINER-1 ADR/schemas (`2894f59`/`a74d086`), six-operation math UI
+> (`d9a6f02`). None is exact-image VM proof. The existing 0.1.3 ISO is a55e023;
+> its install attempt did not reach desktop. Stable v1 is not achieved.
+> Correct row 24 dependency: clean candidate -> exact-image tests -> acceptance
+> -> release; testing must not depend on an already stable v1 release/tag.
+
 > Status: **ACTIVE**. This file is the one live index (Ecosystem Master section 8.5). Track plans hold detail and must not
 > carry their own competing priority lists. Last reconciled: **2026-11-08 04:0x UTC** (session 3), after committing npbench slice 4 (`617e1f8`) and aligning `codex/npbench-wave5` with `codex/autonomous-wave1`; the previous reconciliation was after landing PR #31 (`49673ab`).
 > A cron ping (every 2 minutes, session-only) only prompts: *take the first row of section 5 that is not DONE/BLOCKED and whose
@@ -9,20 +30,20 @@
 
 1. Root `AGENTS.md`, safety/security rules, explicit owner decisions (highest).
 2. Source code and reproducible tests; then `docs/CLAIMS.md`, `docs/BUILD_LOG.md`, `docs/KNOWN_LIMITATIONS.md`, capability matrices.
-3. **`AGENTS_HCS_ECOSYSTEM_MASTER_2026-11-07.md`** (owner companion, untracked): the single **priority list P0-P14**, the loop (section 8), file locks (8.6),
+3. **`AGENTS_HCS_ECOSYSTEM_MASTER_2026-11-07.md`** (owner companion, tracked in current branch): the single **priority list P0-P14**, the loop (section 8), file locks (8.6),
    benchmark contract (9), definition of done (16). Companions it builds on: `AGENTS_HCSPNP_HSCL1_LATEST.md`, `AGENTS_HCSEASYMATH_HSCL1_FIRST.md`.
-3b. **`AGENTS_HCS_UNIFIED_SELF_HEALING_RESEARCH_MASTER_2026-11-08.md`** (owner companion, untracked, 3278 lines; it embeds the 7 November Ecosystem Master as Appendix A): fresh
+3b. **`AGENTS_HCS_UNIFIED_SELF_HEALING_RESEARCH_MASTER_2026-11-08.md`** (owner companion, tracked in current branch, 3278 lines; it embeds the 7 November Ecosystem Master as Appendix A): fresh
    snapshot, six-layer architecture, the HCS Physics sub-track (parts III), the research evidence policy (part IV), the **update-before-next-work contract** (17.2), failure and
    rollback rules (19), lock groups (20) and the scheduler model (21). It keeps P0-P14 as the only order (section 27). Its root `AGENTS.md` blob
    (`88a8a9cc...`, 113402 bytes) was checked: identical to this repository's.
-3c. **`AGENTS_HSCL1_BITAXE_MINER_RESEARCH_BRIDGE_MASTER_2026-11-08.md`** (owner companion, untracked, 2392 lines): the Miner Research Bridge (Bitaxe / ESP-Miner telemetry into HSCL1, datasets, SAT research). Treated as a **sub-track under this one order** (decision M1 in `docs/research/MINER_BRIDGE_RESEARCH_LEDGER.md`); its P0-P16 are MINER-0..16, not new priorities.
+3c. **`AGENTS_HSCL1_BITAXE_MINER_RESEARCH_BRIDGE_MASTER_2026-11-08.md`** (owner companion, tracked in current branch, 2392 lines): the Miner Research Bridge (Bitaxe / ESP-Miner telemetry into HSCL1, datasets, SAT research). Treated as a **sub-track under this one order** (decision M1 in `docs/research/MINER_BRIDGE_RESEARCH_LEDGER.md`); its P0-P16 are MINER-0..16, not new priorities.
 3d. **`2026-11-08-opencode-autonomous-masterplan.md`**: execution plan of the OpenCode takeover session (audit of the handover, research answers, the 2-minute loop contract, the wave order). It holds **no priority list**; every task in it names the Master P number and the ledger row it continues.
 3e. **`2026-11-08-opencode-wave2-masterplan.md`**: continuation plan of the following OpenCode session (session 3). It re-states the handover snapshot with measured values, the tick contract, the failure taxonomy, the check matrix and the W2-0..W2-9 order with a gate per task. Like 3d it holds **no priority list** and is corrected by this ledger whenever the two disagree.
 4. Track plans: `2026-11-08-hcspnp-plan.md` (Track P), `2026-11-08-hcseasymath-plan.md` (Track E), `2026-11-07-masterplan-hcsuda-to-v1.md`
    (HCSUDA gates, threat model, honesty rules; **its "HCSUDA first" ordering is superseded**, see C1).
 5. Older notes and research.
 
-The owner files above stay untracked until the owner decides otherwise.
+The owner files above are already tracked in this branch (confirmed by the main diff); preserve them as specifications. Their old snapshots are historical.
 
 ## 1. Repository snapshot (re-fetched 2026-11-08; never reuse yesterday's)
 
@@ -63,7 +84,7 @@ Resource rule: one heavy job at a time, VM disks on `C:\AI\vmtest`, no secrets p
 Shared groups: `cli/hscl/`; `apps/control-center/`; `packages/debian/`; `distro/live/verify-image.sh`; `scripts/remaster-iso.sh`, `scripts/forge.py` and shared CI
 workflows; schemas/provenance interfaces; HCSUDA planner/capability contracts.
 
-Default lock groups added by the Unified Master (20.3): `scripts/selfheal/` (does not exist yet), `apps/hcseasymath` API/schema/worker, a future `apps/hcsphysics`.
+Default lock groups added by the Unified Master (20.3): `scripts/selfheal/` (now implemented), `apps/hcseasymath` API/schema/worker, a future `apps/hcsphysics`.
 
 - **No lock held.** Released: `LOCK: E - apps/hcseasymath/ (core/symbolic.py, core/engine.py, api/app.py, schemas) - agent - integrate operation and graded derivative check - a82b7a5`; taken without a written line (same gap as C6), released when its PR merges. Released: `LOCK: P - cli/hscl/ (main.rs, new cqhecs.rs), docs/CLI.md - agent - read-only CQ-HECS status wrapper (Master P2, row 3) - a82b7a5`, released when its PR merged.
 - Released: `LOCK: E - scripts/forge.py, .github/workflows/ci.yml (+ tests/unit/test_forge.py) - agent - hcseasymath gate step and CI job, doc-command step - 37d2f6d`;
@@ -80,7 +101,7 @@ Default lock groups added by the Unified Master (20.3): `scripts/selfheal/` (doe
 | 5 | P12 | HCSUDA H3c-3b: real Qwen3 layers, tied head, logits vs llama-server | `hcsuda/` | per `hcsuda` gates | free heavy slot (no VM, no solver run) | PAUSED | logits comparison JSON |
 | 6 | P4/P5 | Benchmark corpus manifest proposal (families, hashes, seeds), `hcs.run.v2` reuse | docs first | link and command validation | rows 1, 2 | PLANNED | proposal document |
 | 7 | P0 | Review Dependabot #1-#4 one by one (MSRV, lockfile, action SHA pins, permissions); review notes only, no batch merge | `.github/`, `Cargo.lock` (locks apply) | full CI | lock free | **DONE locally, PR pending** | Dependabot #1-#4 reviewed one by one, applied together on a branch off current main (their bases were old). #1 checkout 4.2.2->7.0.1 (SHA 3d3c42e5 = tag v7.0.1; v5 Node 24, v6 separate credential file, v7 blocks fork PRs for pull_request_target/workflow_run: none used here). #2 upload-artifact 4.6.2->7.0.2 (SHA cf430e03 = tag v7.0.2; v6 Node 24 / runner >= 2.327.1, v7 ESM + `archive` input: only name/path/if-no-files-found used). #3 sha2 0.10->0.11.1 and #4 thiserror 1->2.0.21: each tested alone and combined on main: fmt, clippy -D warnings, 209 tests pass (WSL). hcsuda workspace still on sha2 0.10 / thiserror 1 (not touched). Dependabot PRs close when this lands. |
-| 8 | P4 | Durable scheduler under `scripts/selfheal/` (Master 21): one tick, global lock, heavy-job lock, wall timeout below the interval, state in a user directory, unprivileged; today's 2-minute ping is session-only and not that scheduler | `scripts/selfheal/`, `scripts/forge.py` (lock) | dry-run first | rows 1-3 | **design note DONE** (`docs/research/SELFHEAL_SCHEDULER_DESIGN.md`), code PLANNED | tests listed in the note first |
+| 8 | P4 | Durable unprivileged scheduler, locks, timeout and state | `scripts/selfheal/` | `python -m pytest tests/unit/test_selfheal_tick.py -q` | rows 1-3 | TESTED in recorded gate; rotation also implemented (`1f4a6df`); no installed OS scheduler claim | design note, BUILD_LOG, row 22 |
 | 9 | sub-track | PHYS-0: research ledger and integrator check | `docs/research/HCSPHYSICS_RESEARCH_LEDGER.md`, `docs/research/hcsphysics/integrator_check.py` | `python docs/research/hcsphysics/integrator_check.py` | - | **DONE** | orders, symplecticity and drift measured; no engine code |
 | 11 | sub-track | MINER-0: read the Miner Bridge contract, verify its repository claims, record decisions M1-M7 (`docs/research/MINER_BRIDGE_RESEARCH_LEDGER.md`) | docs only | link and claim check | - | **DONE** (ESP-Miner heads, ahead/behind, partition table and RLAF abstract verified; 22 sources NOT READ; no device contact) | ledger file |
 | 14 | P12 | Track E M2 remainder, one operation per batch: `simplify` (equivalence-checked, never a size claim `count_ops` contradicts), then `solve` (`solveset` + substitution check of every root), then optionally `plot` data and the warm worker | `apps/hcseasymath/` (lock: track E) | `bash scripts/hcseasymath_gate.sh` | PR #29 (done) | **IN PROGRESS**: simplify and solve DONE (PR #37, 197 tests); plot data NEXT | gate output; rows in `CLAIMS.md` |
@@ -90,11 +111,11 @@ Default lock groups added by the Unified Master (20.3): `scripts/selfheal/` (doe
 | 18 | P5 | NPBENCH-3: graph families - colouring (Mycielski and queen graphs with known chromatic number, DSATUR + exact), clique (planted, exact Bron-Kerbosch), Hamiltonian cycle (planted, generalized Petersen) with verifiers that share no code with the solvers | `tools/npbench/` | per family tests with mutations | row 16 | **DONE** (26 tests, 12 mutations red-then-reverted; graphs suite: 18 instances, SAT route 15/15 with checked evidence) | `BUILD_LOG.md` |
 | 19 | P5 | NPBENCH-4: TSP (Held-Karp exact for small n, 2-opt/Or-opt, lower bound, tour verified by an independent length function) and knapsack / subset sum (Pisinger-style families, DP as ground truth) | `tools/npbench/` | per family tests with mutations | row 16 | **DONE** (26 tests, 15 mutations red-then-reverted; suite `optimization`: 27 instances, every known answer decided except three on purpose) | `BUILD_LOG.md` |
 | 20 | P5/P0 | **IN PROGRESS (session 3)**: NPBENCH-5 split into 5a/5b per `2026-11-08-opencode-wave2-masterplan.md` W2-1/W2-2. **5a DONE**: DRAT line reader + deletion-aware RUP checker (`tools/npbench/npbench/drat.py`), typed `rat_unsupported` -> verdict `unknown` (RAT not implemented, stated in README, `KNOWN_LIMITATIONS.md` and the docstring), `verify_unsat` exposed as `proof_checker` with `certification` = `RUP_CHECKED`/`DRAT_RUP_CHECKED`, unknown name raises. **5b DONE**: differential DIMACS parser matrix (`tests/unit/test_npbench_diff.py`, `tests/helpers/cqhecs_parser_probe.py`) over **eleven** input classes - our parser pinned for all eleven; the real `cqhecs.sat.parse_dimacs` runs in its own interpreter and must still match the recorded matrix (clone `5ed3d2e`), and **skips with an explicit reason** when the clone or the qiskit interpreter is absent. Measured: three classes differ (`1_0` accepted as literal 10 when `num_vars=10`, `p CNF` accepted, repeated literal deduplicated), six agree on the outcome, one (`d`) agrees by coincidence with a different mechanism. Native `sat_solver.cpp` parser still **not executed** | `tools/npbench/`, read-only clone | 5a: `python -m pytest tests/unit/test_npbench_drat.py` (29) + all five npbench files (**134 passed**); 5b: `python -m pytest tests/unit/test_npbench_diff.py` -> Windows 13 passed/11 skipped, WSL **24 passed**; 5 mutations killed in WSL | rows 16-19 | **5a + 5b DONE** | test report + `HCSPNP_BASELINE.md` matrix |
-| 21 | P13 | NPBENCH-6: beyond NP (exact #SAT counter for small formulas with a node cap, toy closed-QBF checker); research and small exact tools only, `unknown` on budget exhaustion | `tools/npbench/` | known-count tests, brute-force agreement | rows 16-20 | PLANNED (after W2-1/W2-2 green) | tests |
+| 21 | P13 | NPBENCH-6: exact bounded #SAT and toy closed-QBF, `unknown` on budget exhaustion; research tools only | `tools/npbench/` | `tests/unit/test_npbench_beyond.py` | rows 16-20 | TESTED in recorded source gate; implemented at `42cc255` | BUILD_LOG; rerun current full gate |
 | 22 | P4 | Scheduler row **rotation** (W2-4) | `scripts/selfheal/tick.py`: round-robin over the live rows in file order, starting after `state["last_row"]` and wrapping; blocked rows excluded; a **heavy** row whose slot is busy is skipped in favour of the next candidate (and `deferred` only when *every* live row is heavy and the slot is taken); an unknown `last_row` starts at the top; dry-run predicts the deferral from the heavy lock file and never advances the pointer. Contract and the two intended consequences (three-attempt rule now spans three rotations; `idle` vs `deferred`) written down in `docs/research/SELFHEAL_SCHEDULER_DESIGN.md` | `scripts/selfheal/`, `tests/unit/test_selfheal_tick.py` (default lock group) | `python -m pytest tests/unit/test_selfheal_tick.py` -> **22 passed** (Windows and WSL) | row 15 (done) | **DONE (W2-4)** | 22 tests, 6/6 mutations killed, design note updated |
-| 23 | P12 | One-page HCSEASYMATH UI: every operation reachable (differentiate, integrate, simplify, solve, evaluate, plot), `status` and `warnings` shown verbatim, plot rendered as data | `apps/hcseasymath/` | `bash scripts/hcseasymath_gate.sh` | row 4 | PLANNED (W2-7) | gate output |
-| 24 | P14 | **Owner request 2026-11-08**: a VM-usable HSCL1 image at **v1 stable** - boots in QEMU/KVM (UEFI and BIOS) and VirtualBox, GUI desktop, keyboard input incl. layout switch, internet inside the guest, everyday apps working, plus a documented recipe, SHA256SUMS and a known-limitations row. Built from the **v1 artifact**, never from a dev tree; disposable disks only; no credential in the image; no GPU/3D claim without measurement | `docs/VM_GUIDE.md`, `scripts/test-iso-qemu.sh`, `release/` | boot + GUI + keyboard + network evidence per `2026-11-08-opencode-wave2-masterplan.md` section 12 | **all v1 release gates** (`AGENTS.md` 14.2), tagged v1 artifact, free heavy slot | **PLANNED, gated on v1 stable - not started** | screenshots, serial logs, VM guide |
-| 12 | sub-track | MINER-1: ADR (receiver location, runtime) and schema drafts for event, heartbeat, batch, ACK; then a receiver with a **simulated device** only | `docs/miner/`, later `cli/hscl`, `services/` (locks) | schema validation tests | rows 1-3, P0-P4 | PLANNED; schemas may start as docs, code waits for the core gates | ADR + schemas |
+| 23 | P12 | Six-operation math UI exists; rendered accessibility/design review remains open | `apps/hcseasymath/` | `bash scripts/hcseasymath_gate.sh`, then rendered review | row 4 | IMPLEMENTED `d9a6f02`; recorded backend gate 244 passed, not browser proof | BUILD_LOG, V1-B |
+| 24 | P14 | Clean candidate ISO and exact-image VM/install acceptance before stable release | existing remaster, QEMU/Workshop scripts; no invented test script paths | boot/GUI/keyboard/network, installer/reboot/LUKS2; V1-C/D | clean verified source, feature gates, free heavy slot; stable tag is an output | PLANNED; existing old ISO cannot certify current source | exact hashes, logs, screenshots, VM guide |
+| 12 | sub-track | MINER-1 ADR and four schema drafts exist, not a receiver | `docs/miner/` | schema validation recorded in BUILD_LOG | rows 1-3, P0-P4 | IMPLEMENTED at `2894f59`; recorded schema checks; simulated receiver PLANNED | ADR, schemas, BUILD_LOG |
 | 13 | sub-track | MINER-2+: firmware branch, device probe, flashing, backup, ESP-Miner / CQ-HECS PRs | other repositories and hardware | - | owner approval (M4) | **BLOCKED on owner** | - |
 | 10 | sub-track | PHYS-1 entry gate: numerical-method spec reviewed by the owner, scene and evidence schema extending `hcs.run.v2`, CPU reference for pendulum and Kepler | docs and schemas first | per the ledger gate | owner review, P0-P4 | BLOCKED on owner review | - |
 
@@ -120,7 +141,7 @@ Order rule: lowest P-number first, dependency met, one heavy job at a time. Rows
 |---|---|---|---|
 | E-M0 | research ledger, decisions D1-D10, blockers B1-B8, test matrix, integration page | DONE | `docs/research/HCSEASYMATH_*.md` |
 | E-M1 | allow-list parser, exact derivative, isolated worker, loopback API with Host/Origin/token, hash-locked cp314 lock, forge step, CI job | **DONE - PR #29 merged `4bdcb2f`, 16/16 CI checks** (B3 answered: `setup-python` 3.14 works on `ubuntu-latest`) | `apps/hcseasymath/`, 112 tests |
-| E-M2 | operations beyond differentiate | **integrate, evaluate, simplify and solve done** (197 tests; `unresolved` honest; graded derivative check; evaluate refuses symbolic/hostile values; simplify is returned only after an equivalence check and discloses removed points; solve substitutes every root back, refuses infinite sets and reports an empty real set with the complex-root count); plot, warm worker and the one-page UI open | row 4 |
+| E-M2 | operations beyond differentiate | **integrate, evaluate, simplify and solve done** (197 tests; `unresolved` honest; graded derivative check; evaluate refuses symbolic/hostile values; simplify is returned only after an equivalence check and discloses removed points; solve substitutes every root back, refuses infinite sets and reports an empty real set with the complex-root count); plot, warm worker and six-operation page implemented in current branch; recorded locked gate 244 passed, rendered UI review open | row 4 |
 | E-M3..M13 | see the plan | PLANNED | - |
 
 ## 8. Track P - HCSPNP (Master P0-P11; detail in `2026-11-08-hcspnp-plan.md`)

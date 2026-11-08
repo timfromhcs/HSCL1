@@ -1,9 +1,11 @@
 # Known limitations (truthful list)
 
-Status of this document: maintained with every phase. Last update: 2026-11-07 (S1 build-up; release candidate `0.1.3-alpha.0`).
+Status of this document: maintained with every phase. Last reconciliation: 2026-11-08, source `d9a6f02`; local pre-release set `0.1.3-alpha.0` is an older image from `a55e023` (2026-11-07), not a v1 release candidate.
 
 HSCL1 is **pre-alpha**. Nothing below has been tested on physical hardware. Rows are corrected whenever an earlier status turns out to
 be stale - a limitation list that lags behind reality is a false claim in the other direction.
+
+Image evidence is bound to its build. The local `0.1.3-alpha.0` ISO has SHA-256 `fc81ad1d93efeac61904879e9def34e39cdceb982bf7aafc070b34afdd4d1ebb`; its release notes explicitly leave installation on that exact image unverified. The separate `artifacts/install-0.1.3-alpha.0/result.json` reports `reached_desktop: false` and is not a successful install test. Earlier successful installations remain historical evidence. Secure Boot file signatures are not firmware acceptance. See [release readiness audit](research/2026-11-08-release-readiness-audit.md).
 
 | Area | Status | Limitation |
 |---|---|---|
@@ -12,7 +14,7 @@ be stale - a limitation list that lags behind reality is a false claim in the ot
 | Installer | VM-VERIFIED (pre-alpha) | Upstream Kubuntu Calamares **3.3.14** (from `resolute-updates`) installs to a 40 GiB virtual disk; the installed system boots and logs in. Offline install works. **Not done:** installer fault injection, branding of every Calamares page, dual-boot, physical disks. Two upstream defects are documented below. |
 | LUKS2 | VM-VERIFIED (pre-alpha) | Automated Erase-disk + Encrypt install on a disposable disk; installed system boots, wrong passphrase is rejected, correct one reaches the desktop; `aes-xts-plain64`/`argon2id`, no keyfile in `crypttab`, initrd or `/`; marker passphrase absent from the scanned logs. **Not done:** recovery-key flow, TPM-backed unlock (not offered), Secure Boot combined with encryption, `/boot` and the initrd are unencrypted and not integrity-protected. |
 | `hscl` CLI | TESTED (unit) | Implemented: `version`, `about`, `status`, `system info`, `security status`, `ai detect`, `doctor`. Not yet run on an installed HSCL1 system. |
-| Security Lab | PLANNED | No container tooling exists yet. Kali tools will only ever run in isolated rootless containers or VMs. |
+| Security Lab | specification/builder probe TESTED; HSCL1 runtime PLANNED | `hscl lab` generates restricted argv; it does not execute containers. The existing `containers/kali/image.pin` was pulled/inspect-verified and restricted run/basic-toolset install tested on the WSL builder on 2026-11-08. Podman is still absent from the existing HSCL1 image; guest isolation, explicit mounts, CLI execution and installer integration remain open. `passt` is required for the tested default user-mode networking. See the builder-probe research note; no VM/release gate is closed by this experiment. |
 | Privacy mode | PLANNED | HSCL1 is **not Tails** and makes no anonymity claim. |
 | Local AI | partially verified | Hardware detection, model catalogue, download with sha256 check and a CPU chat completion with one 2B model are verified on the builder. Vulkan/GPU, MTP and TurboQuant are NOT verified. |
 | Hardware | none verified | No device is listed as supported. |

@@ -1,5 +1,15 @@
 # Prebuilt image + live/prebuilt update plan
 
+> **Reconciled 2026-11-08:** The current OS release execution plan is
+> [v1 release plan](2026-11-08-v1-release-plan.md); ecosystem priorities and evidence
+> remain in the [live master ledger](2026-11-08-selfheal-masterplan.md).
+> See [the per-plan audit](../../PLAN_INDEX.md) for current continuation notes.
+> Older snapshots, release ladders and competing next-task orders below are historical;
+> preserve the domain specifications and gates. Root `AGENTS.md` and later owner
+> instructions govern conflicts. Model assistance for this continuation is local only;
+> no Qwen Mythos/cloud inference.
+
+
 > **For agentic workers:** executed natively and autonomously. Evidence goes to `docs/BUILD_LOG.md`; status words follow AGENTS.md §0.4. Parent plan: `2026-11-05-hscl1-to-v2-stable.md` (this covers its M6, parts of M9/M11).
 
 **Goal:** (1) prove that the installer really installs HSCL1 to a disk and that the installed system boots and passes the guest checks; (2) produce a **prebuilt disk image** (qcow2) from that install; (3) define and implement how the **live ISO** and the **prebuilt image** receive updates; (4) package a local release set with truthful manifests.

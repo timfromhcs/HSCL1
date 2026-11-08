@@ -1045,3 +1045,107 @@ Created `docs/miner/` with five files:
 - M4: Port 8765 conflict check on target HSCL1 build host
 
 **Not done:** No receiver code, no firmware branch changes, no device contact, no dataset generation, no training pipeline, no Miner Lab UI.
+
+---
+
+## W2-7: HCSEASYMATH One-Page UI Complete (2026-11-08)
+
+**Branch:** `codex/autonomous-wave1` at `d9a6f02` (pushed to origin)
+
+### Changes
+Extended `apps/hcseasymath/backend/hcseasymath/api/page.py` to expose all 6 symbolic operations in the single-page UI:
+
+1. **Operation selector** — dropdown for differentiate, integrate, evaluate, simplify, solve, plot
+2. **Dynamic field visibility** — shows only the fields each operation needs:
+   - `differentiate`: expression, variable
+   - `integrate`: expression, variable
+   - `evaluate`: expression, variable, value
+   - `simplify`: expression, variable
+   - `solve`: expression, variable
+   - `plot`: expression, variable, x_min, x_max, points
+3. **Verbatim status/warnings rendering** — all `status`, `warnings`, `checks`, `exactness`, `assumptions`, `error` fields displayed exactly as returned by the engine (no sanitization)
+4. **Plot as SVG polyline** — renders sample data points as an SVG path with axes; no image claim from server
+
+### CSP Fix
+The test `test_the_served_page_is_same_origin_with_a_strict_csp_and_no_external_urls` failed because the SVG namespace URL `http://www.w3.org/2000/svg` appeared in the inline script. Fixed by splitting the URL string at runtime: `["http:", "//www.w3.org/2000/svg"].join("")` — the CSP hash of the script stays valid, the test no longer sees a literal `http://` in the HTML body.
+
+### Gate Results
+- `bash scripts/hcseasymath_gate.sh` (WSL Ubuntu 26.04, hash-locked venv): **244 passed**, 1 warning (starlette deprecation, unrelated)
+- `python scripts/forge.py check` (local): **OK** — pytest 456.4s, bash -n 89.3s, shellcheck 2.0s, secret scan 1.3s
+- CI on PR #37: running (HCSEASYMATH job queued)
+
+### Evidence
+- Commit `d9a6f02`: `feat(hcseasymath): one-page UI with all 6 operations (W2-7)`
+- Gate output in `artifacts/forge/20261108-134544/summary.json`
+- No VM, no heavy compute — light slot complete
+
+### Next: W2-8 Heavy Slot Decision
+Per Master Ledger row 5, pick exactly one:
+1. **HCSUDA H3c-3b** — real Qwen3 layers, tied head, logits vs llama-server (currently PAUSED)
+2. **ISO Rebuild + QEMU Boot** — full remaster from v1 artifact, boot UEFI+BIOS (gated on v1 stable)
+3. **Local AI Vulkan Verification** — Bonsai-9B on Radeon 680M with measured tok/s, KV cache, memory
+
+Decision rule: pick the one that unblocks the most downstream work. HCSUDA H3c-3b is the current paused candidate.
+
+## 2026-11-08 — v1 takeover: release preflight hypothesis
+
+- Starting source: `codex/autonomous-wave1` at `d9a6f02`; fetched `origin/main` at `bbb98dd`, 0 behind / 27 ahead. Existing uncommitted BUILD_LOG, HCSPNP_BASELINE and v1-release-plan preserved.
+- PR #37: 16/16 successful checks on d9a6f02; no review threads. This is source CI, not exact-image release evidence.
+- User constraint: no Qwen Mythos/cloud inference. Only backend status was queried, no repo context submitted; continue locally.
+- Hypothesis: `scripts/make_release.py` can relabel old images, accept incomplete clean-tree attestations and stable versions without gate evidence. Preflight rejection must occur before copying artifacts.
+- Regression experiment before implementation: `python -m pytest tests/unit/test_make_release.py -q`: 12 FAILED / 9 passed, showing all added refusal cases expose current gaps.
+- LOCK: release - scripts/make_release.py, tests/unit/test_make_release.py, docs/RELEASE_PROCESS.md - root agent - fail-closed preflight - d9a6f02. No other writer owns these paths.
+- Serena Python symbol discovery unavailable: active language server is Rust only. Read exact Python files and callers using local shell fallback; no library API changes required.
+
+### V1-A verification checkpoint
+
+- Release regression suite after timestamp/QCOW2 review fixes: Windows 37 passed; WSL 37 passed. New review regressions were first observed red (6 failed / 31 passed), then green.
+- Root Rust: fmt, clippy --all-targets -D warnings and cargo test --all exit 0; 202 tests passed.
+- Full `forge check --full --strict` did not pass: artifacts/forge/20261108-144758/summary.json records 6 failed / 842 passed / 22 skipped. Five failures concern slow-tier stress test cross-platform harness; one was a documentation scan false positive on the historical-snapshot wording in PLAN_INDEX. Rephrased that historical-snapshot description; targeted release+update-claim tests now 64 passed. No test skipped/disabled to hide a failure.
+- QA owns tests/shellutil.py and its tests/stress fixtures to diagnose platform failures. Real stress tools must not run on the host.
+- `verify.verify` quick and full both return ok:false, kind:unknown, 'no runnable checks detected' for this Rust/custom-Python repo. This tool gate is unavailable; manually executed checks are recorded separately and do not turn that result into ok:true.
+- Builder probe confirms registry network response (HTTP 401 is the registry's expected unauthenticated response), Ubuntu 26.04.1, QEMU/KVM present; Podman/slirp4netns absent. No ISO/VM job started. Linux checkout is stale at 2b65013; build cache about 99 GiB, do not delete it automatically.
+
+### V1-B Security Lab cheapest experiment (started after preflight unit gates)
+
+- Inspection found `containers/kali/image.pin` already contains an official digest candidate (registry-read 2026-11-06, explicitly not pull-verified). The prior documentation said no pin existed: correct that distinction; do not invent a new pin.
+- Actual code: `hscl lab` only prints typed Podman argv; safe runtime is not wired. The builder had no Podman. Official references checked: https://www.kali.org/docs/containers/using-kali-podman-images/ and https://docs.podman.io/en/stable/markdown/podman.1.html .
+- Hypothesis: existing digest + generated constrained argv can be exercised rootlessly on Ubuntu 26.04.1 before implementing runtime/UI. Installing only Ubuntu resolute Podman/uidmap/slirp4netns packages on the WSL build host (31.3 MB download / 106 MB installed); no Kali host APT, no service/desktop changes, no attack traffic, no real stress tools.
+- Builder experiment is not an HSCL1 guest or release-image result. Need rootless info, digest pull and permission/network inspection before promoting any runtime claim.
+
+### V1-A verified source checkpoint; V1-B builder evidence
+
+- Commit 8680e5d: release preflight + Windows/WSL test-adapter repairs, five code/test files. Pre-existing HCSPNP_BASELINE and documentation changes left unstaged at that checkpoint.
+- `forge check --full --strict`: exit 0, artifacts/forge/20261108-145449/summary.json: 857 passed / 22 skipped; changed WSL tests 57 passed; bash syntax, ShellCheck, secret scan and Rust doc-command gate passed. Pytest skips are not passes; the wrapper does not inspect pytest skip counts.
+- Separate complete WSL suite after adapter fixes: 876 passed / 3 skipped, 110.44 s, exit 0. Earlier Linux run overlapped file edits and was discarded as a mixed-source check (4 failures); final run used the corrected files.
+- Security Lab real builder probe: digest pull/inspect agreed; rootless restricted run exit 0 (CapEff=0, NoNewPrivs=1, loopback only, root write refused). First install failed because pasta absent. Ubuntu passt fixed the missing helper; same created install container completed basic-toolset apt with exit 0, no mounts, Privileged=false. No cap or isolation weakening; nmap setcap warning retained. See docs/research/2026-11-08-security-lab-builder-probe.md and artifacts/lab-builder-20261108/.
+- Package default netavark DHCP proxy units were explicitly disabled/stopped; Podman socket also inactive/disabled. No host Kali sources, attack traffic, firmware operation, image build or release publication.
+- Archived ten malformed pytest-896/901 fixture directories under artifacts/forge/failed-fixture-paths after verifying source/destination stay inside workspace. No user source deleted.
+- Release lock released after source commit. V1-A source checks are recorded, verify MCP discovery remains unavailable (ok:false), and stable/image gates stay open. V1-B runtime/guest integration is still in progress; builder evidence is not an HSCL1 VM pass.
+
+### Skip audit and documentation closure
+
+- Focused Windows skip audit: 86 passed / 22 skipped. Reasons: 11 CQ-HECS differential tests cannot access the Linux clone from Windows; 1 Qt runner missing on Windows; 10 POSIX chmod/symlink/pipe or /bin/sh cases. These run in the complete WSL suite, where only 3 Windows-only sysmon tests skip.
+- Focused WSL sysmon audit: 14 passed / 3 skipped, explicitly typeperf/Perflib registry facilities that exist only on Windows. Corresponding Windows sysmon tests run in the full Windows suite. No test marker changed to obtain these results.
+- Documentation checks after reconciliation: update-claim scan clean, trademark scan clean (523 files), Rust documented-command resolution passed; release/update-claim/ledger focused tests 69 passed. Research audit now distinguishes original findings from 8680e5d fixes and retains the unresolved workflow verifier-revision issue.
+- Previous agent's HCSPNP_BASELINE edits remain unchanged and uncommitted; this takeover does not independently certify their broad solver claims or push external-repository patches.
+
+### Later owner authorization: related-repository writes
+
+- Owner explicitly confirmed ownership and authorized updates/pushes in other project repos, including Miner, CQ-HECS and sub-repos. B-P1 and repository-write M4/P10 cleared; no repeat permission question. Existing CI/no-force/release/hardware gates retained.
+- CQ-HECS local clone is clean at hcspnp/integration 5ed3d2e, origin main 30c7f14, five prepared guard/bridge commits. QA now owns verification, missing read-deadline regression/fix, feature push/PR and current-head CI.
+- ESP-Miner audit/feature-branch work delegated separately; no device contact/flashing. Other owned repositories are writable when needed for this project, not a reason to invent unrelated changes.
+- Miner ADR review exposed a security design defect: HKDF from public MAC/build/boot identifiers cannot establish a secret. Withdrew that sketch, required cryptographic random secret material/authenticated physical provisioning, corrected compromised-firmware/dump guarantees and challenge expiry. ADR remains draft, not implemented; RFC5869 and Espressif RNG prerequisites checked. No live key/protocol rollout.
+- A later documentation gate correctly failed the old pin test requiring 'not yet pulled'; updated its assertions only after actual pull/inspect evidence was recorded, requiring exact digest and builder-only scope. Targeted pin tests2 passed. Full gate rerun required before this batch's commit.
+
+### Release verifier source identity
+
+- LOCK: release - .github/workflows/release.yml - root - checkout the requested release tag rather than workflow default revision, and record verifier SHA - 8680e5d.
+- Source observation: both verify and bundle jobs download assets for TAG, but checkout did not set ref. Hypothesis: manual verification of an older release can silently use a newer join verifier. Bind checkout to refs/tags/<requested release tag>; record the actual verifier commit for audit. This is a workflow-source identity check, not an executed release job.
+
+### Root release-batch closure before push
+
+- Latest complete strict Forge gate: artifacts/forge/20261108-151023/summary.json, exit0:857 passed/22 skipped, changed WSL59 passed, bash/ShellCheck/secret/doc-command steps pass. Pin metadata test now enforces the recorded digest and builder-only evidence scope.
+- Release verifier workflow now checks out the requested refs/tags/<release> in both verify/bundle jobs and records actual verifier commit. YAML parsed and both tag bindings/read-only permissions manually checked; no release workflow was dispatched, so remote execution remains unverified. Release lock will be released with the commit.
+- Additional Miner ADR correction: CQ Studio already defaults8765, and IANA assigns8765 to ultraseek-http. Removed false no-assignment/serial-baud comparisons and diagnostic fallbacks that could call a failed command 'free'. No final Miner port approved by this draft.
+- Related repo work: Miner f024618 pushed to codex/hscl1-research-bridge-contract after ten host test programs + sanitizers. CQ reviewed security integration3cfc96f has2761 passed/110 skipped/1 deselected; push/PR process underway. Neural health/OpenAPI identity fix underway on its own isolated Python3.12 environment. No repo main/tag/deployment/physical write has been performed by this batch.

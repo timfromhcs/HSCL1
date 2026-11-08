@@ -1,5 +1,15 @@
 # HSCL1 long-horizon plan: 0.1.0-alpha.0 to v2.0.0 stable (hardened)
 
+> **Reconciled 2026-11-08:** The current OS release execution plan is
+> [v1 release plan](2026-11-08-v1-release-plan.md); ecosystem priorities and evidence
+> remain in the [live master ledger](2026-11-08-selfheal-masterplan.md).
+> See [the per-plan audit](../../PLAN_INDEX.md) for current continuation notes.
+> Older snapshots, release ladders and competing next-task orders below are historical;
+> preserve the domain specifications and gates. Root `AGENTS.md` and later owner
+> instructions govern conflicts. Model assistance for this continuation is local only;
+> no Qwen Mythos/cloud inference.
+
+
 > **For agentic workers:** use superpowers:executing-plans (native) or subagent-driven-development. Steps are checkboxes. This
 > plan supersedes the ordering in the earlier plans in this folder; their detailed designs (AI, wallpaper studio, Workshop,
 > prebuilt image) stay valid and are referenced, not repeated.

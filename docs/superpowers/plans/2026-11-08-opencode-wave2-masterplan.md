@@ -1,5 +1,15 @@
 # OpenCode autonomous Wave 2 masterplan (2026-11-08, session 3)
 
+> **Reconciled 2026-11-08:** The current OS release execution plan is
+> [v1 release plan](2026-11-08-v1-release-plan.md); ecosystem priorities and evidence
+> remain in the [live master ledger](2026-11-08-selfheal-masterplan.md).
+> See [the per-plan audit](../../PLAN_INDEX.md) for current continuation notes.
+> Older snapshots, release ladders and competing next-task orders below are historical;
+> preserve the domain specifications and gates. Root `AGENTS.md` and later owner
+> instructions govern conflicts. Model assistance for this continuation is local only;
+> no Qwen Mythos/cloud inference.
+
+
 > Status: **ACTIVE** from 2026-11-08. Written by the OpenCode agent that continues PR #37.
 > This file holds **no priority list of its own**. The single order stays
 > `2026-11-08-selfheal-masterplan.md` section 3 (Master P0-P14) and section 5 (ledger rows). Every task

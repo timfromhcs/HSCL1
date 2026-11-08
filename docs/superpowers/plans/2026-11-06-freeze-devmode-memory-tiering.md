@@ -1,5 +1,15 @@
 # HSCL1 plan: freeze a working OS into a new ISO, dev mode inside the OS, memory tiering ("fake VRAM"), KV-cache compression, safe RSI
 
+> **Reconciled 2026-11-08:** The current OS release execution plan is
+> [v1 release plan](2026-11-08-v1-release-plan.md); ecosystem priorities and evidence
+> remain in the [live master ledger](2026-11-08-selfheal-masterplan.md).
+> See [the per-plan audit](../../PLAN_INDEX.md) for current continuation notes.
+> Older snapshots, release ladders and competing next-task orders below are historical;
+> preserve the domain specifications and gates. Root `AGENTS.md` and later owner
+> instructions govern conflicts. Model assistance for this continuation is local only;
+> no Qwen Mythos/cloud inference.
+
+
 Owner request 2026-11-06: search open questions on (1) "update ISO to new ISO: freeze this state into the OS and keep working inside that OS: improve, install, patch in a dev mode",
 (2) "fake VRAM from RAM, SSD or storage, decided after a speed test", automatic KV-cache compression, RSI, and making all of it faster; then plan in detail, then work smarter.
 This file extends the master plan (`2026-11-06-autonomous-to-stable-hardened.md`, phases P15-P17 there). The master plan wins on conflicts. Status words as in the master plan;

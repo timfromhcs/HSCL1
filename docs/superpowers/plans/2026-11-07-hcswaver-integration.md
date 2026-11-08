@@ -1,5 +1,15 @@
 # Plan: HCSWaver on HSCL1, folded into the two-track plan (2026-11-07)
 
+> **Reconciled 2026-11-08:** The current OS release execution plan is
+> [v1 release plan](2026-11-08-v1-release-plan.md); ecosystem priorities and evidence
+> remain in the [live master ledger](2026-11-08-selfheal-masterplan.md).
+> See [the per-plan audit](../../PLAN_INDEX.md) for current continuation notes.
+> Older snapshots, release ladders and competing next-task orders below are historical;
+> preserve the domain specifications and gates. Root `AGENTS.md` and later owner
+> instructions govern conflicts. Model assistance for this continuation is local only;
+> no Qwen Mythos/cloud inference.
+
+
 Source: `AGENTS_HCSWAVER_MASTERPLAN.md` (untracked, owner's file, read 2026-11-07: sections 0-4, 12-14, 17-19 in full, the rest by heading). Parent contract stays `AGENTS.md`; Genesis companion plan: `docs/superpowers/plans/2026-11-07-genesis-parallel.md`.
 
 ## What HSCL1 owns here (and what it does not)
