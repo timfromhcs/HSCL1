@@ -1,5 +1,15 @@
 # HSCL1 plan: an own compute backend for the iGPU (instead of a ZLUDA clone), RAM-as-GPU-memory, matrix-multiplication kernels, kernel autotuning as a safe RSI use case
 
+> **Reconciled 2026-11-08:** The current OS release execution plan is
+> [v1 release plan](2026-11-08-v1-release-plan.md); ecosystem priorities and evidence
+> remain in the [live master ledger](2026-11-08-selfheal-masterplan.md).
+> See [the per-plan audit](../../PLAN_INDEX.md) for current continuation notes.
+> Older snapshots, release ladders and competing next-task orders below are historical;
+> preserve the domain specifications and gates. Root `AGENTS.md` and later owner
+> instructions govern conflicts. Model assistance for this continuation is local only;
+> no Qwen Mythos/cloud inference.
+
+
 Owner request 2026-11-06: research how to update/build faster, "RAM/VRAM emulation", "something like ZLUDA but our own and better", a RAM-to-GPU converter with the best matrix-multiplication algorithm and an extra own backend so local AI runs better, then AI/RSI, benchmark, finished release, fastest build/test/verify/screenshot/README/release path.
 This file is the detail plan for master-plan phase P25; sibling of `2026-11-06-freeze-devmode-memory-tiering.md` (P16 memory advisor) and `2026-11-06-local-agent-harness.md` (P24). The master plan wins on conflicts.
 Source grades: **SECONDARY** = blogs/news/papers seen as search snippets; **UNVERIFIED** = not checked against a primary source or a measurement on our machine; **OWN** = our reasoning.

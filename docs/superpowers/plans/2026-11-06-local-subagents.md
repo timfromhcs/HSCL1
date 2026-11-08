@@ -1,5 +1,15 @@
 # Plan L: local subagents (Bonsai / Qwen on the PrismML Vulkan build) instead of cloud tokens
 
+> **Reconciled 2026-11-08:** The current OS release execution plan is
+> [v1 release plan](2026-11-08-v1-release-plan.md); ecosystem priorities and evidence
+> remain in the [live master ledger](2026-11-08-selfheal-masterplan.md).
+> See [the per-plan audit](../../PLAN_INDEX.md) for current continuation notes.
+> Older snapshots, release ladders and competing next-task orders below are historical;
+> preserve the domain specifications and gates. Root `AGENTS.md` and later owner
+> instructions govern conflicts. Model assistance for this continuation is local only;
+> no Qwen Mythos/cloud inference.
+
+
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans. Parent: `2026-11-06-masterplan-resume-s1.md`. Research (4 rounds): `docs/research/2026-11-06-local-subagents-prism-bonsai-turboquant.md`.
 
 **Goal:** a verify-patch worker that runs on local models through the existing LocalAI Gateway (`http://127.0.0.1:8090/v1`), callable from Claude Code and OpenCode as one MCP tool, so routine coding work stops burning cloud tokens, with measured quality and a strict memory discipline.

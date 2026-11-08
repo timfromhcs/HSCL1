@@ -1,5 +1,15 @@
 # HSCL1 finish-line plan: from `dd1630e` to everything the owner asked, with honest gates and a self-healing loop
 
+> **Reconciled 2026-11-08:** The current OS release execution plan is
+> [v1 release plan](2026-11-08-v1-release-plan.md); ecosystem priorities and evidence
+> remain in the [live master ledger](2026-11-08-selfheal-masterplan.md).
+> See [the per-plan audit](../../PLAN_INDEX.md) for current continuation notes.
+> Older snapshots, release ladders and competing next-task orders below are historical;
+> preserve the domain specifications and gates. Root `AGENTS.md` and later owner
+> instructions govern conflicts. Model assistance for this continuation is local only;
+> no Qwen Mythos/cloud inference.
+
+
 > **For the autonomous agent (and the next session).** This file is the execution contract for the work after
 > `docs/superpowers/plans/2026-11-06-autonomous-to-stable-hardened.md` (master v4, P0-P31). It does not replace the master plan:
 > it fixes the **starting position**, defines the **fastest safe order**, and gives **one gate per step**. When the two disagree,

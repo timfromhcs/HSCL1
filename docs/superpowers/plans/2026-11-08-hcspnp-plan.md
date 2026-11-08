@@ -1,5 +1,15 @@
 # HCSPNP execution plan (Track P)
 
+> **Reconciled 2026-11-08:** The current OS release execution plan is
+> [v1 release plan](2026-11-08-v1-release-plan.md); ecosystem priorities and evidence
+> remain in the [live master ledger](2026-11-08-selfheal-masterplan.md).
+> See [the per-plan audit](../../PLAN_INDEX.md) for current continuation notes.
+> Older snapshots, release ladders and competing next-task orders below are historical;
+> preserve the domain specifications and gates. Root `AGENTS.md` and later owner
+> instructions govern conflicts. Model assistance for this continuation is local only;
+> no Qwen Mythos/cloud inference.
+
+
 > Status: **ACTIVE** from 2026-11-08. Written after the owner contract `AGENTS_HCSPNP_HSCL1_LATEST.md` (German, untracked)
 > and a three-stage investigation (repositories, web search, crawl) recorded in `docs/research/HCSPNP_RESEARCH_LEDGER.md`.
 >
@@ -44,7 +54,7 @@ the Track P detail below; it does not carry its own order. Locks follow the Mast
 | M | Deliverable | Gate | State |
 |---|---|---|---|
 | **P-M0** | Audit: SHAs, files read, CQ-HECS suite result from a clean clone, gaps with file references, list of the first small PR's files | reproducible report in `HCSPNP_BASELINE.md`; contract task list ticked | **IN PROGRESS** (repo, web and crawl stages done; clone and suite run next) |
-| P-M1 | Integrated run path: guarded Studio (upstream), launcher `studio`, desktop entry opens it, CPU-only, same data in CLI/Studio/JSON, `hcs.run.v2` export | clean VM starts CQ-HECS from HSCL1, solves SAT and UNSAT fixtures, exports a run card | PLANNED (P-M1a prepared locally, needs B-P1 to leave the machine) |
+| P-M1 | Integrated run path: guarded Studio (upstream), launcher `studio`, desktop entry opens it, CPU-only, same data in CLI/Studio/JSON, `hcs.run.v2` export | clean VM starts CQ-HECS from HSCL1, solves SAT and UNSAT fixtures, exports a run card | PLANNED (P-M1a prepared locally, B-P1 cleared by owner; current security verification and feature push/PR underway) |
 | P-M2 | Proof UX: trust level visible everywhere, checker failures and engine disagreements tested | no UI/API string calls an unchecked UNSAT "certified" | PLANNED |
 | P-M3 | #SAT separator first-class: plan-only preflight, induced width, table budget, brute-force oracle, 64-bit overflow tests | exact counts on all small fixtures; refusal never yields a partial count | PLANNED |
 | P-M4 | Learned guidance baseline: document JW and FeatureScorer, keep negative results, RLAF-style prototype opt-in | baseline reproduces without a model; verdict independent of the model | PLANNED |

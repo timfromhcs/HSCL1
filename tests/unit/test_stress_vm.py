@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import stat
 from pathlib import Path
 
@@ -29,7 +30,7 @@ def _fake_tool(directory: Path, name: str, exit_code: int = 0) -> Path:
     log = directory / f"{name}.argv"
     body = (
         "#!/bin/sh\n"
-        f'printf "%s\\n" "$@" > "{log.as_posix()}"\n'
+        f'printf "%s\\n" "$@" > {shlex.quote(shellutil.to_bash_path(log))}\n'
         f'printf "fake {name} output\\n"\n'
         f"exit {exit_code}\n"
     )
@@ -86,7 +87,7 @@ def _run(tmp_path: Path, *, tools: tuple[str, ...] = ("stress-ng", "fio", "memte
         "HSCL_VM_MARKER": None,
     }
     overrides.update(env or {})
-    r = shellutil.run_script(SCRIPT, "--out", out, *args, env_overrides=overrides)
+    r = shellutil.run_script(SCRIPT, "--out", shellutil.to_bash_path(out), *args, env_overrides=overrides)
     return r.returncode, (r.stdout + r.stderr), out
 
 
@@ -130,7 +131,9 @@ def test_runs_all_three_tools_and_writes_evidence(tmp_path):
     assert names == ["stress-ng", "fio", "memtester"]
     assert all(t["status"] == "ok" and t["exit"] == 0 for t in summary["tests"]), summary["tests"]
     for t in summary["tests"]:
-        assert Path(t["log"]).exists() or (ROOT / t["log"]).exists()
+        log = out / f"{t['name']}.log"
+        assert t["log"] in (str(log), shellutil.to_bash_path(log))
+        assert log.is_file() and log.stat().st_size > 0
     assert summary["overall"] == "ok"
 
 
@@ -155,7 +158,7 @@ def test_a_failing_tool_still_writes_the_summary_and_exits_nonzero(tmp_path):
     _fake_tool(bindir, "fio", exit_code=1)
     _fake_df(bindir, 99_000_000)
     out = tmp_path / "out"
-    r = shellutil.run_script(SCRIPT, "--out", out, env_overrides={
+    r = shellutil.run_script(SCRIPT, "--out", shellutil.to_bash_path(out), env_overrides={
         "PATH": _path_with(bindir),
         "HSCL_IN_DISPOSABLE_VM": "1", "HSCL_VM_MARKER": marker,
     })

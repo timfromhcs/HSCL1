@@ -18,7 +18,13 @@ def test_pin_is_a_single_digest_reference_to_the_official_image():
     assert lines[0].startswith("docker.io/kalilinux/kali-rolling@sha256:")  # official image only, never a third-party namesake
 
 
-def test_pin_file_states_its_source_and_that_it_is_not_pull_verified_yet():
+def test_pin_records_source_and_scopes_the_measured_pull_to_the_builder():
     text = PIN.read_text(encoding="utf-8")
     assert "hub.docker.com/v2/repositories/kalilinux/kali-rolling" in text and "2026-11-06" in text
-    assert "NOT yet verified by a pull" in text  # remove this sentence only together with a recorded pull (plan P4.3)
+    assert "2026-11-08" in text and "pulled and inspect-verified" in text
+    assert "builder only" in text and "not HSCL1 guest/ISO proof" in text
+    evidence = ROOT / "docs/research/2026-11-08-security-lab-builder-probe.md"
+    report = evidence.read_text(encoding="utf-8")
+    assert active_lines()[0].split("@", 1)[1] in report
+    assert "pull.log" in report and "image-inspect.json" in report
+    assert "HSCL1 guest/runtime still open" in (ROOT / "docs/SECURITY_LAB.md").read_text(encoding="utf-8")

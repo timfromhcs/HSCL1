@@ -1,0 +1,233 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hcsmedia.github.io/schemas/hcs.miner.event.v1.json",
+  "title": "HCS Miner Event Envelope v1",
+  "type": "object",
+  "description": "Versioned envelope for all miner telemetry events. Every event from a paired device must conform to this schema.",
+  "required": [
+    "schema",
+    "device_id",
+    "boot_id",
+    "sequence",
+    "event_id",
+    "event_type",
+    "event_time_monotonic_ns",
+    "event_time_utc",
+    "clock_quality",
+    "firmware",
+    "device",
+    "payload",
+    "privacy_class",
+    "integrity"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "hcs.miner.event.v1",
+      "description": "Schema identifier for routing and validation"
+    },
+    "device_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Stable opaque device identifier assigned by HSCL1 during pairing"
+    },
+    "boot_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{16}$",
+      "description": "Random per-boot identifier (16 hex chars) to distinguish boots"
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Monotonic sequence number within a boot_id. Never reused. Used for deduplication and ordering."
+    },
+    "event_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$",
+      "description": "Idempotency key: SHA-256 of (device_id + boot_id + sequence + payload canonical JSON), truncated to 32 hex chars"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "lifecycle.boot_start",
+        "lifecycle.boot_complete",
+        "lifecycle.identity_verified",
+        "lifecycle.reset",
+        "lifecycle.watchdog",
+        "lifecycle.task_failure",
+        "lifecycle.self_test",
+        "network.wifi_associated",
+        "network.wifi_disassociated",
+        "network.bssid_change",
+        "network.rssi_change",
+        "network.dhcp_start",
+        "network.dhcp_lease",
+        "network.dhcp_loss",
+        "network.dhcp_timeout",
+        "network.dns_success",
+        "network.dns_failure",
+        "network.gateway_reachable",
+        "network.gateway_unreachable",
+        "network.stratum_connect",
+        "network.stratum_disconnect",
+        "network.stratum_tls_state",
+        "network.receiver_heartbeat_ok",
+        "network.receiver_heartbeat_fail",
+        "network.receiver_upload_retry",
+        "network.receiver_upload_ack",
+        "network.queue_pressure",
+        "network.queue_overflow",
+        "network.queue_recovery",
+        "stratum.protocol_version",
+        "stratum.session_gen",
+        "stratum.job_received",
+        "stratum.job_accepted",
+        "stratum.job_rejected",
+        "stratum.job_replaced",
+        "stratum.job_expired",
+        "stratum.job_stale",
+        "stratum.notify_parse_fail",
+        "stratum.difficulty_change",
+        "stratum.version_rolling_change",
+        "stratum.queue_depth",
+        "stratum.stale_discard",
+        "stratum.share_candidate",
+        "stratum.share_validated",
+        "stratum.share_submitted",
+        "stratum.share_acknowledged",
+        "stratum.share_rejected",
+        "stratum.response_latency",
+        "stratum.failover",
+        "stratum.failback",
+        "asic.model",
+        "asic.frequency_requested",
+        "asic.frequency_actual",
+        "asic.voltage_nominal",
+        "asic.voltage_measured",
+        "asic.power",
+        "asic.current",
+        "asic.board_voltage",
+        "asic.chip_temperature",
+        "asic.regulator_temperature",
+        "asic.fan_mode",
+        "asic.fan_pwm",
+        "asic.fan_rpm",
+        "asic.fan_sensor_valid",
+        "asic.domain_hashrate",
+        "asic.domain_errors",
+        "asic.init",
+        "asic.reinit",
+        "asic.comm_error",
+        "asic.thermal_throttle",
+        "asic.power_limit",
+        "asic.hardware_fault",
+        "asic.safe_stop",
+        "software.heap_free",
+        "software.heap_min",
+        "software.heap_largest_block",
+        "software.psram_free",
+        "software.psram_min",
+        "software.psram_largest_block",
+        "software.allocation_failure",
+        "software.cpu_utilization",
+        "software.task_runtime",
+        "software.log_high_water",
+        "software.log_dropped",
+        "software.telemetry_latency",
+        "software.telemetry_deadline_miss",
+        "software.event_queue_depth",
+        "software.event_queue_lag",
+        "research.session_start",
+        "research.session_end",
+        "research.sha_trace",
+        "research.sha_digest",
+        "research.guard_state",
+        "research.budget_exhausted"
+      ],
+      "description": "Typed event classification. Extensible via new versions."
+    },
+    "event_time_monotonic_ns": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Monotonic nanoseconds since boot. Primary ordering anchor within one boot."
+    },
+    "event_time_utc": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Wall-clock UTC timestamp. Quality indicated by clock_quality."
+    },
+    "clock_quality": {
+      "type": "string",
+      "enum": ["ntp_synced", "rtc_estimated", "unknown"],
+      "description": "Quality of the wall-clock timestamp. Never silently assume NTP."
+    },
+    "firmware": {
+      "type": "object",
+      "required": ["version", "source_sha", "idf_version"],
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "string",
+          "description": "Firmware version string (e.g., v4.0.2-research)"
+        },
+        "source_sha": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$|^unknown$",
+          "description": "Git commit SHA of firmware source, or 'unknown' if not embedded"
+        },
+        "idf_version": {
+          "type": "string",
+          "description": "ESP-IDF version (e.g., 6.0.2)"
+        }
+      }
+    },
+    "device": {
+      "type": "object",
+      "required": ["board", "asic_model", "device_model"],
+      "additionalProperties": false,
+      "properties": {
+        "board": {
+          "type": "string",
+          "description": "Board version (e.g., '201')"
+        },
+        "asic_model": {
+          "type": "string",
+          "description": "ASIC model (e.g., 'BM1366')"
+        },
+        "device_model": {
+          "type": "string",
+          "enum": ["Ultra", "Supra", "Gamma", "Unknown"],
+          "description": "Known Bitaxe model variant"
+        }
+      }
+    },
+    "payload": {
+      "type": "object",
+      "description": "Event-type-specific payload. Schema varies by event_type. Defined in separate schema files per family.",
+      "additionalProperties": true
+    },
+    "privacy_class": {
+      "type": "string",
+      "enum": ["local_research", "private_backup", "public_dataset"],
+      "description": "Privacy classification for data handling. 'local_research' = stays on user's HSCL1. 'private_backup' = encrypted, user-controlled. 'public_dataset' = only after explicit consent and redaction."
+    },
+    "integrity": {
+      "type": "object",
+      "required": ["body_sha256", "signature"],
+      "additionalProperties": false,
+      "properties": {
+        "body_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "SHA-256 of the canonical payload JSON for integrity verification"
+        },
+        "signature": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "HMAC-SHA-256 of (method + path + timestamp + sequence + body_sha256) using per-device key (32 bytes = 64 hex chars)"
+        }
+      }
+    }
+  }
+}

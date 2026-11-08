@@ -1,5 +1,15 @@
 # HSCL1 plan: a local-model agent harness on Linux (rebuilding the pattern, not a copy)
 
+> **Reconciled 2026-11-08:** The current OS release execution plan is
+> [v1 release plan](2026-11-08-v1-release-plan.md); ecosystem priorities and evidence
+> remain in the [live master ledger](2026-11-08-selfheal-masterplan.md).
+> See [the per-plan audit](../../PLAN_INDEX.md) for current continuation notes.
+> Older snapshots, release ladders and competing next-task orders below are historical;
+> preserve the domain specifications and gates. Root `AGENTS.md` and later owner
+> instructions govern conflicts. Model assistance for this continuation is local only;
+> no Qwen Mythos/cloud inference.
+
+
 Owner request 2026-11-06: research Anthropic's published material on the agent scaffold ("Mythos"), what RSI means and what is redacted, then a second round of questions about **rebuilding this with local models inside the Linux image**, then update the plans.
 Sibling of the master plan (`2026-11-06-autonomous-to-stable-hardened.md`, phase P24) and of the freeze/tiering/RSI plan (`2026-11-06-freeze-devmode-memory-tiering.md`, section 4 RSI guard). Master plan wins on conflicts.
 Source grades: **PRIMARY** = read in Anthropic's own PDF through the scrape tool's query mode (an LLM extraction: quotes must still be checked in the PDF before they are cited anywhere public); **SECONDARY** = blogs, news, forum, arXiv summaries seen only in search snippets; **UNVERIFIED** = not checked against anything.

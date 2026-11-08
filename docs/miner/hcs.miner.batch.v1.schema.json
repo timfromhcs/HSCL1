@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hcsmedia.github.io/schemas/hcs.miner.batch.v1.json",
+  "title": "HCS Miner Batch Upload v1",
+  "type": "object",
+  "description": "Batch upload of events from miner to HSCL1 receiver. Events are idempotent by event_id and ordered by sequence.",
+  "required": [
+    "schema",
+    "device_id",
+    "boot_id",
+    "sequence_start",
+    "sequence_end",
+    "batch_id",
+    "events",
+    "privacy_class",
+    "integrity"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "hcs.miner.batch.v1"
+    },
+    "device_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Stable device identifier from pairing"
+    },
+    "boot_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{16}$",
+      "description": "Boot identifier matching events in this batch"
+    },
+    "sequence_start": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Inclusive start sequence number of events in this batch"
+    },
+    "sequence_end": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Inclusive end sequence number of events in this batch"
+    },
+    "batch_id": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$",
+      "description": "SHA-256 of (device_id + boot_id + sequence_start + sequence_end + events canonical JSON), truncated to 32 hex chars. Used for idempotent batch deduplication."
+    },
+    "events": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 500,
+      "description": "Array of event envelopes (hcs.miner.event.v1). All events must share the same device_id and boot_id.",
+      "items": {
+        "$ref": "https://hcsmedia.github.io/schemas/hcs.miner.event.v1.json"
+      }
+    },
+    "privacy_class": {
+      "type": "string",
+      "const": "local_research"
+    },
+    "integrity": {
+      "type": "object",
+      "required": ["body_sha256", "signature"],
+      "additionalProperties": false,
+      "properties": {
+        "body_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "SHA-256 of the canonical events array JSON"
+        },
+        "signature": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "HMAC-SHA-256 of (method + path + timestamp + batch_id + body_sha256) using per-device key (32 bytes = 64 hex chars)"
+        }
+      }
+    }
+  }
+}

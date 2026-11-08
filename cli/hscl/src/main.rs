@@ -27,6 +27,7 @@ mod toolcall;
 mod updates;
 mod wallpaper;
 
+use anyhow::bail;
 use clap::{Parser, Subcommand};
 use serde_json::json;
 use std::process::ExitCode;
@@ -222,6 +223,198 @@ enum LabCmd {
         #[arg(long, default_value_t = 512)]
         pids: u32,
     },
+    /// Execute the run phase through the CLI (no shell; attestation required).
+    Run {
+        /// Project name: lowercase letters, digits and `-`.
+        #[arg(long)]
+        project: String,
+        /// Local image to run: `localhost/hscl-lab-<project>:latest` or a digest-pinned reference.
+        #[arg(long)]
+        image: String,
+        /// One folder below ~/SecurityLabs to mount at /work.
+        #[arg(long)]
+        workspace: Option<String>,
+        /// `none` (default) or `outbound`; host networking does not exist.
+        #[arg(long, default_value = "none")]
+        network: String,
+        /// Command inside the container (default: interactive shell).
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        command: Vec<String>,
+        #[arg(long, default_value_t = 2048)]
+        memory_mib: u32,
+        #[arg(long, default_value_t = 2)]
+        cpus: u32,
+        #[arg(long, default_value_t = 512)]
+        pids: u32,
+        /// Authorization attestation: exactly "I am authorized to test this target".
+        #[arg(long, require_equals = true, default_value = "", num_args = 0..=1, default_missing_value = "")]
+        yes: String,
+    },
+    /// Execute the install phase: toolset packages into a local image (attestation required).
+    Install {
+        /// Project name: lowercase letters, digits and `-`.
+        #[arg(long)]
+        project: String,
+        /// Image pinned by digest: registry/name@sha256:<64 hex> (never a tag).
+        #[arg(long)]
+        image: String,
+        /// Toolset for the install phase.
+        #[arg(long, default_value = "basic")]
+        toolset: String,
+        #[arg(long, default_value_t = 2048)]
+        memory_mib: u32,
+        #[arg(long, default_value_t = 2)]
+        cpus: u32,
+        #[arg(long, default_value_t = 512)]
+        pids: u32,
+        /// Authorization attestation: exactly "I am authorized to test this target".
+        #[arg(long, require_equals = true, default_value = "", num_args = 0..=1, default_missing_value = "")]
+        yes: String,
+    },
+    /// Commit the finished install container into the local image (attestation required).
+    Commit {
+        /// Project name: lowercase letters, digits and `-`.
+        #[arg(long)]
+        project: String,
+        /// Authorization attestation: exactly "I am authorized to test this target".
+        #[arg(long, require_equals = true, default_value = "", num_args = 0..=1, default_missing_value = "")]
+        yes: String,
+    },
+    /// Destroy this project's containers and local image (attestation required).
+    Destroy {
+        /// Project name: lowercase letters, digits and `-`.
+        #[arg(long)]
+        project: String,
+        /// Authorization attestation: exactly "I am authorized to test this target".
+        #[arg(long, require_equals = true, default_value = "", num_args = 0..=1, default_missing_value = "")]
+        yes: String,
+    },
+}
+
+/// The exact phrase `--yes=` must carry for any lab execution. Printed in every refusal so a
+/// script can copy it; presence of `--yes` alone is not enough.
+pub const LAB_ATTESTATION: &str = "I am authorized to test this target";
+
+/// Why `hscl lab` execution is gated: Kali tooling in HSCL1 is for authorized testing only, and
+/// the CLI refuses to launch anything until the operator typed the attestation and podman exists.
+fn lab_exec_precheck(podman_installed: bool) -> anyhow::Result<()> {
+    if !podman_installed {
+        bail!(
+            "podman is not installed; the Security Lab needs the rootless container runtime (plan P4.0)"
+        );
+    }
+    Ok(())
+}
+
+/// One lab lifecycle action, already validated: one or more argvs to run in order (stop at the
+/// first failure), and whether the phase may have a tty.
+struct LabAction {
+    argvs: Vec<Vec<String>>,
+    interactive: bool,
+}
+
+/// Build the argv for the execution subcommands. All validation stays in `lab.rs`; this only
+/// dispatches the phase and returns what `std::process::Command` will run without a shell.
+fn lab_action(cmd: LabCmd) -> anyhow::Result<LabAction> {
+    let limits_from = |memory_mib: u32, cpus: u32, pids: u32| lab::Limits {
+        memory_mib,
+        cpus,
+        pids,
+    };
+    match cmd {
+        LabCmd::Run {
+            ref project,
+            ref image,
+            ref workspace,
+            ref network,
+            ref command,
+            memory_mib,
+            cpus,
+            pids,
+            ..
+        } => {
+            let root = labs_root();
+            let ws = workspace.as_deref().map(std::path::Path::new);
+            Ok(LabAction {
+                argvs: vec![lab::run_argv(&lab::RunSpec {
+                    project,
+                    image,
+                    workspace: ws,
+                    labs_root: &root,
+                    network: lab::Network::parse(network)?,
+                    limits: limits_from(memory_mib, cpus, pids),
+                    command,
+                })?],
+                interactive: true,
+            })
+        }
+        LabCmd::Install {
+            ref project,
+            ref image,
+            ref toolset,
+            memory_mib,
+            cpus,
+            pids,
+            ..
+        } => Ok(LabAction {
+            argvs: vec![lab::install_argv(
+                project,
+                image,
+                toolset,
+                limits_from(memory_mib, cpus, pids),
+            )?],
+            interactive: false,
+        }),
+        LabCmd::Commit { ref project, .. } => Ok(LabAction {
+            argvs: vec![lab::commit_argv(project)?],
+            interactive: false,
+        }),
+        LabCmd::Destroy { ref project, .. } => Ok(LabAction {
+            // rm then rmi, in order; execution below stops at the first failure.
+            argvs: lab::destroy_argv(project)?,
+            interactive: false,
+        }),
+        _ => unreachable!("lab_action is only called for execution subcommands"),
+    }
+}
+
+/// Run the podman argvs directly (no shell, ever), in order, stopping at the first failure.
+/// Returns the last exit code.
+fn lab_execute(action: &LabAction, j: bool, project: &str) -> anyhow::Result<u8> {
+    let mut code: u8 = exit::OK;
+    for argv in &action.argvs {
+        let (prog, args) = argv
+            .split_first()
+            .ok_or_else(|| anyhow::anyhow!("internal: empty lab argv"))?;
+        let mut c = std::process::Command::new(prog);
+        c.args(args);
+        if action.interactive {
+            c.stdin(std::process::Stdio::inherit())
+                .stdout(std::process::Stdio::inherit())
+                .stderr(std::process::Stdio::inherit());
+        } else {
+            c.stdout(std::process::Stdio::inherit())
+                .stderr(std::process::Stdio::inherit());
+        }
+        let status = c
+            .status()
+            .map_err(|e| anyhow::anyhow!("cannot start podman: {e}"))?;
+        code = status.code().unwrap_or(1).min(255) as u8;
+        if code != exit::OK {
+            break;
+        }
+    }
+    print_value(
+        j,
+        &json!({
+            "project": project,
+            "argvs": action.argvs,
+            "executed": true,
+            "exit_code": code,
+        }),
+        || format!("lab action finished: project={project} exit={code}"),
+    );
+    Ok(code)
 }
 
 #[derive(Subcommand)]
@@ -570,6 +763,48 @@ toolsets: {}",
 ",
                     )
             });
+        }
+        LabCmd::Run {
+            ref project,
+            ref yes,
+            ..
+        }
+        | LabCmd::Install {
+            ref project,
+            ref yes,
+            ..
+        }
+        | LabCmd::Commit {
+            ref project,
+            ref yes,
+            ..
+        }
+        | LabCmd::Destroy {
+            ref project,
+            ref yes,
+            ..
+        } => {
+            lab_exec_precheck(on_path("podman"))?;
+            if yes != LAB_ATTESTATION {
+                print_value(
+                    j,
+                    &json!({
+                        "executed": false,
+                        "required_attestation": LAB_ATTESTATION,
+                        "hint": "run again with --yes=\"I am authorized to test this target\""
+                    }),
+                    || {
+                        format!(
+                        "refused: lab execution requires the attestation\nadd: --yes=\"{LAB_ATTESTATION}\""
+                    )
+                    },
+                );
+                return Ok(exit::FAILURE);
+            }
+            let project = project.clone();
+            let action = lab_action(cmd)?;
+            lab_execute(&action, j, &project)?;
+            return Ok(exit::OK);
         }
         LabCmd::Spec {
             project,

@@ -27,7 +27,7 @@ def test_health_and_capabilities_need_no_token_but_report_real_state():
     h = c.get("/api/v1/health")
     assert h.status_code == 200 and h.json()["status"] == "ok"
     caps = c.get("/api/v1/capabilities").json()
-    assert caps["operations"] == ["differentiate", "integrate", "evaluate"]
+    assert caps["operations"] == ["differentiate", "integrate", "evaluate", "simplify", "solve", "plot"]
     assert caps["engines"]["sympy"]
     assert caps["accelerators"] == {"hcsuda": "not_used"}
     assert caps["limits"]["max_chars"] == 500
@@ -70,6 +70,39 @@ def test_no_cors_headers_are_ever_sent():
     assert "access-control-allow-origin" not in {k.lower() for k in r.headers}
     r = c.get("/api/v1/health", headers={"Origin": "https://evil.example"})
     assert "access-control-allow-origin" not in {k.lower() for k in r.headers}
+
+
+def test_evaluate_can_send_its_value_over_http():
+    """The request model drops unknown fields, so `value` has to be declared or evaluate can never run."""
+    c = make()
+    r = c.post("/api/v1/symbolic/evaluate", json={**BODY, "value": "1"}, headers=AUTH)
+    assert r.status_code == 200 and r.json()["status"] == "ok", r.text
+
+
+def test_plot_can_send_its_range_over_http():
+    """Same defect class as evaluate: undeclared fields are dropped, so plot would never receive its range."""
+    c = make()
+    body = {**BODY, "x_min": "0", "x_max": "1", "points": 3}
+    r = c.post("/api/v1/symbolic/plot", json=body, headers=AUTH)
+    assert r.status_code == 200 and r.json()["status"] == "ok" and len(r.json()["samples"]) == 3, r.text
+
+
+def test_plot_points_must_be_a_real_integer_over_http():
+    c = make()
+    r = c.post("/api/v1/symbolic/plot", json={**BODY, "x_min": "0", "x_max": "1", "points": "5"}, headers=AUTH)
+    assert r.status_code == 422
+
+
+def test_a_field_belonging_to_another_operation_is_refused_over_http():
+    c = make()
+    r = c.post(URL, json={**BODY, "value": "1"}, headers=AUTH)
+    assert r.status_code == 400 and "value" in r.json()["error"]
+
+
+def test_an_unknown_body_field_is_rejected_instead_of_silently_dropped():
+    c = make()
+    r = c.post(URL, json={**BODY, "surprise": 1}, headers=AUTH)
+    assert r.status_code == 422
 
 
 def test_status_codes_follow_the_result_status():

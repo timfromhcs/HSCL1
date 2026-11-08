@@ -1,5 +1,15 @@
 # Plan: HSCL1 gates and the HCS-Genesis companion track, run in parallel (2026-11-07)
 
+> **Reconciled 2026-11-08:** The current OS release execution plan is
+> [v1 release plan](2026-11-08-v1-release-plan.md); ecosystem priorities and evidence
+> remain in the [live master ledger](2026-11-08-selfheal-masterplan.md).
+> See [the per-plan audit](../../PLAN_INDEX.md) for current continuation notes.
+> Older snapshots, release ladders and competing next-task orders below are historical;
+> preserve the domain specifications and gates. Root `AGENTS.md` and later owner
+> instructions govern conflicts. Model assistance for this continuation is local only;
+> no Qwen Mythos/cloud inference.
+
+
 Source: `AGENTS_HCS_GENESIS.md` (untracked companion file in the repo root, read in full 2026-11-07). `AGENTS.md` stays the parent contract; where the two differ, `AGENTS.md` wins and the difference is recorded here.
 
 ## Observed facts that change the companion file's assumptions

@@ -1,5 +1,15 @@
 # HSCL1 Masterplan R1: Wiederaufnahme nach 0.1.2-alpha.0 (S0 abschliessen, S1 ausfuehren)
 
+> **Reconciled 2026-11-08:** The current OS release execution plan is
+> [v1 release plan](2026-11-08-v1-release-plan.md); ecosystem priorities and evidence
+> remain in the [live master ledger](2026-11-08-selfheal-masterplan.md).
+> See [the per-plan audit](../../PLAN_INDEX.md) for current continuation notes.
+> Older snapshots, release ladders and competing next-task orders below are historical;
+> preserve the domain specifications and gates. Root `AGENTS.md` and later owner
+> instructions govern conflicts. Model assistance for this continuation is local only;
+> no Qwen Mythos/cloud inference.
+
+
 > **For agentic workers:** REQUIRED SUB-SKILL: superpowers:executing-plans (oder subagent-driven-development). Checkboxen = Fortschritt.
 
 **Goal:** Aus dem gemessenen Ist-Zustand den kuerzesten sicheren Weg zu `0.1.3-alpha.0` (S2) und weiter zu `v1.0.0` festlegen und S1 (host-only) abarbeiten.

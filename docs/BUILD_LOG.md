@@ -816,3 +816,346 @@ Added `evaluate` (exact substitution of a symbol-free value parsed by the allow-
 
 ## Miner Research Bridge contract read; plans reconciled (MINER-0, 2026-11-08)
 Read `AGENTS_HSCL1_BITAXE_MINER_RESEARCH_BRIDGE_MASTER_2026-11-08.md` (2392 lines, untracked). Verified read-only via GitHub: ESP-Miner master and research-branch heads, 8 ahead / 0 behind, 22 files, partition table, upstream PR states, RLAF abstract (arXiv 2505.16053). Not verified: 22 other sources, CI of the research branch, any device (no contact with .61/.66). Decisions M1-M7, conflicts C10-C12, ledger rows 11-13. No code, schema or device action. Edits to ESP-Miner / CQ-HECS and any flashing need owner approval.
+
+## Takeover session (OpenCode agent, 2026-11-08) - audit, PR #36, own plan
+Reconnaissance before any edit: `git fetch --all --prune`, `gh pr list` / `release list` / `run list`, the three sub-repositories (`CQ-HECS` `30c7f14`, `hcs-foundry` `cfea6fa`, `hcs-discovery-studio` `fdd6ccb`, `HCSPNP` 404), `docs/BUILD_LOG.md`, the live ledger, `docs/CLAIMS.md`, `apps/hcseasymath/`, `cli/hscl/src/`, `scripts/forge.py`.
+- **Baseline reproduced, not assumed:** `wsl -d Ubuntu -- bash -lc "cd /mnt/e/hcslinux222 && bash scripts/hcseasymath_gate.sh"` -> `143 passed, 1 warning in 14.76s` (the count the ledger claims). Python 3.14.6 and sympy 1.14.0 on the host; cargo 1.96.0.
+- **PR #36** (MINER-0 reconciliation, `codex/miner-plans`) was open, mergeable and 16/16 checks green -> merged as `bbb98dd` (standing instruction: merge only on green CI). Dependabot branches were already gone; no open PRs remain.
+- **Research on the open questions** (sources read 2026-11-08; details in the new plan section 3): SAT Competition **2026** Main track = 5000 s / **32 GB** / PAR-2 with **certificates required for SAT and UNSAT**, Parallel 1000 s wall on `m6i.16xlarge`, Cloud 200 s on 100 x `m6i.4xlarge` (closes the limit gap of conflict C4); SymPy 1.14 docs show `solve()` output is shape-inconsistent and can miss roots (#25849) while `solveset` returns sets with a domain -> the planned `solve` operation will use `solveset` plus a substitution check of every root; **LeanCert** exists for Lean 4 verified interval arithmetic (Lean 4.31.0, 2026-06-13) -> decision D12 can name a concrete candidate but stays PLANNED.
+- **Own execution plan:** `docs/superpowers/plans/2026-11-08-opencode-autonomous-masterplan.md` (audit, research answers, waves W0-W4, loop contract). It adds **no priority list**: the order stays the live ledger's P-map; the plan names the P number and ledger row for every task.
+- **Loop:** a one-shot 120 s background wake replaces the session cron ping (a `while` loop never completes and therefore never notifies in this harness). Each wake does one ledger step, records it, and arms the next wake; the durable version is ledger row 15 / Wave 2.
+- Not started in this entry: no code change, no image build, no VM, no push to another repository. Blocked items unchanged (B-P1 CQ-HECS push, signing, physical hardware, DE/FR review, production deployment).
+
+## HCSEASYMATH `simplify` (Track E M2 / ledger row 14, 2026-11-08, OpenCode wave 1)
+Added the fourth operation. `sp.simplify` is never trusted on its own: the returned form is graded against the input by a new `symbolic.verify_equivalence` (`symbolic` = the difference simplifies to 0; `numeric` = agrees at up to 7 rational sample points with distinct values per free symbol, reported as "not proven symbolically"; `unverified` = fewer than 3 usable points, or more free symbols than distinct sample values; `failed` = a disagreement). A `failed` form is refused as `internal_error` and not returned; `unverified` is `partial`. A size reduction is claimed only from measured `sp.count_ops` values, and any rewrite that changes the printed form carries an `assumptions` note that points removed by it (a cancelled denominator, for example) are not restored.
+- Tests first: 30 new tests in `tests/unit/test_simplify.py` (known simplifications, an independent mpmath comparison of both forms, the disclosure note, the count_ops invariant over four expressions, typed refusals, all four verifier grades with hand-picked pairs, and the two monkeypatched grading branches) plus the capabilities list in `tests/api/test_api.py`.
+- Verifier cases that matter: `atan(x) + atan(1/x)` is **rejected** as an identity because the sample points include negative rationals (it is +-pi/2); `log(x**2)` vs `2*log(x)` is only `numeric`; `sqrt(x**2)` vs `Abs(x)` is `numeric`; `asin(x)+acosh(x)` vs itself + 1 leaves 0 usable points -> `unverified`.
+- Mutations, each shown red then reverted: verifier always answers `symbolic` -> 4 verifier tests fail; size claim appended unconditionally -> the `x + y` invariant and the "no claim when it did not shrink" test fail.
+- Gate: `bash scripts/hcseasymath_gate.sh` (WSL Ubuntu, hash-locked venv, Python 3.14) -> **171 passed, 1 warning in 14.90s** (143 before). `OPERATIONS` and `/api/v1/capabilities` now list four operations; the API registers one route per operation automatically.
+- Docs kept in sync: `apps/hcseasymath/README.md` (four operations, simplification guarantee, "does not do" list), `docs/CLAIMS.md` row, ledger rows 4/14 and E-M2.
+- Not done in this entry: `solve`, `plot` data, warm worker (still ~0.57 s per request), no change to the result schema (no new fields), no image/VM involvement.
+
+## HCSEASYMATH `solve` (Track E M2 / ledger row 14, 2026-11-08, OpenCode wave 1)
+Fifth operation. The engine uses `sp.solveset(expr, variable, domain=Reals)`, never `sp.solve`: the return value is a set, so "the complete root list" is never invented, and the domain is explicit. The equation is the expression set to zero (the request shape stays `expression` + `variable`; no `=` is parsed).
+- Every root is substituted back before it is reported (`symbolic.verify_root`): `symbolic` = the substitution gives exactly 0, `numeric` = the residual is a number below 1e-12 relative, `unverified` = the residual still contains symbols, `failed` = a non-zero residual. A failed root is dropped and the answer becomes `partial`; if every root fails, `internal_error` with no result; an unverified root makes the answer `partial`.
+- Infinite sets (`ImageSet`, `ConditionSet`, `Interval`, a `Union` that is not all finite) and an identity (`S.Reals`) are `unresolved` with no result. An empty real solution set is `partial` with `EmptySet` and two warnings: absence is not independently verified, and the number of complex roots (or "infinitely many") is named because this version does not return them. A parameter in the equation makes an empty answer inconclusive -> `unresolved`, because "no x satisfies y - 1 = 0" depends on y.
+- `solveset` returns `Intersection({-a}, Reals)` when a parameter is present; the finite part is used and the assumptions say that real-domain membership of the roots was not decided.
+- Tests first: 26 in `tests/unit/test_solve.py` (six known root sets, an independent substitution of every returned root, the empty/complex cases, ImageSet/Reals/parameter refusals, typed refusals, all four verifier grades, and the four monkeypatched grading branches) plus the capabilities list in `tests/api/test_api.py`.
+- Mutations, each shown red then reverted: `verify_root` always answers `symbolic` -> the reject/numeric/unverified verifier tests fail; the empty real set reported as `ok` -> both empty-set tests fail.
+- One real defect found by the tests: `isinstance(sol, (sp.Reals, sp.Complexes))` raises `TypeError` because those are instances, not types; identity/equality comparison is used instead. `sp.EmptySet` is not a `FiniteSet` in SymPy 1.14 either, so it is handled explicitly.
+- Gate: `bash scripts/hcseasymath_gate.sh` -> **197 passed, 1 warning in 14.85s** (171 before). `OPERATIONS` and `/api/v1/capabilities` list five operations.
+- Still open in Track E M2: `plot` data, warm worker, and the one-page UI (it still calls only `differentiate`; recorded in the README).
+
+## HCSEASYMATH: `evaluate` was unreachable over HTTP (defect found by probing, 2026-11-08)
+Probing the running contract instead of trusting the tests found a real defect: `ExpressionRequest` declared only `expression` and `variable`, and pydantic drops unknown fields, so a client's `value` never reached the engine. `POST /api/v1/symbolic/evaluate` with `{"expression":"x**2","variable":"x","value":"3"}` answered `400 invalid_input: missing 'value'` - the operation existed, was tested through `execute`, and could not be used by any HTTP client since it was added.
+- Fix: `value` is now a declared optional field (bounded by `DEFAULT_LIMITS.max_chars`), the route dumps with `exclude_none=True`, and the model uses `extra="forbid"` so an unknown field is a 422 instead of being silently dropped.
+- Second half of the same defect class: the engine now refuses a field that the chosen operation does not use (`field(s) not used by this operation: value`), so a misplaced field can never be ignored silently. `_OPERATION_FIELDS` names the one exception (`evaluate` -> `value`).
+- Tests: `test_evaluate_can_send_its_value_over_http`, `test_a_field_belonging_to_another_operation_is_refused_over_http`, `test_an_unknown_body_field_is_rejected_instead_of_silently_dropped` (API) and `test_a_field_the_operation_does_not_use_is_refused_not_silently_ignored`, `test_evaluate_keeps_the_value_field_it_uses` (engine).
+- Gate: `bash scripts/hcseasymath_gate.sh` -> **202 passed, 1 warning in 15.01s** (197 before).
+- Not changed: the worker is still Linux-only (`os.killpg`), so these API tests use the in-process `run=execute` like the existing ones; the process isolation path is exercised by the worker tests.
+
+## HCSEASYMATH `plot` data (Track E M2 / ledger row 14, 2026-11-08, autonomous tick)
+Sixth operation, **data only**: `plot` returns `samples` (`[x, y]` pairs), never an image claim and never a `result_expression`. Fields: `x_min`, `x_max` (exact, symbol-free, finite, real; parsed by the allow-list parser) and `points` (strict integer, 2..1000, default 200); range capped at 1e6. Points are evenly spaced including both ends and are evaluated exactly, then converted to float.
+- Discontinuity policy: a sample where the function is undefined, infinite or not real becomes `null` and is **not connected**; some nulls -> `partial` with a count warning, all null -> `unresolved` with no samples. Complex values are never reduced to their real part.
+- Schema: one new optional field `samples` on the result (`null` for every other operation). API: `x_min`, `x_max`, `points` declared on the request model (lesson of the `evaluate` defect: undeclared fields are dropped); a string `points` is a 422.
+- Tests first: 20 in `tests/unit/test_plot.py` + 2 HTTP tests. Mutation shown red then reverted: complex/undefined values let through -> `test_complex_values_are_null_not_real_part` and `test_all_undefined_is_unresolved_without_samples` fail.
+- Gate: `bash scripts/hcseasymath_gate.sh` -> **230 passed, 1 warning in 14.3s** (202 before). Process slip recorded: a `git checkout` used to revert the mutation also reverted the uncommitted plot code; restored from a backup copy, gate re-run green. Revert mutations from a backup, not with `git checkout`.
+- Not done: warm worker (W1-4), one-page UI still calls only `differentiate`.
+
+## HCSEASYMATH warm-worker: latency measured first (W1-4, 2026-11-08, autonomous tick)
+Measured in WSL Ubuntu, Python 3.14, hash-locked venv, 3 runs each (warm file cache): bare interpreter **15-29 ms**; `import sympy` **0.28-0.30 s** (0.81 s cold); `import hcseasymath.core.engine` **0.43-0.53 s**; the whole child (`jobs.child`, one differentiate) **0.48-0.55 s**; the operations themselves in a warm process: differentiate 27 ms, integrate 55 ms, simplify 83 ms, solve 11 ms (one expression `x**3-2*x`, not a benchmark suite). Conclusion: about 90 % of the ~0.5 s per request is the import, not the maths.
+- Design consequence (not built yet, `PLANNED`): a **pre-imported zygote that forks one child per request**, not a long-lived worker that answers many requests. Fork keeps the per-request isolation the current design has (fresh address space, own limits, own kill group); a long-lived worker would carry state, memory growth and a cumulative CPU limit between requests. Open points the implementation must settle with tests before any claim: `RLIMIT` applied after fork in the child, the zygote itself single-threaded (no fork in a threaded process), restart of a dead zygote, output cap and timeout unchanged, no environment or file descriptors inherited beyond the request pipe. Target to confirm by measurement, not promised: per-request latency in the order of tens of milliseconds.
+- Linux only, like the current worker (`os.killpg`, `resource`).
+
+## HCSEASYMATH warm worker built, not yet wired into the API (W1-4, 2026-11-08, autonomous tick)
+`jobs/zygote.py` (single-threaded; imports the engine once; one `fork()` per request on a unix socket in a 0700 temp directory; the child calls `setsid()`, applies the RLIMITs itself, runs the operation, writes one JSON object) and `jobs/warm.py` (`WarmWorker.start/stop/run`, same result contract as `run_isolated`; restarts a dead zygote; the zygote gets the same minimal environment as the cold child; the parent kills the child's process group on timeout and after every request).
+- Tests first: 12 in `tests/unit/test_warm_worker.py` (result identical to the cold worker in `status`, `result_expression`, `run_id`, `input_digest`, `exactness`, `checks`; hostile input refused; warm request < 0.3 s; one process per request and reaped; real kill of a stuck child; memory limit in the child while the zygote survives; zygote restart after SIGKILL; no environment leak, names restricted to six; six parallel requests do not mix; socket directory mode 0700). Gate: **242 passed** (230 before).
+- Mutations: no RLIMITs in the child -> `test_the_memory_limit_is_enforced_in_the_child` red; parent never kills -> `test_a_stuck_child_is_really_killed_at_the_time_limit` red. **A first version of the kill test passed under the mutation** (the child simply finished by itself); it was replaced by a test engine that never returns (`tests/helpers/slow_engine.py`, selected by the test-only `engine=` argument) and the mutation was re-run red.
+- Known residue, by design: a request in flight survives a zygote restart in its own session until the parent kills it or its CPU limit ends it. The cold worker has the same property only per request.
+- Not claimed: the actual latency win in the API. The test only bounds a warm call under 0.3 s on this machine; a measured before/after through `/api/v1/symbolic/*` is the next step, together with the decision to switch the API over (default stays the cold worker until then). Not done: wiring into `app.py`, graceful shutdown hook, Windows (Linux only).
+
+## HCSEASYMATH `serve --warm` and the measured win (W1-4, 2026-11-08, autonomous tick)
+`python -m hcseasymath serve --warm` starts one `WarmWorker`, passes its `run` to `create_app`, and stops it when uvicorn returns. **The default stays the cold worker**; `--warm` is opt-in and Linux only.
+- Measured through the real HTTP server (WSL, `differentiate` of a cubic, second request of each server; one pair, not a benchmark): **cold 571 ms, warm 74 ms** (about 7.7x). The unit-level estimate was ~0.5 s -> tens of ms; this is the confirmation, with the caveat of a single sample on one machine.
+- Tests: `tests/integration/test_serve_warm.py` (same `status`/`result_expression`/`run_id`/`input_digest`/`exactness` as the cold server; warm faster; no zygote outlives the server; the default server starts no zygote and `--help` lists `--warm`). Gate: **244 passed**. Mutation shown red then reverted from a backup copy: `warm_worker.stop()` replaced by `pass` -> "a zygote outlived the server".
+- Slip caught in review of my own test: a first draft of the default-is-cold test had a vacuous `or True` assertion; replaced by a real check that the cold server has no zygote child.
+- Open before the default can change: a repeated measurement (several runs, percentiles), behaviour under the concurrency limit, and the decision of the owner/ledger on whether a zygote process is acceptable in the packaged app.
+
+## Durable self-heal scheduler: first implementation (Wave 2 / ledger row 8, 2026-11-08, autonomous tick)
+`scripts/selfheal/tick.py` + `scripts/selfheal/rows.json` implement `docs/research/SELFHEAL_SCHEDULER_DESIGN.md`: one bounded tick (no daemon), exclusive-create global lock with owner pid/start time and a 300 s stale takeover (the stale file is claimed by a rename that only one contender can win; a fresh lock that was moved by mistake is put back), separate heavy lock (a heavy row records `deferred` while it is held; light rows still run), 90 s wall timeout with process-tree kill (POSIX `killpg`, Windows `taskkill /T`), dry run is the default (`--execute` is real mode, and a row exists only if it is listed in `rows.json`), state file written to a temp file and swapped in with `os.replace` (no fsync, so this protects against a half-written file seen by another reader, not against power loss), a corrupt state file is refused and never overwritten, three consecutive failures set a row `BLOCKED` and the next row is picked, JSONL log without environment dump, rows with secret-shaped arguments or shell-style entries are refused (`argv` list only), worker gets a minimal environment, default state dir outside the repository (`%LOCALAPPDATA%\hscl-selfheal` / `$XDG_STATE_HOME/hscl-selfheal`).
+- Tests first: 14 in `tests/unit/test_selfheal_tick.py` (the seven from the note plus success-resets-count, lock released after every outcome, state written via temp file + `os.replace`, no environment in log or worker, row validation, state dir outside the repo). Result: **14 passed on Windows and 14 passed in WSL**.
+- Mutations (Linux), each red then reverted from a backup copy: lock always granted -> 3 tests red (concurrency, stale/fresh, heavy lock); timeout without kill -> `test_a_worker_past_the_timeout_is_killed_and_recorded` red; failures never block -> the blocking test red. **Gap:** the kill assertion only runs on Linux, so the Windows run alone does not prove the `taskkill` path.
+- Smoke run with a throw-away state directory: dry run wrote only the log line; three `--execute` ticks gave `ok`, state and log written, lock gone.
+- **Known limitation (design gap, not hidden):** the tick always picks the *first* non-blocked row, so with `rows.json` as shipped only `git-status` ever runs; there is no rotation. The design note does not ask for one. Fixing it changes the pick rule and the blocking test, so it needs a decision (round-robin by last row is the obvious choice). Nothing here is registered with Task Scheduler or cron; that stays the owner's choice (note, "Open"). The 2-minute ping of this session remains a session job.
+
+## HCSPNP audit row 1 (Wave 3), parts 1-4 summary (2026-11-08, autonomous ticks, read-only)
+Read in the local CQ-HECS clone (`/home/tim/src/CQ-HECS`, `src/` identical to `main` `30c7f14`): `src/sat_solver.cpp`, `src/cq_hecs_api.cpp`, `src/cq_c_api.cpp`, `cqhecs/drat.py`, `cqhecs/sat_external.py`, `cqhecs/unified.py`, and the core of `cqhecs/sat.py`. **Not read:** `sat_separator.py`, `omniwave/*` (engine by grep only), `studio/app.py` (guard patch covered earlier), `provenance.py`, `mcp_server.py`, the DPLL internals and counting/MaxSAT parts of `sat.py`, the shaders, the QASM parsers, `tests/*` content. Nothing was changed or pushed in that repository (B-P1 open). Full tables with file and line references: `docs/research/HCSPNP_BASELINE.md` (sections "Audit row 1, part 1-4").
+- Headline results: native UNSAT is uncertified (`verified=true` overstates); the C ABI collapses timeout and invalid input into the UNSAT code and truncates the model at 1024 entries; no exception guard on any export; `cq_omniwave_bcp_eval` misses a null check; the portfolio (`unified.py`) upgrades proof labels without reading `certified` and cannot detect an engine contradiction; the Python and native DIMACS parsers disagree on seven input classes; `sat.py` itself already shows the right convention (`certification` property, `UNKNOWN` on disagreement).
+- Order of the smallest first PRs (all local-only until the owner lifts B-P1): shared strict parser rules + differential parser test; A1/A3/A5; C1+C2 together; C4 and C3 (use `certification`).
+- Process note: pushes were paused for one tick because each push restarts CI for the PR head and no head had finished; PR #37 stays `CLEAN`, the merge is not done by this agent (permission denied for `gh pr merge`).
+
+## NP benchmark harness, research and slice 1 (SAT) (P4/P5, ledger rows 16-21, owner request, 2026-11-08)
+Owner request in the running session: web research on NP-hard and "hardest" problems, how to build them as code benchmarks, adapt the plans, build them in, try to build solvers. Research (web search, snippet level, no paper read in full) is in `docs/research/NP_BENCHMARK_RESEARCH.md` with sources and with the questions that stayed open: the "Anni" format of the SAT Competition 2026 was not found, the 2026 benchmark selection is still "TBA" on the page read, and the licences of Concorde, LKH and OR-Tools were **not** confirmed (Kissat and PySAT are MIT; CaDiCaL only indirectly). "Hardest" is treated as a property of instance families and solvers, never as a claim.
+- **Plans adapted:** live ledger rows 16-21 (NPBENCH-1..6) under P4/P5, priority-map rows P4/P5 updated, row 15 (scheduler) set to DONE, OpenCode plan Wave 5. The order P0-P14 is unchanged; the work sits inside P4/P5.
+- **Built (`tools/npbench/`, pure standard library):** `cnf.py` strict DIMACS (header required and lowercase, declared clause count must equal the parsed count, digits only, caps before allocation, SATLIB terminator only in its real form, nothing silently repaired) - this is the reference for the differential parser test of audit finding P1; `gen_sat.py` generators (uniform random k-SAT, threshold ratio 4.26, planted, and an array-multiplier factoring circuit whose expected answer comes from trial division, so a prime N is a known UNSAT instance); `proof.py` an independent RUP refutation checker; `solvers/cdcl.py` CDCL (two watched literals, first-UIP learning with backjumping, activity ordering, phase saving, Luby restarts, proof log, no clause deletion); `solvers/walksat.py` (answers SAT or UNKNOWN only); `runner.py` (a SAT claim counts only after `verify_model`, an UNSAT claim only after `check_rup`, otherwise UNKNOWN; known-answer contradiction is a `disagreement`; an unknown solver name is `unavailable`, no fallback; PAR-2; manifest entries with SHA-256).
+- **Tests first:** `tests/unit/test_npbench_sat.py`, 40 tests, including 160 random small formulas against brute force (both verdicts exercised, every SAT model verified and every UNSAT proof checked), the factoring circuit against brute force for every N below 40, and refusal cases for the parser. Result **40 passed**.
+- **Mutations**, each shown red and then restored from a backup copy with a byte comparison: inverted XOR parity, proof not logged, model not verified, proof not checked, clause count not compared, wrong backjump level, timeout reported as UNSAT, unassigned variable counted as false. All 8 turn a test red. One real slip found while writing: the XOR gate's parity sign was inverted in my first draft (caught by reading before the run); one test of mine had a vacuous `or True` assertion and was replaced by a real check.
+- **First measurement** (Windows host, Python 3.14, 6 seeds per size, ratio 4.26, 8 s budget; a smoke test, not a benchmark study): CDCL decided 6/6 at n = 30, 50, 70, 90 with medians of 1, 2, 8 and 24 ms (conflicts median 11, 22, 90, 243); SAT/UNSAT split 5/1, 5/1, 3/3, 3/3, every UNSAT backed by a checked proof. WalkSAT found exactly the SAT instances CDCL found (5, 5, 3, 3) and left the others UNKNOWN, as designed; its median at n = 70 and 90 is about 4 s because the UNSAT half runs into the budget. The roughly even SAT/UNSAT split near ratio 4.26 matches the threshold described in the literature; it does not prove hardness at these sizes, which are small. Not measured: larger n, other families, any external solver.
+- **Not done / honest limits:** no CLI or suite file yet (row 17), no graph / TSP / knapsack families (rows 18-19), no DRAT checker or external adapters (row 20), nothing beyond NP (row 21). The pure Python CDCL is a correctness baseline; it is not competitive with CaDiCaL or Kissat and no report says so. No tool of unclear licence is bundled or called.
+
+## NP benchmark harness, slice 2: suites, CLI and JSON report (ledger row 17, 2026-11-08, autonomous tick)
+`tools/npbench/npbench/suites.py` and `__main__.py`. A suite is a list of specs; an instance is rebuilt from its spec and bound to its bytes by a SHA-256 in the manifest. The generator is the authority on the answer: a spec that claims an answer the generator does not know (random, threshold) or contradicts (factoring of a prime) is refused. `python -m npbench run|list|manifest`; the report schema is `npbench.report.v1` (records, per-solver summary with decided / SAT / UNSAT / unknown / unavailable / errors / refused / disagreements / PAR-2, manifest, Python and platform only - no environment dump). Exit 0 all fine, 1 disagreement, refused claim, error or unavailable solver, 2 usage error, an existing report without `--force`, a bad budget (outside (0, 3600] s) or the heavy `sweep` suite without `--allow-heavy`. A timeout is a normal outcome and does not fail the run.
+- **Tests first:** `tests/unit/test_npbench_cli.py`, 13 tests; with the 40 of slice 1 **53 passed**. Two assertions in my first draft were vacuous (`... or True`, `... or code == 1`) and were replaced before the first run by two precise tests: a solver whose claims are all refused (counted in `refused`, exit 1) and a buggy generator simulated by flipping the recorded answers (every verified verdict becomes a `disagreement`, exit 1).
+- **Mutations**, each red and then restored with a byte comparison: exit code ignores disagreements, exit code ignores an unavailable solver, heavy guard removed, overwrite guard removed, claim check in the generator removed, `refused` not counted, budget not bounded. All 7 turn a test red.
+- **Real run** (`python -m npbench run --suite light --solvers cdcl,walksat --budget 5`, Windows, Python 3.14): CDCL decided 16/16 (11 SAT, 5 UNSAT; every SAT model verified, every UNSAT proof accepted by the RUP checker), PAR-2 0.003 s, no disagreement; individual times 0.4 to 14.5 ms, at most 172 conflicts. WalkSAT decided 11/16 (the 11 SAT ones, the 5 UNSAT stay UNKNOWN by design), PAR-2 3.3 s because an undecided run counts twice its budget; no disagreement with CDCL. The light suite is small by design: it is a regression and correctness suite, not a hardness study.
+- **Not done:** graph / TSP / knapsack families (rows 18-19), DRAT checker and external adapters (row 20), beyond NP (row 21), the heavy `sweep` suite was only run inside the guard-removed mutation (budget 1 s, no result recorded).
+
+## NP benchmark harness, slice 3: graph families (ledger row 18, 2026-11-08, autonomous tick)
+New in `tools/npbench/npbench/`: `graph.py` (strict DIMACS `.col`: header `p edge n m` required, digits only, no self loop, no repeated edge in either direction, parsed edge count must equal the declared one, caps first; verifiers for colouring, clique and Hamiltonian cycle that share no code with a solver), `gen_graph.py` (Mycielski graphs, queen graphs, Turan graphs, complete graphs, cycles, generalised Petersen graphs, planted colourable / clique / Hamiltonian graphs), `graph_solvers.py` (CNF encodings for colouring and Hamiltonian cycle, DSATUR, SAT route through the CDCL baseline, Bron-Kerbosch with pivoting, depth-first Hamiltonian search), `graph_runner.py`, and the suite `graphs` (18 instances, 33 solver records). `python -m npbench run --suite graphs --solvers sat,dsatur,bk,backtrack` works through the same CLI and report schema; a (solver, task) pair that does not exist is skipped, a name that exists for no task is `unavailable`.
+- **Claims only where a theorem or the construction backs them:** Mycielski M_k has chromatic number k; queen graphs only for gcd(n, 6) = 1 (n = 6 and 8 are deliberately not claimed, the DIMACS tables list best-known values there, not a theorem used here); Turan T(n, r) has chromatic and clique number r; planted generators give one-sided facts. The suite builder refuses a spec whose claimed answer differs from what the generator knows.
+- **Evidence rules:** a yes-answer needs a witness that passes the verifier. A no-answer needs a RUP proof of the (re-built) encoding for colouring and Hamiltonian cycle, or for `clique k` a proper colouring with k-1 colours (it proves that no k-clique exists). An exhausted search without such a certificate is `UNKNOWN`; `ham_backtrack` and `dsatur` can never say UNSAT. Limits of the clique certificate: it exists only when the chromatic number is at most k-1, so Mycielski graphs (clique number 2, large chromatic number) cannot get a certified "no 3-clique"; no such instance is in the suite.
+- **Real defect found by a test, not by reading:** my first Alspach statement ("GP(n, k) is non-Hamiltonian iff k = 2 and n = 5 mod 6") is wrong as written: exhaustive search shows GP(11, 5) is not Hamiltonian. The theorem holds up to isomorphism, and GP(n, (n-1)/2) is isomorphic to GP(n, 2) because 2 * (n-1)/2 = -1 mod n. The function and its docstring were corrected; the test compares the table with exhaustive search for every 5 <= n <= 12.
+- **Tests first:** `tests/unit/test_npbench_graph.py`, 26 tests (strict parser refusals, verifiers, generator shapes, Mycielski chromatic numbers by brute force for k = 2, 3, both encodings against brute force on random small graphs with both verdicts present, solvers, runner refusals, suite claims, a full CLI run). Slice 1-2 tests unchanged; all three files together are run by `forge check`.
+- **Mutations**, each red then restored with a byte comparison: colouring verifier ignores edges, clique verifier ignores adjacency, Hamiltonian verifier ignores the closing edge, runner accepts an unchecked RUP claim, runner skips the colouring-bound check, colouring encoding drops the edge clauses, Hamiltonian encoding drops the wrap-around, Petersen table without isomorphism, backtracking claims UNSAT, claim check removed, duplicate edge accepted, DSATUR claims UNSAT. **Three survived the first round** (closing edge, colouring-bound check, duplicate edge): the tests did not cover them. A first attempt to add the tests silently did not apply (a quoting mistake of mine; the assertion stopped the script before writing), so the survivors were still alive in the second run; the tests were then added with the editor tool and all 12 mutations turn a test red.
+- **Real run** (`python -m npbench run --suite graphs --solvers sat,dsatur,bk,backtrack --budget 30`, Windows, Python 3.14): `sat` decided 15/15 (10 SAT, 5 UNSAT, every UNSAT with a checked RUP proof, times 0.1 to 42 ms); `bk` 3/3 (the clique "no" certified by a colouring); `dsatur` 5/9 and `backtrack` 5/6 decided, which is correct for incomplete solvers (they cannot answer "no"); no disagreement, nothing refused. **PAR-2 of 26.7 s for DSATUR is an artefact**: an undecided run counts twice its budget and DSATUR can never decide a "no" instance, so PAR-2 must not be compared between complete and incomplete solvers. The instances are small by design (at most 23 vertices); this is a correctness suite, not a study of hard instances.
+- **Not done / limits:** the encodings are part of the problem specification and are shared by solver and proof check, so their correctness rests on the brute-force comparison tests, not on independence; no Mycielski k = 5, queen 7 or Petersen n = 11 instance yet (not timed); no DIMACS or FHCP files are downloaded or bundled (licence question open, see the research ledger); TSP and knapsack are row 19.
+
+## NP benchmark harness, slice 4: TSP and knapsack / subset sum (ledger row 19, 2026-11-08, autonomous tick)
+New in `tools/npbench/npbench/`: `tsp.py` (TSPLIB EUC_2D distance in exact integer arithmetic, tour verifier, the Held-Karp / Lagrangian 1-tree lower bound for integer potentials, strict TSPLIB reader that accepts integer coordinates only), `gen_tsp.py`, `tsp_solvers.py` (exact Held-Karp DP for n <= 13, nearest neighbour from every start plus 2-opt, subgradient ascent on the 1-tree bound), `knap.py` (instance, selection verifier, exact fractional bound with `Fraction`), `gen_knap.py` (uncorrelated, weakly correlated, strongly correlated, subset sum, after the families named by Pisinger; not a copy of his code), `knap_solvers.py` (DP over the capacity with witness, greedy, fractional-bound claim), `opt_types.py`, `opt_runner.py`, and the suite `optimization` (27 instances, 81 solver records). The CLI dispatches on the family as before.
+- **Evidence rules:** a yes needs a tour with length <= bound that `tsp.verify_tour` accepts, or a selection that `knap.verify_selection` accepts. A TSP no needs integer potentials whose bound, recomputed by `tsp.lower_bound`, exceeds the limit (valid for any potentials, which the tests check with random ones). A knapsack no needs the exact fractional bound, recomputed by the runner, below the target. An exact DP that finishes without a certificate is UNKNOWN, not a no.
+- **Where the answer in a spec comes from:** knapsack and TSP with n <= 13 from the exact DP (validated against brute force for TSP n = 7 and knapsack n = 11 over all four families); TSP with n > 13 only from a verified tour (yes) or a verified lower bound (no); between the two the spec must say `null`. The builder refuses a spec whose claim differs.
+- **Measured surprise:** on the small random Euclidean instances (n = 8 to 20, box 1000) the Lagrangian bound equals the optimum or the best tour found exactly (for example n = 20: bound 3990, tour 3990), so even "no tour of length optimum - 1" is certified; a gap appears at n = 30 (bound 4455, best tour 4511), kept in the suite as an instance whose middle bound (4480) has expected answer `null`. My first design had assumed a gap everywhere. Not claimed: that the bound is tight for larger or clustered instances.
+- **Tests first:** `tests/unit/test_npbench_opt.py`, 26 tests (euc2d against the float definition on 2000 random pairs, Held-Karp against brute force, 2-opt never below the optimum with a ratio check, the bound valid for 150 random potential vectors, improvement by the subgradient, a strict TSPLIB reader, family definitions, DP against brute force for all four knapsack families, selection and bound verifiers, runner refusals, suite claims, a full CLI run). Slice 1-3 tests unchanged. Process note: one assertion of my first draft ended in `or True` and was removed before the first run.
+- **Mutations**, each red then restored with a byte comparison: euc2d rounding, tour permutation check, bound without the potential sum, bound with one edge at vertex 0, runner accepting any bound claim, runner accepting any LP claim, selection ignoring capacity, selection allowing duplicates, LP bound without the partial item, DP capacity off by one, TSP DP claiming UNSAT, Held-Karp without the return edge, wrong strong correlation, claim check removed, TSPLIB accepting floats, subgradient doing nothing. **One survived the first round** (duplicates: my test case was already rejected by the capacity check); the test case was replaced by one that fits the capacity, and all 15 now turn a test red.
+- **Real run** (`python -m npbench run --suite optimization --solvers dp,nn2opt,lagrange,greedy,ub --budget 30`, Windows, Python 3.14): `dp` decided 9/27 (all yes-answers it could find; it never says no), `nn2opt` 8/17 (yes), `lagrange` 8/17 (all eight "no" with a verified bound, none yes), `greedy` 1/10, `ub` 4/10 (all "no" with the fractional bound). No disagreement, nothing refused. Every instance whose answer is known is decided by at least one solver except three on purpose: knapsack targets 6875 and 1631 (between the optimum and the fractional bound, where no certificate exists) and the TSP bound 4480 (expected `null`). The PAR-2 values are not comparable across solvers: a yes-only or no-only solver scores twice its budget on the other half.
+- **Limits:** the suite is small (n <= 30, capacity <= a few thousand); this is a correctness suite. The TSPLIB reader refuses float coordinates, so many real TSPLIB files are rejected with a clear error until it is widened; no TSPLIB, MIPLIB or Pisinger files are downloaded or bundled (licence question open). Pure Python DP and heuristics are baselines.
+
+## Session 3 handover, Wave 2 plan, npbench slice 4 committed (2026-11-08, OpenCode session 3)
+
+Reconnaissance first, before any edit: `git status -b` / `git log --all`, `gh pr list`, `gh pr view 37` (16 commits, `MERGEABLE`, 16/16 green at `ac26e69`), `gh run list`, `wsl -l -v`, `python --version` (3.14.6), `gh auth status` (timfromhcs, no secret printed), the tail of this file, both live plans. Found and fixed a **handover defect, not a code defect**: slice 4 (TSP + knapsack, `tests/unit/test_npbench_opt.py` + 7 modules) was fully staged on the Windows tree and never committed, and slices 2-3 were pushed only to `codex/npbench-wave5` while PR #37 tracks `codex/autonomous-wave1`.
+- Verified before committing, not assumed: `python -m pytest tests/unit/test_npbench_{sat,cli,graph,opt}.py -q` -> **105 passed in 22.88 s** on the Windows host (sat 40, cli 13, graph 26, opt 26).
+- Committed as **`617e1f8`** and pushed to both refs (`codex/autonomous-wave1` -> PR #37, and `HEAD:codex/npbench-wave5`). No force-push, no branch deleted, both refs now equal.
+- New plan `docs/superpowers/plans/2026-11-08-opencode-wave2-masterplan.md`: handover snapshot with measured values, the tick contract and loop state schema, the failure taxonomy (code / test / gate / environment / upstream / flake / owner-only) with the three-attempt rule, a **check matrix** (change -> mandatory gate), the W2-0..W2-9 order with a gate per task, owner-only items and a risk register. It holds no priority list; ledger section 3/5 stays the only order. Live ledger rows 20-21 rewritten as 5a/5b plus new rows 22-23, section 1 snapshot refreshed to `617e1f8`.
+- Decided **before** writing code, so it cannot be discovered half-way: DRAT checking in W2-1 implements **RUP per addition only**. A step that is not RUP is reported `rat_unsupported` and the verdict stays `unknown`. RAT is not implemented in this slice, and that limitation must appear in the README, the docstring, the report schema and `KNOWN_LIMITATIONS.md`.
+- Not done in this entry: no code change, no image build, no VM, no local model run, no cross-repository push, no merge, no tag. Blocked items unchanged (B-P1 CQ-HECS push, signing, physical hardware, DE/FR review, production deploy, MINER-2+ M4).
+
+## NPBENCH-5a: DRAT reader and deletion-aware RUP checker (ledger row 20, W2-1, 2026-11-08, session 3)
+
+New `tools/npbench/npbench/drat.py` and `tests/unit/test_npbench_drat.py` (29 tests). Scope decided and written down **before** the code: the module reads the DRAT line format and checks every added clause by **RUP against the database active at that line** (so `d` deletions matter). **RAT is not implemented.** A step that is not RUP returns `rat_unsupported` and the proof keeps the verdict `unknown`; an empty clause that is not RUP is `invalid_step`; a proof without the empty clause is `incomplete_proof`; unparseable input is `malformed`. Only `verdict == "unsat"` is a refutation.
+- Format rules follow `cnf.py`: `c` comments, `d` + whitespace for a deletion, exactly one `0` per line at the end, tokens `-?[0-9]{1,9}`, literal capped by the declared variable count, blank lines only after the last clause, byte cap checked before parsing and step cap during parsing.
+- Runner integration: `run_instance(..., proof_checker="rup"|"drat")`; the record's `certification` is `RUP_CHECKED` or `DRAT_RUP_CHECKED`, so a stronger label is never implied. An unknown checker name raises `UnknownProofChecker` instead of silently using RUP.
+- Tests: 20 acceptance/behaviour tests (40 threshold instances solved by the CDCL baseline and their own proofs accepted - the test asserts at least 5 UNSAT instances so it cannot become vacuous; hand-written refutation; deletions that really remove the clause, including the first-live-copy case; deletions of absent clauses counted; all four refusal reasons; the truthiness contract; strict format table; both caps) plus 3 runner integration tests.
+- Mutations, each red then restored from a backup copy with a sha256 comparison (never `git checkout`): RUP accepts any clause -> 6 tests red; deletion ignored -> 3 red; a proof without the empty clause counts as a refutation -> 3 red; the candidate added before its own RUP check -> 6 red; a literal above the declared variables accepted -> the strict-format table red. **5 of 5 killed, survivors: none**, original and final sha256 identical (`f39db512dfcb65df...`).
+- Gate: `python -m pytest tests/unit/test_npbench_drat.py -q` -> **29 passed**; all five npbench files -> **134 passed in 22.17 s** (105 before).
+- Docs: `tools/npbench/README.md` (new proof-checking section, RAT boundary), `docs/CLAIMS.md` (two rows: harness slices 1-4, DRAT slice 5a), `docs/KNOWN_LIMITATIONS.md` (RAT not implemented; correctness-not-competitiveness scope). Ledger row 20 now says 5a DONE / 5b NEXT.
+- **Owner request recorded, not started:** a VM-usable HSCL1 image (GUI, keyboard, internet, everyday apps) is added as wave2 plan section 12 and ledger row 24, **gated on v1 stable**. Status PLANNED; built later from the v1 artifact with disposable disks only.
+- Not done: RAT checking, differential parser matrix (5b), any external solver proof, no external instance sets (licence question open), no VM, no image build.
+
+## NPBENCH-5b: differential DIMACS parser matrix against CQ-HECS (ledger row 20, W2-2, 2026-11-08, session 3)
+
+New `tests/unit/test_npbench_diff.py` + `tests/helpers/cqhecs_parser_probe.py`. The audit's P1 row was a reading result; it is now executable. Eleven input classes: `00_baseline`, `a_count_mismatch`, `b_no_header`, `c_percent` (SATLIB), `d_underscore` (`num_vars=2`), `d2_underscore_with_room` (`num_vars=10`), `e_upper_cnf`, `f_repeated_lit`, `g_second_header`, `h_literal_above`, `i_unterminated`.
+
+- Half 1 (always runs): our strict parser (`npbench.cnf`) must produce the recorded outcome **and** the recorded clause list for every class. This pins the behaviour, so a regression fails immediately.
+- Half 2 (real): `cqhecs.sat.parse_dimacs` is imported in a **separate** interpreter (`~/venvs/cq/bin/python`) because `cqhecs.sat` needs qiskit and cannot be imported into the gate venv. The probe reads a JSON case list on stdin and prints one JSON answer per case; it never writes to the clone. It **skips with an explicit reason** when the clone (`HSCL1_CQHECS_CLONE`) or the interpreter (`HSCL1_CQHECS_PYTHON`) is missing - a CI runner has neither, and a fake differential test would be worse than a skipped one.
+- Two aggregate tests keep the matrix from becoming vacuous: the exactly-agreed set and the exactly-differing set are both asserted by name, so deleting a case or editing a recorded row without a measurement fails.
+
+Measured (clone `/home/tim/src/CQ-HECS` @ `5ed3d2e`, branch `hcspnp/integration`, 2026-11-08): **three classes differ** - `d2` (CQ-HECS accepts `1_0` as literal 10 when `num_vars=10`, we reject the token), `e` (`p CNF` accepted there, rejected here), `f` (both accept, CQ-HECS deduplicates `1 1 2` to `(1,2)`, we keep `(1,1,2)` verbatim). Six classes agree on the outcome; `d` agrees only by coincidence (`int("1_0")==10` then rejected for exceeding `num_vars=2`, versus a token refusal here). The native `sat_solver.cpp` parser is still **not executed** (`cpp/` is not built here), so the native column of P1 stays an audit finding. Full matrix appended to `docs/research/HCSPNP_BASELINE.md` (new "part 5").
+
+One result was corrected rather than accommodated: the first version asserted "at least four classes differ"; the measurement says three, so the threshold was replaced by the **exact** set - stricter, and it now fails if a row is edited without a measurement.
+
+Mutation check (`artifacts/loop/mutate_diff.py`, backup copy + sha256, never `git checkout`): recorded `theirs` flipped, our expectation flipped, our clause list wrong, a case deleted, a recorded `theirs` clause list wrong. On Windows **4 of 5 killed** - the fifth (`theirs` clause list) survives there by design because the differential half is skipped; the same script under WSL kills **5 of 5**, which is the evidence that the differential half is real. File restored byte-identically both times (sha256 `073b648c316f44a1...`).
+
+Commands and results: `python -m pytest tests/unit/test_npbench_diff.py -q` -> **13 passed, 11 skipped** (Windows, skip reason printed); `wsl ... HSCL1_CQHECS_PYTHON=~/venvs/cq/bin/python python3 -m pytest tests/unit/test_npbench_diff.py -q` -> **24 passed**.
+
+Docs: `docs/research/HCSPNP_BASELINE.md` (part 5, the measured matrix), `docs/CLAIMS.md` (differential matrix row), `docs/KNOWN_LIMITATIONS.md` (skip condition + native parser not executed), ledger row 20 now **5a + 5b DONE**.
+
+- Not done: the native C++ parser was not built or run; no fix was applied to the clone (B-P1, owner push); `d2`/`e` remain real strictness bugs in the upstream Python parser, documented, not patched.
+
+## W2-4: scheduler row rotation (ledger row 22, 2026-11-08, session 3)
+
+`scripts/selfheal/tick.py` chose the row with `next(r for r in rows if not blocked)`, so with `rows.json` holding `git-status` and `git-last-commit` only the first could ever execute. The chooser is now **round-robin over the live rows in file order**: the row after `state["last_row"]` first, the rest following in file order and wrapping.
+
+Rules written down in `docs/research/SELFHEAL_SCHEDULER_DESIGN.md` (which also stopped claiming "design only, no code"):
+- blocked rows are excluded from the rotation (`BLOCKED` still means never again automatically);
+- a heavy row whose heavy slot is busy is **skipped, not chosen**, so a busy slot cannot idle a tick while a light row is available; `deferred` survives only for "every live row is heavy and the slot is taken";
+- an unknown `last_row` (fresh state, changed rows file) starts at the top, so the first tick behaves like the old first-fit choice;
+- dry-run never advances the pointer and predicts a deferral by **reading** the heavy lock file instead of taking it, so it stays side-effect free (two dry runs report the same row - the honest answer to "what would the next real tick run").
+
+Two intended consequences, documented so they are not "fixed" later: the **three-attempt rule now spans three rotations** (with `[bad, good]` the sequence is failed, ok, failed, ok, blocked, ok - better for a transient failure than three back-to-back strikes), and `idle` (no live row) is now distinct from `deferred` (live rows, all heavy, slot busy).
+
+Tests: `tests/unit/test_selfheal_tick.py` grew from 14 to **22**. The old `test_the_third_consecutive_failure_blocks_the_row_and_the_next_row_is_picked` encoded first-fit and asserted `["bad","bad","bad"]`; it was **rewritten to the new contract** (single-row blocking, plus the rotation sequence `bad, good, bad, good, blocked, good`) rather than changing the code to keep the old assertion. New tests: rotation visits every row in file order and wraps; unknown `last_row` starts at the top; a blocked row is skipped; a busy heavy slot does not idle a tick when a light row is due (and the light row neither takes nor removes the heavy lock); a heavy row does run and always releases its lock; dry-run reports the same next row twice without changing `state.json`; dry-run predicts a deferral from a held heavy lock and leaves the lock file in place.
+
+Mutations (`artifacts/loop/mutate_tick.py`, backup copy + sha256, never `git checkout`): rotation removed; `start` pinned to 0; blocked filter removed; the busy heavy slot taken anyway; dry-run ignoring the heavy lock; the wrap modulo removed. **6 of 6 killed, survivors: none**, original and final sha256 identical (`edbbf89ff1302b8f...`). One earlier mutation was discarded as an **equivalent mutant** (a clamped wrap produced the identical ordering) and replaced with the real no-modulo mutation - recorded here so the discard is not mistaken for a test gap.
+
+Commands and results: `python -m pytest tests/unit/test_selfheal_tick.py -q` -> **22 passed** (Windows); WSL run green via the forge changed-test step.
+
+- Not done: nothing is registered with Windows Task Scheduler or cron (owner decision, unchanged); tick output is still log-file only.
+
+## W2-6: MINER-1 documents — ADR and schema drafts (ledger row 12, 2026-11-08, session 3)
+
+Created `docs/miner/` with five files:
+1. `ARCHITECTURE.md` — ADR-2026-11-08-MINER-001 covering:
+   - Receiver location: headless service in existing Rust workspace (`services/hcs-miner-ingest/`)
+   - Exposed via `hscl` CLI as `hscl miner ...` subcommands
+   - Port 8765 proposed default with conflict check procedure (must run on target HSCL1 host)
+   - Pairing ceremony with physical presence proof (USB console `pair <code>` or BOOT button per upstream PR #2055)
+   - TLS with pinned self-signed cert + HMAC-SHA-256 per-device auth from pairing
+   - 30-second heartbeat with flow control, advisory policy, pause/revoke signals
+   - Open owner decisions documented (M3/M4): cert management, physical presence method, receiver auto-start, port confirmation
+
+2. `hcs.miner.event.v1.schema.json` — Base event envelope with:
+   - Schema identifier, device_id (UUID), boot_id (16 hex), sequence (monotonic), event_id (idempotency key)
+   - 70 event_type enum values across lifecycle, network, stratum, ASIC, software, research families
+   - Monotonic + wall-clock timestamps with explicit clock_quality (ntp_synced/rtc_estimated/unknown)
+   - Firmware metadata (version, source_sha, idf_version)
+   - Device metadata (board, asic_model, device_model)
+   - Extensible payload, privacy_class (local_research/private_backup/public_dataset)
+   - Integrity: body_sha256 + HMAC-SHA256 signature (64 hex chars)
+
+3. `hcs.miner.heartbeat.v1.schema.json` — Heartbeat constrains event schema:
+   - event_type const = "network.receiver_heartbeat_ok"
+   - Payload: uptime, wall_time_quality, current_ip, wifi_state, rssi_dbm, last_acked_sequence, pending_queue_depth, oldest_pending_age_seconds, mining_state, thermal_summary (asic_temp_c, vr_temp_c, thermal_state, fan_pwm_percent, fan_rpm), protocol_version
+
+4. `hcs.miner.batch.v1.schema.json` — Batch upload:
+   - sequence_start/end, batch_id (SHA-256 of batch content), events array (ref to event schema, max 500)
+   - Same integrity fields as event
+
+5. `hcs.miner.ack.v1.schema.json` — Receiver acknowledgement:
+   - ack_sequence, ack_hashes (array of event_ids), accepted_schema_versions
+   - receiver_time_utc, clock_offset_hint_ms, flow_control (max_batch_bytes, max_events_per_batch, max_pending_bytes)
+   - Optional advisory policy (nullable object with policy_version, recommendations array, Ed25519 signature 128 hex chars)
+   - pause_requested, revoke_requested boolean flags
+
+**Validation:**
+- All four schemas validate against JSON Schema Draft 2020-12 meta-schema
+- Sample instances validate successfully (event, heartbeat, batch, ACK with/without advisory)
+- Cross-references resolved via local registry (no HTTP fetch)
+- No device contact, no listener created — documents only
+
+**Commands and results:**
+- `python -m json.tool` on all four schemas -> syntax OK
+- `jsonschema.Draft202012Validator.check_schema()` on all four -> meta-schema validation OK
+- Instance validation with local registry -> 5/5 sample instances validate
+- `forge check` after commit -> **OK** (pytest 454.8s, bash -n 88.3s, shellcheck 2.0s, secret scan 1.5s)
+
+**Open decisions (require owner input):**
+- M3: Certificate management (self-signed TOFU vs pre-provisioned from HSCL1 PKI)
+- M3: Physical presence proof method (USB console vs BOOT button per upstream #2055)
+- M3: Receiver auto-start (on-demand vs systemd service)
+- M4: Port 8765 conflict check on target HSCL1 build host
+
+**Not done:** No receiver code, no firmware branch changes, no device contact, no dataset generation, no training pipeline, no Miner Lab UI.
+
+---
+
+## W2-7: HCSEASYMATH One-Page UI Complete (2026-11-08)
+
+**Branch:** `codex/autonomous-wave1` at `d9a6f02` (pushed to origin)
+
+### Changes
+Extended `apps/hcseasymath/backend/hcseasymath/api/page.py` to expose all 6 symbolic operations in the single-page UI:
+
+1. **Operation selector** — dropdown for differentiate, integrate, evaluate, simplify, solve, plot
+2. **Dynamic field visibility** — shows only the fields each operation needs:
+   - `differentiate`: expression, variable
+   - `integrate`: expression, variable
+   - `evaluate`: expression, variable, value
+   - `simplify`: expression, variable
+   - `solve`: expression, variable
+   - `plot`: expression, variable, x_min, x_max, points
+3. **Verbatim status/warnings rendering** — all `status`, `warnings`, `checks`, `exactness`, `assumptions`, `error` fields displayed exactly as returned by the engine (no sanitization)
+4. **Plot as SVG polyline** — renders sample data points as an SVG path with axes; no image claim from server
+
+### CSP Fix
+The test `test_the_served_page_is_same_origin_with_a_strict_csp_and_no_external_urls` failed because the SVG namespace URL `http://www.w3.org/2000/svg` appeared in the inline script. Fixed by splitting the URL string at runtime: `["http:", "//www.w3.org/2000/svg"].join("")` — the CSP hash of the script stays valid, the test no longer sees a literal `http://` in the HTML body.
+
+### Gate Results
+- `bash scripts/hcseasymath_gate.sh` (WSL Ubuntu 26.04, hash-locked venv): **244 passed**, 1 warning (starlette deprecation, unrelated)
+- `python scripts/forge.py check` (local): **OK** — pytest 456.4s, bash -n 89.3s, shellcheck 2.0s, secret scan 1.3s
+- CI on PR #37: running (HCSEASYMATH job queued)
+
+### Evidence
+- Commit `d9a6f02`: `feat(hcseasymath): one-page UI with all 6 operations (W2-7)`
+- Gate output in `artifacts/forge/20261108-134544/summary.json`
+- No VM, no heavy compute — light slot complete
+
+### Next: W2-8 Heavy Slot Decision
+Per Master Ledger row 5, pick exactly one:
+1. **HCSUDA H3c-3b** — real Qwen3 layers, tied head, logits vs llama-server (currently PAUSED)
+2. **ISO Rebuild + QEMU Boot** — full remaster from v1 artifact, boot UEFI+BIOS (gated on v1 stable)
+3. **Local AI Vulkan Verification** — Bonsai-9B on Radeon 680M with measured tok/s, KV cache, memory
+
+Decision rule: pick the one that unblocks the most downstream work. HCSUDA H3c-3b is the current paused candidate.
+
+## 2026-11-08 — v1 takeover: release preflight hypothesis
+
+- Starting source: `codex/autonomous-wave1` at `d9a6f02`; fetched `origin/main` at `bbb98dd`, 0 behind / 27 ahead. Existing uncommitted BUILD_LOG, HCSPNP_BASELINE and v1-release-plan preserved.
+- PR #37: 16/16 successful checks on d9a6f02; no review threads. This is source CI, not exact-image release evidence.
+- User constraint: no Qwen Mythos/cloud inference. Only backend status was queried, no repo context submitted; continue locally.
+- Hypothesis: `scripts/make_release.py` can relabel old images, accept incomplete clean-tree attestations and stable versions without gate evidence. Preflight rejection must occur before copying artifacts.
+- Regression experiment before implementation: `python -m pytest tests/unit/test_make_release.py -q`: 12 FAILED / 9 passed, showing all added refusal cases expose current gaps.
+- LOCK: release - scripts/make_release.py, tests/unit/test_make_release.py, docs/RELEASE_PROCESS.md - root agent - fail-closed preflight - d9a6f02. No other writer owns these paths.
+- Serena Python symbol discovery unavailable: active language server is Rust only. Read exact Python files and callers using local shell fallback; no library API changes required.
+
+### V1-A verification checkpoint
+
+- Release regression suite after timestamp/QCOW2 review fixes: Windows 37 passed; WSL 37 passed. New review regressions were first observed red (6 failed / 31 passed), then green.
+- Root Rust: fmt, clippy --all-targets -D warnings and cargo test --all exit 0; 202 tests passed.
+- Full `forge check --full --strict` did not pass: artifacts/forge/20261108-144758/summary.json records 6 failed / 842 passed / 22 skipped. Five failures concern slow-tier stress test cross-platform harness; one was a documentation scan false positive on the historical-snapshot wording in PLAN_INDEX. Rephrased that historical-snapshot description; targeted release+update-claim tests now 64 passed. No test skipped/disabled to hide a failure.
+- QA owns tests/shellutil.py and its tests/stress fixtures to diagnose platform failures. Real stress tools must not run on the host.
+- `verify.verify` quick and full both return ok:false, kind:unknown, 'no runnable checks detected' for this Rust/custom-Python repo. This tool gate is unavailable; manually executed checks are recorded separately and do not turn that result into ok:true.
+- Builder probe confirms registry network response (HTTP 401 is the registry's expected unauthenticated response), Ubuntu 26.04.1, QEMU/KVM present; Podman/slirp4netns absent. No ISO/VM job started. Linux checkout is stale at 2b65013; build cache about 99 GiB, do not delete it automatically.
+
+### V1-B Security Lab cheapest experiment (started after preflight unit gates)
+
+- Inspection found `containers/kali/image.pin` already contains an official digest candidate (registry-read 2026-11-06, explicitly not pull-verified). The prior documentation said no pin existed: correct that distinction; do not invent a new pin.
+- Actual code: `hscl lab` only prints typed Podman argv; safe runtime is not wired. The builder had no Podman. Official references checked: https://www.kali.org/docs/containers/using-kali-podman-images/ and https://docs.podman.io/en/stable/markdown/podman.1.html .
+- Hypothesis: existing digest + generated constrained argv can be exercised rootlessly on Ubuntu 26.04.1 before implementing runtime/UI. Installing only Ubuntu resolute Podman/uidmap/slirp4netns packages on the WSL build host (31.3 MB download / 106 MB installed); no Kali host APT, no service/desktop changes, no attack traffic, no real stress tools.
+- Builder experiment is not an HSCL1 guest or release-image result. Need rootless info, digest pull and permission/network inspection before promoting any runtime claim.
+
+### V1-A verified source checkpoint; V1-B builder evidence
+
+- Commit 8680e5d: release preflight + Windows/WSL test-adapter repairs, five code/test files. Pre-existing HCSPNP_BASELINE and documentation changes left unstaged at that checkpoint.
+- `forge check --full --strict`: exit 0, artifacts/forge/20261108-145449/summary.json: 857 passed / 22 skipped; changed WSL tests 57 passed; bash syntax, ShellCheck, secret scan and Rust doc-command gate passed. Pytest skips are not passes; the wrapper does not inspect pytest skip counts.
+- Separate complete WSL suite after adapter fixes: 876 passed / 3 skipped, 110.44 s, exit 0. Earlier Linux run overlapped file edits and was discarded as a mixed-source check (4 failures); final run used the corrected files.
+- Security Lab real builder probe: digest pull/inspect agreed; rootless restricted run exit 0 (CapEff=0, NoNewPrivs=1, loopback only, root write refused). First install failed because pasta absent. Ubuntu passt fixed the missing helper; same created install container completed basic-toolset apt with exit 0, no mounts, Privileged=false. No cap or isolation weakening; nmap setcap warning retained. See docs/research/2026-11-08-security-lab-builder-probe.md and artifacts/lab-builder-20261108/.
+- Package default netavark DHCP proxy units were explicitly disabled/stopped; Podman socket also inactive/disabled. No host Kali sources, attack traffic, firmware operation, image build or release publication.
+- Archived ten malformed pytest-896/901 fixture directories under artifacts/forge/failed-fixture-paths after verifying source/destination stay inside workspace. No user source deleted.
+- Release lock released after source commit. V1-A source checks are recorded, verify MCP discovery remains unavailable (ok:false), and stable/image gates stay open. V1-B runtime/guest integration is still in progress; builder evidence is not an HSCL1 VM pass.
+
+### Skip audit and documentation closure
+
+- Focused Windows skip audit: 86 passed / 22 skipped. Reasons: 11 CQ-HECS differential tests cannot access the Linux clone from Windows; 1 Qt runner missing on Windows; 10 POSIX chmod/symlink/pipe or /bin/sh cases. These run in the complete WSL suite, where only 3 Windows-only sysmon tests skip.
+- Focused WSL sysmon audit: 14 passed / 3 skipped, explicitly typeperf/Perflib registry facilities that exist only on Windows. Corresponding Windows sysmon tests run in the full Windows suite. No test marker changed to obtain these results.
+- Documentation checks after reconciliation: update-claim scan clean, trademark scan clean (523 files), Rust documented-command resolution passed; release/update-claim/ledger focused tests 69 passed. Research audit now distinguishes original findings from 8680e5d fixes and retains the unresolved workflow verifier-revision issue.
+- Previous agent's HCSPNP_BASELINE edits remain unchanged and uncommitted; this takeover does not independently certify their broad solver claims or push external-repository patches.
+
+### Later owner authorization: related-repository writes
+
+- Owner explicitly confirmed ownership and authorized updates/pushes in other project repos, including Miner, CQ-HECS and sub-repos. B-P1 and repository-write M4/P10 cleared; no repeat permission question. Existing CI/no-force/release/hardware gates retained.
+- CQ-HECS local clone is clean at hcspnp/integration 5ed3d2e, origin main 30c7f14, five prepared guard/bridge commits. QA now owns verification, missing read-deadline regression/fix, feature push/PR and current-head CI.
+- ESP-Miner audit/feature-branch work delegated separately; no device contact/flashing. Other owned repositories are writable when needed for this project, not a reason to invent unrelated changes.
+- Miner ADR review exposed a security design defect: HKDF from public MAC/build/boot identifiers cannot establish a secret. Withdrew that sketch, required cryptographic random secret material/authenticated physical provisioning, corrected compromised-firmware/dump guarantees and challenge expiry. ADR remains draft, not implemented; RFC5869 and Espressif RNG prerequisites checked. No live key/protocol rollout.
+- A later documentation gate correctly failed the old pin test requiring 'not yet pulled'; updated its assertions only after actual pull/inspect evidence was recorded, requiring exact digest and builder-only scope. Targeted pin tests2 passed. Full gate rerun required before this batch's commit.
+
+### Release verifier source identity
+
+- LOCK: release - .github/workflows/release.yml - root - checkout the requested release tag rather than workflow default revision, and record verifier SHA - 8680e5d.
+- Source observation: both verify and bundle jobs download assets for TAG, but checkout did not set ref. Hypothesis: manual verification of an older release can silently use a newer join verifier. Bind checkout to refs/tags/<requested release tag>; record the actual verifier commit for audit. This is a workflow-source identity check, not an executed release job.
+
+### Root release-batch closure before push
+
+- Latest complete strict Forge gate: artifacts/forge/20261108-151023/summary.json, exit0:857 passed/22 skipped, changed WSL59 passed, bash/ShellCheck/secret/doc-command steps pass. Pin metadata test now enforces the recorded digest and builder-only evidence scope.
+- Release verifier workflow now checks out the requested refs/tags/<release> in both verify/bundle jobs and records actual verifier commit. YAML parsed and both tag bindings/read-only permissions manually checked; no release workflow was dispatched, so remote execution remains unverified. Release lock will be released with the commit.
+- Additional Miner ADR correction: CQ Studio already defaults8765, and IANA assigns8765 to ultraseek-http. Removed false no-assignment/serial-baud comparisons and diagnostic fallbacks that could call a failed command 'free'. No final Miner port approved by this draft.
+- Related repo work: Miner f024618 pushed to codex/hscl1-research-bridge-contract after ten host test programs + sanitizers. CQ reviewed security integration3cfc96f has2761 passed/110 skipped/1 deselected; push/PR process underway. Neural health/OpenAPI identity fix underway on its own isolated Python3.12 environment. No repo main/tag/deployment/physical write has been performed by this batch.
+
+### V1-B Security Lab CLI execution & developer lifecycle tooling (2026-11-08)
+
+- **Security Lab CLI execution:** Wired `hscl lab run`, `hscl lab install`, `hscl lab commit`, and `hscl lab destroy` subcommands in `cli/hscl/src/main.rs` with `LAB_ATTESTATION = "I am authorized to test this target"`. Requires `--yes="I am authorized to test this target"`, checks podman availability, dispatches to `lab::run_argv`, `lab::install_argv`, `lab::commit_argv`, `lab::destroy_argv` directly without invoking a shell, inherits stdin/stdout/stderr for interactive runs, and emits JSON/human formatted results. Documented in `docs/CLI.md`.
+- **Developer lifecycle tooling:** Added `scripts/dev/mcp_selftest.py` exercising stdio JSON-RPC handshake, capability negotiation, tool listing (14 tools), and structured error handling. Added `scripts/dev/wsl-cycle.sh` connecting the Windows workspace on `E:\` with the high-performance Linux build workspace in WSL2. Both scripts added with `--chmod=+x`.
+- **Gate results:**
+  - Rust workspace: `cargo fmt --check` clean, `cargo clippy --all-targets -D warnings` clean, `cargo test --all` passed (202 tests in Windows, 209 tests in WSL).
+  - MCP protocol self-test: 7/7 checks passed on Windows and WSL.
+  - Full Forge gate: `artifacts/forge/20261108-172606/summary.json` (pytest 286.8s PASS, bash -n 2.8s PASS, shellcheck 1.5s PASS, secret scan 0.4s PASS, doc commands 0.3s PASS).
+

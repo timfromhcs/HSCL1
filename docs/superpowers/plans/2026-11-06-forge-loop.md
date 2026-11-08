@@ -1,5 +1,15 @@
 # HSCL1 Forge Loop: patch, debug, rebuild, split, upload (one plan, one control)
 
+> **Reconciled 2026-11-08:** The current OS release execution plan is
+> [v1 release plan](2026-11-08-v1-release-plan.md); ecosystem priorities and evidence
+> remain in the [live master ledger](2026-11-08-selfheal-masterplan.md).
+> See [the per-plan audit](../../PLAN_INDEX.md) for current continuation notes.
+> Older snapshots, release ladders and competing next-task orders below are historical;
+> preserve the domain specifications and gates. Root `AGENTS.md` and later owner
+> instructions govern conflicts. Model assistance for this continuation is local only;
+> no Qwen Mythos/cloud inference.
+
+
 Owner request 2026-11-06: simpler control, a perfectly planned loop for patching, update loop, debugging, error finding, fixing, rebuilding, splitting the new ISO, uploading it, and merging it back into the full ISO in the cloud on GitHub (Actions and workflows). Plan first, then work.
 This file refines W24 of `2026-11-06-ux-ai-hardware-expansion.md` and the self-healing protocol of `2026-11-06-autonomous-to-stable-hardened.md` (section 2). Where they disagree, this file wins for the build/test/release loop.
 

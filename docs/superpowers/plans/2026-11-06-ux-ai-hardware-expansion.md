@@ -1,5 +1,15 @@
 # HSCL1 expansion plan: UI/UX, desktop, local AI, hardware and driver detection, GPU/RAM bridges (long-horizon, self-healing)
 
+> **Reconciled 2026-11-08:** The current OS release execution plan is
+> [v1 release plan](2026-11-08-v1-release-plan.md); ecosystem priorities and evidence
+> remain in the [live master ledger](2026-11-08-selfheal-masterplan.md).
+> See [the per-plan audit](../../PLAN_INDEX.md) for current continuation notes.
+> Older snapshots, release ladders and competing next-task orders below are historical;
+> preserve the domain specifications and gates. Root `AGENTS.md` and later owner
+> instructions govern conflicts. Model assistance for this continuation is local only;
+> no Qwen Mythos/cloud inference.
+
+
 > **For the autonomous agent.** This plan EXTENDS `2026-11-06-autonomous-to-stable-hardened.md` (hardening, installer, release) and does not replace it.
 > Both plans use the same loop (section 2 of the hardened plan), the same resource policy (section 3) and the same evidence vocabulary
 > (PLANNED, IMPLEMENTED, TESTED, VM-VERIFIED, HARDWARE-VERIFIED, EXPERIMENTAL, BLOCKED). Written 2026-11-06 after a research round (sources in section 1).

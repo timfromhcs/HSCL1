@@ -1,5 +1,15 @@
 # HSCL1 → v2.0.0 Stable (hardened, visual-QA'd) Implementation Plan
 
+> **Reconciled 2026-11-08:** The current OS release execution plan is
+> [v1 release plan](2026-11-08-v1-release-plan.md); ecosystem priorities and evidence
+> remain in the [live master ledger](2026-11-08-selfheal-masterplan.md).
+> See [the per-plan audit](../../PLAN_INDEX.md) for current continuation notes.
+> Older snapshots, release ladders and competing next-task orders below are historical;
+> preserve the domain specifications and gates. Root `AGENTS.md` and later owner
+> instructions govern conflicts. Model assistance for this continuation is local only;
+> no Qwen Mythos/cloud inference.
+
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans (native, autonomous) or superpowers:subagent-driven-development. Steps use checkbox (`- [ ]`) syntax. Progress is recorded in `docs/BUILD_LOG.md`; the status vocabulary of AGENTS.md §0.4 applies and is never upgraded without evidence.
 
 **Goal:** Take HSCL1 from the current Phase‑2 PoC (remastered Kubuntu 26.04.1 ISO that boots to a live Plasma desktop, not yet branded) to a **hardened, VM‑verified, visually QA'd v2.0.0 stable** with original branding, a redesigned HCS Hybrid Desktop, a keyboard‑first control surface, a trilingual handbook and a curated tool catalog.

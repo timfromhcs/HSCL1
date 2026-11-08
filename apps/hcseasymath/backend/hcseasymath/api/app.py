@@ -17,7 +17,7 @@ import anyio.to_thread
 import sympy as sp
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .. import __version__
@@ -42,8 +42,17 @@ _HTTP_FOR_STATUS = {
 
 
 class ExpressionRequest(BaseModel):
+    """Request body. Unknown fields are refused (``extra="forbid"``), never silently dropped."""
+
+    model_config = ConfigDict(extra="forbid")
+
     expression: str = Field(max_length=DEFAULT_LIMITS.max_chars)
     variable: str = Field(max_length=16)
+    #: Only the ``evaluate`` operation uses it; the engine refuses it for every other operation.
+    value: str | None = Field(default=None, max_length=DEFAULT_LIMITS.max_chars)
+    x_min: str | None = Field(default=None, max_length=DEFAULT_LIMITS.max_chars)
+    x_max: str | None = Field(default=None, max_length=DEFAULT_LIMITS.max_chars)
+    points: int | None = Field(default=None, strict=True)
 
 
 class _BodyLimit:
@@ -150,7 +159,7 @@ def create_app(
             if not slots.acquire(blocking=False):
                 return JSONResponse({"detail": "busy, try again"}, status_code=429)
             try:
-                request = {"operation": operation, **body.model_dump()}
+                request = {"operation": operation, **body.model_dump(exclude_none=True)}
                 result = await anyio.to_thread.run_sync(run, request)
             finally:
                 slots.release()

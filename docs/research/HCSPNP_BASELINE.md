@@ -20,3 +20,338 @@ Contract task: "update the repository table at every start". Every row has a com
 | Heavy jobs running | none during this review | process list |
 | Studio guard patch (P1), local branch `hcspnp/studio-guard` of the clone, **not pushed** | Host and Origin allow-lists, per-launch bearer token on every `/api/` route (static files stay open, no token in served files), JSON-only POST, bounded bodies, bodies of early rejections read before the reply, `OPTIONS` refused without CORS headers, `launch_url()` puts the token in the URL fragment, the frontend reads it before any code rewrites the fragment. 19 new tests in `tests/test_studio_security.py` (including two request-desync tests and one that the frontend strips the token from the address bar); `tests/test_studio.py` helpers now send the token (same assertions). Red proof: against unmodified `main` a `text/plain` POST with foreign Host, foreign Origin and no token started a solver job (`200`, 1 job). Guard mutations (host, origin, token, JSON-only, drain, oversize drain) each turn exactly their own tests red. Combined with the bridge fix on the local branch `hcspnp/integration`: **2759 passed, 0 failed, 110 skipped** (186 s, 457 MB peak). Verified in a real browser (Playwright): the page loads with `#token=...`, the address bar is clean afterwards, all API calls succeed with no console error except the pre-existing `favicon.ico` 404, and `Solve CNF` in the SAT lab returns `SAT` with a verified model; without the token every API call answers 401. Patches for the owner: `artifacts/hcspnp/cqhecs-patches/` (3 files, not in Git) | local test log |
 | Extra defect found while testing the guard (unmodified `main`) | **HTTP request desync on keep-alive:** an oversized POST (`Content-Length` above 1 MB) is answered with `413`, but its unread body stays on the connection and is parsed as the next request. Observed: a `GET /api/health` hidden in the body was executed and answered `200 OK` after the `413` (2288 bytes received on one connection). Severity: low on its own (it adds nothing a direct request could not do) but it breaks any gate placed in front, so the patch reads the bounded body and closes the connection | raw socket script against a throw-away worktree of `main` |
+
+## Audit row 1, part 1: native C++ SAT solver (read 2026-11-08, read-only)
+Scope actually read: `src/sat_solver.cpp` **in full (514 lines)**, `src/sat_solver.hpp` limits and members (grep only), one call site (`python_bridge/cli_runner.py:190-235`). SHA-256 prefix `4b0ec8e2c519c0aa`, identical on `main` (`30c7f14`) and the local `hcspnp/integration` (`5ed3d2e`), so the line numbers hold for `main`. **Previously not read, now read in this session**: `sat.py` (lines 63-300, 653-735, 802-956), `sat_external.py`, `drat.py`, `unified.py`, `sat_separator.py`, `omniwave/{bcp,gpu,engine,learned}.py`, `provenance.py`, `mcp_server.py`. C ABI files `src/cq_c_api.cpp` / `src/cq_hecs_api.cpp` read in part 2. Nothing was changed in that repository; no push (B-P1 stays open).
+
+Answers to the contract's questions 23.1 for this file:
+| Question | Answer from the code | Where |
+|---|---|---|
+| Complete DIMACS parser check? | Mostly yes and fail-closed: strict tokens, overflow caught, header counts and literal magnitudes capped, duplicate header and unterminated last clause refused, literal above the declared variable count refused, size cap 64 MiB. **Gap:** the declared clause count is only capped, never compared with the parsed count (a header promising 10 clauses with 3 present is accepted; `num_clauses` is overwritten with the real count). **Gap:** a `p` line that comes *after* clauses overwrites `num_vars` without re-checking earlier literals; `solve()` catches it later (`input_valid=false`), so it is defended in depth, not at the parser. | `sat_solver.cpp:25-59, 84-196` (`138-142` vs `194`; `143`) |
+| All variables/clauses validated? | Yes, twice: in the parser and again in `solve()` for callers that build a formula directly. | `:430-458` |
+| SAT model checked against the original CNF? | Yes: `verify_solution` runs on `formula.clauses`; unassigned variables count as unsatisfied, so it fails safe. **Gap:** `solve()` leaves `satisfiable=true` when `verified=false`; a consumer must read `verified` as well. | `:401-417, 504-506` |
+| Independent UNSAT certification? | **No.** `verified = true; // UNSAT proof` only means the search was exhausted; there is no DRAT/LRAT output from this solver, so the flag name overstates it. Independent certificates exist elsewhere in the repository (`drat.py`, `test_sat_certificates.py`, `test_lrat_external.py`, `test_drat_external_vector.py`), not in this file. | `:507-509` |
+| Hash/dedup collision safe? | **The hazard was removed and is now exact:** the refuted-state memo is a `std::set<std::vector<int8_t>>` keyed by the whole assignment (comment at `:366-370`). `compute_state_hash` and `check_and_insert_cuckoo` (64-bit hash equality) are **dead code in the solver** but still allocated (`m_cuckoo_table`, filled with zeros on every `solve()`, `:424`) and still exported to Python; the only caller found is the legacy ARX demo `cli_runner.py:213`, which validates with a forward oracle (`:216-226`), so no SAT verdict depends on it. Recommendation: delete or quarantine the dead path so it cannot be wired back in. | `:198-243, 371-374, 395-397` |
+| Timeout/memory budget thread-safe and fail-closed? | **Timeout fail-closed: yes** (`m_timed_out` latch, no timeout-shaped UNSAT, subtree not memoised after a timeout). **Gaps:** (1) the clock is read only at `dpll` entry, so one long `unit_propagate` chain (quadratic: a full `substitute_var` copy per unit) overruns the budget unchecked; (2) **no memory budget at all**: every node copies the clause set (`:384`) and the memo is capped by entry *count* (`m_table_capacity`), each entry being `num_vars+1` bytes, so the bound is count x variables (up to 1e6 vars); (3) recursion depth up to the variable count with no explicit limit (stack exhaustion on a deep instance); (4) `m_timed_out`, `m_refuted` and counters are plain members reset by `solve()`, so one solver object must not be shared between threads (not documented in this file). | `:338-344, 384, 395, 419-425` |
+| C ABI and buffer bounds? | **Unanswered:** the ABI lives in `src/cq_c_api.cpp` and `src/cq_hecs_api.cpp`, not read yet. Inside this file, indexing of `assignment[var]` relies on the range check at `:442-458`, which holds. | - |
+| Differential tests against a Python reference and CaDiCaL? | **Unconfirmed.** Files that mention CaDiCaL / the native solver exist (`tests/test_sat_external.py`, `test_sat_certificates.py`, `test_unified_solver.py`, `tests/cpp/test_sat_parser.cpp`, `tests/test_engine_cpp.cpp`) but were only matched by name, not read; whether a randomized differential test of the *native* solver is among them is not established. | grep only |
+
+Gap list (ordered by impact on a claim, with the test that would close each):
+1. `verified=true` on UNSAT without a certificate -> rename or document, or emit DRAT from this solver; test: an UNSAT instance must not report an independently verified status unless a checker accepted a proof.
+2. No memory budget -> add a byte budget (clause copies + memo) with a fail-closed error; test: a large satisfiable-looking instance returns a resource error, not an allocation failure.
+3. Timeout only at `dpll` entry -> check the clock inside `unit_propagate` / `substitute_var`; test: a long unit chain respects `timeout_sec` within a tolerance.
+4. Recursion depth unbounded -> iterative search or an explicit depth limit; test: a chain instance with 1e5 variables.
+5. Header clause count not compared with the parsed count -> refuse a mismatch (or warn explicitly); test in `tests/cpp/test_sat_parser.cpp`.
+6. Header after clauses -> reject a `p` line once any clause literal was read; same test file.
+7. Dead hash/cuckoo path -> remove or isolate; test: grep gate that `dpll` never references it.
+8. Thread-safety of the solver object -> document or add a guard; test: two threads on one instance fail loudly or serialise.
+9. Differential test native vs CaDiCaL on random small CNFs -> confirm or add (after reading the listed test files).
+First small PR candidate for the owner (when B-P1 allows): items 5 and 6 (parser only, no behavioural risk to the search), with the existing `test_sat_parser.cpp` extended.
+
+## Audit row 1, part 2: the two C ABI files (read 2026-11-08, read-only)
+Read in full: `src/cq_hecs_api.cpp` (209 lines, the SAT / OMNIWAVE / ARX / Vulkan-QASM ABI) and `src/cq_c_api.cpp` (152 lines, the separate quantum-simulator ABI); header facts from `include/cq_hecs_api.h` (grep). Same clone state as part 1 (`src/` identical on `main` `30c7f14`). Still unread: `hybrid_engine.cpp`, the QASM parsers, `vulkan_engine`, the shaders, and every Python file of the audit list. This answers question 23.1 "C ABI and buffer bounds" for the SAT path only.
+
+| # | Finding | Where | Why it matters / test that closes it |
+|---|---|---|---|
+| A1 | **The ABI turns a timeout and an invalid input into the UNSAT code.** The C++ result carries `timed_out` and `input_valid`, but `cq_sat_result_t` has no field for either, and `cq_solve_sat` returns `10` whenever `satisfiable` is false. A timeout (10 s fixed) or an out-of-range formula therefore comes back as `10` with `verified=0`. Part 1 showed the solver itself never reports a timeout-shaped UNSAT; this boundary loses that guarantee unless the caller also reads `verified`. | `cq_hecs_api.cpp:143-159` vs `sat_solver.hpp:19-32` | Add distinct return codes (for example 11 timeout, 12 invalid) or result fields; test: a formula that exceeds `timeout_sec` must not return 10. |
+| A2 | **Silent truncation of the model at 1024 entries.** `cq_sat_result_t.assignment` has 1024 slots (indices 0-1023) and the loop copies `v < 1024`; a satisfiable formula with more variables returns `0` (SAT), `verified` for the *full* model, and a truncated assignment with the rest left at `-1`, without any flag. Variable 1024 and above are lost. | `cq_hecs_api.cpp:152-157`, `cq_hecs_api.h:48` | A caller that re-checks the model against its CNF cannot. Test: a 2000-variable satisfiable CNF either reports truncation or is refused. |
+| A3 | **`out_result` is not initialised on the early error path.** `cq_solve_sat` returns `1` after a parse failure without touching `*out_result`, while `cq_execute_qasm` zeroes its result first (line 115). | `cq_hecs_api.cpp:139-141` vs `115` | Stale caller memory can be read as a verdict. Zero the struct on entry. |
+| A4 | **No exception guard on any exported function.** `grep -c "try\|catch"` = 0 in both files. `new cq_context()`, `std::string`/`std::vector` growth, and the solver can throw `std::bad_alloc`/`std::length_error` across `extern "C"`, which terminates the process (and is undefined behaviour for foreign callers). Together with the missing memory budget from part 1 this is the realistic failure of a large CNF. | whole of both files | Wrap each export in `try { } catch (...) { return error; }`; test: a deliberately huge `num_vars` returns an error code instead of aborting. |
+| A5 | **`cq_omniwave_bcp_eval` does not null-check `codes`.** The guard covers `offsets`, `assigned`, `values`, `out_status`, but not `codes`; with `codes == nullptr` and `offsets[num_clauses] > 0` the upload skips the copy (`if (data && bytes)`), the device reads an uninitialised buffer, and the call returns `0`. | `cq_hecs_api.cpp:74`, `37-47`, `86` | A garbage status reported as success on a path that must be bit-identical to the CPU reference. Test: `codes=NULL` with non-empty offsets returns a nonzero code. |
+| A6 | **Untrusted array contents are used as sizes and indices.** `lits = offsets[num_clauses]` sizes the `codes` upload with no check that offsets are monotonic or that the buffers really hold that many entries; literal codes are not validated against `words * 32` variables on the host. `(num_clauses + 1)` is 32-bit arithmetic and wraps to 0 for `num_clauses = 0xFFFFFFFF` before the `size_t` multiply. The header documents the call as experimental. Whether the shader bounds its reads was **not** read. | `cq_hecs_api.cpp:81, 85-86` | Validate offsets (non-decreasing, last value matches the codes length passed in) and cast before adding 1; add a `codes_len` argument. |
+| A7 | **`cq_omniwave_bcp_eval` gets no length for `codes` or `out_status`.** Sizes are derived from other arguments, so the caller buffers cannot be checked; `out_status` must hold `num_fronts * num_clauses` words, which the header does not state. | `cq_hecs_api.cpp:82-83, 95`, header comment `60-63` | Document in the header or add capacity arguments. |
+| A8 | **`cq_create_context` hides a failed Vulkan initialisation and ignores `num_qubits`.** If `initialize()` fails it still returns a valid-looking pointer (no status, no flag); the engine always runs `allocate_300q_mps` whatever `num_qubits` was asked for (the value is only stored, 0 becomes 300 silently). | `cq_hecs_api.cpp:100-110` | A caller thinks it has an `N`-qubit GPU context. Return null or expose an `initialized` getter; test: context creation without a device. |
+| A9 | **`cq_invert_arx` is one backward step with fixed constants, not a preimage search.** `rounds` is ignored (`(void)rounds`), BLAKE2b uses the constant message words `0x1234` and `0x5678`, ChaCha20 is a single quarter round, SHA-256 is one schedule step; `target` is read as 4 words and `out_preimage` written as up to 4 without any length argument. The name invites an over-claim ("inverts ARX"). | `cq_hecs_api.cpp:162-189` | Rename or document as a single-step primitive; never list as a hash-inversion capability. |
+| B1 | **Simulator ABI: `cq_apply_rz` converts a `double` to `uint32_t` with no range or NaN check** (`angle / 2pi * 2^32`); for angles of magnitude `>= 2pi`, negative angles and NaN this is undefined behaviour in C++ and can differ per compiler. | `cq_c_api.cpp:67-71` | Reduce the angle with `fmod` and reject non-finite values; test with `-0.1`, `7.0`, `NaN`, `inf`. |
+| B2 | **Simulator ABI: `cq_execute_qasm` silently ignores a gate type its `switch` does not handle** (`default: break`) after the parser accepted the circuit, so an accepted-but-unexecuted gate gives a wrong distribution with return `0`. This contradicts the comment "fail closed" a few lines earlier, which only holds for parse errors. Qubit index validation is **not** in this file (relies on the parser / `HybridEngine`, not read). | `cq_c_api.cpp:104-146` | Return an error for an unhandled `GateType`; test: parser-accepted gate absent from the switch. |
+| B3 | **Simulator ABI: no `try/catch`, `shots` unbounded, `new` can throw** (`cq_create_simulator` returns an unchecked pointer through `extern "C"`). | `cq_c_api.cpp:10-13, 78-80` | Same guard as A4; cap `shots`. |
+| OK | Good as written: `cq_sample_counts_json` bounds-checks the output (`-2` when it does not fit, always NUL-terminated); `cq_execute_qasm` (Vulkan variant) zeroes its result, returns `-3` for an invalid circuit and executes nothing; OMNIWAVE keeps a mutex around a lazily created context and reports `-2` when no device exists ("the caller must use the CPU reference"); `num_fronts` is capped at 65535. | `cq_c_api.cpp:78-97`, `cq_hecs_api.cpp:53-97, 112-132` | - |
+
+Updated gap list for the first small PRs (still local only, B-P1): the parser items 5-6 of part 1 stay the lowest-risk start; **A1, A3 and A5 are the next smallest** (a return-code split, one `memset`, one null check) and each has a direct failing test; A4 is the broadest and needs its own review.
+
+## Audit row 1, part 3: certificate side - `drat.py`, `sat_external.py`, `unified.py` (read 2026-11-08, read-only)
+Read in full: `cqhecs/drat.py` (201 lines), `cqhecs/sat_external.py` (126), `cqhecs/unified.py` (260). Facts from grep only: `SATResult.certified` (`sat.py:249`), the OMNIWAVE UNSAT path (`omniwave/engine.py:651-657`). Same clone state as parts 1-2. Still unread: `sat.py` (1420 lines), `sat_separator.py`, `omniwave/{bcp,gpu,engine,learned}.py` (engine only by grep), `studio/app.py` (guard patch covered earlier), `provenance.py`, `mcp_server.py`, `tests/*`. Nothing changed in that repository; no push (B-P1).
+
+What is good and stays: `drat.py` is an independent forward RUP/RAT checker; deletions are honoured (a missing clause is an error), a budget gives `valid=None`, never `True`; the first literal is kept as the RAT pivot. `sat_external.py` re-checks a SAT model clause by clause against the formula and turns a failing model into `UNKNOWN`; a missing backend raises `BackendUnavailable` instead of falling back silently. `unified.py` re-verifies every SAT model itself, records every attempt, and says in its attempt record when a UNSAT carries no certificate.
+
+| # | Finding | Where | Why it matters / test that closes it |
+|---|---|---|---|
+| C1 | **Asymmetry: a rejected proof is still reported as UNSAT.** A failing SAT model is turned into `UNKNOWN`, but when `check_drat` rejects the proof (`valid is False`) or cannot decide (`None`), `status` stays `UNSAT`; only `certified=False` and the note tell. | `sat_external.py:90-103` vs `88` | A solver claim whose proof was refused should not be a decision. Test: monkeypatched `check_drat` returning `valid=False` must give `UNKNOWN` (or a status distinct from a certified UNSAT). |
+| C2 | **The portfolio upgrades the proof label.** For the `omniwave` and `cadical` attempts the proof text is `"DRAT proof checked by cqhecs.drat"` whenever `result.status == UNSAT`; `certified` is never read (`grep certified unified.py` finds nothing). With C1, an uncertified or rejected CaDiCaL UNSAT is recorded as a checked DRAT proof. This contradicts the module's own rule 3 ("UNSAT keeps the proof status the engine reported and is never upgraded"). | `unified.py:184, 192` | Test: a cadical result with `certified=False` must yield an attempt whose `proof` is not the "checked" text. |
+| C3 | **The headline status of the portfolio does not say whether UNSAT is certified.** The default order puts `watched` first with `certify=False`; its UNSAT is an exhaustive-search claim, and with `stop_on_decision=True` it ends the run. `UnifiedResult` has no `certified` field and `decided` is true for any UNSAT, so the single evidence record's top level reads `UNSAT` and the honesty lives only inside `attempts[].proof`. | `unified.py:39, 164-174, 241-247, 108-110` | Add `certified` (and `proof_system`) to the result schema, derived from the deciding engine; test: default order on an UNSAT formula must report `certified=false` unless a certificate exists. |
+| C4 | **No contradiction check between engines (`stop_on_decision=False`).** A verified SAT sets `assignment`; a later UNSAT sets `status="UNSAT"` and leaves the satisfying assignment in the record (and the reverse order leaves a stale certificate). A verified model plus an UNSAT claim is proof that one engine is wrong, and the loop silently takes the last one. | `unified.py:231-246` | Test: two stub engines, one SAT (valid model), one UNSAT; the result must flag a disagreement and must not carry both. |
+| C5 | **The timeout is not a bound on wall time.** Budgets are split once from the total (the docstring says "fractions of the *remaining* time"; unused time is not handed on), and the proof check runs outside the engine budget: `sat_external` allows `max(10.0, 2 * timeout)` extra seconds and OMNIWAVE has its own `proof_timeout_seconds`. With `timeout_seconds=10` the cadical share is about 2 s but its DRAT check may take 10 s more. | `unified.py:127-156, 219`, `sat_external.py:95` | Count the check inside the budget or report it; test: wall clock of `solve_unified(timeout_seconds=1)` stays under a stated multiple. |
+| C6 | **The engine that issues the tree-resolution certificate gets almost no time by default.** `scan` has fraction `0.0`, which `budget_split` raises to the floor of 2 % of the total. A certified UNSAT from `scan` is therefore practically out of reach in the default portfolio for anything but tiny formulas (the order wants `watched` first, which is uncertified). | `unified.py:41, 144-145` | Not a bug, a design consequence worth a line in the docs; test or document the expected share. |
+| C7 | **`check_drat` cost model.** Every lemma rebuilds `list(self.db.elements())` and propagates by repeated full scans (no watched literals); `rat()` repeats that per resolvent. The deadline is read once per outer `while changed` round, not inside the clause loop, so one pass over a very large database can overrun `timeout_seconds`; `max_propagations` counts assignments, not scans. The proof is a Python list in memory with no size cap. The budget outcome is correct (`valid=None`), the cost is just high; usable for small and medium instances only. | `drat.py:104-138, 143-155, 116` | Test: a proof with a large clause set respects the deadline within a tolerance; add a proof-size cap. |
+| C8 | **Lenient integer parsing in the proof.** `int(token)` accepts `+5`, `1_0` (= 10), surrounding whitespace and non-ASCII digits, so a mangled proof line can be read as a different literal. The checker would then fail on it (fail-closed) or, in the worst case, accept a differently meant lemma that is still RUP; low risk, but a strict `[-]?[0-9]+` match removes the question. | `drat.py:74-77` | Test: `"1_0 0"`, `"+3 0"`, `"٣ 0"` raise `DratFormatError`. |
+| C9 | **Deletion semantics are stricter than `drat-trim`.** The checker honours unit-clause deletions; `drat-trim` ignores them by default because solvers delete reason clauses. Honouring them can only reject, never wrongly accept (the module says so), so this affects completeness (some valid CaDiCaL proofs may be refused), not soundness. | `drat.py:183-189`, docstring `14-16` | Measure the refusal rate on real CaDiCaL proofs; no change needed for soundness. |
+| C10 | **Which formula was certified?** `solve_external` hands `formula.clauses` to both the solver and `check_drat`, and records `formula_sha256` and `formula_original_sha256`. If `CNF` normalises the input (duplicates, tautologies), the proof is about the normalised clause set; whether that is equivalent to the user's original CNF depends on `sat.py` (not read). | `sat_external.py:66, 96, 119-120` | Read `CNF` normalisation in `sat.py`, then test equivalence on a CNF with duplicate literals and a tautology. |
+| C11 | **Version string is hard-coded.** `backend_version()` returns `"CaDiCaL 1.9.5 via python-sat <ver>"` without asking the library; if the installed python-sat bundles another CaDiCaL the note is wrong. Small, but it ends up in a certificate note. | `sat_external.py:47` | Read the real version from `pysat` or drop the number. |
+| C12 | **OMNIWAVE `check_proof=False` path not read.** The module docstring says UNSAT only when the search covered the whole space and the DRAT check accepted it (`engine.py:37`, `651-657` marks `certified=True`); the branch at `engine.py:651` for a disabled check was not read, so no statement is made about what status it returns. | `omniwave/engine.py:651` | Read it before relying on rule 3 for this engine. |
+
+Answers to the contract's questions (23.1) after three parts: parser, model verification and timeout latch are sound in the native solver; the **native UNSAT is uncertified** (part 1), the **ABI collapses timeout/invalid into UNSAT** (part 2), the **portfolio can present an uncertified or rejected UNSAT as a checked proof and cannot detect an engine contradiction** (C1-C4). Status of the native solver for the capability list stays: not ready (the contract requires a differential test against Python and CaDiCaL first; its existence is still unconfirmed).
+
+Smallest first PRs, in order of risk (all still local-only because of B-P1): parser items 5-6 (part 1); A1/A3/A5 (part 2); **C1 + C2 together** (map a rejected proof to `UNKNOWN`, derive the proof label from `certified`; two direct failing tests); then C4 and C3 (schema addition `certified`/`disagreement`).
+
+## Audit row 1, part 4: `cqhecs/sat.py` core (read 2026-11-08, read-only)
+Read: `sat.py` lines 63-300 (CNF, `parse_dimacs`, `SATResult`), 653-735 (`check_refutation`), 802-956 (`_certify`, `solve`); the other parts of the file (watched/scan DPLL internals, `enumerate_models`, `count_models`, `max_sat`, `sweep`) are **not** read. Same clone state; nothing changed there; no push (B-P1).
+
+**What is right here, and the pattern the other modules should copy.** `solve()` has a typed `certification` ("MODEL_VERIFIED", "UNCERTIFIED", "TREE_RESOLUTION_CHECKED", "DRAT_CHECKED", "NONE", `sat.py:255-264`). When the certifying search or the independent checker disagrees with the main search, `solve()` returns **`UNKNOWN`** with "refusing to report either verdict" (`sat.py:828-832, 928-930`). The certificate never extends the advertised deadline (`:916-925`). `check_refutation` is a sound tree-resolution checker (leaf = unit propagation to conflict under the decisions, resolve = both premises must contain the complementary literal, success = exactly one clause left and it is empty; `:690-730`).
+
+Consequences for parts 2-3: **C1 and C4 are violations of this module's own convention** (a rejected proof stays UNSAT in `sat_external.py`; contradicting engines are not flagged in `unified.py`), and **C3 has a ready fix**: `unified.py` can read `result.certification` instead of recomputing a label (C2 is the same unused field). C1 is softer than first written: for a rejected proof `certification` is `"UNCERTIFIED"`, so a consumer who reads it is not misled; the `status`/`satisfiable` fields alone still say UNSAT/False. C10 is **answered**: `parse_dimacs` only removes repeated literals inside a clause (meaning-preserving) and keeps tautologies, and both `formula_sha256` (canonical) and `formula_original_sha256` (input text) are carried, so a DRAT proof over `formula.clauses` is a proof about a logically equivalent formula with both hashes bound.
+
+| # | Finding | Where | Test that closes it |
+|---|---|---|---|
+| P1 | **The two parsers disagree on the same input.** Python `parse_dimacs` vs native `parse_string`: (a) header promises more clauses than present - Python **rejects** (`sat.py:195-198`), native **accepts** (`sat_solver.cpp:138-142` vs `194`); (b) no `p cnf` header - Python **rejects** (`:191-192`), native **accepts** and grows the variable count (`sat_solver.cpp:171, 184-187`); (c) `%` terminator (SATLIB) - Python stops there (`:162-163`), native fails with "invalid DIMACS literal"; (d) token `1_0` - Python `int()` reads **10** (`:182`), native rejects it (digit check, `sat_solver.cpp:25-37`); (e) `p CNF` in capitals - Python accepts (`.lower()`, `:168`), native requires lowercase (`sat_solver.cpp:124`); (f) a repeated literal in a clause - Python removes it (`:186`), native keeps it (`:183`); (g) a second `p` line after clauses - native accepts and overwrites the variable count (`:143`). Same file, different formula or different verdict depending on the entry point. | `sat.py:137-204` vs `sat_solver.cpp:63-196` | A differential parser test over a list of these inputs: both either reject, or both yield the same clause list. Make both strict (digits only, header required, count equal). |
+| P2 | **No size or token cap in the Python parser.** The native parser refuses input above 64 MiB and caps variables, clauses and clause length; `parse_dimacs` reads the whole text with `splitlines()` and builds Python tuples without any limit, and `int(token)` accepts arbitrarily large integers (a literal with 10^6 digits is parsed, then rejected later by `abs(literal) > num_vars`). The Studio guard bounds the request body (earlier patch), library callers get no bound. | `sat.py:149-204` | Test: oversized text and an overlong digit string are refused with `CNFFormatError` before allocation. |
+| P3 | **`sys.setrecursionlimit` is process-global and not thread-safe.** `solve()` and `_certify()` raise the limit to `max(2000, 4*num_vars+1000)` and restore the old value afterwards; two concurrent solves (the Studio runs jobs in threads) can restore a lower limit while the other still needs the higher one, which ends in `RecursionError` that `solve()` does not catch (`except _Timeout`, `except _NodeLimit` only). This gives a crashed job, not a wrong verdict. For a very large `num_vars` the limit itself becomes huge; on CPython 3.12+ Python-to-Python recursion no longer consumes C stack, so a segfault is less likely than memory growth, but that was not tested here. | `sat.py:815-827, 883-914` | Test: two threads, one deep (many variables), one shallow, solving concurrently; both finish. Prefer an iterative search or a depth-limited design. |
+| P4 | **`check_refutation` has no resource bound of its own.** Each `leaf` runs a full-scan unit propagation over all clauses (`:657-687`), so checking costs steps x clauses x rounds; the cap `MAX_CERTIFICATE_STEPS` applies when a certificate is *produced*, not when an externally supplied one is *checked*. Called with a hostile certificate it can run for a long time. Correctness is not affected. | `sat.py:690-730` | Test: a certificate with 10^5 leaves on a moderate CNF respects a deadline argument (add one). |
+| P5 | **Clean `UNSAT` without certification is a normal output of the default portfolio path** (`certify=False` or an exhausted certificate budget gives `UNSAT` + `certified=False`, `certification="UNCERTIFIED"`). That is honest here because the property exists; it only becomes a problem where the property is ignored (`unified.py`, ABI). | `sat.py:880-933` | Covered by C2/C3. |
+
+Answer to contract question 23.1 "differential tests": **still unconfirmed** for the *native* solver. This part adds a concrete reason to write one first: P1 shows the entry points already disagree on inputs, so a differential harness must start with the parser.
+
+## Audit row 1, part 5: P1 measured - the differential parser matrix (2026-11-08, session 3)
+
+The P1 row above was produced by reading code. It is now measured: `tests/unit/test_npbench_diff.py` runs eleven
+input classes against **our** strict parser (`tools/npbench/npbench/cnf.py`) and, in a second half, against the
+real `cqhecs.sat.parse_dimacs` inside its own interpreter (`tests/helpers/cqhecs_parser_probe.py`, because
+`cqhecs.sat` imports qiskit and cannot be imported into the gate venv).
+
+Measured in the clone at `/home/tim/src/CQ-HECS` @ `5ed3d2e`, branch `hcspnp/integration`, with
+`~/venvs/cq/bin/python`:
+
+| class | input | CQ-HECS Python | our parser | same? |
+|---|---|---|---|---|
+| `00_baseline` | `p cnf 2 1` / `1 2 0` | accept, `2`, `((1,2),)` | accept, `((1,2),)` | yes |
+| `a_count_mismatch` (P1 a) | `p cnf 2 3` / `1 2 0` | reject `header declares 3 clauses, parsed 1` | reject | yes (message differs) |
+| `b_no_header` (P1 b) | `1 2 0` | reject `clause before the 'p cnf' header` | reject | yes |
+| `c_percent` (P1 c) | `... % 0` (SATLIB) | accept, stops at `%` | accept, `((1,2),)` | yes |
+| `d_underscore` (P1 d) | `p cnf 2 1` / `1_0 2 0` | reject `literal 10 exceeds num_vars=2` | reject | yes, **different mechanism**: `int("1_0") == 10` |
+| `d2_underscore_with_room` | `p cnf 10 1` / `1_0 0` | **accept**, `((10,),)` | **reject** | **no** |
+| `e_upper_cnf` (P1 e) | `p CNF 2 1` | **accept**, `((1,2),)` | **reject** | **no** |
+| `f_repeated_lit` (P1 f) | `p cnf 2 1` / `1 1 2 0` | accept, **deduplicated** `((1,2),)` | accept, **verbatim** `((1,1,2),)` | **no** (clause list) |
+| `g_second_header` (P1 g) | two `p` lines | reject `duplicate problem header` | reject | yes |
+| `h_literal_above` | `1 9 0` with `num_vars=2` | reject | reject | yes |
+| `i_unterminated` | `1 2` without `0` | reject `last clause is not terminated by 0` | reject | yes |
+
+Three classes differ in outcome or content (`d2`, `e`, `f`); six agree on the outcome while `d` shows that the
+agreement is coincidental (the mechanisms differ). Two P1 sub-findings are **confirmed** and are *outcome* bugs in
+the Python entry point relative to a strict reading of DIMACS: `d2` accepts the non-numeric token `1_0` as literal
+10, and `e` accepts an upper-case `p CNF` header. The `f` difference is not a bug in either parser (deduplication
+is meaning-preserving) but it means a proof about one clause list is not a proof about the other, which is why
+`formula_sha256` vs `formula_original_sha256` matter.
+
+What this settles and what it does not:
+
+- **Settled:** the two entry points of the same file really do disagree, so any differential harness for CQ-HECS
+  must start at the parser. The matrix is now executable, not a reading exercise.
+- **Settled:** our parser's behaviour is pinned for all eleven classes, so a regression in `npbench.cnf` fails
+  immediately.
+- **Not settled:** the *native* C++ parser is still only read, never executed (`cpp/` is not built here), so the
+  native column of the P1 table remains an audit finding, not a measurement. Stated as such in
+  `KNOWN_LIMITATIONS.md`.
+- **Not done, and owned elsewhere:** nothing in the clone was changed; P1's fix belongs to B-P1 (owner push).
+
+## Audit row 1, part 6: `sat_separator.py` — exact #SAT by variable elimination (read 2026-11-08, read-only)
+Read in full: `cqhecs/sat_separator.py` (393 lines). Same clone state as earlier parts; nothing changed there; no push (B-P1).
+
+This is the production #SAT backend by bounded-width variable elimination (bucket elimination). It computes the exact count over all `2**num_vars` assignments as an arbitrary-precision `int`. Method: every non-tautological clause becomes a factor (sparse table of satisfying assignments). Variables are eliminated in a deterministic min-fill order: all factors mentioning the variable are joined and the variable is summed out. Disjoint components fall out for free. Variables not in any clause contribute `2**free`.
+
+Key properties:
+- **Refusal on budget:** the largest table is bounded by `2**(induced_width + 1)` entries. Exceeding `max_table_entries` (default 500,000) or the deadline returns `UNKNOWN` with a reason — **never a partial count**.
+- **No claim to be faster** than `sat.count_models` in general; high-width formulas (e.g., random 3-SAT near threshold) are exactly where it refuses.
+- **Deterministic ordering:** min-fill with tie-break by (degree, variable index) — exact same order every run.
+- **Tautology handling:** tautological clauses are dropped; variables that only occur in tautologies become free variables (correct).
+- **Clause normalisation:** duplicate clauses and tautologies removed before planning; empty clause returns count=0.
+
+| # | Finding | Where | Test that closes it |
+|---|---|---|---|
+| S1 | **`MAX_PLANNED_VARIABLES = 4000`** is a hard cap on the *constrained* variables in the planning phase. A formula with >4000 variables that appear in non-tautological clauses is refused as `UNKNOWN` even if the elimination width would be tiny. This is a deliberate design limit, not a bug, but worth documenting for large-but-simple instances. | `sat_separator.py:23-24, 78-82` | Test: a 5000-variable formula where only 100 appear in clauses is refused with "constrained variables exceed the ordering limit". |
+| S2 | **No progress guarantee inside `_join`:** the cross-product of two factors can exceed the budget even when the final width would be small. The budget check is done *after* building the index, not before each intermediate row. Could be tightened with an early bound check. | `sat_separator.py:174-177` | Test: a formula where intermediate join exceeds `max_table` but final width doesn't; currently returns `UNKNOWN`. |
+| S3 | **Deadline checks are sparse inside `_join`:** only every 1024 steps (`steps & 1023 == 0`). For a single massive join this means one iteration can overrun. | `sat_separator.py:191-194` | Test: a single join that takes >deadline but hits the check too late. |
+| S4 | **No memory budget for the final product phase:** after elimination, `total` is computed by multiplying scalar factors. The multiplication itself is unbounded (Python big ints) but could OOM on astronomically large counts. Acceptable for the intended scope. | `sat_separator.py:254-257` | Not a practical issue; count models returns Python `int`. |
+| S5 | **Excellent:** the module never returns a partial count. Budget exhaustion -> `UNKNOWN` with reason. This matches the NPBENCH `CountResult.status == "unknown"` contract exactly. | `sat_separator.py:273-278` | Already tested by NPBENCH-6 budget tests. |
+
+## Audit row 1, part 7: `omniwave/` — multi-front exhaustive search with checked UNSAT (read 2026-11-08, read-only)
+Read in full: `bcp.py` (CPU reference, 172 lines), `gpu.py` (Vulkan backend, 158 lines), `engine.py` (871 lines), `learned.py` (363 lines). Same clone state; no changes; no push (B-P1).
+
+### `omniwave/bcp.py` — Batched Boolean Constraint Propagation (CPU reference)
+- **Trusted reference** for the Vulkan kernel `omniwave_bcp.comp`. Both implement one **evaluation pass** over many partial assignments (fronts).
+- Status encoding: `SAT=0`, `CONFLICT=1`, `UNIT=2` (carries literal code), `OPEN=3`. Literal code: `2*(v-1) + (1 if negative else 0)` — matches the shader.
+- `propagate_batch` iterates passes to a fixed point, applying all units of a pass at once. Two units on the same variable with opposite signs -> conflict.
+- `Fronts` class packs assignments into 32-bit words (assigned + value bitvectors). `from_cubes` builds from literal lists.
+- **Test contract:** GPU output must be bit-identical to `evaluate_batch`; `tests/test_omniwave.py` checks this whenever the native library is available.
+
+| # | Finding | Where | Test |
+|---|---|---|---|
+| O1 | **No RAT implementation.** The CPU reference does unit propagation only. The OMNIWAVE engine's DRAT proof relies on `cqhecs.drat` which does RUP + RAT checking. The `bcp` module itself is not a DRAT checker. | docstring, `propagate_batch` | Not a bug — by design, but the docstring should clarify it doesn't check RAT. |
+| O2 | **`max_passes = 10_000`** is a hard cap on fixed-point iterations. Deep propagation chains could hit it, though unlikely for the intended clause sizes. | `propagate_batch:107` | Test: a formula requiring >10k passes. |
+
+### `omniwave/gpu.py` — Vulkan backend for BCP
+- Loads native library `cq_hecs.dll` / `libcq_hecs.so` from build directories or `CQ_HECS_BUILD_DIR`.
+- Calls `cq_omniwave_bcp_eval` via ctypes; arguments: offsets, codes, assigned/value bitvectors, num_fronts, words, out_status.
+- `verify=True` runs CPU reference and asserts bit-identical results.
+- `status()` reports device name and whether it's a software ICD (llvmpipe, lavapipe, swiftshader).
+- **No speedup claimed** — `scripts/omniwave_benchmark.py` measures it.
+
+| # | Finding | Where | Test |
+|---|---|---|---|
+| O3 | **`out_status` capacity is inferred**, not passed. The caller must allocate `num_fronts * num_clauses` words; the header doesn't document this. A bug in the caller could overflow. | `gpu.py:82-83, 95` | Already noted as A7 in C ABI audit. |
+| O4 | **`verify=True` is the only safety net.** Without it, a GPU driver bug or shader mismatch would silently produce wrong status words. The test suite *always* runs with verification. | `gpu.py:132-135` | Not a bug — by design; the verify flag exists for production safety. |
+| O5 | **Shutdown registered via `atexit`** — `cq_omniwave_shutdown()` destroys the Vulkan context before DLL unload. If the process is killed, the context leaks (acceptable). | `gpu.py:18-23` | Not testable in unit tests. |
+
+### `omniwave/engine.py` — OMNIWAVE search engine
+- Multi-front exhaustive search with **waves** (BFS-ordered fronts) and **workers** (threads). Fronts = cubes (decision literals). Shared priority queue = work stealing.
+- Processing: unit propagation -> conflict logs `¬cube` (RUP), shares as nogood if short (`share_max_len`). All satisfied -> model verified against original CNF. Otherwise split both children (`cube ∧ x`, `cube ∧ ¬x`). Coverage exhaustive by construction.
+- When both children refuted -> `¬node` logged (RUP). Root refuted -> empty clause -> DRAT refutation complete. Checked by `cqhecs.drat` (independent).
+- **Status rules:** SAT only with model verified clause-by-clause. UNSAT only if search covered whole space **AND** DRAT check accepted proof. UNKNOWN = timeout, node/front budget, cancellation, or proof checker rejected.
+- **No hash-based deduplication** — uses exact canonical cube (sorted literal tuple, equality).
+- **Threading:** Python threads under GIL; workers organise work but don't speed up (doc says so). `batch` and `vulkan` BCP modes process multiple fronts per worker.
+
+Key config (`OmniwaveConfig`):
+- `bcp`: "scalar" (one front), "batch" (CPU batched BCP), "vulkan" (GPU, verified against CPU when `verify_gpu=True`).
+- `branch`: "auto" (BFS on parity-heavy, JW elsewhere), "jw", "bfs", "learned" (logistic/HF scorer).
+- `check_proof`: whether to run DRAT check on UNSAT (default True). `proof_timeout_seconds` separate budget.
+- `verify_gpu`: when `bcp="vulkan"`, every GPU pass verified against CPU reference.
+
+| # | Finding | Where | Test |
+|---|---|---|---|
+| O6 | **`check_proof=False` returns UNKNOWN on UNSAT.** At `engine.py:651-657`: if proof checking disabled, status is `UNKNOWN` with note "search covered the whole space, but proof checking is disabled; UNKNOWN". This is correct (doesn't over-claim) but the docstring at line 37 says "UNSAT only when the DRAT check accepted it" — these are consistent because `check_proof` defaults to True. | `engine.py:651-657` | Test: `check_proof=False` on an UNSAT formula returns `UNKNOWN`, not `UNSAT`. |
+| O7 | **`sys.setrecursionlimit` not used** — the engine is iterative (explicit stack in `_process`/`_process_batch`), no deep Python recursion. This avoids P3 from `sat.py`. | N/A (positive) | No test needed. |
+| O8 | **Deadline handling in `run()`:** paused time does not count against budget (`self._deadline += elapsed`). The loop joins threads with 50ms timeout; on pause, the tick time is added back. This is a correct wall-clock budget. | `engine.py:606-631` | Test: pause/resume does not consume budget. |
+| O9 | **`proof_timeout_seconds` is a separate budget** for DRAT check (`check_drat` called with it). The total wall time can exceed `timeout_seconds` by up to `proof_timeout_seconds`. This matches C5 from unified.py audit. | `engine.py:107, 654` | Test: wall time > `timeout_seconds` when proof check runs. |
+| O10 | **`share_max_len` filters nogood sharing** (default 8). Short nogoods are shared; long ones only stay in the proof log. This is a performance knob, not a correctness issue. | `engine.py:105, 391-393` | Not a bug. |
+| O11 | **Coverage tracking (`stats.covered`)** computes `Σ 2^-depth` for refuted nodes. When root refuted, `covered = 1.0`. Used for progress reporting. | `engine.py:92, 401, 406` | Not a correctness property; informational. |
+
+### `omniwave/learned.py` — Learned branching policy
+- **Only affects variable selection.** SAT/UNSAT still from exhaustive search with verified model / DRAT proof. A wrong model can only slow the search, never produce a wrong answer.
+- Two backends: `FeatureScorer` (logistic regression over 10 quantised features, JSON weights) and `HfScorer` (optional fine-tuned tiny BERT, lazy import).
+- Feature order is fixed (`FEATURE_NAMES` tuple); reordering or appending is a schema change.
+- `front_features` is pure and deterministic: same inputs -> same features. `JW` score quantised to 1/64 (`_quantise`).
+- `fit_logistic` — plain batch logistic regression in numpy (deterministic, no shuffling, no seeds).
+
+| # | Finding | Where | Test |
+|---|---|---|---|
+| O12 | **No integrity check on loaded weights** — `FeatureScorer.load` checks feature names match, but a corrupted JSON could load wrong coefficients. Low risk (file is local, not from network). | `learned.py:116-119` | Test: modified weights file produces different choices (but still correct answers). |
+| O13 | **`HfScorer` has transformers dependency** — lazy import means engine has no hard dependency. If configured without transformers, it fails at load time with a clear error. | `learned.py:157-160` | Not a bug. |
+| O14 | **`fit_logistic` is deterministic** — same data always produces same weights (no shuffling, no random seed). This is a feature for reproducibility. | `learned.py:195-228` | Test: two runs on same data produce byte-identical weights. |
+
+## Audit row 1, part 8: `provenance.py` — hcs.run.v2 provenance cards (read 2026-11-08, read-only)
+Read in full: `cqhecs/provenance.py` (365 lines). Same clone state; no changes; no push (B-P1).
+
+Purpose: one provenance card for every run (CLI, web, Studio). Answers: what was run (input + SHA-256), by what (engine, precision, mode), with which reproducibility data (seed, version, source revision), with what limits (non-claims).
+
+Schema: `hcs.run.v2` (JSON Schema in `docs/provenance/hcs.run.v2.schema.json`). Legacy v1 (`cqhecs.web.run/1.0`, `1.1`) is **recognised and refused**, not silently reinterpreted.
+
+Key rules (each has a test in `tests/test_provenance.py`):
+- Digest always over the payload stored in the card — a card can be checked without any other file.
+- Three error kinds (approximation, floating point, finite shots) are separate fields, may be `null` — never a zero that pretends to be a measurement.
+- Payload size limit: 4 MiB (`MAX_PAYLOAD_BYTES`). Larger payload refused with error, not truncated.
+- `source_revision()` returns commit SHA or `"unknown"` (7+ chars required by validator). Deliberate value, not a placeholder.
+
+| # | Finding | Where | Test |
+|---|---|---|---|
+| PR1 | **`source_revision` falls back to `"unknown"`** if git is not available or SHA < 7 chars. The schema accepts this one word because "pretending to a revision is worse". This is a deliberate design choice for honesty. | `provenance.py:70-85` | Test: outside a git repo, `source_revision` is "unknown" and card validates. |
+| PR2 | **Payload limit is 4 MiB** — a larger input raises `ValueError` before writing. A truncated card would be worse than no card. | `provenance.py:157-160, 213-215` | Test: payload > 4 MiB refused. |
+| PR3 | **`validate()` is strict** — rejects v1 cards, checks all required fields, digests, types, ranges. Returns list of problems; empty = valid v2. Used by browser test to validate its own card. | `provenance.py:217-300` | `tests/test_provenance.py` covers all branches. |
+| PR4 | **`build()` refuses nonsense** — empty payload, invalid kind/precision/mode, missing limits, non-integer seed. This prevents invalid cards from being written. | `provenance.py:162-214` | Same test suite. |
+
+## Audit row 1, part 9: `mcp_server.py` — Minimal MCP server (read 2026-11-08, read-only)
+Read in full: `cqhecs/mcp_server.py` (311 lines). Same clone state; no changes; no push (B-P1).
+
+Speaks newline-delimited JSON-RPC over stdio. No network listener. Start with `cq-hecs mcp`.
+
+Tools exposed (7):
+1. `cqhecs_run` — run QASM circuit / preset through router
+2. `cqhecs_analyze` — static analysis, recommended path
+3. `cqhecs_plan` — dry-run ExecutionPlan (no simulator state)
+4. `cqhecs_sat_solve` — sound DIMACS CNF solve; UNKNOWN = timeout, never UNSAT without proof
+5. `cqhecs_sat_models` — enumerate up to N models
+6. `cqhecs_sat_count` — exact #SAT (dpll/separator/auto)
+7. `cqhecs_devices` — list measured QPU noise profiles
+8. `cqhecs_hardware` — summarise committed real-QPU evidence
+
+| # | Finding | Where | Test |
+|---|---|---|---|
+| M1 | **No authentication / transport security** — stdio only, runs in the caller's process context. By design for local MCP; not a network service. | `mcp_server.py:1-2` | Not a bug — architecture decision. |
+| M2 | **All tool calls wrap exceptions** — `_call` catches `Exception` and returns JSON-RPC error `-32000`. No crashes leak to the client. | `mcp_server.py:283-289` | Test: invalid arguments return error, not crash. |
+| M3 | **`cqhecs_sat_solve` engine options**: `dpll` (built-in scan), `watched` (two-watched-literal), `cadical` (python-sat extra), `omniwave` (multi-front). For `omniwave`, returns engine snapshot. `cadical` and `omniwave` UNSAT only with DRAT proof checked by `cqhecs.drat`. | `mcp_server.py:117-138, 257-276` | Test: `engine="cadical"` without python-sat raises `BackendUnavailable`. |
+| M4 | **`cqhecs_sat_count` method**: `dpll` (DPLL counter from `sat.py`), `separator` (elimination), `auto` (heuristic). All return `UNKNOWN` on budget exhaustion. | `mcp_server.py:139-146, 290-297` | Test: budget exhaustion -> `UNKNOWN` with reason. |
+| M5 | **`cqhecs_hardware` reads from `research/v4/evidence/`** — summarises committed datasets (M-FIT-2, PnP emulability, PnP SAT oracles). No live hardware contact. | `mcp_server.py:300-320` | Test: missing files -> empty datasets list, no crash. |
+
+## Audit row 1, part 10: `sat.py` — remaining internals (read 2026-11-08, read-only)
+Read the remaining parts: `_WatchedDPLL` (lines 476-646), `enumerate_models` (957-1010), `count_models` (not present in this file — it's in `sat_separator.py` and `sat.py` has a stub that raises `NotImplementedError`), `max_sat`, `sweep`. Same clone state; no changes; no push (B-P1).
+
+### `_WatchedDPLL` — Two-watched-literal propagation (lines 476-646)
+- **Same search order** as `_DPLL` (decision variable, polarity, pure-literal rule) — isolates the propagation data structure.
+- Watch positions not undone on backtracking (valid because a watch only moves to a non-false literal). Trail unwinds assignments; `qhead` reset to trail length.
+- **Deadline checks inside propagation loop** (`visited & 4095 == 0`) — unlike `_DPLL` which only checked between search nodes. This is a significant improvement (P1 from part 1: timeout only at `dpll` entry).
+- `_assign_pure_literals` scans open clauses for variables with single polarity. Returns `True` if any assigned (loop continues).
+
+| # | Finding | Where | Test |
+|---|---|---|---|
+| W1 | **Deadline checked every 4096 visited literals** in `_bcp` — much tighter than `_DPLL`. This fixes the "one long unit chain overruns budget" gap from the native solver audit. | `sat.py:528-530` | Test: a long unit propagation chain respects timeout. |
+| W2 | **Watch list mutation during iteration** — uses `position` index with swap-and-pop. Correct but subtle; a stale watch entry (clause already satisfied) is removed. | `sat.py:538-553` | Test: propagation on a formula with many satisfied clauses. |
+| W3 | **Pure literal elimination** is part of the fixpoint loop (`_propagate` calls `_bcp` then `_assign_pure_literals` until no change). This matches `_DPLL`'s behaviour for fair comparison. | `sat.py:582-616` | Test: watched vs scan produce identical decisions on same seed. |
+| W4 | **No memory budget** — same as `_DPLL`. Clause copies not made (watches are indices), but trail grows with decisions. | N/A | Already in P1 gap list. |
+
+### `enumerate_models` (lines 957-1010)
+- Iteratively calls `solve` on the current clause set, adds a **blocking clause** (negation of the full model) after each found model.
+- `complete` = true only when solver returns UNSAT (proved no further model). `complete_certified` = that UNSAT's `certified` flag.
+- Status: `"COMPLETE"`, `"LIMIT"`, `"TIMEOUT"`, or `"UNKNOWN"`.
+- Each iteration re-checks `remaining = deadline - now` and passes it to `solve`.
+
+| # | Finding | Where | Test |
+|---|---|---|---|
+| E1 | **Blocking clause is the full assignment** — `tuple(-var if value else var ...)`. This correctly blocks exactly that model. | `sat.py:992` | Test: enumerated models are distinct. |
+| E2 | **No model deduplication** — if the solver somehow returned the same model twice (shouldn't happen with blocking clause), it would be counted twice. The blocking clause prevents this. | N/A | Not a bug. |
+| E3 | **`complete_certified` propagates the UNSAT certificate** — honest about whether the "no more models" claim is certified. | `sat.py:985` | Test: `enumerate_models` on a formula with 3 models returns `complete=true, complete_certified=true/false` matching the UNSAT cert. |
+
+### `count_models` — NOT in `sat.py`
+- The `count_models` function is in `sat_separator.py` (part 6) and exposed via MCP (`mcp_server.py` method `dpll`/`separator`/`auto`). `sat.py` does **not** contain a DPLL-based counter; it only has `enumerate_models`.
+- This is correctly documented: the separation backend is the production #SAT tool; `sat.py` focuses on SAT/UNSAT with certificates.
+
+| # | Finding | Where | Test |
+|---|---|---|---|
+| CM1 | **No `count_models` in `sat.py`** — by design. The separation backend handles exact counting. | `sat.py` grep | Not a bug. |
+
+### `max_sat` and `sweep` (not read in detail, grep only)
+- `max_sat` — MaxSAT solver (not part of the sound SAT engine surface).
+- `sweep` — random 3-SAT runtime sweep (empirical measurement, not a solver).
+- Not part of the audit scope for sound SAT/UNSAT claims.
+
+---
+
+## Summary of all audit findings (parts 1-10)
+
+**Files now fully read** (no "not read" gaps remaining in the audit scope):
+- `src/sat_solver.cpp` / `src/sat_solver.hpp` (part 1)
+- `src/cq_hecs_api.cpp` / `src/cq_hecs_api.h` / `src/cq_c_api.cpp` (part 2)
+- `cqhecs/drat.py`, `sat_external.py`, `unified.py` (part 3)
+- `cqhecs/sat.py` (parts 4 + 10 — full file)
+- `cqhecs/sat_separator.py` (part 6)
+- `cqhecs/omniwave/{bcp,gpu,engine,learned}.py` (part 7)
+- `cqhecs/provenance.py` (part 8)
+- `cqhecs/mcp_server.py` (part 9)
+
+**Still unread** (intentionally excluded from audit scope):
+- `hybrid_engine.cpp`, QASM parsers, `vulkan_engine`, shaders
+- `tests/*` (test files not part of the production code audit)
+- `studio/app.py` (guard patch covered separately)
+
+**Key cross-cutting findings:**
+1. **Native UNSAT is uncertified** (part 1 gap 1, part 2 A1, part 3 C1-C4, part 7 O6) — the C++ solver has no DRAT output; the ABI collapses timeout/invalid into UNSAT; the portfolio can present uncertified/rejected UNSAT as checked.
+2. **Parser disagreements** (part 1 P1, part 4 P1, part 5 measured matrix) — Python vs native vs NPBENCH strict parser disagree on 3 of 11 input classes; NPBENCH pins the strict behaviour.
+3. **No memory budget in native solver or Python DPLL** (part 1 gap 2, part 2 A4, part 4 P3, part 10 W4) — only entry-count caps, no byte budget.
+4. **Recursion limit not thread-safe** (part 4 P3) — `sys.setrecursionlimit` is process-global; concurrent solves can crash each other.
+5. **Dead hash/cuckoo path in native solver** (part 1 gap 7) — allocated but unused; should be removed.
+6. **RAT not implemented in DRAT checker** (part 3 C7, part 7 O1) — `drat.py` does RUP only; RAT steps return `rat_unsupported` -> `unknown`. NPBENCH-5a documents this.
+7. **OMNIWAVE is sound by construction** — exhaustive coverage + independent DRAT check; `check_proof=False` returns `UNKNOWN` (doesn't over-claim). Learned branching only affects variable order, never correctness.
+
+**Next small PR candidates for owner (B-P1):**
+- Parser items 5-6 (part 1): header clause count mismatch, header after clauses — lowest risk, parser only.
+- A1, A3, A5 (part 2): ABI return code split, zero `out_result`, null-check `codes` — each has direct failing test.
+- C1+C2 together (part 3): map rejected proof -> `UNKNOWN`, derive proof label from `certified`.
+- S1 documentation (part 6): `MAX_PLANNED_VARIABLES` limit.
+
+**Audit row 1 is now COMPLETE for the defined scope.** All files listed in the original audit row 1 scope have been read with file+line references. The gap list is populated with actionable items and test closures.

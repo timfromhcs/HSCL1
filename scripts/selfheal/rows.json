@@ -1,0 +1,7 @@
+{
+  "_comment": "Rows a tick may run: read-only checks only. Editing the repository, pushing, PRs and merges are not tick work. Listing a row here is the per-row opt-in for real mode (--execute).",
+  "rows": [
+    {"id": "git-status", "argv": ["git", "status", "--porcelain=v1", "--branch"], "heavy": false},
+    {"id": "git-last-commit", "argv": ["git", "log", "-1", "--format=%h %s"], "heavy": false}
+  ]
+}

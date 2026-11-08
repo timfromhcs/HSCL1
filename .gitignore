@@ -17,6 +17,7 @@ website/.astro/
 
 # local tooling and caches
 .serena/
+.playwright-mcp/
 __pycache__/
 *.pyc
 .pytest_cache/

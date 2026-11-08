@@ -1,5 +1,15 @@
 # MASTERPLAN — HCSUDA first, then HSCL1 to stable v1.0.0
 
+> **Reconciled 2026-11-08:** The current OS release execution plan is
+> [v1 release plan](2026-11-08-v1-release-plan.md); ecosystem priorities and evidence
+> remain in the [live master ledger](2026-11-08-selfheal-masterplan.md).
+> See [the per-plan audit](../../PLAN_INDEX.md) for current continuation notes.
+> Older snapshots, release ladders and competing next-task orders below are historical;
+> preserve the domain specifications and gates. Root `AGENTS.md` and later owner
+> instructions govern conflicts. Model assistance for this continuation is local only;
+> no Qwen Mythos/cloud inference.
+
+
 > **Status (reconciled 2026-11-08): the *ordering* in this file is SUPERSEDED by the Ecosystem Master priority list P0-P14**
 > (`AGENTS_HCS_ECOSYSTEM_MASTER_2026-11-07.md`, tracked in `2026-11-08-selfheal-masterplan.md` section 3). HCSUDA inference work is Master P12.
 > This file stays valid for its gates (H-G*, L*, C*), honesty rules (section 4), architecture (section 5), benchmark protocol (section 10),

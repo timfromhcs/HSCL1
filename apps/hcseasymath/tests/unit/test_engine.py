@@ -85,3 +85,13 @@ def test_failures_are_typed_results_not_exceptions(request_, status):
 def test_derivative_with_respect_to_an_absent_symbol_is_zero_not_an_error():
     res = execute({"operation": "differentiate", "expression": "y**2", "variable": "x"})
     assert res["status"] == "ok" and res["result_expression"] == "0"
+
+
+def test_a_field_the_operation_does_not_use_is_refused_not_silently_ignored():
+    res = execute({"operation": "differentiate", "expression": "x", "variable": "x", "value": "1"})
+    assert res["status"] == "invalid_input" and "value" in (res["error"] or "")
+
+
+def test_evaluate_keeps_the_value_field_it_uses():
+    res = execute({"operation": "evaluate", "expression": "x**2", "variable": "x", "value": "3"})
+    assert res["status"] == "ok" and res["result_expression"] == "9"

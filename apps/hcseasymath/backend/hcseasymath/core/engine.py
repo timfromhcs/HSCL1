@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import re
 import time
 from typing import Any, Callable
@@ -126,12 +127,249 @@ def _evaluate(request: dict[str, Any], started: float) -> dict[str, Any]:
     )
 
 
+_DOMAIN_NOTE = (
+    "the simplified form is valid where both expressions are defined; points removed by the "
+    "rewrite (for example a cancelled denominator) are not restored"
+)
+
+
+def _simplify(request: dict[str, Any], started: float) -> dict[str, Any]:
+    expr, _var = _expression_and_variable(request)
+    result = symbolic.simplify(expr)
+    kind, note = symbolic.verify_equivalence(result, expr)
+    elapsed = {"total": round((time.perf_counter() - started) * 1000.0, 3)}
+    common: dict[str, Any] = {"normalized_expression": str(expr), "timings_ms": elapsed}
+    if str(result) != str(expr):
+        common["assumptions"] = [_DOMAIN_NOTE]
+    if kind == "failed":
+        return _result(
+            request, "simplify", "internal_error",
+            error=f"the simplified form failed its own equivalence check ({note}); it is not returned",
+            warnings=[note], **common,
+        )
+    checks = [note]
+    before, after = sp.count_ops(expr), sp.count_ops(result)
+    if after < before:
+        # A size claim is made only from the measured operation counts, never assumed.
+        checks.append(f"operation count reduced from {before} to {after}")
+    fields = dict(common, result_expression=str(result), exactness="symbolic_exact")
+    if kind == "symbolic":
+        return _result(request, "simplify", "ok", checks=checks, **fields)
+    if kind == "numeric":
+        return _result(
+            request, "simplify", "ok", checks=checks,
+            warnings=["the equivalence check is numeric only (not proven symbolically)"], **fields,
+        )
+    return _result(
+        request, "simplify", "partial", checks=[],
+        warnings=[f"the simplified form could not be verified: {note}"], **fields,
+    )
+
+
+_REAL_DOMAIN = (
+    "solutions are searched in the real domain only; the equation is the expression set to zero"
+)
+
+
+def _solve(request: dict[str, Any], started: float) -> dict[str, Any]:
+    expr, var = _expression_and_variable(request)
+    try:
+        solution = symbolic.solve_equation(expr, var)
+    except symbolic.SolveUnsupported as exc:
+        return _result(
+            request, "solve", "unresolved",
+            normalized_expression=str(expr),
+            error=f"the solver has no method for this equation ({exc}); no roots are claimed",
+            assumptions=[_REAL_DOMAIN],
+            timings_ms={"total": round((time.perf_counter() - started) * 1000.0, 3)},
+        )
+    elapsed = {"total": round((time.perf_counter() - started) * 1000.0, 3)}
+    common: dict[str, Any] = {
+        "normalized_expression": str(expr),
+        "assumptions": [_REAL_DOMAIN],
+        "timings_ms": elapsed,
+    }
+    if solution in (sp.S.Reals, sp.S.Complexes):
+        return _result(
+            request, "solve", "unresolved",
+            error="the solver reports that the equation holds on the whole domain; no list of roots is claimed",
+            warnings=["every value in the domain satisfies it, so there is no finite root list"], **common,
+        )
+    candidates = symbolic.finite_roots(solution)
+    if candidates is None:
+        return _result(
+            request, "solve", "unresolved",
+            error=(
+                f"the solution set is a {type(solution).__name__}, not a finite list of roots; "
+                "no roots are claimed"
+            ),
+            **common,
+        )
+
+    parameters = sorted(expr.free_symbols - {var}, key=lambda s: s.name)
+    if not candidates:
+        if parameters:
+            return _result(
+                request, "solve", "unresolved",
+                error=(
+                    "no root was found for this variable, but the equation contains the parameter(s) "
+                    + ", ".join(s.name for s in parameters)
+                    + "; the answer depends on them and is not claimed"
+                ),
+                **common,
+            )
+        warnings = [
+            "the solver found no real solution; the absence is not independently verified",
+        ]
+        complex_count = _complex_root_count(expr, var)
+        if complex_count is True:
+            warnings.append("the equation has infinitely many complex roots; they are not returned")
+        elif complex_count:
+            warnings.append(
+                f"the equation has {complex_count} complex root(s), which this version does not return"
+            )
+        return _result(
+            request, "solve", "partial",
+            result_expression="EmptySet", exactness="none", warnings=warnings, **common,
+        )
+
+    kept: list[sp.Expr] = []
+    kinds: list[str] = []
+    dropped = 0
+    unverified: list[str] = []
+    for root in candidates:
+        kind, note = symbolic.verify_root(root, expr, var)
+        if kind == "failed":
+            dropped += 1
+            continue
+        kept.append(root)
+        kinds.append(kind)
+        if kind == "unverified":
+            unverified.append(note)
+    if not kept:
+        return _result(
+            request, "solve", "internal_error",
+            error="every root failed the substitution check; no solution is returned",
+            warnings=["the solver's roots did not solve the equation"], **common,
+        )
+
+    fields = dict(common, result_expression=str(sp.FiniteSet(*kept)))
+    fields["exactness"] = "symbolic_exact" if set(kinds) == {"symbolic"} else (
+        "numeric" if set(kinds) == {"numeric"} else "none"
+    )
+    checks = [f"each of the {len(kept)} returned root(s) was substituted back into the equation"]
+    warnings: list[str] = []
+    if dropped:
+        warnings.append(f"{dropped} root(s) failed the substitution check and were dropped")
+    if unverified:
+        warnings.append(f"{len(unverified)} root(s) could not be verified: {unverified[0]}")
+    if dropped or unverified:
+        return _result(request, "solve", "partial", checks=checks, warnings=warnings, **fields)
+    if set(kinds) == {"numeric"}:
+        warnings.append("the substitution check is numeric only (not proven symbolically)")
+        return _result(request, "solve", "ok", checks=checks, warnings=warnings, **fields)
+    if parameters:
+        fields["assumptions"] = [
+            *_REAL_DOMAIN,
+            "the roots contain the parameter(s) "
+            + ", ".join(s.name for s in parameters)
+            + "; their membership in the real domain is not decided",
+        ]
+    return _result(request, "solve", "ok", checks=checks, **fields)
+
+
+def _complex_root_count(expr: sp.Expr, var: sp.Symbol) -> int | bool:
+    """How many roots the equation has over the complexes: a count, ``True`` for infinitely many, 0 for none."""
+    try:
+        solution = sp.solveset(expr, var, domain=sp.Complexes)
+    except (NotImplementedError, ValueError, TypeError):
+        return 0
+    if solution in (sp.S.Complexes, sp.S.Reals):
+        return True
+    roots = symbolic.finite_roots(solution)
+    if roots is None:
+        return True
+    return len(roots)
+
+
+MAX_PLOT_POINTS = 1000
+MAX_PLOT_RANGE = 1_000_000
+
+
+def _plot_bound(request: dict[str, Any], name: str) -> sp.Expr:
+    text = request.get(name)
+    if not isinstance(text, str):
+        raise ExpressionError("invalid_input", f"missing '{name}'")
+    bound = parse(text)
+    if bound.free_symbols or not bound.is_finite or not bound.is_real:
+        raise ExpressionError("invalid_input", f"'{name}' must be a finite real number")
+    return bound
+
+
+def _plot(request: dict[str, Any], started: float) -> dict[str, Any]:
+    expr, var = _expression_and_variable(request)
+    if expr.free_symbols - {var}:
+        raise ExpressionError("invalid_input", "plot needs a single-variable expression")
+    lo, hi = _plot_bound(request, "x_min"), _plot_bound(request, "x_max")
+    count = request.get("points", 200)
+    if type(count) is not int or count < 2:
+        raise ExpressionError("invalid_input", "'points' must be an integer of at least 2")
+    if count > MAX_PLOT_POINTS:
+        raise ExpressionError("resource_limit", f"'points' is capped at {MAX_PLOT_POINTS}")
+    if not hi > lo:
+        raise ExpressionError("invalid_input", "'x_max' must be greater than 'x_min'")
+    if hi - lo > MAX_PLOT_RANGE or max(abs(lo), abs(hi)) > MAX_PLOT_RANGE:
+        raise ExpressionError("resource_limit", f"the range is capped at {MAX_PLOT_RANGE}")
+    samples: list[list[float | None]] = []
+    missing = 0
+    for i in range(count):
+        x = lo + (hi - lo) * sp.Rational(i, count - 1)
+        y: float | None = None
+        value = expr.subs(var, x)
+        if value.is_real is not False and not value.has(sp.zoo, sp.nan, sp.oo, -sp.oo):
+            num = complex(sp.N(value, 17)) if value.is_number else None
+            if num is not None and num.imag == 0 and math.isfinite(num.real):
+                y = num.real
+        if y is None:
+            missing += 1
+        samples.append([float(x), y])
+    elapsed = {"total": round((time.perf_counter() - started) * 1000.0, 3)}
+    notes = [f"{count} evenly spaced samples on [{lo}, {hi}]; data only, points are not interpolated"]
+    if missing == count:
+        return _result(
+            request, "plot", "unresolved", normalized_expression=str(expr),
+            error="the function is undefined or not real at every sample point; no data is claimed",
+            warnings=["no usable sample"], assumptions=notes, timings_ms=elapsed,
+        )
+    if missing:
+        return _result(
+            request, "plot", "partial", normalized_expression=str(expr), samples=samples,
+            exactness="numeric", assumptions=notes, timings_ms=elapsed,
+            warnings=[f"{missing} of {count} samples are undefined or not real and are null"],
+        )
+    return _result(
+        request, "plot", "ok", normalized_expression=str(expr), samples=samples,
+        exactness="numeric", assumptions=notes, timings_ms=elapsed,
+    )
+
+
 _HANDLERS: dict[str, Callable[[dict[str, Any], float], dict[str, Any]]] = {
     "differentiate": _differentiate,
     "integrate": _integrate,
     "evaluate": _evaluate,
+    "simplify": _simplify,
+    "solve": _solve,
+    "plot": _plot,
 }
 OPERATIONS = tuple(_HANDLERS)
+
+
+_COMMON_FIELDS = {"operation", "expression", "variable"}
+#: The only extra request fields an operation may use. Anything else is a typed refusal, not a silent ignore.
+_OPERATION_FIELDS: dict[str, set[str]] = {
+    "evaluate": {"value"},
+    "plot": {"x_min", "x_max", "points"},
+}
 
 
 def execute(request: Any) -> dict[str, Any]:
@@ -143,6 +381,10 @@ def execute(request: Any) -> dict[str, Any]:
     handler = _HANDLERS.get(operation)
     if handler is None:
         return _failure(request, operation, "unsupported", f"unknown operation '{operation}'")
+    extra = set(request) - _COMMON_FIELDS - _OPERATION_FIELDS.get(operation, set())
+    if extra:
+        names = ", ".join(sorted(map(str, extra)))
+        return _failure(request, operation, "invalid_input", f"field(s) not used by this operation: {names}")
 
     started = time.perf_counter()
     try:

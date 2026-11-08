@@ -1,7 +1,9 @@
 # HCSEASYMATH (in-tree, pre-alpha)
 
-A local mathematical workbench. **Today it does two things**: an exact symbolic derivative and an
-indefinite integral of a validated expression, through a loopback-only API and a one-page UI. Everything else in
+A local mathematical workbench. **Today it does five things**: an exact symbolic derivative, an
+indefinite integral, an exact substitution at a value, a simplification whose result is checked
+to be the same function as the input, and a real-domain equation solver that substitutes every root
+back before reporting it - through a loopback-only API and a one-page UI. Everything else in
 `docs/superpowers/plans/2026-11-08-hcseasymath-plan.md` is planned, not built.
 
 Made with love by hcsmedia. Part of HSCL1 (GPL-3.0-or-later); see `docs/integrations/HCSEASYMATH.md`.
@@ -21,12 +23,26 @@ Made with love by hcsmedia. Part of HSCL1 (GPL-3.0-or-later); see `docs/integrat
   result. Every antiderivative is checked by differentiating it: `symbolic` (proven), `numeric` (agrees at several sample points,
   stated as "not proven symbolically"), `partial` (could not be verified) or refused (`internal_error`) when the check fails.
   The constant of integration is omitted and says so.
+- **Simplification is checked, not trusted.** A shorter form is returned only when it is shown to be
+  the same function as the input (`symbolic`, `numeric` - stated as "not proven symbolically" - or
+  `partial`). A form that fails the check is refused (`internal_error`) and not returned. A size
+  reduction is reported only from measured `count_ops` values, and points removed by a rewrite (a
+  cancelled denominator, for example) are disclosed under `assumptions`.
+- **No root is reported without being substituted back.** `solve` uses `solveset` (not `solve`) in the
+  real domain and checks every root against the equation: exact zero, a numeric residual, or dropped.
+  A root that fails is dropped and the result is `partial`; if every root fails, nothing is returned.
+  An infinite solution set (`ImageSet`, `ConditionSet`, an interval) or an equation that holds
+  everywhere is `unresolved`, never a guessed list. An empty real solution set is `partial` with the
+  number of complex roots named, because absence is not independently verified.
 
 ## What it does not do
 
-No definite integrals, no solving, no simplification, no plotting, no ODEs, no accelerators (HCSUDA is `not_used`), no Windows worker,
-no packaging. A warm worker is not implemented: one request costs about 0.57 s because each one starts
-a fresh Python and imports SymPy (measured, median of 7, repo on a USB drive, WSL Ubuntu 26.04).
+No definite integrals, no complex-domain solving, no factoring or expansion as separate operations,
+no plotting, no ODEs, no accelerators (HCSUDA is `not_used`), no Windows worker, no packaging.
+The one-page UI still calls only `differentiate`; the other four operations are reachable through the
+API (and the CLI), not the page. A warm worker is not implemented: one request costs about 0.57 s
+because each one starts a fresh Python and imports SymPy (measured, median of 7, repo on a USB drive,
+WSL Ubuntu 26.04).
 
 ## Run (Python 3.14, Linux)
 

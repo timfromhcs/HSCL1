@@ -1,4 +1,4 @@
-# Security Lab (status: IMPLEMENTED + unit-tested; **not yet run in a VM**, podman is not in the image yet)
+# Security Lab (specification TESTED; builder experiment TESTED; HSCL1 guest/runtime still open)
 
 Authorized testing only. Kali tools run **only inside rootless containers** (later: disposable VMs); the host never gets Kali or Debian repositories.
 HSCL1 is not an official Kali product.
@@ -33,6 +33,7 @@ $ hscl lab spec --project web1 --phase commit|destroy
 ## Not done / open
 
 - Podman and its dependencies are not in the image (measured 2026-11-06); plan P4.0.
-- The pinned Kali digest has not been recorded yet (P4.1); the examples above use a placeholder.
-- No container has been started by HSCL1 yet; whether apt works with the restricted capability set is open (plan question 3).
+- `containers/kali/image.pin` records a digest; pull/inspect now agree on the WSL builder (2026-11-08). The example above remains notation, not a literal image reference.
+- The generated restricted run and basic-toolset install were exercised rootlessly on the builder, not inside an HSCL1 guest. See [builder probe](research/2026-11-08-security-lab-builder-probe.md). CLI execution remains unwired and image integration/VM evidence is still required.
+- The Ubuntu Podman package installed without recommendations needs a user-mode network helper: default networking failed until `passt` supplied `pasta`. Include that dependency in the eventual lab package; never work around this by selecting host networking or rootful Podman.
 - Disposable VM profiles, GUI tools, wireless/USB work: not implemented.
