@@ -55,3 +55,47 @@ def verify_antiderivative(antiderivative: sp.Expr, integrand: sp.Expr, variable:
     if usable >= _MIN_NUMERIC_POINTS:
         return "numeric", f"derivative of the result agrees numerically with the input at {usable} sample points"
     return "unverified", f"only {usable} usable sample points"
+
+
+def simplify(expr: sp.Expr) -> sp.Expr:
+    """SymPy's general simplifier. The caller must verify that the result is the same function."""
+    return sp.simplify(expr)
+
+
+def verify_equivalence(candidate: sp.Expr, original: sp.Expr) -> tuple[str, str]:
+    """Check that ``candidate`` and ``original`` are the same function, and say how strong the check was.
+
+    Returns ``(kind, note)`` with kind one of ``symbolic`` (difference simplifies to 0), ``numeric``
+    (agrees at several sample points to 1e-12 relative, not proven), ``unverified`` (too few usable
+    points) or ``failed`` (a disagreement).
+
+    Point identities such as ``atan(x) + atan(1/x) == pi/2`` hold only on a subset of the reals; the
+    sample points include negative rationals, so such a pair is rejected instead of being accepted as
+    an identity.
+    """
+    if sp.simplify(candidate - original) == 0:
+        return "symbolic", "result equals the input symbolically"
+
+    symbols = sorted(candidate.free_symbols | original.free_symbols, key=lambda s: s.name)
+    if len(symbols) > len(_POINTS):
+        # Every symbol needs its own sample value, or two symbols that happen to be equal at the
+        # same point could make a wrong pair look right.
+        return "unverified", f"{len(symbols)} free symbols but only {len(_POINTS)} distinct sample values"
+
+    usable = 0
+    for index in range(len(_POINTS)):
+        sub = {sym: _POINTS[(index + offset) % len(_POINTS)] for offset, sym in enumerate(symbols)}
+        try:
+            a = sp.N(candidate.subs(sub), 30)
+            b = sp.N(original.subs(sub), 30)
+        except (ZeroDivisionError, ValueError, TypeError, OverflowError):
+            continue
+        if not (a.is_real and b.is_real and a.is_finite is True and b.is_finite is True):
+            continue  # complex, infinite or undefined here: this point says nothing
+        if abs(a - b) > _TOLERANCE * (1 + abs(b)):
+            where = ", ".join(f"{sym}={sub[sym]}" for sym in symbols)
+            return "failed", f"result differs from the input at {where}" if where else "result differs from the input"
+        usable += 1
+    if usable >= _MIN_NUMERIC_POINTS:
+        return "numeric", f"result agrees numerically with the input at {usable} sample points"
+    return "unverified", f"only {usable} usable sample points"

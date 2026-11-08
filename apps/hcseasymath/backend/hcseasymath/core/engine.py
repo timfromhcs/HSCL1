@@ -126,10 +126,50 @@ def _evaluate(request: dict[str, Any], started: float) -> dict[str, Any]:
     )
 
 
+_DOMAIN_NOTE = (
+    "the simplified form is valid where both expressions are defined; points removed by the "
+    "rewrite (for example a cancelled denominator) are not restored"
+)
+
+
+def _simplify(request: dict[str, Any], started: float) -> dict[str, Any]:
+    expr, _var = _expression_and_variable(request)
+    result = symbolic.simplify(expr)
+    kind, note = symbolic.verify_equivalence(result, expr)
+    elapsed = {"total": round((time.perf_counter() - started) * 1000.0, 3)}
+    common: dict[str, Any] = {"normalized_expression": str(expr), "timings_ms": elapsed}
+    if str(result) != str(expr):
+        common["assumptions"] = [_DOMAIN_NOTE]
+    if kind == "failed":
+        return _result(
+            request, "simplify", "internal_error",
+            error=f"the simplified form failed its own equivalence check ({note}); it is not returned",
+            warnings=[note], **common,
+        )
+    checks = [note]
+    before, after = sp.count_ops(expr), sp.count_ops(result)
+    if after < before:
+        # A size claim is made only from the measured operation counts, never assumed.
+        checks.append(f"operation count reduced from {before} to {after}")
+    fields = dict(common, result_expression=str(result), exactness="symbolic_exact")
+    if kind == "symbolic":
+        return _result(request, "simplify", "ok", checks=checks, **fields)
+    if kind == "numeric":
+        return _result(
+            request, "simplify", "ok", checks=checks,
+            warnings=["the equivalence check is numeric only (not proven symbolically)"], **fields,
+        )
+    return _result(
+        request, "simplify", "partial", checks=[],
+        warnings=[f"the simplified form could not be verified: {note}"], **fields,
+    )
+
+
 _HANDLERS: dict[str, Callable[[dict[str, Any], float], dict[str, Any]]] = {
     "differentiate": _differentiate,
     "integrate": _integrate,
     "evaluate": _evaluate,
+    "simplify": _simplify,
 }
 OPERATIONS = tuple(_HANDLERS)
 
