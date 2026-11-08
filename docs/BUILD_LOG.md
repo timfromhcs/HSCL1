@@ -1159,3 +1159,28 @@ Decision rule: pick the one that unblocks the most downstream work. HCSUDA H3c-3
   - MCP protocol self-test: 7/7 checks passed on Windows and WSL.
   - Full Forge gate: `artifacts/forge/20261108-172606/summary.json` (pytest 286.8s PASS, bash -n 2.8s PASS, shellcheck 1.5s PASS, secret scan 0.4s PASS, doc commands 0.3s PASS).
 
+### V1-C Candidate ISO Remaster & WHPX Boot Smoke Test (2026-11-08)
+
+- **Candidate ISO Remaster:**
+  - Build command: `wsl bash -c "scripts/remaster-iso.sh --out /home/tim/hscl1-build/out/HSCL1-dev-11081630.iso --force"`
+  - Image size: 5,488,246,784 bytes (5.48 GB).
+  - SHA-256: `2e30b750a741fdbcf8ea3ffd0efe15a7ab36b9bcb559bb0defc1906ec7129fc3`.
+  - Manifest created: `/home/tim/hscl1-build/out/HSCL1-0.1.3-alpha.0-amd64.iso.manifest.json`.
+  - Hardlinked as `HSCL1-0.1.3-alpha.0-amd64.iso`.
+- **First-Boot VM Smoke Test:**
+  - Harness: Windows native QEMU 9.2.0 with WHPX acceleration (`-accel whpx,kernel-irqchip=off`).
+  - Command: `python scripts/qemu_boot_test.py --iso "\\wsl.localhost\Ubuntu\home\tim\hscl1-build\out\HSCL1-0.1.3-alpha.0-amd64.iso" --out artifacts/boot-candidate --mem 3072 --timeout 300 --dismiss-welcome`
+  - Reached live desktop at 143 s.
+  - Dismissed Welcome Center at 189 s.
+  - Test concluded with `"reached_desktop": true` after 194 s.
+  - Evidence: `artifacts/boot-candidate/desktop-final.png` (115 KB screenshot showing KDE Plasma 6 live desktop with HCS wallpaper, top bar, and dock), `artifacts/boot-candidate/result.json`. Status: **VM-VERIFIED**.
+- **Split & Rejoin Integrity:**
+  - Executed `scripts/release-split.sh` into 3 parts (1900 MiB each) in `/home/tim/hscl1-build/out/release-0.1.3-upload/`.
+  - Parts generated: `.part000` (1,992,294,400 B), `.part001` (1,992,294,400 B), `.part002` (1,503,657,984 B) + `SHA256SUMS`.
+  - Verified with `scripts/release-join.sh --verify-only`: 100% matched against `SHA256SUMS`.
+- **Branch & Masterplan:**
+  - Checked out new branch `codex/unified-self-healing-master`.
+  - Reconciled unified self-healing masterplan artifact.
+- **Pre-Commit Gate:**
+  - Full `forge check`: `artifacts/forge/20261108-175817/summary.json` (pytest 539.8s PASS, bash -n 56.8s PASS, shellcheck 2.3s PASS, secret scan 1.7s PASS). Status: **OK**.
+

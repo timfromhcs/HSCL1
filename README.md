@@ -68,7 +68,8 @@ The full table with evidence is [`docs/CLAIMS.md`](docs/CLAIMS.md). Summary:
 | `hscl` CLI (status, doctor, graphics, memory, ai, wallpaper, code, mcp …) | unit-tested; the main commands also ran inside the live VM |
 | Memory manager (zram, earlyoom, AI RAM budget) | configuration active in the VM; **effect under real memory pressure not tested** |
 | Local inference with one small model (CPU) | verified on the builder; **Vulkan, MTP and TurboQuant not verified** |
-| Security Lab, Privacy mode, media-AI/Blender/Godot tooling, RSI loop, LUKS2 tests | **planned, not implemented** |
+| Security Lab (`hscl lab`) | CLI execution wired, rootless Podman verified on builder; in-guest image pending |
+| Privacy mode, media-AI/Blender/Godot tooling, RSI loop | **planned, not implemented** |
 | Physical hardware | **none tested** |
 | Release signing | **none yet** (SHA256SUMS only) |
 
@@ -79,7 +80,7 @@ GitHub's 2 GiB per-file limit, so it is published as numbered parts that you joi
 
 ```console
 $ mkdir hscl1 && cd hscl1
-$ gh release download v0.1.0-alpha.0 --repo timfromhcs/HSCL1        # or download all *.part* and SHA256SUMS by hand
+$ gh release download v0.1.3-alpha.0 --repo timfromhcs/HSCL1        # or download all *.part* and SHA256SUMS by hand
 $ git clone https://github.com/timfromhcs/HSCL1 ../HSCL1-src         # for the script
 $ bash ../HSCL1-src/scripts/release-join.sh . --verify-only          # checks every part and the joined image, writes nothing
 $ bash ../HSCL1-src/scripts/release-join.sh .                        # joins to HSCL1-<version>-amd64.iso
@@ -109,6 +110,7 @@ $ hscl graphics detect             # driver class and recommended graphics profi
 $ hscl memory status               # RAM, zram, AI budget
 $ hscl wallpaper list              # animated wallpaper presets
 $ hscl ai model recommend          # models that fit this machine
+$ hscl lab run --yes="I am authorized to test this target" -- <cmd> # isolated security lab
 $ hscl mcp                         # MCP server on stdio (read-only by default)
 ```
 

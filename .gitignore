@@ -21,6 +21,8 @@ website/.astro/
 __pycache__/
 *.pyc
 .pytest_cache/
+*.spdx.json
+SBOM*.json
 
 # stray file a local MCP server writes into the checkout (not part of the project)
 sqlite_mcp_server.db
