@@ -268,7 +268,10 @@ pub fn set_firewall_profile(name: &str, dry_run: bool) -> Result<Vec<String>> {
     // Applying requires root privilege
     #[cfg(unix)]
     {
-        let uid = unsafe { libc::geteuid() };
+        extern "C" {
+            fn geteuid() -> u32;
+        }
+        let uid = unsafe { geteuid() };
         if uid != 0 {
             bail!(
                 "Applying firewall profile '{}' requires administrative privilege. Run with sudo: sudo hscl security firewall profile set {}",
