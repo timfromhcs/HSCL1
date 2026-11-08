@@ -7,6 +7,24 @@ import pytest
 import shellutil
 
 
+def test_wsl_preserves_an_already_posix_path_list(monkeypatch):
+    monkeypatch.setattr(shellutil, "bash_kind", lambda: "wsl")
+    path = "/mnt/c/temporary fake tools:/usr/bin:/bin"
+    assert shellutil._env_value(path, "PATH") == path
+
+
+def test_wsl_path_conversion_is_idempotent_for_guest_absolute_paths(monkeypatch):
+    monkeypatch.setattr(shellutil, "bash_kind", lambda: "wsl")
+    assert shellutil.to_bash_path("/mnt/c/temporary fake tools") == "/mnt/c/temporary fake tools"
+
+
+def test_wsl_converts_windows_path_lists_and_keeps_core_tools(monkeypatch):
+    monkeypatch.setattr(shellutil, "bash_kind", lambda: "wsl")
+    monkeypatch.setattr(shellutil, "guest_path", lambda: "/usr/bin:/bin")
+    monkeypatch.setattr(shellutil, "to_bash_path", lambda p: {"C:/fake tools": "/mnt/c/fake tools", "D:/bin": "/mnt/d/bin"}[p])
+    assert shellutil._env_value("C:/fake tools;D:/bin", "PATH") == "/mnt/c/fake tools:/mnt/d/bin:/usr/bin:/bin"
+
+
 def test_bash_kind_is_known():
     assert shellutil.bash_kind() in ("native", "wsl", "none")
 

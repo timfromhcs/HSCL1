@@ -23,7 +23,7 @@ def arts(tmp_path):
     img.write_bytes(b"img-bytes")
     iso_m = wim.build(iso, "0.1.0", False, "b" * 64, "c" * 40, False)
     (tmp_path / "x.iso.manifest.json").write_text(json.dumps(iso_m))
-    pre = {"image_sha256": sha(b"img-bytes"), "image_bytes": 9, "virtual_bytes": 40 << 30, "credential_scan": "clean", "first_boot": "OEM user setup"}
+    pre = {"hscl1_version": "0.1.0", "image_sha256": sha(b"img-bytes"), "image_bytes": 9, "virtual_bytes": 40 << 30, "credential_scan": "clean", "first_boot": "OEM user setup"}
     (tmp_path / "x.qcow2.manifest.json").write_text(json.dumps(pre))
     ev = tmp_path / "evidence.png"
     ev.write_bytes(b"png")
@@ -73,7 +73,7 @@ def test_unclean_credential_scan_is_refused(arts):
 
 
 def test_hash_mismatch_is_refused(arts):
-    arts[1].write_bytes(b"tampered")
+    arts[1].write_bytes(b"bad-bytes")
     with pytest.raises(mr.ReleaseError, match="ISO hash"):
         build(arts)
 
@@ -87,6 +87,124 @@ def test_missing_evidence_is_refused(arts):
 def test_placeholders_are_detected():
     with pytest.raises(mr.ReleaseError):
         mr.check_no_placeholders('{"sha256": "GENERATE_FROM_FINAL_ARTIFACT"}', "x")
+
+
+@pytest.mark.parametrize("field,value", [("git_dirty", None), ("git_dirty", 0),
+                                         ("qa_image", True), ("iso_bytes", 1),
+                                         ("git_commit", "unknown")])
+def test_incomplete_or_false_build_attestations_are_refused_before_writing(arts, field, value):
+    manifest = arts[0] / "x.iso.manifest.json"
+    data = json.loads(manifest.read_text())
+    data[field] = value
+    manifest.write_text(json.dumps(data))
+    with pytest.raises(mr.ReleaseError):
+        build(arts)
+    assert not (arts[0] / "out").exists()
+
+
+@pytest.mark.parametrize("version", ["1.0.0", "../escape", "0.1.0/other", "not-a-version"])
+def test_version_cannot_relabel_an_old_image_or_escape_output(arts, version):
+    with pytest.raises(mr.ReleaseError):
+        mr.build_release(version, arts[1], None, arts[0] / "out", {})
+    assert not (arts[0] / "out").exists()
+
+
+def test_stable_requires_a_complete_readiness_report(arts):
+    manifest = arts[0] / "x.iso.manifest.json"
+    data = json.loads(manifest.read_text())
+    data["version"] = "1.0.0"
+    manifest.write_text(json.dumps(data))
+    with pytest.raises(mr.ReleaseError, match="readiness"):
+        mr.build_release("1.0.0", arts[1], None, arts[0] / "out", {})
+    assert not (arts[0] / "out").exists()
+
+
+def test_placeholder_gap_fails_before_any_release_output(arts):
+    with pytest.raises(mr.ReleaseError, match="placeholder"):
+        mr.build_release("0.1.0", arts[1], None, arts[0] / "out", {}, ["TODO install"])
+    assert not (arts[0] / "out").exists()
+
+
+def test_evidence_must_be_a_nonempty_regular_file(arts):
+    with pytest.raises(mr.ReleaseError, match="evidence"):
+        mr.build_release("0.1.0", arts[1], None, arts[0] / "out", {"boot": arts[0]})
+    assert not (arts[0] / "out").exists()
+
+
+@pytest.mark.parametrize("timestamp", [True, "yesterday", "2026-02-30T12:00:00Z", "2026-11-08T12:00:00"])
+def test_build_timestamp_must_be_valid_utc(arts, timestamp):
+    path = arts[0] / "x.iso.manifest.json"
+    data = json.loads(path.read_text())
+    data["built_utc"] = timestamp
+    path.write_text(json.dumps(data))
+    with pytest.raises(mr.ReleaseError, match="timestamp"):
+        build(arts)
+    assert not (arts[0] / "out").exists()
+
+
+@pytest.mark.parametrize("version", [None, "0.0.1"])
+def test_prebuilt_cannot_be_relabelled_from_another_or_unknown_version(arts, version):
+    path = arts[0] / "x.qcow2.manifest.json"
+    data = json.loads(path.read_text())
+    data["hscl1_version"] = version
+    path.write_text(json.dumps(data))
+    with pytest.raises(mr.ReleaseError, match="prebuilt.*version"):
+        build(arts)
+    assert not (arts[0] / "out").exists()
+
+
+def readiness_fixture(arts):
+    manifest = arts[0] / "x.iso.manifest.json"
+    data = json.loads(manifest.read_text())
+    data["version"] = "1.0.0"
+    manifest.write_text(json.dumps(data))
+    report = {"schema": "hcs.release-readiness.v1", "version": "1.0.0",
+              "iso_sha256": data["iso_sha256"], "git_commit": data["git_commit"],
+              "reviewer": "test fixture reviewer",
+              "gates": {name: {"status": "PASS", "evidence": [
+                  {"path": arts[3].name, "sha256": mr.sha256(arts[3])}]}
+                  for name in mr.STABLE_GATES}}
+    path = arts[0] / "readiness.json"
+    path.write_text(json.dumps(report))
+    return path, report
+
+
+@pytest.mark.parametrize("defect", ["missing_gate", "failed", "skipped", "wrong_iso", "wrong_commit",
+                                    "no_reviewer", "no_evidence", "changed_evidence", "missing_evidence"])
+def test_stable_readiness_refuses_incomplete_failed_or_unbound_evidence(arts, defect):
+    path, report = readiness_fixture(arts)
+    if defect == "missing_gate":
+        del report["gates"]["vm_install"]
+    elif defect in ("failed", "skipped"):
+        report["gates"]["vm_install"]["status"] = defect.upper()
+    elif defect == "wrong_iso":
+        report["iso_sha256"] = "0" * 64
+    elif defect == "wrong_commit":
+        report["git_commit"] = "0" * 40
+    elif defect == "no_reviewer":
+        report["reviewer"] = " "
+    elif defect == "no_evidence":
+        report["gates"]["vm_install"]["evidence"] = []
+    elif defect == "changed_evidence":
+        arts[3].write_bytes(b"changed")
+    elif defect == "missing_evidence":
+        arts[3].unlink()
+    path.write_text(json.dumps(report))
+    with pytest.raises(mr.ReleaseError, match="readiness"):
+        mr.build_release("1.0.0", arts[1], None, arts[0] / "out", {}, readiness=path)
+    assert not (arts[0] / "out").exists()
+
+
+def test_stable_records_reviewed_artifact_bound_gate_report(arts):
+    path, report = readiness_fixture(arts)
+    out = arts[0] / "out"
+    mr.build_release("1.0.0", arts[1], None, out, {"boot": arts[3]}, readiness=path)
+    manifest = json.loads((out / "build-manifest.json").read_text())
+    assert manifest["readiness"] == report
+    assert manifest["evidence_sha256"]["boot"] == mr.sha256(arts[3])
+    assert manifest["published"] is False and manifest["signed"] is False
+    with pytest.raises(mr.ReleaseError, match="never overwritten"):
+        mr.build_release("1.0.0", arts[1], None, out, {}, readiness=path)
 
 
 def test_the_disk_image_is_optional_and_says_so(tmp_path):

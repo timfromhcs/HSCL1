@@ -58,8 +58,11 @@ def usable() -> bool:
 
 def to_bash_path(path: str | os.PathLike[str]) -> str:
     """Path string the detected bash can open: /mnt/c/... for WSL, forward slashes for Git Bash."""
-    p = Path(path).resolve()
     kind = bash_kind()
+    text = os.fspath(path)
+    if kind == "wsl" and text.startswith("/") and not text.startswith("//"):
+        return text
+    p = Path(path).resolve()
     if kind == "wsl":
         drive = p.drive.rstrip(":").lower()
         return "/mnt/" + drive + p.as_posix()[2:]
@@ -90,9 +93,13 @@ def _env_value(value: object, name: str = "") -> str:
     if bash_kind() != "wsl":
         return text
     if name.upper() == "PATH":
+        # Callers can already have constructed a guest PATH. Resolving it through
+        # Windows Path turns /mnt/c/... into E:/mnt/c/... and hides their tools.
+        if text.startswith("/") and ";" not in text:
+            return text
         # Windows PATH list -> colon-separated POSIX paths (the fake binaries live on the host drive),
         # then the guest PATH so `bash`, `sh` and coreutils stay reachable.
-        parts = [p for p in text.split(os.pathsep) if p]
+        parts = [p for p in text.split(";") if p]
         converted = ":".join(to_bash_path(p) for p in parts)
         return f"{converted}:{guest_path()}"
     if _WIN_PATH.match(text):
