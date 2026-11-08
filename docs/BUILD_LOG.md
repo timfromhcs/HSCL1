@@ -1184,3 +1184,25 @@ Decision rule: pick the one that unblocks the most downstream work. HCSUDA H3c-3
 - **Pre-Commit Gate:**
   - Full `forge check`: `artifacts/forge/20261108-175817/summary.json` (pytest 539.8s PASS, bash -n 56.8s PASS, shellcheck 2.3s PASS, secret scan 1.7s PASS). Status: **OK**.
 
+
+### V1-D Live Interactive Showcase Capture & README Best Practices Upgrade (2026-11-08)
+
+- **Interactive Showcase Driver:** Created `scripts/dev/live_interactive_showcase.py` and `scripts/dev/test_guest_env.py` (added with `--chmod=+x`). Uses genuine Wayland user environment variables (`WAYLAND_DISPLAY=wayland-0 DISPLAY=:0 XDG_RUNTIME_DIR=/run/user/1000 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus`) and QMP keyboard/mouse chords to navigate and capture the booted live system:
+  - Clean desktop with top status bar and centered floating dock (`01_desktop_clean.png`).
+  - Dynamic GPU/CPU shader wallpapers: aurora, grid pulse, starfield, and midnight rain (`02_wallpaper_*.png`).
+  - Kickoff application launcher / Start Menu (`03_app_launcher_kickoff.png`).
+  - Interactive Konsole terminal running live `hscl status`, `hscl doctor`, `hscl lab --help`, `hscl graphics detect`, and `hscl memory status` (`08_terminal_*.png`, `09_terminal_*.png`).
+  - Native Qt 6 / QML Control Center with active keyboard navigation across Overview, Appearance & Design Tokens, Security Baseline & Firewall Policy, and About / Attestation pages (`04_control_center_overview.png` - `07_control_center_about.png`).
+  - Dolphin File Manager with HCS styling (`10_app_dolphin.png`).
+  - Kate Text Editor displaying `/etc/os-release` with full syntax highlighting (`14_app_kate.png`).
+  - Calamares Installer welcome screen and timezone/location mapping (`11_installer_welcome.png`, `12_installer_location.png`).
+  - Trilingual Offline Handbook viewer (`13_offline_handbook.png`).
+  - Final post-session desktop state (`15_desktop_final.png`).
+  - All 18 screenshots captured, verified with pairwise image diffs and Pillow color histogram metrics, and recorded in `docs/img/showcase/manifest.json`. Status: **VM-VERIFIED**.
+- **README 2026 Best Practices Redesign:**
+  - Above-the-fold value proposition: "One system. Three modes. Your machine, your rules."
+  - Quick-navigation header bar linking features, quick start, live showcase, 3 modes, CLI, troubleshooting, download, and build.
+  - Three core highlight pillars answering "Why HSCL1?" in <200 words.
+  - New Troubleshooting & VM Tips matrix covering WHPX/KVM acceleration, RAM allocation, UEFI vs BIOS, and first-run dialogs.
+  - Verified trademark attestation and mechanical checks via `scripts/check_trademarks.py` passing 100% clean.
+  - Rust CLI documentation test `cargo test -p hscl --bin hscl documented_hscl_commands` passing 100% green.
