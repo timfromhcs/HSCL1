@@ -11,6 +11,8 @@ $ hscl system info
 $ hscl security status
 $ hscl ai detect
 $ hscl appearance theme list
+$ hscl language status
+$ hscl language list
 ```
 
 | Code de sortie | Signification |

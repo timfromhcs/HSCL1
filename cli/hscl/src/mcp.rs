@@ -155,6 +155,54 @@ fn tools() -> Vec<Tool> {
                 Ok(r)
             },
         },
+        Tool {
+            name: "hscl_language_status",
+            desc: "Current desktop language and locale configuration.",
+            write: false,
+            schema: empty,
+            args: |a| {
+                no_extra(a, &[])?;
+                Ok(v(&["language", "status"]))
+            },
+        },
+        Tool {
+            name: "hscl_language_list",
+            desc: "Supported desktop languages (en, de, fr).",
+            write: false,
+            schema: empty,
+            args: |a| {
+                no_extra(a, &[])?;
+                Ok(v(&["language", "list"]))
+            },
+        },
+        Tool {
+            name: "hscl_language_set",
+            desc: "Set user desktop language (en, de, fr). Needs --allow-write.",
+            write: true,
+            schema: || {
+                json!({
+                    "type": "object",
+                    "properties": {
+                        "lang": {"type": "string"},
+                        "dry_run": {"type": "boolean"}
+                    },
+                    "required": ["lang"],
+                    "additionalProperties": false
+                })
+            },
+            args: |a| {
+                no_extra(a, &["lang", "dry_run"])?;
+                let l = str_arg(a, "lang")?;
+                if !valid_id(l, 16) {
+                    return Err(anyhow!("invalid language identifier"));
+                }
+                let mut r = v(&["language", "set", l]);
+                if a.get("dry_run").and_then(Value::as_bool).unwrap_or(false) {
+                    r.push("--dry-run".into());
+                }
+                Ok(r)
+            },
+        },
     ]
 }
 
@@ -365,6 +413,13 @@ mod tests {
         call("hscl_lab_status", json!({}), false, &r);
         call("hscl_wallpaper_list", json!({}), false, &r);
         call("hscl_wallpaper_apply", json!({"name":"rain"}), true, &r);
+        call("hscl_language_status", json!({}), false, &r);
+        call(
+            "hscl_language_set",
+            json!({"lang":"de","dry_run":true}),
+            true,
+            &r,
+        );
         let c = r.0.borrow();
         assert_eq!(c[0], ["status"]);
         assert_eq!(
@@ -381,6 +436,8 @@ mod tests {
         assert_eq!(c[6], ["lab", "status"]);
         assert_eq!(c[7], ["wallpaper", "list"]);
         assert_eq!(c[8], ["wallpaper", "apply", "rain"]);
+        assert_eq!(c[9], ["language", "status"]);
+        assert_eq!(c[10], ["language", "set", "de", "--dry-run"]);
     }
 
     #[test]
@@ -401,6 +458,9 @@ mod tests {
             ("hscl_wallpaper_apply", json!({"name":"bad/name"})),
             ("hscl_wallpaper_apply", json!({})),
             ("hscl_graphics_apply", json!({"evil":true})),
+            ("hscl_language_set", json!({"lang":"de;evil"})),
+            ("hscl_language_set", json!({})),
+            ("hscl_language_status", json!({"extra":1})),
         ] {
             let resp = call(name, args, true, &r);
             assert_eq!(resp["error"]["code"], -32602, "{name}");

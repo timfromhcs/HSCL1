@@ -15,6 +15,7 @@ mod governor;
 mod graphics;
 mod hw;
 mod lab;
+mod language;
 mod mcp;
 mod memory;
 mod profile;
@@ -167,6 +168,11 @@ enum Cmd {
     Appearance {
         #[command(subcommand)]
         cmd: AppearanceCmd,
+    },
+    /// Language configuration and switching (AGENTS.md section 10.3).
+    Language {
+        #[command(subcommand)]
+        cmd: LanguageCmd,
     },
 }
 
@@ -540,6 +546,22 @@ enum ThemeCmd {
     },
     /// Restore the default theme (hcs-midnight).
     Restore {
+        #[arg(long)]
+        dry_run: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum LanguageCmd {
+    /// Show current language configuration and active environment.
+    Status,
+    /// List supported languages (en, de, fr).
+    List,
+    /// Set the user desktop language (en, de, fr).
+    Set {
+        /// Language code: en, de, or fr.
+        lang: String,
+        /// Show changes without writing files.
         #[arg(long)]
         dry_run: bool,
     },
@@ -1196,6 +1218,7 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
         Cmd::Appearance {
             cmd: AppearanceCmd::Theme { cmd },
         } => return run_theme(j, cmd),
+        Cmd::Language { cmd } => return run_language(j, cmd),
         Cmd::Doctor { full } => {
             let report = doctor::run(full);
             let v = serde_json::to_value(&report)?;
@@ -1768,6 +1791,121 @@ fn set_theme(
     appearance::apply(&plan, cfg, &mut appearance::SystemRunner, now)?;
     let v = json!({"applied": theme.id});
     print_value(j, &v, || format!("applied {}", theme.id));
+    Ok(exit::OK)
+}
+
+fn run_language(j: bool, cmd: LanguageCmd) -> anyhow::Result<u8> {
+    let cfg = language::config_dir();
+    match cmd {
+        LanguageCmd::Status => {
+            let st = language::current_status(&cfg);
+            let v = serde_json::to_value(&st)?;
+            print_value(j, &v, || {
+                let p_ex = if st.plasma_localerc_exists {
+                    "exists"
+                } else {
+                    "not created"
+                };
+                let l_ex = if st.locale_conf_exists {
+                    "exists"
+                } else {
+                    "not created"
+                };
+                format!(
+                    "current: {} ({})\nsupported: {}\nplasma translation: {}\nlocale format: {}\nplasma config: {} ({p_ex})\nlocale config: {} ({l_ex})",
+                    st.current,
+                    st.current_name,
+                    st.supported.join(", "),
+                    st.plasma_language.as_deref().unwrap_or("none"),
+                    st.env_lang.as_deref().unwrap_or(&st.system_default),
+                    st.plasma_localerc.display(),
+                    st.locale_conf.display()
+                )
+            });
+        }
+        LanguageCmd::List => {
+            let st = language::current_status(&cfg);
+            let items: Vec<_> = language::SUPPORTED
+                .iter()
+                .map(|l| {
+                    json!({
+                        "id": l.id,
+                        "name": l.name,
+                        "locale": l.locale,
+                        "plasma_translations": l.plasma_translations,
+                        "is_current": l.id == st.current,
+                    })
+                })
+                .collect();
+            let v = json!({
+                "current": st.current,
+                "languages": items,
+            });
+            print_value(j, &v, || {
+                let mut out = Vec::new();
+                for l in language::SUPPORTED {
+                    let mark = if l.id == st.current { "*" } else { " " };
+                    out.push(format!("{mark} {:<4} {:<10} ({})", l.id, l.name, l.locale));
+                }
+                out.join("\n")
+            });
+        }
+        LanguageCmd::Set { lang, dry_run } => {
+            let (plan, written) = language::set_language(&cfg, &lang, dry_run)?;
+            if dry_run {
+                let v = json!({
+                    "dry_run": true,
+                    "lang": plan.lang,
+                    "name": plan.name,
+                    "locale": plan.locale,
+                    "plasma_translations": plan.plasma_translations,
+                    "files": plan.files.iter().map(|f| json!({"path": f.path, "content": f.content})).collect::<Vec<_>>(),
+                });
+                print_value(j, &v, || {
+                    let file_lines = plan
+                        .files
+                        .iter()
+                        .map(|f| format!("  would write: {}", f.path.display()))
+                        .collect::<Vec<_>>()
+                        .join("\n");
+                    format!(
+                        "[dry-run] Would set desktop language to {} ({})\n  locale: {}\n  plasma translations: {}\n{}",
+                        plan.lang,
+                        plan.name,
+                        plan.locale,
+                        plan.plasma_translations,
+                        file_lines
+                    )
+                });
+            } else {
+                let paths = written.unwrap_or_default();
+                let v = json!({
+                    "applied": plan.lang,
+                    "name": plan.name,
+                    "locale": plan.locale,
+                    "plasma_translations": plan.plasma_translations,
+                    "files_written": paths,
+                    "note": format!("Language set to {} ({}). Changes take effect upon next login or desktop restart.", plan.lang, plan.name),
+                });
+                print_value(j, &v, || {
+                    let file_lines = paths
+                        .iter()
+                        .map(|p| format!("  {}", p.display()))
+                        .collect::<Vec<_>>()
+                        .join("\n");
+                    format!(
+                        "applied: {} ({})\nlocale: {}\nupdated:\n{}\nLanguage set to {} ({}). Changes take effect upon next login or desktop restart.",
+                        plan.lang,
+                        plan.name,
+                        plan.locale,
+                        file_lines,
+                        plan.lang,
+                        plan.name
+                    )
+                });
+            }
+        }
+    }
     Ok(exit::OK)
 }
 
