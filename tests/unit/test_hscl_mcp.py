@@ -77,13 +77,16 @@ def test_hscl_mcp_handshake_and_read_only_tools(hscl_bin: Path):
 
         tools = s.req(2, "tools/list", {})
         names = [t["name"] for t in tools["result"]["tools"]]
-        assert len(names) == 15
+        assert len(names) == 17
         assert "hscl_version" in names
         assert "hscl_cqhecs_status" in names
         assert "hscl_memory_status" in names
         assert "hscl_lab_status" in names
         assert "hscl_wallpaper_list" in names
+        assert "hscl_language_status" in names
+        assert "hscl_language_list" in names
         assert "hscl_wallpaper_apply" not in names  # write tool hidden in read-only mode
+        assert "hscl_language_set" not in names  # write tool hidden in read-only mode
 
         # Tool calls return structured text content and no protocol error
         ver = s.req(3, "tools/call", {"name": "hscl_version", "arguments": {}})
@@ -111,10 +114,11 @@ def test_hscl_mcp_allow_write_tools(hscl_bin: Path):
         s.req(1, "initialize", {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "test"}})
         tools = s.req(2, "tools/list", {})
         names = [t["name"] for t in tools["result"]["tools"]]
-        assert len(names) == 18
+        assert len(names) == 21
         assert "hscl_wallpaper_apply" in names
         assert "hscl_theme_set" in names
         assert "hscl_graphics_apply" in names
+        assert "hscl_language_set" in names
 
         # Invalid preset argument is rejected with JSON-RPC error
         bad = s.req(3, "tools/call", {"name": "hscl_wallpaper_apply", "arguments": {"name": "../traversal"}})
