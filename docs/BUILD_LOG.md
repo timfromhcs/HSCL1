@@ -1236,3 +1236,21 @@ Decision rule: pick the one that unblocks the most downstream work. HCSUDA H3c-3
 
 - **CQ-HECS Local Studio Guard:** Reviewed and closed PR #53 on `timfromhcs/CQ-HECS` (`fa1cc87`). Enforces Host/Origin allow-lists, per-launch bearer tokens on `/api/`, bounded rejected request body draining, and URL fragment token stripping.
 - **Verification:** 17 of 17 CI checks passed green on GitHub Actions (Linux ASan/UBSan native, Python 3.12-3.14 suites, Windows C++20 Vulkan, Web emulator WASM). Local clone in `/home/tim/src/CQ-HECS` synchronized to `main`.
+
+### V1-H Security Lab CLI Attestation & Refusal Contract Test Suite (2026-11-08)
+
+- **Automated CLI Gate Coverage:** Created `tests/unit/test_security_lab_cli.py` (130 lines) asserting the security boundary of `hscl lab`:
+  - Enforced fail-closed behavior on all subcommands (`run`, `install`, `commit`, `destroy`) when `--yes="I am authorized to test this target"` is omitted or incomplete.
+  - Verified mandatory `podman` availability precheck prior to launching any lab workload.
+  - Asserted structured JSON refusal payloads (`executed: false`, `required_attestation`, `hint`) with nonzero exit codes.
+- **Verification & PR Merge:** Passed 8/8 unit tests locally on Windows and WSL Linux. Created PR #44; all 16 of 16 CI checks passed 100% green on GitHub Actions, squash-merged to `main` as `9b3047b`.
+
+### V1-I Privacy Session Isolation & Threat Model Gate Tests (2026-11-08)
+
+- **Threat Model & Boundaries Assertion:** Created `tests/unit/test_privacy_session.py` asserting strict adherence to Section 0.3/1.2:
+  - Disclaims Tails equivalence, anti-surveillance guarantees, and forensic invisibility.
+  - Verifies `docs/KNOWN_LIMITATIONS.md` lists Privacy Mode honestly as `PLANNED` with transparent scope.
+  - Verifies live session memory layout: compressed RAM swap priority 100 (`zram-generator.conf` `swap-priority = 100`, `99-hscl-memory.conf` `vm.swappiness = 100`), preventing unencrypted disk paging.
+  - Verifies `fs.suid_dumpable = 0` preventing core dumps from leaking to persistent disks.
+  - Verifies casper overlay preservation for ephemeral live sessions without automounting host drives.
+- **Verification & PR Merge:** Passed 4/4 tests locally on Windows (0.22s) and WSL Linux (0.54s). Created PR #45; all 16 of 16 CI checks passed 100% green on GitHub Actions, squash-merged to `main` as `933050a`.
