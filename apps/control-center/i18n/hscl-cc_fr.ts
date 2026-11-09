@@ -23,6 +23,10 @@
         <source>About</source>
         <translation>À propos</translation>
     </message>
+    <message>
+        <source>Miner</source>
+        <translation>Mineur</translation>
+    </message>
 </context>
 <context>
     <name>NavRail</name>
@@ -268,6 +272,77 @@
     <message>
         <source>HSCL1 is not Tails and not an official Kali release. It is pre-alpha software.\nKALI LINUX™ is a trademark of OffSec. HSCL1 is not affiliated with or endorsed by the Tails project.</source>
         <translation>HSCL1 n'est pas Tails ni une version officielle de Kali. C'est un logiciel pré-alpha.\nKALI LINUX™ est une marque d'OffSec. HSCL1 n'est ni affilié au projet Tails ni approuvé par lui.</translation>
+    </message>
+</context>
+<context>
+    <name>MinerPage</name>
+    <message>
+        <source>Miner</source>
+        <translation>Mineur</translation>
+    </message>
+    <message>
+        <source>Read-only view of the miner this workspace last contacted. Nothing is configured here.</source>
+        <translation>Vue en lecture seule du mineur contacté en dernier. Rien n'est configuré ici.</translation>
+    </message>
+    <message>
+        <source>Device</source>
+        <translation>Appareil</translation>
+    </message>
+    <message>
+        <source>Address</source>
+        <translation>Adresse</translation>
+    </message>
+    <message>
+        <source>No device configured</source>
+        <translation>Aucun appareil configuré</translation>
+    </message>
+    <message>
+        <source>Hostname</source>
+        <translation>Nom d'hôte</translation>
+    </message>
+    <message>
+        <source>Board</source>
+        <translation>Carte</translation>
+    </message>
+    <message>
+        <source>Firmware</source>
+        <translation>Micrologiciel</translation>
+    </message>
+    <message>
+        <source>Mining</source>
+        <translation>Minage</translation>
+    </message>
+    <message>
+        <source>Hashrate</source>
+        <translation>Taux de hachage</translation>
+    </message>
+    <message>
+        <source>Temperature</source>
+        <translation>Température</translation>
+    </message>
+    <message>
+        <source>Power</source>
+        <translation>Puissance</translation>
+    </message>
+    <message>
+        <source>Shares</source>
+        <translation>Parts</translation>
+    </message>
+    <message>
+        <source>Pool</source>
+        <translation>Pool</translation>
+    </message>
+    <message>
+        <source>Could not read miner data</source>
+        <translation>Impossible de lire les données du mineur</translation>
+    </message>
+    <message>
+        <source>Refresh</source>
+        <translation>Actualiser</translation>
+    </message>
+    <message>
+        <source>Refresh miner data</source>
+        <translation>Actualiser les données du mineur</translation>
     </message>
 </context>
 </TS>

@@ -8,3 +8,4 @@ OverviewPage 1.0 pages/OverviewPage.qml
 AppearancePage 1.0 pages/AppearancePage.qml
 SecurityPage 1.0 pages/SecurityPage.qml
 AboutPage 1.0 pages/AboutPage.qml
+MinerPage 1.0 pages/MinerPage.qml

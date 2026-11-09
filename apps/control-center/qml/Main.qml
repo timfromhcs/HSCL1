@@ -14,7 +14,7 @@ ApplicationWindow {
 
     Component.onCompleted: rail.forceActiveFocus()
 
-    readonly property var pageTitles: [qsTr("Overview"), qsTr("Appearance"), qsTr("Security"), qsTr("About")]
+    readonly property var pageTitles: [qsTr("Overview"), qsTr("Appearance"), qsTr("Security"), qsTr("Miner"), qsTr("About")]
 
     RowLayout {
         anchors.fill: parent
@@ -36,6 +36,7 @@ ApplicationWindow {
             OverviewPage { backend: cli }
             AppearancePage { backend: cli }
             SecurityPage { backend: cli }
+            MinerPage { backend: cli }
             AboutPage { backend: cli }
         }
     }

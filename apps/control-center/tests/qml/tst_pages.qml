@@ -20,6 +20,8 @@ Item {
             else if (key === "security status") data = { secure_boot: "yes", apparmor: "no", firewall_ufw_enabled: "unknown", forbidden_apt_sources: ["evil.example"] }
             else if (key === "doctor") data = { passed: 7, warned: 3, failed: 2, skipped: 1, checks: [{ id: "arch", level: "pass", detail: "x86_64" }, { id: "probe-x", level: "warn", detail: "mock detail" }] }
             else if (key === "version") data = { product: "HSCL1", version: "9.8.7-mock" }
+            else if (key === "miner status") data = { last_device: "192.168.178.61", esptool_available: true, receiver_port: 8765 }
+            else if (key.indexOf("miner probe") === 0) data = { host: "192.168.178.61", hostname: "timmock", asic: "BM1366", board_version: "201", firmware: "v-mock", hash_rate: 450.5, temp_c: 60, power_w: 11.2, shares_accepted: 10, shares_rejected: 1, pool_url: "pool.example", pool_port: 3333 }
             else if (key === "appearance theme list") data = { current: "hcs-nord", themes: [{ id: "hcs-midnight", title: "HCS Midnight" }, { id: "hcs-nord", title: "HCS Nord" }] }
             var ok = data !== null
             Qt.callLater(function () { finished(id, ok, data, ok ? "" : "no mock") })
@@ -38,6 +40,7 @@ Item {
     Component { id: securityC; SecurityPage { width: 900; height: 600 } }
     Component { id: appearanceC; AppearancePage { width: 900; height: 600 } }
     Component { id: aboutC; AboutPage { width: 900; height: 600 } }
+    Component { id: minerC; MinerPage { width: 900; height: 600 } }
     Component { id: railC; NavRail { width: 220; height: 400; model: ["A", "B", "C"] } }
 
     TestCase {
@@ -78,8 +81,23 @@ Item {
             verify(joined(p).indexOf("not Tails") >= 0)
         }
 
-        function test_pages_survive_missing_backend_data() {
-            var failing = createTemporaryObject(overviewC, root, { backend: null })
+        function test_miner_page_chains_status_then_probe() {
+            // The page first reads `miner status` for the last device, then probes it; the mock returns
+            // a distinctive hostname and hashrate so a constant would fail the test.
+            var p = createTemporaryObject(minerC, root, { backend: mock })
+            tryVerify(function () { return joined(p).indexOf("timmock") >= 0 })
+            var all = joined(p)
+            verify(all.indexOf("450.5") >= 0)
+            verify(all.indexOf("pool.example:3333") >= 0)
+            verify(all.indexOf("192.168.178.61") >= 0)
+        }
+
+        function test_miner_page_survives_missing_backend_data() {
+            var failing = createTemporaryObject(minerC, root, { backend: null })
+            verify(failing !== null)
+        }
+
+        function test_pages_survive_missing_backend_data() {            var failing = createTemporaryObject(overviewC, root, { backend: null })
             verify(failing !== null)
         }
 
