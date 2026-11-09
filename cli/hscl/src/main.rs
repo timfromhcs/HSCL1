@@ -252,7 +252,7 @@ enum MinerCmd {
         #[arg(long)]
         firmware: PathBuf,
         /// Flash offset: 0x0 for a merged factory image, 0x10000 for an app-only image.
-        #[arg(long, default_value = "0x0")]
+        #[arg(long, default_value = "0x10000")]
         offset: String,
         #[arg(long)]
         yes: Option<String>,

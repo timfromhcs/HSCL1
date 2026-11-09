@@ -1744,6 +1744,12 @@ Owner instruction in-session: "flash timsminer". Executed through the product pa
   ASIC `BM1366` unchanged, **MAC unchanged** (correct variant), hostname preserved.
 - **Post-flash telemetry:** 11.30 W, ~452 GH/s, 24.97 J/TH, fan 2439 rpm. Long-run reject rate before the
   flash was 145 / 30 238 ≈ 0.48 %; a ten-share window is not a rate.
+- **USB path exercised on the same unit (COM3, ESP32-S3 rev v0.2, 16 MB):** merged factory image
+  15 802 368 B, SHA-256 `fadf559c…`, written at `0x0` in 49.7 s with a verified hash. **It erased NVS**,
+  as a factory image must: the device returned with `sta.ssid = "myssid"` and the placeholder pool, and
+  the serial log repeats `No access point found (Error 201)`. The tool now defaults to `--offset 0x10000`
+  and warns that `0x0` erases Wi-Fi/pool settings. Reconfiguring the network needs the owner's
+  credentials, so the unit is reachable on USB but not on the LAN until then.
 - Raw data and the series JSON live in `artifacts/miner/`. The summary is
   [docs/miner/TELEMETRY.md](miner/TELEMETRY.md). The pool account string is deliberately not copied
   into the repository.

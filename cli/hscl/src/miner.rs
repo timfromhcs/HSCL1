@@ -426,6 +426,7 @@ pub fn plan_flash(port: &str, firmware: &Path, offset: &str) -> Result<FlashPlan
         warnings: vec![
             "USB flashing writes the miner's flash: only do this on a device you own".into(),
             "a merged factory image at 0x0 replaces bootloader, partitions and app".into(),
+            "a factory image at 0x0 also erases NVS: Wi-Fi and pool settings are lost (measured 2026-11-09)".into(),
             "an app-only image belongs at 0x10000".into(),
             "hold BOOT and tap RESET if the port does not appear".into(),
         ],

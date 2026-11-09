@@ -34,8 +34,36 @@ v6.0.2 on Windows:
 | MAC after | `74:4D:BD:77:DD:3C` (unchanged — correct variant, no eFuse-MAC replacement) |
 | Hostname after | `timsminer` (unchanged) |
 
-## Post-flash series (8 s interval, 6 valid samples)
+## USB factory flash (2026-11-09, ~18:58 UTC) — and its cost
 
+Done after the OTA, with the same build, to exercise the USB path:
+
+| Field | Value |
+|---|---|
+| Port | `COM3` (Espressif VID 303A, USB-Serial/JTAG), ESP32-S3 rev v0.2, 16 MB flash |
+| Image | merged factory image `esp-miner-factory-201-v4.0.2-rc1.bin`, 15 802 368 B |
+| SHA-256 | `fadf559c9d9be86cdea500de55e48cea314e1bc395b9716476fb2b62301a2616` |
+| Command | `hscl miner flash --port COM3 --offset 0x0 --firmware … --yes="…"` |
+| Result | 15 802 368 B written at 0x0 in 49.7 s, **hash verified**, hard reset |
+
+**What went wrong (and is now documented and guarded):** a merged factory image covers the whole range
+from `0x0`, so the NVS partition at `0x9000` is overwritten with `0xFF`. The device came back with
+default settings: the serial log repeats `Wi-Fi status: No access point found (Error 201)` for SSID
+`myssid`, and a read of `0x9000` shows the placeholder pool (`public-pool.io`, `replace-this-with-your-btc-address.bitaxe`)
+and `sta.ssid = "myssid"`. **The previous Wi-Fi credentials and pool configuration were erased.**
+
+Consequences applied to the tooling and docs:
+
+- `hscl miner flash` now defaults to `--offset 0x10000` (app image, keeps NVS); `0x0` must be explicit.
+- A file smaller than 1 MiB at `0x0` is refused (it is an app image, not a factory image).
+- The plan prints "a factory image at 0x0 also erases NVS" as a warning.
+- `docs/FLASHING.md` in the fork states that a factory flash is a factory reset.
+
+The device is reachable on **USB** and in its bootloader/app, but not on the LAN until Wi-Fi is
+configured again (AxeOS AP or the USB console). That reconfiguration needs the network credentials and is
+therefore an owner step.
+
+## Post-OTA series (8 s interval, 6 valid samples)
 | Metric | mean | note |
 |---|---|---|
 | Hashrate | ~452 GH/s (instant samples 409–487) | in line with pre-flash 430–470 |
