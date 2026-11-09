@@ -78,7 +78,7 @@ def test_ota_and_flash_refuse_without_the_exact_phrase(tmp_path):
     fw.write_bytes(b"x" * 64)
     ota = _run_hscl(["miner", "ota", "192.168.178.61", "--firmware", str(fw), "--yes", "yes", "--dry-run"])
     assert ota.returncode != 0 and "authorized" in ota.stderr.lower()
-    flash = _run_hscl(["miner", "flash", "--port", "COM5", "--firmware", str(fw), "--yes", "yes", "--dry-run"])
+    flash = _run_hscl(["miner", "flash", "--port", "COM5", "--offset", "0x10000", "--firmware", str(fw), "--yes", "yes", "--dry-run"])
     assert flash.returncode != 0 and "authorized" in flash.stderr.lower()
 
 
@@ -95,14 +95,14 @@ def test_dry_runs_print_the_command_and_write_nothing(tmp_path):
     assert "nothing was sent" in ota.stdout
     assert not (cfg / "miner.json").exists(), "a dry run must not write configuration"
     flash = _run_hscl(
-        ["miner", "flash", "--port", "COM5", "--firmware", str(fw), "--yes", AUTH, "--dry-run", "--json"],
+        ["miner", "flash", "--port", "COM5", "--offset", "0x10000", "--firmware", str(fw), "--yes", AUTH, "--dry-run", "--json"],
         env=env,
     )
     assert flash.returncode == 0, flash.stderr
     data = json.loads(flash.stdout)
     assert data["dry_run"] is True
     assert "write_flash" in data["argv"]
-    assert "0x0" in data["argv"]
+    assert "0x10000" in data["argv"]
 
 
 def test_status_uses_the_override_config_dir_not_the_working_directory(tmp_path):

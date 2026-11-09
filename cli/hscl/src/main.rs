@@ -251,6 +251,9 @@ enum MinerCmd {
         port: String,
         #[arg(long)]
         firmware: PathBuf,
+        /// Flash offset: 0x0 for a merged factory image, 0x10000 for an app-only image.
+        #[arg(long, default_value = "0x0")]
+        offset: String,
         #[arg(long)]
         yes: Option<String>,
         #[arg(long)]
@@ -3763,11 +3766,12 @@ fn run_miner(j: bool, cmd: MinerCmd) -> anyhow::Result<u8> {
         MinerCmd::Flash {
             port,
             firmware,
+            offset,
             yes,
             dry_run,
             json,
         } => {
-            let plan = miner::plan_flash(&port, &firmware)?;
+            let plan = miner::plan_flash(&port, &firmware, &offset)?;
             let done = miner::flash(&plan, yes.as_deref().unwrap_or(""), dry_run)?;
             let v = serde_json::to_value(&done)?;
             print_value(json || j, &v, || {

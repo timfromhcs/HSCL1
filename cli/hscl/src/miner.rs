@@ -347,14 +347,29 @@ pub struct FlashPlan {
 }
 
 /// Find a usable esptool invocation without assuming a PATH entry exists.
+///
+/// `HSCL_ESPTOOL` wins (whitespace-separated, e.g. `C:\esp\python.exe -m esptool`), which is how the
+/// ESP-IDF virtualenv is used without activating it. Otherwise the script/console entry point is
+/// preferred, then `python -m esptool` (the name that actually exists on Windows), then `python3`.
 pub fn esptool_command() -> Vec<String> {
+    if let Ok(v) = std::env::var("HSCL_ESPTOOL") {
+        let parts: Vec<String> = v.split_whitespace().map(str::to_string).collect();
+        if !parts.is_empty() {
+            return parts;
+        }
+    }
     if which("esptool.py").is_some() {
         return vec!["esptool.py".into()];
     }
     if which("esptool").is_some() {
         return vec!["esptool".into()];
     }
-    vec!["python3".into(), "-m".into(), "esptool".into()]
+    for py in ["python", "python3"] {
+        if which(py).is_some() {
+            return vec![py.into(), "-m".into(), "esptool".into()];
+        }
+    }
+    vec!["python".into(), "-m".into(), "esptool".into()]
 }
 
 fn which(name: &str) -> Option<PathBuf> {
@@ -365,11 +380,23 @@ fn which(name: &str) -> Option<PathBuf> {
     })
 }
 
-pub fn plan_flash(port: &str, firmware: &Path) -> Result<FlashPlan> {
+pub fn plan_flash(port: &str, firmware: &Path, offset: &str) -> Result<FlashPlan> {
     let meta = std::fs::metadata(firmware)
         .with_context(|| format!("cannot read firmware {}", firmware.display()))?;
     if !meta.is_file() || meta.len() == 0 {
         bail!("firmware is not a non-empty file: {}", firmware.display());
+    }
+    // Offset hygiene: 0x0 is a merged factory image (bootloader + partitions + app + otadata) and is
+    // several MiB. Writing a bare app image at 0x0 destroys the bootloader, so a small file at 0x0 is
+    // refused instead of trusted.
+    let off = offset.trim().to_ascii_lowercase();
+    let is_factory_offset = off == "0x0" || off == "0";
+    if is_factory_offset && meta.len() < 1024 * 1024 {
+        bail!(
+            "refusing {} bytes at 0x0: that is an app image, not a merged factory image. \
+             Use --offset 0x10000 for an app image, or build a factory image with esptool merge_bin",
+            meta.len()
+        );
     }
     let sha = sha256_file(firmware)?;
     let mut argv = esptool_command();
@@ -383,7 +410,7 @@ pub fn plan_flash(port: &str, firmware: &Path) -> Result<FlashPlan> {
             "460800",
             "write_flash",
             "-z",
-            "0x0",
+            &off,
         ]
         .iter()
         .map(|s| s.to_string()),
@@ -393,12 +420,13 @@ pub fn plan_flash(port: &str, firmware: &Path) -> Result<FlashPlan> {
         port: port.to_string(),
         firmware: firmware.display().to_string(),
         firmware_sha256: sha,
-        offset: "0x0".into(),
+        offset: off,
         argv,
         dry_run: true,
         warnings: vec![
             "USB flashing writes the miner's flash: only do this on a device you own".into(),
-            "a factory image at 0x0 replaces the bootloader, partitions and app".into(),
+            "a merged factory image at 0x0 replaces bootloader, partitions and app".into(),
+            "an app-only image belongs at 0x10000".into(),
             "hold BOOT and tap RESET if the port does not appear".into(),
         ],
     })
@@ -463,7 +491,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let fw = dir.path().join("esp-miner.bin");
         std::fs::write(&fw, b"firmware").unwrap();
-        let plan = plan_flash("COM5", &fw).unwrap();
+        let plan = plan_flash("COM5", &fw, "0x10000").unwrap();
         for bad in [
             "",
             "yes",
@@ -475,6 +503,28 @@ mod tests {
         let dry = flash(&plan, AUTH_PHRASE, true).unwrap();
         assert!(dry.dry_run);
         assert_eq!(dry.argv[0], esptool_command()[0]);
+        assert_eq!(dry.offset, "0x10000");
+    }
+
+    #[test]
+    fn an_app_image_at_offset_zero_is_refused() {
+        // Writing a bare app image at 0x0 destroys the bootloader. The guard must catch it.
+        let dir = tempfile::tempdir().unwrap();
+        let fw = dir.path().join("esp-miner.bin");
+        std::fs::write(&fw, vec![0u8; 4096]).unwrap();
+        let err = plan_flash("COM5", &fw, "0x0").unwrap_err().to_string();
+        assert!(err.contains("factory image"), "{err}");
+        assert!(plan_flash("COM5", &fw, "0x10000").is_ok());
+    }
+
+    #[test]
+    fn a_merged_factory_image_is_allowed_at_zero() {
+        let dir = tempfile::tempdir().unwrap();
+        let fw = dir.path().join("factory.bin");
+        std::fs::write(&fw, vec![0u8; 2 * 1024 * 1024]).unwrap();
+        let plan = plan_flash("COM5", &fw, "0x0").unwrap();
+        assert_eq!(plan.offset, "0x0");
+        assert!(plan.argv.join(" ").contains("write_flash -z 0x0"));
     }
 
     #[test]
