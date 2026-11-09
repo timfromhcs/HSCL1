@@ -98,6 +98,38 @@ def test_bash_gate_fails_a_broken_script(tmp_path):
     assert res.status == "FAIL" and "t.sh" in res.detail
 
 
+def test_bash_gate_retries_a_launcher_failure_with_empty_stderr(tmp_path, monkeypatch):
+    """2026-11-09: a WSL cold start exited non-zero with empty stderr on a valid script and turned the
+    gate red for one run. A syntax error always prints file/line, so an empty stderr is retried once."""
+    good = make_tree(tmp_path / "good", b"#!/bin/bash\necho ok\n")
+    real = forge.subprocess.run
+    calls = {"n": 0}
+
+    def flaky(argv, *a, **kw):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            return subprocess.CompletedProcess(argv, 1, b"", b"")
+        return real(argv, *a, **kw)
+
+    monkeypatch.setattr(forge.subprocess, "run", flaky)
+    assert forge.run_step(forge.Step("bash -n"), good).status == "PASS"
+    assert calls["n"] == 2
+
+
+def test_bash_gate_does_not_retry_a_real_syntax_error(tmp_path, monkeypatch):
+    bad = make_tree(tmp_path / "bad", b"#!/bin/bash\nif true; then\n  echo unclosed\n")
+    real = forge.subprocess.run
+    calls = {"n": 0}
+
+    def counting(argv, *a, **kw):
+        calls["n"] += 1
+        return real(argv, *a, **kw)
+
+    monkeypatch.setattr(forge.subprocess, "run", counting)
+    assert forge.run_step(forge.Step("bash -n"), bad).status == "FAIL"
+    assert calls["n"] == 1
+
+
 def test_dry_run_prints_steps_and_exits_zero():
     r = subprocess.run([sys.executable, str(ROOT / "scripts/forge.py"), "check", "--dry-run"], capture_output=True, text=True)
     assert r.returncode == 0
@@ -288,6 +320,26 @@ def test_hcseasymath_step_runs_the_gate_script_under_wsl_when_the_app_changed():
 def test_hcseasymath_step_is_skipped_with_a_reason_without_wsl():
     steps = forge.plan_check(ROOT, have_wsl=False, changed=["apps/hcseasymath/pyproject.toml"])
     st = next(s for s in steps if s.name == "hcseasymath (WSL)")
+    assert st.argv is None and "WSL" in st.skip_reason
+
+
+def test_qml_gate_runs_when_qml_changed_and_is_absent_otherwise():
+    """QML had no executing gate at all until 2026-11-09 (qmltestrunner was not on PATH)."""
+    for path in (
+        "apps/control-center/qml/pages/SecurityPage.qml",
+        "tests/qml_plugin/tst_effects.qml",
+        "packages/debian/hscl-desktop/usr/share/plasma/wallpapers/org.hcs.hscl1.rain/contents/ui/main.qml",
+    ):
+        steps = forge.plan_check(ROOT, have_wsl=True, changed=[path])
+        st = next(s for s in steps if s.name == "qml (WSL)")
+        assert "scripts/dev/qml-gate.sh" in st.argv[-1], path
+    names = [s.name for s in forge.plan_check(ROOT, have_wsl=True, changed=["docs/CLI.md"])]
+    assert "qml (WSL)" not in names
+
+
+def test_qml_gate_is_skipped_with_a_reason_without_wsl():
+    steps = forge.plan_check(ROOT, have_wsl=False, changed=["apps/control-center/qml/Main.qml"])
+    st = next(s for s in steps if s.name == "qml (WSL)")
     assert st.argv is None and "WSL" in st.skip_reason
 
 

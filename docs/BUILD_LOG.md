@@ -1557,6 +1557,20 @@ Source `d817093`, Windows 11 host + Ubuntu 26.04 WSL. No VM boot in this session
 - **Visual QA.** `docs/QA_FINDINGS_2026-11-09.md` records ten findings from the committed screenshots,
   including the illegible desktop icon labels, duplicate mixed-language launcher sections, the clipped
   installer logo and the `13_offline_handbook.png` capture that contains no handbook window.
+- **Gate reliability (Q-09).** One `forge check` run turned red on `bash -n` for
+  `packages/debian/hscl-security/build.sh` with an empty stderr after a 33 s WSL cold start; the same
+  file passed a manual check. `run_step` now retries once when `bash -n` exits non-zero **without**
+  stderr (a syntax error always names file/line) and reports `SKIPPED` when `bash` is not installed.
+  Guarded by `test_bash_gate_retries_a_launcher_failure_with_empty_stderr` and
+  `test_bash_gate_does_not_retry_a_real_syntax_error`.
+- **QML gate (Q-06).** `qmltestrunner` and `qmllint` exist in `/usr/lib/qt6/bin` in WSL but were never
+  invoked, so QML changes were eyeballed only. New `scripts/dev/qml-gate.sh` runs
+  `tests/qml_plugin` (14 tests), `apps/control-center/tests/qml` (7 tests) and `qmllint` over 17 shipped
+  QML files; `forge check` runs it as `qml (WSL)` whenever QML changes. `qmllint` exit codes are
+  meaningless (0 on syntax errors), so the script parses the output and fails on `[syntax]`/`Error:`;
+  the 152 remaining `[unqualified]` warnings are tracked as queue work, not silently accepted.
+  Result: `tests/qml_plugin` 14/14, Control Center 7/7 — the new `Architecture` label assertion in
+  `tst_pages.qml` therefore executes, not just reads.
 - **Not verified here:** anything requiring a booted artifact (theme result, launcher merge behaviour,
   installer clipping, screenshots). Those rows stay `VM-PENDING` in `docs/AUTONOMOUS_QUEUE.md`.
 

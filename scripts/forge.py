@@ -222,6 +222,14 @@ def plan_check(root: Path = ROOT, have_wsl: bool | None = None, changed: list[st
     else:
         paths = list(changed)
     app_changed = any(p.startswith("apps/hcseasymath/") for p in paths)
+    # QML changes were only eyeballed until 2026-11-09 (no test runner on the host). Run the QML gate
+    # whenever a shipped QML file or a QML test changed.
+    qml_changed = any(
+        p.startswith("apps/control-center/")
+        or p.startswith("tests/qml_plugin/")
+        or p.startswith("packages/debian/hscl-desktop/usr/share/plasma/wallpapers/")
+        for p in paths
+    )
     # The Rust test `documented_hscl_commands_resolve_in_the_cli` reads the docs; pytest does not. Run it when docs or the CLI changed.
     docs_changed = any(p == "README.md" or re.fullmatch(r"docs/[^/]+\.md", p) or p.startswith("cli/hscl/") for p in paths)
     pytest_argv = [sys.executable, "-m", "pytest", "tests", "-q", "-p", "no:cacheprovider"]
@@ -261,6 +269,13 @@ def plan_check(root: Path = ROOT, have_wsl: bool | None = None, changed: list[st
         else:
             steps.append(Step(name, ["wsl", "-d", "Ubuntu", "--", "bash", "-lc",
                                      f"cd {shlex.quote(posix)} && bash scripts/hcseasymath_gate.sh"]))
+    if qml_changed:
+        name = "qml (WSL)"
+        if not have_wsl:
+            steps.append(Step(name, None, skip_reason="WSL Ubuntu not available"))
+        else:
+            steps.append(Step(name, ["wsl", "-d", "Ubuntu", "--", "bash", "-lc",
+                                     f"cd {shlex.quote(posix)} && bash scripts/dev/qml-gate.sh"]))
     return steps
 
 
@@ -271,9 +286,22 @@ def run_step(step: Step, root: Path = ROOT) -> Result:
     if step.name == "bash -n":
         bad = []
         for rel in shell_files(root):
-            r = subprocess.run(["bash", "-n"], input=(root / rel).read_bytes(), capture_output=True)  # bytes: no CRLF translation on Windows
+            data = (root / rel).read_bytes()  # bytes: no CRLF translation on Windows
+            err = ""
+            # On Windows `bash` is WSL; a cold launcher occasionally exits non-zero with no stderr at
+            # all (observed 2026-11-09: a 33 s run reported `build.sh:` with an empty message while the
+            # same file passed a manual `bash -n`). A syntax error always names file/line, so an empty
+            # stderr is a launcher hiccup, not a result: retry once before calling it a failure.
+            for _attempt in (1, 2):
+                try:
+                    r = subprocess.run(["bash", "-n"], input=data, capture_output=True)
+                except FileNotFoundError:
+                    return Result(step.name, "SKIPPED", time.time() - t0, "bash is not installed on this host")
+                err = r.stderr.decode("utf-8", "replace").strip()
+                if r.returncode == 0 or err:
+                    break
             if r.returncode != 0:
-                bad.append(f"{rel}: {r.stderr.decode('utf-8', 'replace').strip()[:120]}")
+                bad.append(f"{rel}: {err[:120]}")
         return Result(step.name, "FAIL" if bad else "PASS", time.time() - t0, "; ".join(bad))
     if step.name == "secret scan":
         hits = scan_repo_for_secrets(root)

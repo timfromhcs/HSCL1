@@ -12,14 +12,15 @@ booted-artifact evidence missing).
 
 | ID | Item | Gate | Status |
 |---|---|---|---|
-| Q-01 | Desktop icon label legibility (Plasma FolderView foreground/shadow) | static config test + VM screenshot | OPEN |
-| Q-02 | Launcher duplicate/mixed-language sections | `test_menu_file.py` + bilingual VM screenshot | OPEN |
+| Q-01 | Desktop icon label legibility (Plasma FolderView foreground/shadow) | static config test + VM screenshot | VM-PENDING — same root cause as Q-07 (light session palette ⇒ dark text on dark wallpaper); verify together |
+| Q-02 | Launcher duplicate/mixed-language sections | `test_menu_file.py` + bilingual VM screenshot | OPEN (needs an owner decision: `.directory` localization vs dropping the merged file) |
 | Q-03 | Recapture `13_offline_handbook.png` with a visible handbook window | pixel check of the caption subject | BLOCKED (needs booted candidate) |
 | Q-04 | Installer top-bar clipping + localized step labels | VM screenshot at 1280×800 | OPEN |
-| Q-05 | Reconcile `CLAIMS.md` artifact identity with `VERSION`/README | `docs/CLAIMS.md` header matches `VERSION` and release assets | DOING |
-| Q-06 | Qt/QML test runner in WSL (`qt6-declarative-dev-tools`) | `qmltestrunner` + `qmllint` execute `tests/qml_plugin` and `tst_pages.qml` | OPEN |
+| Q-05 | Reconcile `CLAIMS.md` artifact identity with `VERSION`/README | `docs/CLAIMS.md` header matches `VERSION` and release assets | DONE (2026-11-09, header names v0.1.4-alpha.0 and marks every row artifact-bound) |
+| Q-06 | Qt/QML test runner in WSL (`qt6-declarative-dev-tools`) | `qmltestrunner` + `qmllint` execute `tests/qml_plugin` and `tst_pages.qml` | DONE (2026-11-09: tools live in `/usr/lib/qt6/bin`; `scripts/dev/qml-gate.sh` runs both suites + qmllint, wired into `forge check` as `qml (WSL)`) |
 | Q-07 | Theme fix from fix #5 needs booted-artifact proof | VM screenshot of Dolphin/Konsole dark | VM-PENDING |
-| Q-08 | Add `hscl doctor`/Control Center guard for the new palette default | `test_theme_defaults.py` extended | OPEN |
+| Q-08 | Add `hscl doctor`/Control Center guard for the new palette default | `test_theme_defaults.py` extended | DONE (2026-11-09, `tests/unit/test_theme_defaults.py`, 5 tests) |
+| Q-09 | `forge check` false red on a transient WSL launcher failure | retry-once-on-empty-stderr + 2 tests | DONE (2026-11-09, `test_bash_gate_retries_a_launcher_failure_with_empty_stderr`) |
 
 ## Next (after Now)
 
