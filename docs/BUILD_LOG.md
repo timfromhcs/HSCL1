@@ -1735,6 +1735,60 @@ launcher from Konsole (`sudo -b /usr/bin/calamares-launch-normal`), which was pr
 crash is still unidentified and is listed in `docs/KNOWN_LIMITATIONS.md`; it is intermittent (4 of 8 boots had
 no dialog at all).
 
+### First complete installation (2026-11-09/10)
+
+| Item | Value |
+|---|---|
+| ISO | `HSCL1-earlyoom-fix-amd64.iso`, SHA-256 `e723940b…` |
+| VM | UEFI + WHPX, 6 GB RAM, 4 vCPU, 1280×800 |
+| Disk | `artifacts/vdisks/install-term-6g.qcow2`, 40 GB qcow2, disposable |
+| Scenario | `tests/visual/scenarios/install-terminal.json` |
+| Installer start | Konsole → `sudo -b /usr/bin/calamares-launch-normal` |
+| Partition plan | ESP 300 MiB FAT32 + `hscl1_root` 39.71 GiB ext4, swap file, encryption off |
+| Account | `HSCL1 Tester` / `hscl1t` / host `hscl1-standardpc` |
+| Result | **"All done. HSCL1 0.1.4-alpha.0 has been installed on your computer."** 9.69 GB written, ~16 min |
+
+The wizard screenshots (`t01` … `t14` in `artifacts/install-term-6g`) show every step: location, keyboard,
+customize, the HSCL1 **Notes** page, erase-disk with the explicit plan, users filled with green validation
+marks, the summary, and the **"Continue with Installation? … You will not be able to undo these changes."**
+confirmation before anything is written.
+
+Two defects found on the way, both in the test harness rather than the product:
+
+1. The Finish page's action is **Done** (0.894, 0.900); the scenario clicked Next (0.813, 0.894), which is
+   disabled there, so the guest never rebooted.
+2. Because of that the run never ended by itself: `wait_exit` printed nothing and the harness had to be
+   stopped by hand. It is not yet clear whether `wait_exit` or the QMP shutdown was at fault.
+
+**Installed-system boot: VM-VERIFIED (2026-11-10).** The same qcow2 booted with `iso=none` (UEFI, 4 GB),
+SDDM listed the one account, the password was accepted, and the HSCL1 desktop came up with the branded
+wallpaper, the Control Center and Handbook icons and the HSCL1 launcher button. In the installed system:
+
+```
+$ hscl --version; hscl doctor | tail -14
+hscl 0.1.4-alpha.0
+[PASS] arch        x86_64
+[PASS] memory      3903 MiB
+[PASS] apparmor    enabled
+[PASS] firewall    ufw enabled
+[PASS] apt-sources no Kali/Debian/PPA repositories configured
+[SKIP] secure-boot not readable (non-UEFI or no efivars)
+[PASS] theme       HCSMidnight (from /etc/skel/.config/kdeglobals)
+6 passed, 0 warnings, 0 failed, 1 skipped
+```
+
+`sudo` in the installed system asks for the account password (as it should; passwordless sudo exists only in
+the live session), so the follow-up `sudo ufw` command in the scenario stopped at the prompt - the firewall
+state is therefore taken from `hscl doctor`.
+
+Two observations to follow up, neither blocking:
+
+- the SDDM login screen of the installed system did **not** look like the HSCL1 theme (plain blue gradient,
+  KDE gear avatar). The image gate checks that the theme is installed and selected, but the installed system
+  has not been checked for it yet; `installed-check2.json` asks for `/etc/sddm.conf.d` and the theme list.
+- the Welcome Center opens on the generic KDE Plasma page (Konqui) rather than the HSCL1 page, which is one
+  of the eight dots.
+
 ### V1-Z Candidate boot, palette and launcher verification (2026-11-09)
 
 Artifact: `HSCL1-qa-2026-11-09-amd64.iso` (`118029de…`, source `c8a433a`), QEMU 9.x + WHPX, UEFI

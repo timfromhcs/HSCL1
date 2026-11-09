@@ -11,7 +11,7 @@
   { "keys": ["ret"] },
   { "wait": 8 },
   { "shot": "v1-doctor" },
-  { "type": "sudo ufw status verbose | head -6" },
+  { "type": "hscl security status | head -8" },
   { "keys": ["ret"] },
   { "wait": 4 },
   { "shot": "v2-firewall" },
