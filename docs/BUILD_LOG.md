@@ -1383,3 +1383,23 @@ Decision rule: pick the one that unblocks the most downstream work. HCSUDA H3c-3
   - Rust unit tests: Added 4 unit tests in `cli/hscl/src/logs.rs` verifying credential sanitization, MAC/IP redaction, log file tailing, and overwrite refusal.
   - Python unit tests: Created `tests/unit/test_logs_cli.py` (4 tests) verifying text/JSON output, line limits, target options, bundle contents, and overwrite refusal.
   - Passed all 230 tests in `cargo test -p hscl`.
+
+### V1-P Remastered Candidate ISO & Multi-Track In-Guest Verification (2026-11-09)
+
+- **Remastered Candidate Build (AGENTS.md sections 0.2, 0.3.1 & 2.6):**
+  - Remastered `HSCL1-candidate-amd64.iso` (5,488,377,856 bytes, sha256 `84dbd7198de2b5261936c43c44de416e71fc29b754907497de39cf679e3f576c`).
+  - Integrated `hscl-base` (with latest `hscl` binary compiling `language`, `privacy`, `security`, `logs`), `earlyoom`, `systemd-zram-generator`, and Look-and-Feel desktop configs into the squashfs.
+  - Base ISO checksum verified against upstream Canonical SHA256SUMS.
+- **In-Guest Automated Multi-Track Verification (`verify_in_guest_tracks.py`):**
+  - Booted candidate ISO in QEMU WHPX; reached live desktop in 130 s.
+  - Automated guest probes verified 6 tracks (100% success):
+    - Track L (Language): `hscl language list` (`en`, `de`, `fr`) and `--json language status`.
+    - Track K (Shortcuts): `hscl-shortcuts` reference output and `kglobalshortcutsrc` key bindings.
+    - Track C (Privacy): Ephemeral `/cow` overlayfs on RAM, in-memory `zram0` (priority 100, no persistent swap), `fs.suid_dumpable = 0`, 0 automounts of host partitions, `hscl privacy status`, and threat model boundaries vs Tails.
+    - Track B (Security Lab): Podman runtime check and `hscl lab status`.
+    - Track S (Security Posture): AppArmor enabled (21 enforce mode profiles), UFW enabled (standard profile), clean APT sources, 0 open LUKS volumes.
+    - Track D (Logs & Redaction): `hscl logs show` inspected live journal with automated `[redacted]` scrubbing, and `hscl logs collect --output /tmp/guest_diag_bundle.json` successfully bundled 2 sources.
+- **Live Interactive Showcase Capture (20 Verified Artifacts):**
+  - Expanded `live_interactive_showcase.py` to capture 20 unedited in-guest window captures.
+  - Added terminal showcase screens: `16_terminal_privacy_security.png` and `17_terminal_logs_and_diag.png`.
+  - Updated `README.md` showcase gallery with 2x2 terminal matrix conforming to 2026 README best practices.

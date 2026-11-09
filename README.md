@@ -108,6 +108,8 @@ Built-in developer terminal with full hardware diagnostic output, redacting heal
 | System Status & Diagnostic Doctor (`hscl`) | Isolated Security Lab Suite (`hscl lab`) |
 |:---:|:---:|
 | ![Terminal Status and Doctor](docs/img/showcase/08_terminal_hscl_status_doctor.png) | ![Terminal Security Lab](docs/img/showcase/09_terminal_hscl_lab.png) |
+| **Privacy Posture & Security Baseline (`hscl privacy/security`)** | **Diagnostic Log Redaction & Language (`hscl logs/language`)** |
+| ![Privacy and Security](docs/img/showcase/16_terminal_privacy_security.png) | ![Logs and Language](docs/img/showcase/17_terminal_logs_and_diag.png) |
 
 ---
 

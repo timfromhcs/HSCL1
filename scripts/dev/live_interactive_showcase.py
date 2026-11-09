@@ -65,7 +65,7 @@ def capture_shot(vm, out_dir: Path, filename: str, desc: str, manifest: list) ->
 
 
 def main() -> int:
-    iso_path = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(r"\\wsl.localhost\Ubuntu\home\tim\hscl1-build\out\HSCL1-0.1.3-alpha.0-amd64.iso")
+    iso_path = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(r"\\wsl.localhost\Ubuntu\home\tim\hscl1-build\out\HSCL1-candidate-amd64.iso")
     out_dir = Path(sys.argv[2]) if len(sys.argv) > 2 else ROOT / "docs" / "img" / "showcase"
     out_dir.mkdir(parents=True, exist_ok=True)
     manifest: list[dict] = []
@@ -137,6 +137,24 @@ def main() -> int:
         q.type_text(vm.qmp, "hscl memory status\n")
         time.sleep(2.0)
         capture_shot(vm, out_dir, "09_terminal_hscl_lab.png", "Konsole: hscl lab security suite & hardware diagnostics", manifest)
+
+        # Run Privacy & Security commands in Konsole
+        q.type_text(vm.qmp, "clear\n")
+        time.sleep(0.5)
+        q.type_text(vm.qmp, "hscl privacy status\n")
+        time.sleep(1.5)
+        q.type_text(vm.qmp, "hscl security status\n")
+        time.sleep(2.0)
+        capture_shot(vm, out_dir, "16_terminal_privacy_security.png", "Konsole: hscl privacy posture & security baseline", manifest)
+
+        # Run Logs & Language in Konsole
+        q.type_text(vm.qmp, "clear\n")
+        time.sleep(0.5)
+        q.type_text(vm.qmp, "hscl logs show --lines 8\n")
+        time.sleep(1.5)
+        q.type_text(vm.qmp, "hscl language list\n")
+        time.sleep(2.0)
+        capture_shot(vm, out_dir, "17_terminal_logs_and_diag.png", "Konsole: hscl logs redaction & language switching", manifest)
         close_gui_apps(vm, "konsole")
         time.sleep(2.0)
 
