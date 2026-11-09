@@ -1608,6 +1608,10 @@ Source `d817093`, Windows 11 host + Ubuntu 26.04 WSL. No VM boot in this session
   output directory and built 12 pages into a directory of that literal name; it now uses argparse and is
   covered by `tests/unit/test_website_build.py` (including an EN/DE/FR page check).
   `tests/unit/test_doc_links.py` checks every relative Markdown link across 148 files.
+- **Accessibility gate (Q-24).** `tests/unit/test_token_contrast.py` computes WCAG contrast for
+  `text-primary`, `text-secondary`, `text-muted` and `accent` over `surface-0/1/2` in all four HCS
+  themes: every pair is ≥ 4.5:1 (lowest is `text-muted` on `surface-2`, 4.68:1 in HCS Nord), and
+  `text-inverse` on `accent` also passes. The test also fails if a theme stops differing from Midnight.
 - **Not verified here:** anything requiring a booted artifact (theme result, launcher merge behaviour,
   installer clipping, screenshots). Those rows stay `VM-PENDING` in `docs/AUTONOMOUS_QUEUE.md`.
 

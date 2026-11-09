@@ -24,6 +24,7 @@ booted-artifact evidence missing).
 | Q-21 | `hscl appearance mode` / `dock position` were no-ops that reported success | Rust tests + docs | DONE (2026-11-09: mode now applies `plasma-apply-colorscheme` (dark→HCSMidnight, light→HCSLight, auto records only), dock position scripts the non-top Plasma panel through `qdbus6`; both fail loudly instead of pretending). Live-desktop result `VM-PENDING`. |
 | Q-22 | Docs link gate | `tests/unit/test_doc_links.py` | DONE (2026-11-09, 148 Markdown files, 0 broken links) |
 | Q-23 | Website build accepted unknown flags as an output path (`--help` created a directory) | `tests/unit/test_website_build.py` | DONE (2026-11-09, argparse + EN/DE/FR page check) |
+| Q-24 | WCAG AA contrast for every text/surface token pair | `tests/unit/test_token_contrast.py` | DONE (2026-11-09, four themes × four foregrounds × three surfaces, all ≥ 4.5:1; selected text on accent ≥ 4.5) |
 | Q-20 | Prevent QML lint regression | `QML_WARN_BUDGET` ratchet in `scripts/dev/qml-gate.sh` | DONE (2026-11-09, budget 152, verified to fail at 10) |
 | Q-19 | Reduce `qmllint` `[unqualified]` warnings in the Control Center (23 of 152) | `qml-gate.sh` warning budget lowered | OPEN — 23 come from `Main.qml`'s C++ context property `cli` and from Repeater delegates reading outer ids; the rest are PlasmaCore imports in the wallpaper plugin |
 
