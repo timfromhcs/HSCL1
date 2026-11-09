@@ -21,6 +21,7 @@ mod logs;
 mod mcp;
 mod memory;
 mod miner;
+mod miner_api;
 mod privacy;
 mod profile;
 mod recovery;
@@ -260,6 +261,22 @@ enum MinerCmd {
         dry_run: bool,
         #[arg(long)]
         json: bool,
+    },
+    /// Find AxeOS/Bitaxe miners on a private /24 (read-only, identified by MAC).
+    Discover {
+        /// Prefix with three octets, e.g. 192.168.178.
+        #[arg(long, default_value = "192.168.178")]
+        prefix: String,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Read-only HTTP API over the configured miners: /v1/health, /v1/miners, /v1/miner?host=…
+    Serve {
+        #[arg(long, default_value = "127.0.0.1:8787")]
+        bind: String,
+        /// Device address; repeatable. Defaults to the last device used.
+        #[arg(long = "device")]
+        devices: Vec<String>,
     },
 }
 
@@ -3788,6 +3805,48 @@ fn run_miner(j: bool, cmd: MinerCmd) -> anyhow::Result<u8> {
                     )
                 }
             });
+        }
+        MinerCmd::Discover { prefix, json } => {
+            let found = miner_api::discover(&prefix)?;
+            let v = serde_json::to_value(&found)?;
+            print_value(json || j, &v, || {
+                if found.is_empty() {
+                    format!("no AxeOS device found on {prefix}.0/24")
+                } else {
+                    found
+                        .iter()
+                        .map(|m| {
+                            format!(
+                                "{:<15} {:<16} {:<18} board {:<4} {:<7} {}",
+                                m.host,
+                                m.hostname.as_deref().unwrap_or("?"),
+                                m.mac.as_deref().unwrap_or("?"),
+                                m.board.as_deref().unwrap_or("?"),
+                                m.asic.as_deref().unwrap_or("?"),
+                                m.version.as_deref().unwrap_or("?")
+                            )
+                        })
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                }
+            });
+        }
+        MinerCmd::Serve { bind, devices } => {
+            let mut hosts = devices;
+            if hosts.is_empty() {
+                if let Some(last) = miner::load_config(&cfg_dir).last_device {
+                    hosts.push(last);
+                }
+            }
+            if hosts.is_empty() {
+                bail!("no device: pass --device <host> once (or use `hscl miner probe` first)");
+            }
+            for h in &hosts {
+                if !miner::is_private_host(h) {
+                    bail!("refusing {h}: only private/loopback hosts are allowed");
+                }
+            }
+            miner_api::serve(&bind, hosts)?;
         }
     }
     Ok(exit::OK)

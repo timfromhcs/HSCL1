@@ -12,12 +12,13 @@ from pathlib import Path
 def _find_hscl() -> str:
     root = Path(__file__).resolve().parent.parent.parent
     exe = "hscl.exe" if os.name == "nt" else "hscl"
+    newest = max((p.stat().st_mtime for p in (root / "cli" / "hscl" / "src").rglob("*.rs")), default=0.0)
     candidates = [
         root / "target" / "debug" / exe,
         root / "target" / "release" / exe,
     ]
     for c in candidates:
-        if c.is_file():
+        if c.is_file() and c.stat().st_mtime >= newest:
             return str(c)
     # Fallback to cargo run if binary not yet compiled
     return "cargo"

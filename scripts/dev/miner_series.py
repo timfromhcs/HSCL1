@@ -1,6 +1,8 @@
 """Poll a Bitaxe/AxeOS miner read-only and summarise the series.
 
 Read-only GETs only. Never sends settings, never restarts, never flashes.
+A sample that times out is retried once and then recorded as a gap instead of aborting the series:
+the AxeOS web server is single-threaded and occasionally misses a request.
 Usage: miner_series.py HOST [SAMPLES] [INTERVAL_S]
 """
 
@@ -42,13 +44,22 @@ def main(argv: list[str]) -> int:
     host = argv[1] if len(argv) > 1 else "192.168.178.61"
     samples = int(argv[2]) if len(argv) > 2 else 10
     interval = float(argv[3]) if len(argv) > 3 else 10.0
-    rows = []
+    rows: list[dict] = []
+    gaps = 0
     for i in range(samples):
-        try:
-            info = fetch(host)
-        except Exception as exc:  # noqa: BLE001 - report and stop, never fabricate
-            print(f"sample {i + 1}: {exc}")
-            break
+        info = None
+        for attempt in (1, 2):
+            try:
+                info = fetch(host)
+                break
+            except Exception as exc:  # noqa: BLE001 - report, never fabricate
+                if attempt == 2:
+                    print(f"sample {i + 1}: {exc}")
+                    gaps += 1
+                else:
+                    time.sleep(0.5)
+        if info is None:
+            continue
         rows.append({k: info.get(k) for k in FIELDS})
         print(
             f"[{i + 1}/{samples}] {info.get('hashRate', 0):8.1f} GH/s  "
@@ -60,6 +71,7 @@ def main(argv: list[str]) -> int:
             time.sleep(interval)
 
     if not rows:
+        print(f"no samples; {gaps} gap(s)")
         return 1
 
     def stats(key: str) -> dict:
@@ -84,6 +96,7 @@ def main(argv: list[str]) -> int:
     summary = {
         "host": host,
         "samples": len(rows),
+        "gaps": gaps,
         "window_seconds": elapsed,
         "hashrate_ghs": hash_stats,
         "temp_c": stats("temp"),

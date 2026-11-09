@@ -184,11 +184,17 @@ HSCL1 can inspect and update a Bitaxe-class miner that already runs the owner's
 
 ```console
 $ hscl miner status                                      # local config + esptool availability, no device contact
+$ hscl miner discover --prefix 192.168.178               # find AxeOS/Bitaxe miners (read-only, by MAC)
 $ hscl miner probe 192.168.178.61                        # GET /api/system/info (read-only)
 $ hscl miner plan 192.168.178.61 --firmware esp-miner.bin # SHA-256, size, endpoint, rollback hint
 $ hscl miner ota  192.168.178.61 --firmware esp-miner.bin --yes="I am authorized to flash this device"
-$ hscl miner flash --port COM5 --firmware esp-miner-factory-401.bin --yes="I am authorized to flash this device"
+$ hscl miner flash --port COM3 --offset 0x10000 --firmware esp-miner.bin --yes="I am authorized to flash this device"
+$ hscl miner serve --device 192.168.178.61                # read-only API on 127.0.0.1:8787 for other tools
 ```
+
+The local API is the data path for the desktop and other agents: `/v1/health`, `/v1/miners`,
+`/v1/miner?host=…`; it polls in the background so a slow device never blocks a reader. The MCP server
+exposes `hscl_miner_status`, `hscl_miner_probe` and `hscl_miner_discover` as read-only tools.
 
 - **Private networks only.** Loopback, RFC1918, link-local, unique-local and `*.local` are accepted; a
   public address is refused before a socket is opened. The MCP tools (`hscl_miner_status`,

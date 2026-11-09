@@ -32,6 +32,9 @@ booted-artifact evidence missing).
 | Q-29 | ESP-Miner fork README/flashing docs on par | its own repo branch + honest WiFi/USB section | DONE (2026-11-09: `docs/FLASHING.md` rewritten with both paths, limits and recovery; `flashing.md` is a pointer; pushed to the fork branch) |
 | Q-30 | Firmware build reproducible on Windows | build script + IDF env vars | DONE (2026-11-09: `build_hscl.bat` documents `IDF_TOOLS_PATH=E:\esp\tools`, UTF-8, submodule init) |
 | Q-31 | Miner telemetry baseline | `docs/miner/TELEMETRY.md` | DONE (2026-11-09: pre/post flash snapshot + series, HTTP timeout observation) |
+| Q-32 | Recovery build after NVS loss (display + network) | serial log + mining resumed | DONE (2026-11-09: `ESP_MINER_BOARD_VERSION=201` fixed `Display init failed`; `ESP_MINER_CONFIG_AP_STUCK=1` keeps `Bitaxe_DD3C` up; pool restored via `pools[]`, 466 GH/s after restart) |
+| Q-33 | Network discovery + local data API | `hscl miner discover`, `hscl miner serve`, MCP `hscl_miner_discover` | DONE (2026-11-09: found `.61/.66/.80` by MAC; `/v1/health`, `/v1/miners`, `/v1/miner?host=` with background polling) |
+| Q-34 | Diagnostics bugs | probe retry, series gaps, reset capture, stale-binary guard | DONE (2026-11-09) |
 | Q-20 | Prevent QML lint regression | `QML_WARN_BUDGET` ratchet in `scripts/dev/qml-gate.sh` | DONE (2026-11-09, budget 152, verified to fail at 10) |
 | Q-19 | Reduce `qmllint` `[unqualified]` warnings in the Control Center (23 of 152) | `qml-gate.sh` warning budget lowered | OPEN — 23 come from `Main.qml`'s C++ context property `cli` and from Repeater delegates reading outer ids; the rest are PlasmaCore imports in the wallpaper plugin |
 

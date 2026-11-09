@@ -120,6 +120,21 @@ fn tools() -> Vec<Tool> {
                 Ok(v(&["miner", "probe", d, "--json"]))
             },
         },
+        Tool {
+            name: "hscl_miner_discover",
+            desc: "Scan a private /24 for AxeOS/Bitaxe miners (read-only, identified by MAC).",
+            write: false,
+            schema: || json!({"type": "object", "properties": {"prefix": {"type": "string"}}, "additionalProperties": false}),
+            args: |a| {
+                no_extra(a, &["prefix"])?;
+                let prefix = a.get("prefix").and_then(Value::as_str).unwrap_or("192.168.178");
+                let parts: Vec<&str> = prefix.split('.').collect();
+                if parts.len() != 3 || parts.iter().any(|p| p.parse::<u16>().map(|n| n > 255).unwrap_or(true)) {
+                    return Err(anyhow!("prefix must look like 192.168.178"));
+                }
+                Ok(v(&["miner", "discover", "--prefix", prefix, "--json"]))
+            },
+        },
         Tool { name: "hscl_wallpaper_list", desc: "Available wallpaper shader presets and current settings.", write: false, schema: empty, args: |a| { no_extra(a, &[])?; Ok(v(&["wallpaper", "list"])) } },
         Tool {
             name: "hscl_wallpaper_apply",

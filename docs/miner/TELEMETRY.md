@@ -34,8 +34,48 @@ v6.0.2 on Windows:
 | MAC after | `74:4D:BD:77:DD:3C` (unchanged — correct variant, no eFuse-MAC replacement) |
 | Hostname after | `timsminer` (unchanged) |
 
-## USB factory flash (2026-11-09, ~18:58 UTC) — and its cost
+## Recovery build (2026-11-09, 19:35 UTC) — display and network restored
 
+The factory flash had erased NVS, so the app fell back to board `000` and the serial log showed
+`E system: Display init failed` / `esp_lcd_new_panel_io_i2c: i2c add device fail` — the black screen.
+
+Per-unit build (source `f024618`, same ESP-IDF 6.0.2) with:
+
+| Setting | Value | Effect |
+|---|---|---|
+| `ESP_MINER_BOARD_VERSION` | `201` | display and ASIC init work again without NVS |
+| `ESP_MINER_CONFIG_AP_STUCK` | `1` | open config AP `Bitaxe_DD3C` stays up as a hardcoded fallback |
+| `CONFIG_ESP_WIFI_SSID` / `PASSWORD` | home SSID / stored secret | device rejoins the WLAN after a reset |
+| `CONFIG_LWIP_LOCAL_HOSTNAME` | `timsminer` | keeps the DHCP name |
+
+Flashed as an app image at `0x10000` (SHA-256 `8f7321a1…`). Serial boot after the flash:
+`Display init success!`, `LVGL: Starting LVGL task`, `ASIC Ready!`, `IP_ACQUIRED ip=192.168.178.61`,
+`Connected to SSID: FRITZ!Box 7590 MP-2,4GhZ`.
+
+Pool and tuning were restored through the v2.15 `pools` array (flat `stratumURL` is ignored):
+
+```json
+{"pools":[{"id":0,"stratumURL":"sha256.eu.mine.zpool.ca","stratumPort":3333,
+           "stratumUser":"<wallet>","stratumPassword":"x","stratumProtocol":"SV1",
+           "stratumDifficulty":1000}],"primaryPoolIndex":0,
+ "frequency":485,"coreVoltage":1100,"display":"SSD1306 (128x32)"}
+```
+
+After a restart: **466 GH/s, pool difficulty 1000, 4 shares accepted in 42 s, 485 MHz**.
+
+## LAN inventory (2026-11-09, `hscl miner discover`)
+
+| Host | Name | MAC | Board | ASIC | Firmware |
+|---|---|---|---|---|---|
+| 192.168.178.61 | timsminer | 74:4D:BD:77:DD:3C | 201 | BM1366 | v4.0.2-rc1 |
+| 192.168.178.66 | blackharkminer | 74:4D:BD:77:99:80 | 201 | BM1366 | v4.0.2-rc1-blackharkminer |
+| 192.168.178.80 | bitaxe-tim2 | 28:84:85:A6:1B:E0 | 601 | BM1370 | v4.0.2-rc1-tim2 |
+
+Devices are identified by MAC, not by address: the router re-assigned addresses during the day, and
+`.61` was briefly answered by another miner. `hscl miner discover` and `hscl miner serve` therefore
+report the MAC with every reading.
+
+## USB factory flash (2026-11-09, ~18:58 UTC) — and its cost
 Done after the OTA, with the same build, to exercise the USB path:
 
 | Field | Value |

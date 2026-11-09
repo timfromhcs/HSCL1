@@ -14,8 +14,10 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def find_hscl_binary() -> Path | None:
-    debug_bin = ROOT / "target" / "debug" / ("hscl.exe" if os.name == "nt" else "hscl")
-    if debug_bin.is_file():
+    exe = "hscl.exe" if os.name == "nt" else "hscl"
+    newest = max((p.stat().st_mtime for p in (ROOT / "cli" / "hscl" / "src").rglob("*.rs")), default=0.0)
+    debug_bin = ROOT / "target" / "debug" / exe
+    if debug_bin.is_file() and debug_bin.stat().st_mtime >= newest:
         return debug_bin
     which = shutil.which("hscl")
     if which:

@@ -1748,8 +1748,27 @@ Owner instruction in-session: "flash timsminer". Executed through the product pa
   15 802 368 B, SHA-256 `fadf559c…`, written at `0x0` in 49.7 s with a verified hash. **It erased NVS**,
   as a factory image must: the device returned with `sta.ssid = "myssid"` and the placeholder pool, and
   the serial log repeats `No access point found (Error 201)`. The tool now defaults to `--offset 0x10000`
-  and warns that `0x0` erases Wi-Fi/pool settings. Reconfiguring the network needs the owner's
-  credentials, so the unit is reachable on USB but not on the LAN until then.
+  and warns that `0x0` erases Wi-Fi/pool settings.
+- **Root cause of the black screen (measured):** with NVS empty the app fell back to board `000` and
+  printed `E system: Display init failed` + `esp_lcd_new_panel_io_i2c: i2c add device fail`. A per-unit
+  build with `ESP_MINER_BOARD_VERSION=201` restored `Display init success!`, LVGL and `ASIC Ready!`.
+- **Hardcoded AP fallback:** `ESP_MINER_CONFIG_AP_STUCK=1` keeps the open config AP `Bitaxe_DD3C`
+  (192.168.4.1) up even when the LAN works, as requested — the router here repeatedly gave no lease.
+- **Network + pool restored:** device rejoined `FRITZ!Box 7590 MP-2,4GhZ` (WPA3) with IP `.61`; the pool
+  was written through the v2.15 `pools` array (flat fields are ignored) and after a restart the unit
+  mined at **466 GH/s, diff 1000, 4 shares in 42 s**.
+- **Discovery and data path:** `hscl miner discover --prefix 192.168.178` finds devices read-only and
+  reports `host / hostname / MAC / board / ASIC / firmware`; it found three miners (`.61` timsminer,
+  `.66` blackharkminer, `.80` bitaxe-tim2 with BM1370). `hscl miner serve` exposes the same data on
+  `127.0.0.1:8787` (`/v1/health`, `/v1/miners`, `/v1/miner?host=…`) with background polling, and the MCP
+  server gained `hscl_miner_discover`. Identity is the MAC: `.61` was briefly answered by another miner
+  while addresses moved.
+- **Diagnostics fixed in the same pass:** `probe` retries once on a timeout (the AxeOS server is
+  single-threaded), `miner_series.py` records gaps instead of aborting, and the serial capture can reset
+  the board (`--reset`) so a panic in the first seconds is visible.
+- **Hygiene:** the Kconfig warning printed the Wi-Fi password once into the build log; the copies under
+  `artifacts/` were scrubbed (`scripts/dev/scrub_wifi_secret.py`). The value still lives in the
+  git-ignored `sdkconfig`, and it appeared in this session — rotate it if that matters.
 - Raw data and the series JSON live in `artifacts/miner/`. The summary is
   [docs/miner/TELEMETRY.md](miner/TELEMETRY.md). The pool account string is deliberately not copied
   into the repository.

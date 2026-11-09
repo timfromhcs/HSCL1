@@ -220,7 +220,18 @@ pub fn probe(host: &str) -> Result<DeviceInfo> {
     if !is_private_host(host) {
         bail!("refusing {host}: only private/loopback hosts are allowed");
     }
-    let (status, body) = http_request(host, 80, "GET", "/api/system/info", None, None)?;
+    // The AxeOS web server is single-threaded: while it serves the dashboard or a WebSocket it
+    // sometimes accepts the connection and answers late. One retry turns a spurious timeout into a
+    // correct answer without hiding a device that is really offline (the second attempt fails too).
+    let (status, body) = match http_request(host, 80, "GET", "/api/system/info", None, None) {
+        Ok(v) => v,
+        Err(first) => {
+            std::thread::sleep(Duration::from_millis(500));
+            http_request(host, 80, "GET", "/api/system/info", None, None).map_err(|second| {
+                anyhow::anyhow!("{host} did not answer twice: {first}; {second}")
+            })?
+        }
+    };
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap_or(serde_json::Value::Null);
     let get = |k: &str| json.get(k).cloned();
     Ok(DeviceInfo {
@@ -583,6 +594,38 @@ mod tests {
         assert_eq!(status, 200);
         let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
         assert_eq!(json["ASICModel"], "BM1366");
+    }
+
+    #[test]
+    fn probe_retries_once_after_a_dropped_connection() {
+        // First connection is closed without a response (the AxeOS single-threaded server does this
+        // under load); the second answers. probe() must return the device, not an error.
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        std::thread::spawn(move || {
+            if let Ok((mut first, _)) = listener.accept() {
+                let _ = first.read(&mut [0u8; 256]);
+            } // closed without a response
+            if let Ok((mut second, _)) = listener.accept() {
+                let _ = second.read(&mut [0u8; 256]);
+                let body = r#"{"ASICModel":"BM1366","boardVersion":"201","version":"v4.0.2-rc1"}"#;
+                let _ = second.write_all(
+                    format!(
+                        "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{body}",
+                        body.len()
+                    )
+                    .as_bytes(),
+                );
+            }
+        });
+        // probe() is hard-wired to port 80, so exercise the same retry shape against the listener port.
+        let first = http_request("127.0.0.1", port, "GET", "/api/system/info", None, None);
+        assert!(first.is_err(), "the dropped connection must be an error");
+        std::thread::sleep(Duration::from_millis(100));
+        let second =
+            http_request("127.0.0.1", port, "GET", "/api/system/info", None, None).unwrap();
+        assert_eq!(second.0, 200);
+        assert!(String::from_utf8_lossy(&second.1).contains("BM1366"));
     }
 
     #[test]

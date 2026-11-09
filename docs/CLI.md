@@ -187,6 +187,8 @@ System information, package updates, power actions, and services management (AGE
 | `hscl miner plan` | Size, SHA-256, endpoint and rollback hint for an OTA firmware, without sending it |
 | `hscl miner ota` | Send an OTA firmware update; needs `--yes="I am authorized to flash this device"` (private networks only) |
 | `hscl miner flash` | USB flashing through `esptool`; same authorization phrase, `--dry-run` prints the argv |
+| `hscl miner discover` | Scan a private /24 for AxeOS/Bitaxe miners (read-only, identified by MAC) |
+| `hscl miner serve` | Read-only local API over the configured miners: `/v1/health`, `/v1/miners`, `/v1/miner?host=…` |
 | `hscl ai model list` | All catalog models with fit information for this machine |
 | `hscl ai model recommend` | Models that fit this machine, best first |
 | `hscl ai model info` | Details, licence and warning of one model |
