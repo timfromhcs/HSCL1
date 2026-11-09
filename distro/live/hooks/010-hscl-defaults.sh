@@ -47,7 +47,7 @@ patch_file "$ROOTFS/usr/share/kubuntu-default-settings/kf5-settings/kdeglobals" 
 # The Kubuntu default file carries [General] but no ColorScheme key at all, so this must *ensure* the key
 # rather than sed-replace it (the first attempt changed nothing and the image gate caught it).
 ensure_key "$ROOTFS/usr/share/kubuntu-default-settings/kf5-settings/kdeglobals" General ColorScheme HCSMidnight
-ensure_key "$ROOTFS/usr/share/kubuntu-default-settings/kf5-settings/kdeglobals" General widgetStyle Breeze
+ensure_key "$ROOTFS/usr/share/kubuntu-default-settings/kf5-settings/kdeglobals" KDE widgetStyle Breeze
 # New and live users are created from /etc/skel, which Plasma reads before any look-and-feel is applied.
 ensure_key "$ROOTFS/etc/skel/.config/kdeglobals" General ColorScheme HCSMidnight
 ensure_key "$ROOTFS/etc/skel/.config/kdeglobals" KDE widgetStyle Breeze
