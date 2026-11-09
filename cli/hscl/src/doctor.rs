@@ -135,22 +135,50 @@ pub fn evaluate_color_scheme(scheme: Option<&str>) -> Check {
     }
 }
 
-pub fn color_scheme_check() -> Check {
+/// Candidate locations for the colour scheme, most specific first. The live session does not write
+/// `~/.config/kdeglobals` until something is configured, so the system defaults and `/etc/skel`
+/// (where new users come from) are legitimate evidence of what the session will use.
+pub fn color_scheme_paths() -> Vec<std::path::PathBuf> {
+    use std::path::PathBuf;
     let mut paths = Vec::new();
-    if let Ok(home) = std::env::var("HOME").or_else(|_| std::env::var("USERPROFILE")) {
-        if !home.is_empty() {
-            paths.push(std::path::PathBuf::from(home).join(".config/kdeglobals"));
+    if let Ok(xdg) = std::env::var("XDG_CONFIG_HOME") {
+        if !xdg.is_empty() {
+            paths.push(PathBuf::from(xdg).join("kdeglobals"));
         }
     }
-    paths.push(std::path::PathBuf::from("/etc/xdg/kdeglobals"));
+    if let Ok(home) = std::env::var("HOME").or_else(|_| std::env::var("USERPROFILE")) {
+        if !home.is_empty() {
+            paths.push(PathBuf::from(home).join(".config/kdeglobals"));
+        }
+    }
+    paths.push(PathBuf::from("/etc/xdg/kdeglobals"));
+    paths.push(PathBuf::from("/etc/skel/.config/kdeglobals"));
+    paths
+}
+
+/// Read the first readable candidate and report it together with its source.
+pub fn color_scheme_check_in(paths: &[std::path::PathBuf]) -> Check {
     for p in paths {
-        if let Ok(text) = std::fs::read_to_string(&p) {
+        if let Ok(text) = std::fs::read_to_string(p) {
             if let Some(scheme) = parse_color_scheme(&text) {
-                return evaluate_color_scheme(Some(&scheme));
+                let mut check = evaluate_color_scheme(Some(&scheme));
+                // Say where the value came from: a system default is still the palette the apps use.
+                if check.level != Level::Fail {
+                    check.detail = format!("{} (from {})", check.detail, p.display());
+                }
+                return check;
             }
         }
     }
-    evaluate_color_scheme(None)
+    c(
+        "theme",
+        Level::Skip,
+        "no kdeglobals with a ColorScheme yet; the session palette is unset",
+    )
+}
+
+pub fn color_scheme_check() -> Check {
+    color_scheme_check_in(&color_scheme_paths())
 }
 
 pub fn run(_full: bool) -> Report {
@@ -228,6 +256,28 @@ mod tests {
         assert_eq!(warn.level, Level::Warn);
         assert!(warn.detail.contains("BreezeLight"));
         assert_eq!(evaluate_color_scheme(None).level, Level::Skip);
+    }
+
+    #[test]
+    fn the_skel_default_is_used_when_the_session_has_no_kdeglobals() {
+        // The live session in the 2026-11-09 candidate had no ~/.config/kdeglobals; the palette came
+        // from /etc/skel. Reporting SKIP there was wrong because the apps clearly use HCSMidnight.
+        let dir = tempfile::tempdir().unwrap();
+        let missing = dir.path().join("absent-kdeglobals");
+        let skel = dir.path().join("skel-kdeglobals");
+        std::fs::write(&skel, "[General]\nColorScheme=HCSMidnight\n").unwrap();
+        let check = color_scheme_check_in(&[missing, skel.clone()]);
+        assert_eq!(check.level, Level::Pass);
+        assert!(check.detail.contains("HCSMidnight"));
+        assert!(check.detail.contains("skel-kdeglobals"), "{}", check.detail);
+    }
+
+    #[test]
+    fn no_kdeglobals_at_all_still_skips() {
+        let dir = tempfile::tempdir().unwrap();
+        let check = color_scheme_check_in(&[dir.path().join("nope")]);
+        assert_eq!(check.level, Level::Skip);
+        assert!(check.detail.contains("unset"));
     }
 
     #[test]

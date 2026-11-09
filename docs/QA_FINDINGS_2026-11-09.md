@@ -14,12 +14,12 @@ queue is. Every fixed item names the test that now guards it.
 |---|---|
 | 21 pytest failures (harness) | **fixed** — gate green (900+ passed) |
 | Raw check ids / clipped rows in the Control Center | **fixed** — QML tests execute and assert the label |
-| Light Qt apps inside the dark shell | **fixed in code, VM-PENDING** — palette key now written to both `kubuntu-default-settings` and `/etc/skel`; two build attempts taught us the key and then the file were missing |
-| Duplicate mixed-language launcher sections | **fixed in code, VM-PENDING** — titles moved to `.directory` files |
-| Installer logo clipped by the top bar | **fixed in code, VM-PENDING** — centred window instead of fullscreen |
+| Light Qt apps inside the dark shell | **VM-VERIFIED fixed** on candidate `HSCL1-qa-2026-11-09` (Dolphin 27.2 / Konsole 37.1 vs 230.1 before) |
+| Duplicate mixed-language launcher sections | **VM-VERIFIED fixed (English)** — one entry per category; DE/FR titles only file-tested |
+| Installer logo clipped by the top bar | **fixed in code, installer not yet launched in a VM** |
 | False "Offline Handbook" screenshot | **removed** from README and manifest; recapture queued |
-| Desktop icon labels illegible | **same root cause as the palette**; verify in the same VM run |
-| `hscl appearance mode`/`dock` fake success | **fixed** — real scheme/panel actions with Rust tests |
+| Desktop icon labels illegible | **VM-VERIFIED fixed** — white and legible on the candidate |
+| `hscl appearance mode`/`dock` fake success | **fixed** — real scheme/panel actions with Rust tests; `hscl appearance mode` readback verified in the guest |
 | Artifact identity drift in `CLAIMS.md` | **fixed** — header names v0.1.4-alpha.0 |
 | Qt/QML gate hole | **closed** — `qml (WSL)` step in `forge check` |
 | Website build flag handling | **fixed** — argparse + tests |

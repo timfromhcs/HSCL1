@@ -1651,6 +1651,33 @@ Source `d817093`, Windows 11 host + Ubuntu 26.04 WSL. No VM boot in this session
 - **Next**: `scripts/qemu_boot_test.py` with `--steps tests/visual/scenarios/theme-check.json` captures
   Dolphin, the `hscl doctor` theme line, the launcher sections and the desktop labels; the
   dark/light verdict is measured with `scripts/dev/check_theme_screenshot.py` (not eyeballed).
+
+### V1-Z Candidate boot, palette and launcher verification (2026-11-09)
+
+Artifact: `HSCL1-qa-2026-11-09-amd64.iso` (`118029de…`, source `c8a433a`), QEMU 9.x + WHPX, UEFI
+(OVMF, Secure Boot **not** requested), 4 GB / 4 vCPU, 1280×800.
+
+- **Boot: VM-VERIFIED.** `reached_desktop: true` after 251 s (run 1) and 257 s (run 2); Welcome Center
+  dismissed; `desktop-final.png` captured. No hang, no black screen.
+- **Qt palette: VM-VERIFIED.** `Dolphin` and `Konsole` render in the HCS dark palette.
+  Measured with `check_theme_screenshot.py` on the window area: **Dolphin 27.2** and **Konsole 37.1**
+  mean luminance (dark), against **230.1** for the pre-fix screenshot that started this audit.
+  The screenshot in `docs/img/showcase/10_app_dolphin.png` was replaced with the new capture.
+- **Desktop icon labels: VM-VERIFIED.** The three entries are white and legible on the dark wallpaper
+  (they were dark navy before); the cause was the same light session palette.
+- **Launcher sections: VM-VERIFIED for English.** One entry per category (Development, Education, Games,
+  Graphics, Help, Internet, Multimedia, Office, Science & Math, System) — the `Development` +
+  `Développement` duplication is gone. German and French titles now come from `.directory` files and were
+  not exercised in this run.
+- **`hscl appearance mode` readback: VM-VERIFIED.** `hscl appearance mode` in the guest prints
+  `Current appearance mode: dark`.
+- **New defect found by the run:** `hscl doctor` reported `[SKIP] theme  no kdeglobals readable` in the
+  live session, because the live user's `~/.config/kdeglobals` does not exist and the check did not look
+  at `/etc/skel` (where the palette now lives). Fixed in `doctor.rs`: candidate order is
+  `$XDG_CONFIG_HOME`, `$HOME/.config`, `/etc/xdg`, `/etc/skel/.config`, and the detail names the source
+  file. Unit-tested; the in-guest readback needs the next build.
+- **Not verified in this run:** installer window/branding (installer not launched), German/French
+  launcher titles, Secure Boot enforcement, LUKS install, in-guest Security Lab and Privacy tracks.
 - **Not verified here:** anything requiring a booted artifact (theme result, launcher merge behaviour,
   installer clipping, screenshots). Those rows stay `VM-PENDING` in `docs/AUTONOMOUS_QUEUE.md`.
 

@@ -161,8 +161,9 @@
       1280,
       800
     ],
-    "description": "Dolphin File Manager with HCS styling",
-    "timestamp": 1794234895.0328605
+    "description": "Dolphin file manager in the HCS dark palette (candidate 2026-11-09)",
+    "timestamp": 1794235433.7925072,
+    "source_iso": "HSCL1-qa-2026-11-09-amd64.iso sha256 118029de"
   },
   {
     "filename": "14_app_kate.png",
