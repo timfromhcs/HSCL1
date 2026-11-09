@@ -36,7 +36,7 @@ booted-artifact evidence missing).
 | Q-33 | Network discovery + local data API | `hscl miner discover`, `hscl miner serve`, MCP `hscl_miner_discover` | DONE (2026-11-09: found `.61/.66/.80` by MAC; `/v1/health`, `/v1/miners`, `/v1/miner?host=` with background polling) |
 | Q-34 | Diagnostics bugs | probe retry, series gaps, reset capture, stale-binary guard | DONE (2026-11-09) |
 | Q-35 | Native `miner series` + full metrics in the API | Rust tests + live run | DONE (2026-11-09: `DeviceInfo` carries hashrate/1m/10m/1h, power, shares, best diff, uptime, RSSI, pool; `hscl miner series --count/--interval/--out`) |
-| Q-36 | WebSocket push (`/api/ws/live`) instead of polling | client + tests | OPEN — research confirms ≤500 ms JSON diffs; implement a dependency-free WS client next |
+| Q-36 | WebSocket push (`/api/ws/live`) instead of polling | client + tests | **DONE 2026-11-09** — dependency-free client (handshake, SHA-1 accept check, frame parser, pong) + `hscl miner watch`; live run streamed the full snapshot and ~500 ms diffs |
 | Q-37 | Per-device builds for `.66` and `.80` | firmware + flash log | OPEN — `.66` runs `blackharkminer`, `.80` runs `tim2` (BM1370, board 601); same NVS-loss risk |
 | Q-38 | Pool slot API (`PUT /api/system/pools/<n>`) in the CLI | command + tests | **DONE 2026-11-09** — `hscl miner pool list|set` with validation (index 0–7, bare host, SV1/SV2), masked wallet, authorization phrase, dry-run; 4 Rust + 3 CLI tests |
 | Q-20 | Prevent QML lint regression | `QML_WARN_BUDGET` ratchet in `scripts/dev/qml-gate.sh` | DONE (2026-11-09, budget 152, verified to fail at 10) |

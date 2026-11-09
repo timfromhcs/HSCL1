@@ -8,6 +8,9 @@ use serde::{Deserialize, Serialize};
 
 use crate::miner::{probe, DeviceInfo};
 
+/// Shared, periodically refreshed snapshot per device.
+type Cache = Arc<Mutex<Vec<(String, Option<DeviceInfo>, Instant)>>>;
+
 /// A device seen on the LAN, identified by MAC rather than by address.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FoundMiner {
@@ -95,7 +98,7 @@ pub fn discover(prefix: &str) -> Result<Vec<FoundMiner>> {
 /// Endpoints: `/v1/health`, `/v1/miners`, `/v1/miner?host=192.168.178.61`.
 pub fn serve(bind: &str, hosts: Vec<String>) -> Result<()> {
     let listener = TcpListener::bind(bind).with_context(|| format!("cannot bind {bind}"))?;
-    let cache: Arc<Mutex<Vec<(String, Option<DeviceInfo>, Instant)>>> = Arc::new(Mutex::new(
+    let cache: Cache = Arc::new(Mutex::new(
         hosts
             .iter()
             .map(|h| (h.clone(), None, Instant::now() - Duration::from_secs(3600)))
@@ -161,11 +164,11 @@ pub fn serve(bind: &str, hosts: Vec<String>) -> Result<()> {
     Ok(())
 }
 
-fn hosts_len(cache: &Arc<Mutex<Vec<(String, Option<DeviceInfo>, Instant)>>>) -> usize {
+fn hosts_len(cache: &Cache) -> usize {
     cache.lock().unwrap().len()
 }
 
-fn refresh(cache: &Arc<Mutex<Vec<(String, Option<DeviceInfo>, Instant)>>>) -> Result<()> {
+fn refresh(cache: &Cache) -> Result<()> {
     let hosts: Vec<String> = cache
         .lock()
         .unwrap()

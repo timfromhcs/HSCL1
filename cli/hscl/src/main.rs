@@ -23,6 +23,7 @@ mod memory;
 mod miner;
 mod miner_api;
 mod miner_pool;
+mod miner_ws;
 mod privacy;
 mod profile;
 mod recovery;
@@ -296,6 +297,17 @@ enum MinerCmd {
     Pool {
         #[command(subcommand)]
         cmd: MinerPoolCmd,
+    },
+    /// Stream push updates from `/api/ws/live` (read-only, private hosts only).
+    Watch {
+        device: String,
+        /// Stop after N seconds (0 = until Ctrl-C).
+        #[arg(long, default_value_t = 60)]
+        seconds: u64,
+        #[arg(long, default_value = "/api/ws/live")]
+        path: String,
+        #[arg(long)]
+        json: bool,
     },
 }
 
@@ -3953,7 +3965,7 @@ fn run_miner(j: bool, cmd: MinerCmd) -> anyhow::Result<u8> {
                 }
             }
             if json {
-                print_value(true, &payload, || String::new());
+                print_value(true, &payload, String::new);
             }
         }
         MinerCmd::Pool { cmd } => match cmd {
@@ -4014,6 +4026,46 @@ fn run_miner(j: bool, cmd: MinerCmd) -> anyhow::Result<u8> {
                 });
             }
         },
+        MinerCmd::Watch {
+            device,
+            seconds,
+            path,
+            json,
+        } => {
+            if !miner::is_private_host(&device) {
+                bail!("refusing {device}: only private/loopback hosts are allowed");
+            }
+            let mut client = miner_ws::WsClient::connect(
+                &device,
+                80,
+                &path,
+                std::time::Duration::from_secs(10),
+            )?;
+            let deadline =
+                std::time::Instant::now() + std::time::Duration::from_secs(seconds.max(1));
+            let mut seen = 0u64;
+            while std::time::Instant::now() < deadline {
+                match client.read_text() {
+                    Ok(Some(text)) => {
+                        seen += 1;
+                        if json {
+                            println!("{text}");
+                        } else {
+                            let short: String = text.chars().take(160).collect();
+                            println!("[{seen}] {short}");
+                        }
+                    }
+                    Ok(None) => break,
+                    Err(e) => {
+                        eprintln!("stream ended after {seen} message(s): {e}");
+                        break;
+                    }
+                }
+            }
+            if !json {
+                println!("{seen} push message(s) from {device}{path}");
+            }
+        }
     }
     Ok(exit::OK)
 }

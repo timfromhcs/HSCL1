@@ -192,6 +192,7 @@ System information, package updates, power actions, and services management (AGE
 | `hscl miner series` | Sample one miner N times and write the JSON series (native, replaces the ad-hoc script) |
 | `hscl miner pool list` | Show the configured pool slots (wallet and password masked) |
 | `hscl miner pool set` | Write one pool slot via `PUT /api/system/pools/<n>`; needs the authorization phrase, `--dry-run` sends nothing |
+| `hscl miner watch` | Stream push updates from `/api/ws/live` (dependency-free WebSocket client, read-only) |
 | `hscl ai model list` | All catalog models with fit information for this machine |
 | `hscl ai model recommend` | Models that fit this machine, best first |
 | `hscl ai model info` | Details, licence and warning of one model |

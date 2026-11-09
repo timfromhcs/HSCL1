@@ -1782,6 +1782,11 @@ Owner instruction in-session: "flash timsminer". Executed through the product pa
   0 and unknown protocols; the wallet is masked in output and the password is printed as `<set>`. A write
   requires `--yes="I am authorized to flash this device"` and a private host; `--dry-run` sends nothing.
   Live: `slot 0  sha256.eu.mine.zpool.ca:3333  user dgb1…49lp (43 chars)  proto SV1`.
+- **Q-36 done:** `cli/hscl/src/miner_ws.rs` implements the WebSocket handshake, the RFC 6455 accept check
+  (own SHA-1 + base64), frame parsing and pong replies without a new crate. `hscl miner watch <host>`
+  streams `/api/ws/live`: the first frame is the full snapshot, then diffs every ~500 ms
+  (`{"event":"update","data":{...}}`). Five Rust tests cover the SHA-1 vectors, base64, the RFC accept
+  example and both refusal paths; two CLI tests cover the private-host rule and a closed port.
 - Raw data and the series JSON live in `artifacts/miner/`. The summary is
   [docs/miner/TELEMETRY.md](miner/TELEMETRY.md). The pool account string is deliberately not copied
   into the repository.

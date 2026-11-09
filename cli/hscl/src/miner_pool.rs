@@ -83,6 +83,8 @@ pub fn validate(index: u8, url: &str, port: u16, protocol: &str) -> Result<()> {
     Ok(())
 }
 
+/// Mirrors the CLI flags one-to-one; a struct would only move the same eight values.
+#[allow(clippy::too_many_arguments)]
 pub fn spec(
     index: u8,
     url: &str,
