@@ -1,9 +1,10 @@
 # HCSEASYMATH (in-tree, pre-alpha)
 
-A local mathematical workbench. **Today it does five things**: an exact symbolic derivative, an
+A local mathematical workbench. **Today it does six things**: an exact symbolic derivative, an
 indefinite integral, an exact substitution at a value, a simplification whose result is checked
-to be the same function as the input, and a real-domain equation solver that substitutes every root
-back before reporting it - through a loopback-only API and a one-page UI. Everything else in
+to be the same function as the input, a real-domain equation solver that substitutes every root
+back before reporting it, and a sampled plot (values + SVG, not a proof of shape) — through a
+loopback-only API and a one-page UI. Everything else in
 `docs/superpowers/plans/2026-11-08-hcseasymath-plan.md` is planned, not built.
 
 Made with love by hcsmedia. Part of HSCL1 (GPL-3.0-or-later); see `docs/integrations/HCSEASYMATH.md`.
@@ -38,9 +39,11 @@ Made with love by hcsmedia. Part of HSCL1 (GPL-3.0-or-later); see `docs/integrat
 ## What it does not do
 
 No definite integrals, no complex-domain solving, no factoring or expansion as separate operations,
-no plotting, no ODEs, no accelerators (HCSUDA is `not_used`), no Windows worker, no packaging.
-The one-page UI still calls only `differentiate`; the other four operations are reachable through the
-API (and the CLI), not the page. A warm worker is not implemented: one request costs about 0.57 s
+no ODEs, no accelerators (HCSUDA is `not_used`), no Windows worker, no packaging.
+The plot returns sampled values and an SVG rendering of those samples; it is not a proof about the
+function and not an image of the mathematical curve.
+The one-page UI exposes all six operations; the CLI and API offer the same set.
+A warm worker is not implemented: one request costs about 0.57 s
 because each one starts a fresh Python and imports SymPy (measured, median of 7, repo on a USB drive,
 WSL Ubuntu 26.04).
 

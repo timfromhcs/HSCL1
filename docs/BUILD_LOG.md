@@ -1694,6 +1694,33 @@ Artifact: `HSCL1-qa-2026-11-09-amd64.iso` (`118029de…`, source `c8a433a`), QEM
   light palette (documented limitation, not changed here).
 - **Not verified in this run:** an actual installation, LUKS, German/French launcher titles, Secure Boot
   enforcement, Security Lab and Privacy tracks in the guest.
+
+### V1-MINER Miner bridge, guarded CLI slice and research round (2026-11-09)
+
+- **Research first.** `docs/miner/FIRMWARE_RESEARCH.md` records the current upstream facts with dates:
+  `bitaxeorg/ESP-Miner` **v2.15.4** is the latest stable (v2.15.0 embedded the AxeOS UI in
+  `esp-miner.bin` and added mDNS), and the owner's fork is at **4.0.2-rc1**. Its own `OTA_SAFETY.md`
+  states plainly: no authentication beyond a network-range check, no TLS, no signature verification, no
+  downgrade protection. Those three limits are printed by `hscl miner plan` on every run.
+- **Implemented (`cli/hscl/src/miner.rs`, 8 Rust tests):**
+  - `status` — local config + esptool availability, contacts no device.
+  - `probe <host>` — `GET /api/system/info` over plain HTTP with a 6 s timeout and 256 KiB cap.
+  - `plan <host> --firmware F` — size, SHA-256, endpoint, rollback hint and warnings; sends nothing.
+  - `ota` / `flash` — require `--yes="I am authorized to flash this device"`, re-verify the SHA-256, and
+    run only the fixed argv (`esptool --chip esp32s3 … write_flash -z 0x0`). `--dry-run` prints and
+    sends/writes nothing.
+  - **Private hosts only:** loopback, RFC1918, link-local, unique-local and `*.local`; `1.1.1.1`,
+    `example.com` and `172.32.0.1` are refused before a socket exists.
+- **MCP:** `hscl_miner_status` and `hscl_miner_probe` are read-only tools; flashing stays on the CLI so no
+  agent can flash hardware without a human-typed phrase. Read-only tool count 18 → 20.
+- **Docs:** `docs/CLI.md` lists all five commands (the doc-drift gate went red until it did), the ADR
+  status moved from "Draft" to "Partially implemented" with a §11 for the slice, and the README has a
+  guarded Miner section.
+- **Localization/state sync:** `apps/hcseasymath/README.md` said "five things" and "no plotting" although
+  the page exposes six operations including the sampled plot; corrected.
+- **Not done:** no device was contacted and nothing was flashed. The receiver, pairing, storage and
+  mDNS discovery remain draft. Hardware flashing is `BLOCKED`: no device attached, and the repository
+  explicitly requires owner authorization for device writes.
 - **Not verified here:** anything requiring a booted artifact (theme result, launcher merge behaviour,
   installer clipping, screenshots). Those rows stay `VM-PENDING` in `docs/AUTONOMOUS_QUEUE.md`.
 

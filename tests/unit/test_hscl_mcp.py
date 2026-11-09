@@ -77,11 +77,13 @@ def test_hscl_mcp_handshake_and_read_only_tools(hscl_bin: Path):
 
         tools = s.req(2, "tools/list", {})
         names = [t["name"] for t in tools["result"]["tools"]]
-        assert len(names) == 18
+        assert len(names) == 20
         assert "hscl_version" in names
         assert "hscl_cqhecs_status" in names
         assert "hscl_memory_status" in names
         assert "hscl_lab_status" in names
+        assert "hscl_miner_status" in names
+        assert "hscl_miner_probe" in names
         assert "hscl_wallpaper_list" in names
         assert "hscl_language_status" in names
         assert "hscl_language_list" in names
@@ -115,7 +117,7 @@ def test_hscl_mcp_allow_write_tools(hscl_bin: Path):
         s.req(1, "initialize", {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "test"}})
         tools = s.req(2, "tools/list", {})
         names = [t["name"] for t in tools["result"]["tools"]]
-        assert len(names) == 22
+        assert len(names) == 24
         assert "hscl_wallpaper_apply" in names
         assert "hscl_theme_set" in names
         assert "hscl_graphics_apply" in names

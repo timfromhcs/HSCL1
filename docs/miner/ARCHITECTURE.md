@@ -1,10 +1,11 @@
 # HCS Miner Research Bridge — Architecture Decision Record
 
 **Document ID:** ADR-2026-11-08-MINER-001  
-**Date:** 2026-11-08  
-**Status:** Draft (awaiting owner review)  
+**Date:** 2026-11-08 (updated 2026-11-09)  
+**Status:** Partially implemented — the read-only probe, the OTA/flash plans and the guarded actions
+exist as `hscl miner …` (§11); the receiver/pairing/storage stack in §2–§7 is still a draft.  
 **Author:** HSCL1 Autonomous Engineering Agent  
-**References:** `AGENTS_HSCL1_BITAXE_MINER_RESEARCH_BRIDGE_MASTER_2026-11-08.md`, `MINER_BRIDGE_RESEARCH_LEDGER.md`
+**References:** `AGENTS_HSCL1_BITAXE_MINER_RESEARCH_BRIDGE_MASTER_2026-11-08.md`, `MINER_BRIDGE_RESEARCH_LEDGER.md`, [FIRMWARE_RESEARCH.md](FIRMWARE_RESEARCH.md)
 
 ---
 
@@ -241,3 +242,26 @@ All miner-initiated. No miner-to-miner or miner-to-internet connections introduc
 |---------|------|--------|---------|
 | 0.1 | 2026-11-08 | HSCL1 Autonomous Agent | Initial draft |
 | 0.2 | 2026-11-08 | HSCL1 takeover audit | Withdraw public-ID-derived secret; require cryptographic randomness and authenticated physical provisioning; correct compromise/dump/first-use boundaries and challenge expiry; still draft, no implementation |
+
+---
+
+## 11. Implemented slice: `hscl miner` (2026-11-09)
+
+The first real code from this ADR is deliberately the smallest safe part — contact and inspection, not
+the receiver:
+
+| Command | Behaviour |
+|---|---|
+| `hscl miner status` | Local `miner.json`, receiver port, esptool availability. Contacts no device. |
+| `hscl miner probe <host>` | `GET /api/system/info` over plain HTTP, 6 s timeout, 256 KiB cap; only private/loopback/`*.local` hosts. |
+| `hscl miner plan <host> --firmware F` | Size, SHA-256, endpoint, rollback hint and the three firmware limitations. Sends nothing. |
+| `hscl miner ota <host> --firmware F --yes "…" [--dry-run]` | Verifies the SHA-256 again, then `POST /api/system/OTA`. Requires the exact phrase. |
+| `hscl miner flash --port P --firmware F --yes "…" [--dry-run]` | Builds `esptool --chip esp32s3 … write_flash -z 0x0 F` and runs it only with the phrase. |
+
+MCP exposes `hscl_miner_status` and `hscl_miner_probe` as read-only tools; the flashing actions stay on
+the CLI so an agent cannot trigger them through a tool call without the human-typed phrase.
+
+Deliberately **not** implemented: receiver daemon, pairing, storage, mDNS discovery, fleet scan, pool
+credentials. Those need the security review and owner decisions listed in §4 and §8.
+
+Firmware facts and sources that shaped this slice: [FIRMWARE_RESEARCH.md](FIRMWARE_RESEARCH.md).

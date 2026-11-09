@@ -170,13 +170,37 @@ flowchart LR
   ```
 - **Fail-Closed:** Containers mount no host home directories, credentials, or SSH agents by default.
 
-### C. Privacy (Disposable Sessions)
-- **Ephemeral RAM Overlay:** Read-only root filesystem backed by a RAM overlay; all state discarded on shutdown.
+### C. Privacy (Disposable Sessions)- **Ephemeral RAM Overlay:** Read-only root filesystem backed by a RAM overlay; all state discarded on shutdown.
 - **Disk Isolation:** Host internal drives are unmounted and ignored by default.
 - **Tor Integration:** Isolated network routing preventing direct clearnet leaks when privacy mode is engaged.
 - **Honest Limitations:** HSCL1 is not Tails. For life-critical anonymity, launch the official signature-verified Tails ISO.
 
 ---
+
+## ⛏️ Bitaxe / ESP-Miner bridge (opt-in, LAN only)
+
+HSCL1 can inspect and update a Bitaxe-class miner that already runs the owner's
+[ESP-Miner fork](https://github.com/timfromhcs/ESP-Miner). This is deliberately small and guarded:
+
+```console
+$ hscl miner status                                      # local config + esptool availability, no device contact
+$ hscl miner probe 192.168.178.61                        # GET /api/system/info (read-only)
+$ hscl miner plan 192.168.178.61 --firmware esp-miner.bin # SHA-256, size, endpoint, rollback hint
+$ hscl miner ota  192.168.178.61 --firmware esp-miner.bin --yes="I am authorized to flash this device"
+$ hscl miner flash --port COM5 --firmware esp-miner-factory-401.bin --yes="I am authorized to flash this device"
+```
+
+- **Private networks only.** Loopback, RFC1918, link-local, unique-local and `*.local` are accepted; a
+  public address is refused before a socket is opened. The MCP tools (`hscl_miner_status`,
+  `hscl_miner_probe`) enforce the same rule.
+- **No silent flashing.** OTA and USB flashing require the exact authorization phrase; `--dry-run`
+  prints the command and the hash and sends/writes nothing.
+- **Honest about the firmware.** AxeOS OTA has no authentication beyond a network-range check, no TLS,
+  no signature verification and no downgrade protection — the plan prints that on every run. Details and
+  sources: [`docs/miner/FIRMWARE_RESEARCH.md`](docs/miner/FIRMWARE_RESEARCH.md) and the
+  [miner ADR](docs/miner/ARCHITECTURE.md).
+- **Not implemented:** receiver daemon, pairing, fleet discovery, pool credentials, eFuse/Secure Boot
+  provisioning. Mining hardware is not shipped by HSCL1.
 
 ## ⚡ Command Line Interface (`hscl`)
 
@@ -231,7 +255,7 @@ HSCL1 adheres to a strict evidence-driven development contract: **nothing is cla
 | **Remastered Live/Installer ISO** | `VM-VERIFIED` | Boots to live desktop in 130 s under UEFI (QEMU+WHPX); Welcome dismissed; [`docs/img/showcase/01_desktop_clean.png`](docs/img/showcase/01_desktop_clean.png) |
 | **Secure Boot Firmware Boot** | `VM-VERIFIED` | Boots under OVMF Secure Boot code + Microsoft-key vars; signed shim/GRUB/kernel bootchain preserved |
 | **LUKS2 Full-Disk Installation** | `VM-VERIFIED` | 40 GB virtual disk; Argon2id key derivation, `/` = `0:0 755`, no passphrase leak in logs; [`docs/img/desktop-installed.png`](docs/img/desktop-installed.png) |
-| **Rust `hscl` CLI Workspace** | `TESTED` | 245 unit tests (Windows, 2026-11-09); 0 failures; `cargo clippy --all-targets -D warnings` and `cargo fmt --check` clean |
+| **Rust `hscl` CLI Workspace** | `TESTED` | 259 unit tests (Windows, 2026-11-09); 0 failures; `cargo clippy --all-targets -D warnings` and `cargo fmt --check` clean |
 | **Security Lab CLI** | `TESTED` | `run`, `install`, `commit`, `destroy` subcommands with mandatory `--yes` gate; builder probe verified |
 | **MCP Stdio Server Protocol** | `TESTED` | 7/7 protocol tests passed via `scripts/dev/mcp_selftest.py` (JSON-RPC handshake, 14 tools listed) |
 | **Memory Manager Baseline** | `VM-VERIFIED` | `/dev/zram0` (1.9 GB zstd, priority 100), `earlyoom` active, `hscl-ai.slice` memory capped at 60% |
@@ -321,6 +345,8 @@ $ scripts/dev/wsl-cycle.sh iso --fast
 - [Roadmap to v1.0.0](docs/superpowers/plans/2026-11-08-selfheal-masterplan.md) — Active self-healing research masterplan.
 - [Quality audit & visual QA (2026-11-09)](docs/QA_FINDINGS_2026-11-09.md) — What works, what is weak, every known defect.
 - [Autonomous work queue](docs/AUTONOMOUS_QUEUE.md) — The ordered list the agent loop executes.
+- [Miner firmware research](docs/miner/FIRMWARE_RESEARCH.md) — Current ESP-Miner/AxeOS facts and limits.
+- [Miner bridge ADR](docs/miner/ARCHITECTURE.md) — Receiver design and the implemented CLI slice.
 - [Licenses & Attributions](docs/LICENSES.md) — Upstream component licenses and intellectual property terms.
 
 ---

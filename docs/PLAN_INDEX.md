@@ -14,6 +14,11 @@
 - **Evidence drift is a first-class item:** `CLAIMS.md` still describes a 0.1.3 artifact while
   `VERSION`/README are 0.1.4 and the last BUILD_LOG candidate is no longer on disk. Rows must name their
   artifact before any v1 readiness claim.
+- **Miner track started (2026-11-09):** `hscl miner status|probe|plan|ota|flash` exists with private-LAN
+  enforcement, SHA-256 recording and a mandatory authorization phrase; `hscl_miner_status` and
+  `hscl_miner_probe` are read-only MCP tools. Firmware facts and sources are in
+  [`miner/FIRMWARE_RESEARCH.md`](miner/FIRMWARE_RESEARCH.md). No hardware was flashed and no device was
+  contacted in this session.
 - Nothing below loses authority. Where a plan says "NEXT" and the queue disagrees, the queue wins for
   ordering; the plans keep their acceptance criteria.
 

@@ -105,6 +105,21 @@ fn tools() -> Vec<Tool> {
         Tool { name: "hscl_memory_status", desc: "RAM, zram swap, and local AI memory headroom.", write: false, schema: empty, args: |a| { no_extra(a, &[])?; Ok(v(&["memory", "status"])) } },
         Tool { name: "hscl_cqhecs_status", desc: "CQ-HECS runtime status (read-only, wraps doctor --json).", write: false, schema: empty, args: |a| { no_extra(a, &[])?; Ok(v(&["cqhecs", "status"])) } },
         Tool { name: "hscl_lab_status", desc: "Security Lab container engine and toolset configuration.", write: false, schema: empty, args: |a| { no_extra(a, &[])?; Ok(v(&["lab", "status"])) } },
+        Tool { name: "hscl_miner_status", desc: "Local miner configuration and esptool availability (contacts no device).", write: false, schema: empty, args: |a| { no_extra(a, &[])?; Ok(v(&["miner", "status", "--json"])) } },
+        Tool {
+            name: "hscl_miner_probe",
+            desc: "Read GET /api/system/info from a Bitaxe on the private LAN (read-only, no writes).",
+            write: false,
+            schema: || json!({"type": "object", "properties": {"device": {"type": "string"}}, "required": ["device"], "additionalProperties": false}),
+            args: |a| {
+                no_extra(a, &["device"])?;
+                let d = str_arg(a, "device")?;
+                if !crate::miner::is_private_host(d) {
+                    return Err(anyhow!("device must be a private/loopback host or *.local name"));
+                }
+                Ok(v(&["miner", "probe", d, "--json"]))
+            },
+        },
         Tool { name: "hscl_wallpaper_list", desc: "Available wallpaper shader presets and current settings.", write: false, schema: empty, args: |a| { no_extra(a, &[])?; Ok(v(&["wallpaper", "list"])) } },
         Tool {
             name: "hscl_wallpaper_apply",

@@ -20,6 +20,7 @@ mod language;
 mod logs;
 mod mcp;
 mod memory;
+mod miner;
 mod privacy;
 mod profile;
 mod recovery;
@@ -36,6 +37,7 @@ mod wallpaper;
 use anyhow::bail;
 use clap::{Parser, Subcommand};
 use serde_json::json;
+use std::path::PathBuf;
 use std::process::ExitCode;
 
 pub const PRODUCT: &str = "HSCL1";
@@ -198,6 +200,63 @@ enum Cmd {
     Dev {
         #[command(subcommand)]
         cmd: DevCmd,
+    },
+    /// Bitaxe/ESP-Miner contact: read-only probe, guarded OTA and USB flashing. Private networks only.
+    Miner {
+        #[command(subcommand)]
+        cmd: MinerCmd,
+    },
+}
+
+#[derive(Subcommand)]
+enum MinerCmd {
+    /// Local miner configuration and tool availability. Contacts no device.
+    Status {
+        #[arg(long)]
+        json: bool,
+    },
+    /// Read GET /api/system/info from a miner on the local network (read-only, no writes).
+    Probe {
+        /// Device address or *.local hostname (private networks only).
+        device: String,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Compute the OTA plan (size + SHA-256 + warnings) without sending anything.
+    Plan {
+        device: String,
+        /// Firmware image (esp-miner.bin).
+        #[arg(long)]
+        firmware: PathBuf,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Send an OTA update. Requires --yes="I am authorized to flash this device".
+    Ota {
+        device: String,
+        #[arg(long)]
+        firmware: PathBuf,
+        /// Authorization phrase; without it nothing is sent.
+        #[arg(long)]
+        yes: Option<String>,
+        #[arg(long)]
+        dry_run: bool,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Flash over USB with esptool. Requires --yes="I am authorized to flash this device".
+    Flash {
+        /// Serial port, e.g. COM5 or /dev/ttyUSB0.
+        #[arg(long)]
+        port: String,
+        #[arg(long)]
+        firmware: PathBuf,
+        #[arg(long)]
+        yes: Option<String>,
+        #[arg(long)]
+        dry_run: bool,
+        #[arg(long)]
+        json: bool,
     },
 }
 
@@ -2064,6 +2123,7 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
         Cmd::Logs { cmd } => return run_logs(j, cmd),
         Cmd::Recovery { cmd } => return run_top_recovery(j, cmd),
         Cmd::Dev { cmd } => return run_dev(j, cmd),
+        Cmd::Miner { cmd } => return run_miner(j, cmd),
         Cmd::Doctor { full } => {
             let report = doctor::run(full);
             let v = serde_json::to_value(&report)?;
@@ -3592,6 +3652,133 @@ fn run_system(j: bool, cmd: SystemCmd) -> anyhow::Result<u8> {
                         ));
                     }
                     s
+                }
+            });
+        }
+    }
+    Ok(exit::OK)
+}
+
+fn run_miner(j: bool, cmd: MinerCmd) -> anyhow::Result<u8> {
+    let cfg_dir = miner::config_dir();
+    match cmd {
+        MinerCmd::Status { json } => {
+            let cfg = miner::load_config(&cfg_dir);
+            let esptool = miner::esptool_command();
+            let available = std::process::Command::new(&esptool[0])
+                .arg("--version")
+                .output()
+                .map(|o| o.status.success())
+                .unwrap_or(false);
+            let v = json!({
+                "config_dir": cfg_dir.display().to_string(),
+                "receiver_port": cfg.receiver_port,
+                "last_device": cfg.last_device,
+                "esptool_argv": esptool,
+                "esptool_available": available,
+                "authorization_phrase": miner::AUTH_PHRASE,
+                "note": "read-only: no device is contacted and nothing is flashed",
+            });
+            print_value(json || j, &v, || {
+                format!(
+                    "config dir: {}\nreceiver port: {}\nlast device: {}\nesptool: {} ({})\nauthorization: --yes=\"{}\"",
+                    cfg_dir.display(),
+                    cfg.receiver_port,
+                    cfg.last_device.as_deref().unwrap_or("none"),
+                    esptool.join(" "),
+                    if available { "found" } else { "not found" },
+                    miner::AUTH_PHRASE
+                )
+            });
+        }
+        MinerCmd::Probe { device, json } => {
+            let info = miner::probe(&device)?;
+            let v = serde_json::to_value(&info)?;
+            print_value(json || j, &v, || {
+                format!(
+                    "host: {}\nHTTP: {}\nASIC: {}\nboard: {}\nfirmware: {}\nhostname: {}\nMAC: {}\nfrequency: {}\ncore voltage (mV): {}\ntemperature (C): {}",
+                    info.host,
+                    info.status,
+                    info.asic.as_deref().unwrap_or("unknown"),
+                    info.board_version.as_deref().unwrap_or("unknown"),
+                    info.firmware.as_deref().unwrap_or("unknown"),
+                    info.hostname.as_deref().unwrap_or("unknown"),
+                    info.mac.as_deref().unwrap_or("unknown"),
+                    info.frequency.map(|v| v.to_string()).unwrap_or_default(),
+                    info.voltage_mv.map(|v| v.to_string()).unwrap_or_default(),
+                    info.temp_c.map(|v| v.to_string()).unwrap_or_default()
+                )
+            });
+        }
+        MinerCmd::Plan {
+            device,
+            firmware,
+            json,
+        } => {
+            let plan = miner::plan_ota(&device, &firmware)?;
+            let v = serde_json::to_value(&plan)?;
+            print_value(json || j, &v, || {
+                format!(
+                    "device: {}\nfirmware: {} ({} bytes)\nsha256: {}\nendpoint: POST {}\nrollback: {}\nwarning: {}",
+                    plan.device,
+                    plan.firmware,
+                    plan.firmware_bytes,
+                    plan.firmware_sha256,
+                    plan.url,
+                    plan.rollback_hint,
+                    plan.warnings.join("\nwarning: ")
+                )
+            });
+        }
+        MinerCmd::Ota {
+            device,
+            firmware,
+            yes,
+            dry_run,
+            json,
+        } => {
+            let plan = miner::plan_ota(&device, &firmware)?;
+            let done = miner::ota(&plan, &firmware, yes.as_deref().unwrap_or(""), dry_run)?;
+            let v = serde_json::to_value(&done)?;
+            print_value(json || j, &v, || {
+                if done.dry_run {
+                    format!(
+                        "dry run: would send {} (sha256 {}) to {} — nothing was sent",
+                        done.firmware, done.firmware_sha256, done.url
+                    )
+                } else {
+                    format!(
+                        "OTA accepted by {}: {} (sha256 {}). The device reboots into the new slot; {}",
+                        done.device, done.firmware, done.firmware_sha256, done.rollback_hint
+                    )
+                }
+            });
+            let mut cfg = miner::load_config(&cfg_dir);
+            cfg.last_device = Some(device);
+            miner::save_config(&cfg_dir, &cfg)?;
+        }
+        MinerCmd::Flash {
+            port,
+            firmware,
+            yes,
+            dry_run,
+            json,
+        } => {
+            let plan = miner::plan_flash(&port, &firmware)?;
+            let done = miner::flash(&plan, yes.as_deref().unwrap_or(""), dry_run)?;
+            let v = serde_json::to_value(&done)?;
+            print_value(json || j, &v, || {
+                if done.dry_run {
+                    format!(
+                        "dry run: would run `{}` (sha256 {}) — nothing was written",
+                        done.argv.join(" "),
+                        done.firmware_sha256
+                    )
+                } else {
+                    format!(
+                        "USB flash finished on {}: {} (sha256 {})",
+                        done.port, done.firmware, done.firmware_sha256
+                    )
                 }
             });
         }

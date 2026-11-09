@@ -182,6 +182,11 @@ System information, package updates, power actions, and services management (AGE
 | `hscl appearance wallpaper set` | Apply a wallpaper preset by name |
 | `hscl appearance mode` | Show or set desktop color mode. `dark`/`light` also apply the matching HCS colour scheme; `auto` records the preference and leaves the scheme alone |
 | `hscl appearance dock position` | Move the HCS dock to another screen edge (bottom, left, right) by scripting the running Plasma panel; the top bar is never moved |
+| `hscl miner status` | Local miner configuration and esptool availability. Contacts no device |
+| `hscl miner probe` | Read `GET /api/system/info` from a Bitaxe on the local network (read-only) |
+| `hscl miner plan` | Size, SHA-256, endpoint and rollback hint for an OTA firmware, without sending it |
+| `hscl miner ota` | Send an OTA firmware update; needs `--yes="I am authorized to flash this device"` (private networks only) |
+| `hscl miner flash` | USB flashing through `esptool`; same authorization phrase, `--dry-run` prints the argv |
 | `hscl ai model list` | All catalog models with fit information for this machine |
 | `hscl ai model recommend` | Models that fit this machine, best first |
 | `hscl ai model info` | Details, licence and warning of one model |
