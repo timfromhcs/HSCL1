@@ -1778,6 +1778,10 @@ Owner instruction in-session: "flash timsminer". Executed through the product pa
   `[1/3] 335.0 GH/s 59 C 11.09 W shares 173/2 pool sha256.eu.mine.zpool.ca:3333`.
 - **Open from this round:** a WebSocket client (Q-36), per-device builds for `.66`/`.80` (Q-37) and a
   `pools` write command in the CLI (Q-38).
+- **Q-38 done:** `hscl miner pool list|set`. Validation rejects index > 7, a URL with scheme or path, port
+  0 and unknown protocols; the wallet is masked in output and the password is printed as `<set>`. A write
+  requires `--yes="I am authorized to flash this device"` and a private host; `--dry-run` sends nothing.
+  Live: `slot 0  sha256.eu.mine.zpool.ca:3333  user dgb1…49lp (43 chars)  proto SV1`.
 - Raw data and the series JSON live in `artifacts/miner/`. The summary is
   [docs/miner/TELEMETRY.md](miner/TELEMETRY.md). The pool account string is deliberately not copied
   into the repository.

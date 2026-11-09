@@ -22,6 +22,7 @@ mod mcp;
 mod memory;
 mod miner;
 mod miner_api;
+mod miner_pool;
 mod privacy;
 mod profile;
 mod recovery;
@@ -288,6 +289,48 @@ enum MinerCmd {
         /// Output file for the JSON series.
         #[arg(long)]
         out: Option<PathBuf>,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Pool slots: list them read-only, or write one with `PUT /api/system/pools/<n>`.
+    Pool {
+        #[command(subcommand)]
+        cmd: MinerPoolCmd,
+    },
+}
+
+#[derive(Subcommand)]
+enum MinerPoolCmd {
+    /// Show the configured pool slots (wallet masked).
+    List {
+        device: String,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Write one pool slot. Requires --yes="I am authorized to flash this device".
+    Set {
+        device: String,
+        #[arg(long, default_value_t = 0)]
+        index: u8,
+        #[arg(long)]
+        url: String,
+        #[arg(long, default_value_t = 3333)]
+        port: u16,
+        /// Payout address or worker name.
+        #[arg(long)]
+        user: String,
+        #[arg(long, default_value = "x")]
+        password: String,
+        #[arg(long, default_value = "SV1")]
+        protocol: String,
+        #[arg(long, default_value_t = 1000)]
+        difficulty: u32,
+        #[arg(long, default_value_t = 0)]
+        tls: u8,
+        #[arg(long)]
+        yes: Option<String>,
+        #[arg(long)]
+        dry_run: bool,
         #[arg(long)]
         json: bool,
     },
@@ -3913,6 +3956,64 @@ fn run_miner(j: bool, cmd: MinerCmd) -> anyhow::Result<u8> {
                 print_value(true, &payload, || String::new());
             }
         }
+        MinerCmd::Pool { cmd } => match cmd {
+            MinerPoolCmd::List { device, json } => {
+                let pools = miner_pool::list(&device)?;
+                let v = json!({"device": device, "pools": pools});
+                print_value(json || j, &v, || {
+                    pools
+                        .iter()
+                        .map(|p| {
+                            format!(
+                                "slot {}  {}:{}  user {}  proto {}",
+                                p.get("id").and_then(|v| v.as_i64()).unwrap_or(-1),
+                                p.get("stratumURL").and_then(|v| v.as_str()).unwrap_or("?"),
+                                p.get("stratumPort").and_then(|v| v.as_i64()).unwrap_or(0),
+                                p.get("stratumUser").and_then(|v| v.as_str()).unwrap_or("?"),
+                                p.get("stratumProtocol")
+                                    .and_then(|v| v.as_str())
+                                    .unwrap_or("?")
+                            )
+                        })
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                });
+            }
+            MinerPoolCmd::Set {
+                device,
+                index,
+                url,
+                port,
+                user,
+                password,
+                protocol,
+                difficulty,
+                tls,
+                yes,
+                dry_run,
+                json,
+            } => {
+                let spec = miner_pool::spec(
+                    index, &url, port, &user, &password, &protocol, difficulty, tls,
+                )?;
+                let out = miner_pool::write(&device, &spec, yes.as_deref().unwrap_or(""), dry_run)?;
+                print_value(json || j, &out, || {
+                    if out["dry_run"] == serde_json::json!(true) {
+                        format!(
+                            "dry run: {} (slot {}) — nothing was sent",
+                            out["endpoint"].as_str().unwrap_or("?"),
+                            index
+                        )
+                    } else {
+                        format!(
+                            "pool slot {} written on {device} (HTTP {})",
+                            index,
+                            out["status"].as_u64().unwrap_or(0)
+                        )
+                    }
+                });
+            }
+        },
     }
     Ok(exit::OK)
 }

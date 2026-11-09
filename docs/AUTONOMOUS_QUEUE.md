@@ -38,7 +38,7 @@ booted-artifact evidence missing).
 | Q-35 | Native `miner series` + full metrics in the API | Rust tests + live run | DONE (2026-11-09: `DeviceInfo` carries hashrate/1m/10m/1h, power, shares, best diff, uptime, RSSI, pool; `hscl miner series --count/--interval/--out`) |
 | Q-36 | WebSocket push (`/api/ws/live`) instead of polling | client + tests | OPEN — research confirms ≤500 ms JSON diffs; implement a dependency-free WS client next |
 | Q-37 | Per-device builds for `.66` and `.80` | firmware + flash log | OPEN — `.66` runs `blackharkminer`, `.80` runs `tim2` (BM1370, board 601); same NVS-loss risk |
-| Q-38 | Pool slot API (`PUT /api/system/pools/<n>`) in the CLI | command + tests | OPEN — currently only the Python restore script writes pools |
+| Q-38 | Pool slot API (`PUT /api/system/pools/<n>`) in the CLI | command + tests | **DONE 2026-11-09** — `hscl miner pool list|set` with validation (index 0–7, bare host, SV1/SV2), masked wallet, authorization phrase, dry-run; 4 Rust + 3 CLI tests |
 | Q-20 | Prevent QML lint regression | `QML_WARN_BUDGET` ratchet in `scripts/dev/qml-gate.sh` | DONE (2026-11-09, budget 152, verified to fail at 10) |
 | Q-19 | Reduce `qmllint` `[unqualified]` warnings in the Control Center (23 of 152) | `qml-gate.sh` warning budget lowered | OPEN — 23 come from `Main.qml`'s C++ context property `cli` and from Repeater delegates reading outer ids; the rest are PlasmaCore imports in the wallpaper plugin |
 
