@@ -88,6 +88,24 @@ Devices are identified by MAC, not by address: the router re-assigned addresses 
 `.61` was briefly answered by another miner. `hscl miner discover` and `hscl miner serve` therefore
 report the MAC with every reading.
 
+## Recovery images (2026-11-09)
+
+Built for the two board families on this LAN, to be flashed **only** if a unit loses its NVS again.
+Nothing was flashed onto the healthy units `.66` and `.80`.
+
+| Board | File | Bytes | SHA-256 |
+|---|---|---|---|
+| 201 (BM1366) | `artifacts/miner/recovery/esp-miner-recovery-201.bin` | 2 758 656 | `8f7321a1761413d0f00a6780c6c427cf6fbf277e49fe1e81ff41e7aa0959556d` |
+| 601 (BM1370) | `artifacts/miner/recovery/esp-miner-recovery-601.bin` | 2 758 656 | `25b2193f0b45cc9f6bf351d8c1ab17f6fb37906ca512fa75bd60ab3d607e2b49` |
+
+Both bake `ESP_MINER_BOARD_VERSION=<board>`, `ESP_MINER_CONFIG_AP_STUCK=1`, the home SSID/password and the
+hostname from `sdkconfig`. Build script: `scripts/dev/build_miner_recovery.ps1 -Board 201|601`.
+Checksums are appended to `artifacts/miner/recovery/SHA256SUMS.txt`.
+
+**Why not flash them:** `.66` (blackharkminer) and `.80` (bitaxe-tim2) are healthy and mining with their
+own NVS. A factory flash erases that configuration — the exact mistake that cost timsminer its settings.
+The images are recovery material, not updates; an update would be the app image at `0x10000`.
+
 ## USB factory flash (2026-11-09, ~18:58 UTC) — and its cost
 Done after the OTA, with the same build, to exercise the USB path:
 

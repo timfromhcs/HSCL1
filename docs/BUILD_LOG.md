@@ -1787,6 +1787,10 @@ Owner instruction in-session: "flash timsminer". Executed through the product pa
   streams `/api/ws/live`: the first frame is the full snapshot, then diffs every ~500 ms
   (`{"event":"update","data":{...}}`). Five Rust tests cover the SHA-1 vectors, base64, the RFC accept
   example and both refusal paths; two CLI tests cover the private-host rule and a closed port.
+- **Q-37 done as recovery material:** `scripts/dev/build_miner_recovery.ps1` builds board 201 and board 601
+  images with `ESP_MINER_BOARD_VERSION`, the AP fallback and the baked credentials; both are 2 758 656 B
+  (`8f7321a1…` and `25b2193f…`). They are **not flashed** onto `.66`/`.80`: those units are healthy and a
+  factory flash would erase their NVS, which is exactly what happened to timsminer.
 - Raw data and the series JSON live in `artifacts/miner/`. The summary is
   [docs/miner/TELEMETRY.md](miner/TELEMETRY.md). The pool account string is deliberately not copied
   into the repository.
