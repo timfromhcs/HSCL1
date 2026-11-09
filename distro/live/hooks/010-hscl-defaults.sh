@@ -49,8 +49,12 @@ patch_file "$ROOTFS/usr/share/kubuntu-default-settings/kf5-settings/kdeglobals" 
 ensure_key "$ROOTFS/usr/share/kubuntu-default-settings/kf5-settings/kdeglobals" General ColorScheme HCSMidnight
 ensure_key "$ROOTFS/usr/share/kubuntu-default-settings/kf5-settings/kdeglobals" KDE widgetStyle Breeze
 # New and live users are created from /etc/skel, which Plasma reads before any look-and-feel is applied.
-ensure_key "$ROOTFS/etc/skel/.config/kdeglobals" General ColorScheme HCSMidnight
-ensure_key "$ROOTFS/etc/skel/.config/kdeglobals" KDE widgetStyle Breeze
+# The file does not necessarily exist in the base image, so create it first.
+skel_kdeglobals="$ROOTFS/etc/skel/.config/kdeglobals"
+mkdir -p "$(dirname "$skel_kdeglobals")"
+[ -f "$skel_kdeglobals" ] || : > "$skel_kdeglobals"
+ensure_key "$skel_kdeglobals" General ColorScheme HCSMidnight
+ensure_key "$skel_kdeglobals" KDE widgetStyle Breeze
 
 # Installer: use the HSCL1 Calamares branding and name the desktop entry after the product
 patch_file "$ROOTFS/etc/calamares/settings.conf" 's/^branding: *kubuntu$/branding: hscl1/'

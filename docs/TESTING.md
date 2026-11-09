@@ -3,11 +3,18 @@
 ## Fast local checks (no VM)
 
 ```console
+$ python scripts/forge.py check                 # the gate: pytest, WSL changed tests, bash -n, shellcheck,
+                                                # secret scan, doc-command parity, QML tests when QML changed
 $ python -m pytest tests -q                       # unit + security + handbook + QML-string tests
 $ cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test
 $ python scripts/check-tokens.py                  # design tokens: contrast (WCAG AA) for all themes
 $ python scripts/gen_qml_theme.py --check         # Theme.qml in sync with the tokens
 ```
+
+Since 2026-11-09 `forge check` also runs `scripts/dev/qml-gate.sh` whenever a QML file changed:
+`qmltestrunner` over `tests/qml_plugin` and `apps/control-center/tests/qml`, plus `qmllint` on every
+shipped QML file (fail on `[syntax]`/`Error:`, warning budget ratcheted at 152). The Qt binaries live
+in `/usr/lib/qt6/bin` in WSL even when they are not on `PATH`.
 
 Control Center (C++ and QML, needs the Qt 6 dev packages on the builder):
 
