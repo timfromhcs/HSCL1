@@ -28,8 +28,10 @@ booted-artifact evidence missing).
 | Q-25 | Miner CLI slice with guards | Rust + Python tests | DONE (2026-11-09: `status`, `probe`, `plan`, `ota`, `flash`; private hosts only; SHA-256; authorization phrase; 13 tests) |
 | Q-26 | Miner facts from current upstream sources | `docs/miner/FIRMWARE_RESEARCH.md` | DONE (2026-11-09: v2.15.4 upstream, fork 4.0.2-rc1, OTA limits documented with sources) |
 | Q-27 | MCP exposure for the miner | `test_hscl_mcp.py` (20 read-only tools) | DONE (2026-11-09: `hscl_miner_status`, `hscl_miner_probe`) |
-| Q-28 | Hardware flash on a real device | device transcript + hash before/after | BLOCKED (no device attached; no owner authorization to flash hardware in this session) |
-| Q-29 | ESP-Miner fork README/flashing docs on par | its own repo branch + honest WiFi/USB section | OPEN |
+| Q-28 | Hardware flash on a real device | device transcript + hash before/after | **DONE 2026-11-09** — `timsminer` (board 201) flashed to `v4.0.2-rc1` via `hscl miner ota`, SHA-256 `ecb7463…`, 263 s, MAC/board unchanged; pre/post telemetry recorded |
+| Q-29 | ESP-Miner fork README/flashing docs on par | its own repo branch + honest WiFi/USB section | DONE (2026-11-09: `docs/FLASHING.md` rewritten with both paths, limits and recovery; `flashing.md` is a pointer; pushed to the fork branch) |
+| Q-30 | Firmware build reproducible on Windows | build script + IDF env vars | DONE (2026-11-09: `build_hscl.bat` documents `IDF_TOOLS_PATH=E:\esp\tools`, UTF-8, submodule init) |
+| Q-31 | Miner telemetry baseline | `docs/miner/TELEMETRY.md` | DONE (2026-11-09: pre/post flash snapshot + series, HTTP timeout observation) |
 | Q-20 | Prevent QML lint regression | `QML_WARN_BUDGET` ratchet in `scripts/dev/qml-gate.sh` | DONE (2026-11-09, budget 152, verified to fail at 10) |
 | Q-19 | Reduce `qmllint` `[unqualified]` warnings in the Control Center (23 of 152) | `qml-gate.sh` warning budget lowered | OPEN — 23 come from `Main.qml`'s C++ context property `cli` and from Repeater delegates reading outer ids; the rest are PlasmaCore imports in the wallpaper plugin |
 

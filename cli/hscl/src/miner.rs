@@ -19,6 +19,8 @@ use serde::{Deserialize, Serialize};
 pub const AUTH_PHRASE: &str = "I am authorized to flash this device";
 const MAX_BODY: usize = 256 * 1024;
 const TIMEOUT: Duration = Duration::from_secs(6);
+/// An OTA upload over Wi-Fi needs room for a multi-megabyte image plus the device's flash write.
+const OTA_TIMEOUT: Duration = Duration::from_secs(240);
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct MinerConfig {
@@ -88,6 +90,20 @@ pub fn http_request(
     content_type: Option<&str>,
     body: Option<&[u8]>,
 ) -> Result<(u16, Vec<u8>)> {
+    http_request_timeout(host, port, method, path, content_type, body, TIMEOUT)
+}
+
+/// Same as [`http_request`] with an explicit I/O timeout. An OTA uploads a multi-megabyte image to an
+/// ESP32 over Wi-Fi; the short probe timeout would abort it mid-flight long before the device answers.
+pub fn http_request_timeout(
+    host: &str,
+    port: u16,
+    method: &str,
+    path: &str,
+    content_type: Option<&str>,
+    body: Option<&[u8]>,
+    io_timeout: Duration,
+) -> Result<(u16, Vec<u8>)> {
     if !is_private_host(host) {
         bail!("refusing {host}: only private/loopback hosts are allowed");
     }
@@ -101,8 +117,8 @@ pub fn http_request(
         TIMEOUT,
     )
     .with_context(|| format!("cannot connect to {addr}"))?;
-    stream.set_read_timeout(Some(TIMEOUT))?;
-    stream.set_write_timeout(Some(TIMEOUT))?;
+    stream.set_read_timeout(Some(io_timeout))?;
+    stream.set_write_timeout(Some(io_timeout))?;
 
     let mut head = format!(
         "{method} {path} HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\nAccept: application/json\r\n"
@@ -295,13 +311,14 @@ pub fn ota(plan: &OtaPlan, firmware: &Path, phrase: &str, dry_run: bool) -> Resu
     if sha != plan.firmware_sha256 {
         bail!("firmware changed since the plan was made (sha256 mismatch)");
     }
-    let (status, resp) = http_request(
+    let (status, resp) = http_request_timeout(
         &plan.device,
         80,
         "POST",
         "/api/system/OTA",
         Some("application/octet-stream"),
         Some(&body),
+        OTA_TIMEOUT,
     )?;
     if !(200..300).contains(&status) {
         bail!(

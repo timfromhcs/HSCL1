@@ -35,9 +35,23 @@ pub fn config_dir() -> PathBuf {
     if let Some(x) = std::env::var_os("XDG_CONFIG_HOME") {
         return PathBuf::from(x).join("hscl");
     }
-    PathBuf::from(std::env::var_os("HOME").unwrap_or_default())
-        .join(".config")
-        .join("hscl")
+    // HOME is unset on Windows; without this fallback every command wrote to a relative
+    // `./.config/hscl` inside whatever directory it was started from (found 2026-11-09 by a miner
+    // CLI test leaving `.config/hscl/miner.json` in the repository root).
+    for var in ["HOME", "USERPROFILE"] {
+        if let Some(home) = std::env::var_os(var) {
+            if !home.is_empty() {
+                return PathBuf::from(home).join(".config").join("hscl");
+            }
+        }
+    }
+    if let (Some(drive), Some(path)) = (std::env::var_os("HOMEDRIVE"), std::env::var_os("HOMEPATH"))
+    {
+        if !path.is_empty() {
+            return PathBuf::from(drive).join(path).join(".config").join("hscl");
+        }
+    }
+    PathBuf::from(".config").join("hscl")
 }
 
 /// Theme ids are a closed, boring alphabet: `hcs-` + `[a-z0-9-]`, at most 24 characters.

@@ -4,7 +4,7 @@ Device: `192.168.178.61`, hostname `timsminer`, board **201**, ASIC **BM1366**,
 firmware **v4.0.2-rc1-sha-research**, MAC `74:4D:BD:77:DD:3C`.
 Read-only collection (`GET /api/system/info`); no settings were written and nothing was flashed.
 
-## Snapshot
+## Pre-flash snapshot
 
 | Field | Value |
 |---|---|
@@ -17,6 +17,37 @@ Read-only collection (`GET /api/system/info`); no settings were written and noth
 | Best diff (all time / session) | 399 832 532 / 69 461 248 |
 | Wi-Fi RSSI | −67 dBm |
 | Uptime | 631 084 s ≈ 7.3 days |
+
+## OTA flash (2026-11-09, 18:36 UTC)
+
+Built from the fork's branch head (`codex/hscl1-research-bridge-contract`, `f024618`) with ESP-IDF
+v6.0.2 on Windows:
+
+| Field | Value |
+|---|---|
+| Image | `build/esp-miner.bin`, 2 758 656 bytes |
+| SHA-256 | `ecb7463009e87608f32b1d9b7af34595dd6da1d7c7aa726c8f9eca32c2c09408` |
+| Command | `hscl miner ota 192.168.178.61 --firmware … --yes="I am authorized to flash this device"` |
+| Result | HTTP 2xx, `OTA accepted`, 263 s wall clock (upload + flash write over Wi-Fi) |
+| Version before → after | `v4.0.2-rc1-sha-research` → `v4.0.2-rc1` |
+| Board / ASIC after | `201` / `BM1366` (unchanged) |
+| MAC after | `74:4D:BD:77:DD:3C` (unchanged — correct variant, no eFuse-MAC replacement) |
+| Hostname after | `timsminer` (unchanged) |
+
+## Post-flash series (8 s interval, 6 valid samples)
+
+| Metric | mean | note |
+|---|---|---|
+| Hashrate | ~452 GH/s (instant samples 409–487) | in line with pre-flash 430–470 |
+| Power | 11.30 W | unchanged |
+| Fan | 2439 rpm | lower than pre-flash 2698 (cooler/less load at the time) |
+| Efficiency | **24.97 J/TH** | vs 27.5 J/TH pre-flash, same power class |
+| Shares delta | 9 accepted / 1 rejected | 10 % over 10 shares — **not** a meaningful reject rate |
+
+The reject percentage in a ten-share window is noise; only the long-run counter (145/30 238 ≈ 0.48 %)
+is a usable figure.
+
+## Observation: the HTTP server stops answering under load
 
 ## Series (10 s interval, 8 valid samples)
 

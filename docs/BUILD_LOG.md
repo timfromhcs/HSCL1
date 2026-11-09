@@ -1721,6 +1721,32 @@ Artifact: `HSCL1-qa-2026-11-09-amd64.iso` (`118029de…`, source `c8a433a`), QEM
 - **Not done:** no device was contacted and nothing was flashed. The receiver, pairing, storage and
   mDNS discovery remain draft. Hardware flashing is `BLOCKED`: no device attached, and the repository
   explicitly requires owner authorization for device writes.
+
+### V1-MINER-FLASH First real OTA flash and verification (2026-11-09)
+
+Owner instruction in-session: "flash timsminer". Executed through the product path, not a raw curl.
+
+- **Target:** `192.168.178.61` (`timsminer`), board 201, BM1366, firmware `v4.0.2-rc1-sha-research`,
+  MAC `74:4D:BD:77:DD:3C`.
+- **Firmware built from source:** branch `codex/hscl1-research-bridge-contract` at `f024618`, ESP-IDF
+  v6.0.2 on Windows (toolchain `xtensa-esp-elf 15.2.0`), AxeOS frontend built with Angular and embedded.
+  Image `build/esp-miner.bin`, **2 758 656 bytes**, SHA-256
+  `ecb7463009e87608f32b1d9b7af34595dd6da1d7c7aa726c8f9eca32c2c09408`, 34 % partition free.
+  Build hurdles fixed on the way: uninitialised `libsecp256k1` submodule, `IDF_TOOLS_PATH` pointing at
+  `E:\esp` instead of `E:\esp\tools`, and idf.py crashing on U+276F under cp1252 (fixed with
+  `PYTHONUTF8=1` + `chcp 65001`).
+- **Product fix before the flash:** the miner HTTP client used a 6 s timeout for every request, which
+  would abort a multi-MB OTA. `http_request_timeout()` now takes an explicit I/O timeout and OTA uses
+  240 s.
+- **Flash:** `hscl miner plan` printed size/hash/endpoint/rollback and the three firmware limitations;
+  `hscl miner ota … --yes="I am authorized to flash this device"` returned HTTP 2xx in **263 s**.
+- **Verification after reboot:** version `v4.0.2-rc1-sha-research` → **`v4.0.2-rc1`**, board `201` and
+  ASIC `BM1366` unchanged, **MAC unchanged** (correct variant), hostname preserved.
+- **Post-flash telemetry:** 11.30 W, ~452 GH/s, 24.97 J/TH, fan 2439 rpm. Long-run reject rate before the
+  flash was 145 / 30 238 ≈ 0.48 %; a ten-share window is not a rate.
+- Raw data and the series JSON live in `artifacts/miner/`. The summary is
+  [docs/miner/TELEMETRY.md](miner/TELEMETRY.md). The pool account string is deliberately not copied
+  into the repository.
 - **Not verified here:** anything requiring a booted artifact (theme result, launcher merge behaviour,
   installer clipping, screenshots). Those rows stay `VM-PENDING` in `docs/AUTONOMOUS_QUEUE.md`.
 

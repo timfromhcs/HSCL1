@@ -25,11 +25,17 @@ def _find_hscl() -> str:
     return "cargo"
 
 
-def _run_hscl(args: list[str]) -> subprocess.CompletedProcess[str]:
+def _run_hscl(args: list[str], env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
     bin_path = _find_hscl()
     cmd = ["cargo", "run", "-q", "-p", "hscl", "--"] + args if bin_path == "cargo" else [bin_path] + args
     return subprocess.run(
-        cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", check=False
+        cmd,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+        env={**os.environ, **(env or {})},
     )
 
 
@@ -79,14 +85,28 @@ def test_ota_and_flash_refuse_without_the_exact_phrase(tmp_path):
 def test_dry_runs_print_the_command_and_write_nothing(tmp_path):
     fw = tmp_path / "esp-miner.bin"
     fw.write_bytes(b"x" * 64)
-    ota = _run_hscl(["miner", "ota", "192.168.178.61", "--firmware", str(fw), "--yes", AUTH, "--dry-run"])
+    cfg = tmp_path / "cfg"
+    env = {"HSCL_CONFIG_DIR": str(cfg)}
+    ota = _run_hscl(
+        ["miner", "ota", "192.168.178.61", "--firmware", str(fw), "--yes", AUTH, "--dry-run"],
+        env=env,
+    )
     assert ota.returncode == 0, ota.stderr
     assert "nothing was sent" in ota.stdout
+    assert not (cfg / "miner.json").exists(), "a dry run must not write configuration"
     flash = _run_hscl(
-        ["miner", "flash", "--port", "COM5", "--firmware", str(fw), "--yes", AUTH, "--dry-run", "--json"]
+        ["miner", "flash", "--port", "COM5", "--firmware", str(fw), "--yes", AUTH, "--dry-run", "--json"],
+        env=env,
     )
     assert flash.returncode == 0, flash.stderr
     data = json.loads(flash.stdout)
     assert data["dry_run"] is True
     assert "write_flash" in data["argv"]
     assert "0x0" in data["argv"]
+
+
+def test_status_uses_the_override_config_dir_not_the_working_directory(tmp_path):
+    cfg = tmp_path / "cfg"
+    res = _run_hscl(["miner", "status", "--json"], env={"HSCL_CONFIG_DIR": str(cfg)})
+    assert res.returncode == 0, res.stderr
+    assert json.loads(res.stdout)["config_dir"] == str(cfg)

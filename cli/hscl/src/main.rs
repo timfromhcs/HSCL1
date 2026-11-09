@@ -3753,9 +3753,12 @@ fn run_miner(j: bool, cmd: MinerCmd) -> anyhow::Result<u8> {
                     )
                 }
             });
-            let mut cfg = miner::load_config(&cfg_dir);
-            cfg.last_device = Some(device);
-            miner::save_config(&cfg_dir, &cfg)?;
+            // A dry run must not write state either.
+            if !dry_run {
+                let mut cfg = miner::load_config(&cfg_dir);
+                cfg.last_device = Some(device);
+                miner::save_config(&cfg_dir, &cfg)?;
+            }
         }
         MinerCmd::Flash {
             port,
