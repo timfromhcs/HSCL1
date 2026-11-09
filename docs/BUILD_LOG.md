@@ -1684,6 +1684,18 @@ dismissed, six scenario screenshots captured.
   `08_terminal_hscl_status_doctor` (now shows `PASS theme HCSMidnight (from /etc/skel)`),
   `10_app_dolphin`, plus a new `15_desktop_icons`; every entry carries `source_iso` with the candidate hash.
   `test_showcase_evidence` and the doc-link gate stay green.
+- **Installer check on this artifact: FAILED, not yet diagnosed.** A second run with
+  `tests/visual/scenarios/installer-open.json` reached the desktop (268 s) but the launch produced a KDE
+  **crash report** ("Crash Handler has closed unexpectedly", "Gathering crash information failed") and no
+  installer window. The same scenario opened a centred Calamares window on the previous candidate
+  (`c8a433a`), so this is either a crash in Calamares/drkonqi or a wrong launch target. Q-04 therefore stays
+  **OPEN** for this artifact; the next run will start Calamares from a terminal (`calamares -d`) and capture
+  its output instead of guessing.
+- **Diagnosis (`installer-debug.json`):** `sudo calamares -d` printed **`Killed` / `EXIT=137`** — the process
+  was SIGKILLed, and drkonqi itself was killed too ("Gathering crash information failed"). That is the
+  signature of memory pressure, and this image runs `earlyoom` by design. Verification run with 6 GB RAM
+  follows; if the installer opens there, the cause is memory and the fix belongs in the earlyoom policy or
+  in the documented VM minimum, not in Calamares.
 
 ### V1-Z Candidate boot, palette and launcher verification (2026-11-09)
 

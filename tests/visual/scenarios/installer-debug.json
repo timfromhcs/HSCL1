@@ -1,0 +1,16 @@
+[
+  { "keys": ["meta_l"] },
+  { "wait": 3 },
+  { "type": "Konsole" },
+  { "wait": 3 },
+  { "keys": ["ret"] },
+  { "wait": 10 },
+  { "type": "sudo calamares -d > /tmp/calamares.log 2>&1; echo EXIT=$?" },
+  { "keys": ["ret"] },
+  { "wait": 25 },
+  { "shot": "d1-calamares-exit" },
+  { "type": "tail -40 /tmp/calamares.log" },
+  { "keys": ["ret"] },
+  { "wait": 4 },
+  { "shot": "d2-calamares-log" }
+]
