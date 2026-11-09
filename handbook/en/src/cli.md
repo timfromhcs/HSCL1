@@ -21,6 +21,7 @@ $ hscl logs show
 $ hscl logs collect
 $ hscl recovery status
 $ hscl dev status
+$ hscl system info
 ```
 
 | Exit code | Meaning |

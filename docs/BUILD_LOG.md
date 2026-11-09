@@ -1436,3 +1436,18 @@ Decision rule: pick the one that unblocks the most downstream work. HCSUDA H3c-3
 - **Automated Test Coverage:**
   - Rust unit tests: Added 5 unit tests in `cli/hscl/src/dev.rs` covering bundle validation, dry-run package plans, gitconfig parsing, subuid verification, and readiness calculation.
   - Python unit tests: Created `tests/unit/test_dev_cli.py` (5 tests) verifying text/JSON output and validation contracts across all subcommands.
+
+### V1-S HSCL1 System Operations & Power Management (`hscl system`) (2026-11-09)
+
+- **CLI Implementation (AGENTS.md section 8.2 & rule 0.3.7):**
+  - Expanded `SystemCmd` in `cli/hscl/src/main.rs` with `Info`, `Updates [--check|--install]`, `Reboot`, `Shutdown`, `Lock`, and `Services [--enabled]`.
+  - Created `cli/hscl/src/system.rs` implementing:
+    - System service parsing and listing (`list_services` and `parse_systemd_services`) across unit files and enablement states.
+    - Non-interactive power action planning (`plan_power`) for `reboot`, `shutdown`, and `lock` using unprivileged systemd/logind APIs without shell execution.
+    - `--dry-run` safety inspection across all destructive/power operations.
+- **Documentation & Handbook Synchronization:**
+  - Added section `## hscl system` and leaf command rows in `docs/CLI.md`, passing `cli_doc_lists_every_command`.
+  - Updated offline handbook across `handbook/{en,de,fr}/src/cli.md`.
+- **Automated Test Coverage:**
+  - Rust unit tests: Added 2 unit tests in `cli/hscl/src/system.rs` covering service unit parsing and power command plan generation.
+  - Python unit tests: Created `tests/unit/test_system_cli.py` (5 tests) verifying text/JSON output and dry-run execution safety.
