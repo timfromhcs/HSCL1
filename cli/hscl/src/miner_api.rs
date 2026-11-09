@@ -42,11 +42,11 @@ pub fn discover(prefix: &str) -> Result<Vec<FoundMiner>> {
     }
     let mut found = Vec::new();
     let queue = Arc::new(Mutex::new((1u16..=254).collect::<Vec<u16>>()));
-    let results = Arc::new(Mutex::new(Vec::new()));
+    let open = Arc::new(Mutex::new(Vec::<String>::new()));
     let mut handles = Vec::new();
     for _ in 0..32 {
         let queue = Arc::clone(&queue);
-        let results = Arc::clone(&results);
+        let open = Arc::clone(&open);
         let base = base.clone();
         handles.push(std::thread::spawn(move || loop {
             let n = {
@@ -70,27 +70,59 @@ pub fn discover(prefix: &str) -> Result<Vec<FoundMiner>> {
             )
             .is_ok()
             {
-                if let Ok(info) = probe(&host) {
-                    if info.asic.is_some() {
-                        results.lock().unwrap().push(FoundMiner {
-                            host: info.host.clone(),
-                            hostname: info.hostname.clone(),
-                            mac: info.mac.clone(),
-                            board: info.board_version.clone(),
-                            asic: info.asic.clone(),
-                            version: info.firmware.clone(),
-                        });
-                    }
-                }
+                open.lock().unwrap().push(host);
             }
         }));
     }
     for h in handles {
         let _ = h.join();
     }
-    let mut out = std::mem::take(&mut *results.lock().unwrap());
-    out.sort_by(|a, b| a.host.cmp(&b.host));
-    found.append(&mut out);
+    // Second pass, sequential: the AxeOS web server is single-threaded, so probing 32 hosts at once
+    // makes it drop requests (measured 2026-11-09: `.66` was missed by the burst but answered a direct
+    // probe immediately).
+    // Let the small lwIP stacks recover from the burst before the HTTP pass; without this pause two
+    // back-to-back scans lose devices (measured 2026-11-09).
+    std::thread::sleep(Duration::from_millis(1500));
+    let mut hosts = std::mem::take(&mut *open.lock().unwrap());
+    hosts.sort_by_key(|h| {
+        h.rsplit('.')
+            .next()
+            .and_then(|o| o.parse::<u16>().ok())
+            .unwrap_or(0)
+    });
+    let mut retry = Vec::new();
+    for host in hosts {
+        std::thread::sleep(Duration::from_millis(120));
+        match probe(&host) {
+            Ok(info) if info.asic.is_some() => found.push(FoundMiner {
+                host: info.host.clone(),
+                hostname: info.hostname.clone(),
+                mac: info.mac.clone(),
+                board: info.board_version.clone(),
+                asic: info.asic.clone(),
+                version: info.firmware.clone(),
+            }),
+            // A miner that accepted the TCP connection but missed the HTTP deadline gets one more
+            // chance after a short pause; its web server is single-threaded and occasionally busy.
+            _ => retry.push(host),
+        }
+    }
+    std::thread::sleep(Duration::from_millis(800));
+    for host in retry {
+        if let Ok(info) = probe(&host) {
+            if info.asic.is_some() {
+                found.push(FoundMiner {
+                    host: info.host.clone(),
+                    hostname: info.hostname.clone(),
+                    mac: info.mac.clone(),
+                    board: info.board_version.clone(),
+                    asic: info.asic.clone(),
+                    version: info.firmware.clone(),
+                });
+            }
+        }
+    }
+    found.sort_by(|a, b| a.host.cmp(&b.host));
     Ok(found)
 }
 

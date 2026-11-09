@@ -88,6 +88,12 @@ Devices are identified by MAC, not by address: the router re-assigned addresses 
 `.61` was briefly answered by another miner. `hscl miner discover` and `hscl miner serve` therefore
 report the MAC with every reading.
 
+**Discovery reliability (measured):** the AxeOS web server is single-threaded. A burst of 32 parallel
+probes can make a device miss the HTTP request even though it answers immediately afterwards, so
+discovery runs a second, sequential pass with settle delays and one retry. Consecutive scans can still
+miss a unit that is momentarily busy; `hscl miner probe <ip>` (with its own retry) is the authoritative
+check. Scan results below are from a run that found all three.
+
 ## Recovery images (2026-11-09)
 
 Built for the two board families on this LAN, to be flashed **only** if a unit loses its NVS again.
