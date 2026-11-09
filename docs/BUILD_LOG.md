@@ -1717,6 +1717,22 @@ one crash and one healthy start. Nothing is claimed about the cause yet. The mea
 A run without any disk is a valid negative test: Calamares refuses with "There is not enough drive space.
 At least 8 GiB is required." and a disabled Next button - the safety behaviour, worth keeping as evidence.
 
+### Why the installer sometimes never opens (2026-11-09)
+
+Two runs failed with no installer window at all. The cause is **not** the installer and **not** `sudo`:
+
+| Check | Evidence |
+|---|---|
+| `sudo` works without a password in the live session | `sudo -n true` → `rc=0`; user `hscl1` is in `adm,cdrom,sudo,dip,plugdev,users,lpadmin,sambashare` |
+| the real launcher works | from Konsole: `sudo /usr/bin/calamares-launch-normal` → `procs=2`, Calamares window, requirements log readable |
+| the desktop entry | upstream `Exec=sudo /usr/bin/calamares-launch-normal` (Kubuntu's, we only rename `Name=`) |
+| what goes wrong | a KDE **crash-handler window** is on screen before Kickoff is used; it takes the keyboard focus, so the typed "Install HSCL1" never reaches Kickoff's search field and `ret` hits the dialog |
+| what crashed | not recorded: `coredumpctl list` says "No coredumps found" (core dumps are off in this image by design) |
+
+The scenario now clicks the crash-handler's real close button (0.706, 0.204 - the earlier 0.691 hit
+*maximize*) twice before opening Kickoff. The underlying crash is still unidentified and is listed in
+`docs/KNOWN_LIMITATIONS.md`; it is intermittent (4 of 7 boots had no dialog at all).
+
 ### V1-Z Candidate boot, palette and launcher verification (2026-11-09)
 
 Artifact: `HSCL1-qa-2026-11-09-amd64.iso` (`118029de…`, source `c8a433a`), QEMU 9.x + WHPX, UEFI
