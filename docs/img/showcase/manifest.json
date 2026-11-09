@@ -1,14 +1,15 @@
 [
   {
     "filename": "01_desktop_clean.png",
-    "bytes": 113961,
+    "bytes": 113201,
     "colors": 16491,
     "size": [
       1280,
       800
     ],
-    "description": "Clean HSCL1 Live Desktop with top bar and dock",
-    "timestamp": 1794234762.1523178
+    "description": "Clean HSCL1 live desktop after the Welcome Center (candidate 2026-11-09)",
+    "timestamp": 1794256626.366424,
+    "source_iso": "HSCL1-miner-qa-2026-11-09-amd64.iso sha256 e342b3ae"
   },
   {
     "filename": "02_wallpaper_aurora.png",
@@ -56,25 +57,27 @@
   },
   {
     "filename": "03_app_launcher_kickoff.png",
-    "bytes": 94220,
+    "bytes": 159272,
     "colors": 11207,
     "size": [
       1280,
       800
     ],
-    "description": "Kickoff Application Launcher / Start Menu",
-    "timestamp": 1794234781.2046943
+    "description": "Kickoff launcher with the merged HSCL1 sections (candidate 2026-11-09)",
+    "timestamp": 1794256629.7587008,
+    "source_iso": "HSCL1-miner-qa-2026-11-09-amd64.iso sha256 e342b3ae"
   },
   {
     "filename": "08_terminal_hscl_status_doctor.png",
-    "bytes": 42001,
+    "bytes": 120773,
     "colors": 2832,
     "size": [
       1280,
       800
     ],
-    "description": "Konsole: hscl status & diagnostic doctor in action",
-    "timestamp": 1794234801.8337028
+    "description": "hscl doctor in the guest: PASS theme HCSMidnight (from /etc/skel), Secure Boot honestly skipped (candidate 2026-11-09)",
+    "timestamp": 1794256675.432694,
+    "source_iso": "HSCL1-miner-qa-2026-11-09-amd64.iso sha256 e342b3ae"
   },
   {
     "filename": "09_terminal_hscl_lab.png",
@@ -155,15 +158,15 @@
   },
   {
     "filename": "10_app_dolphin.png",
-    "bytes": 84433,
+    "bytes": 122554,
     "colors": 11165,
     "size": [
       1280,
       800
     ],
-    "description": "Dolphin file manager in the HCS dark palette (candidate 2026-11-09)",
-    "timestamp": 1794235433.7925072,
-    "source_iso": "HSCL1-qa-2026-11-09-amd64.iso sha256 118029de"
+    "description": "Dolphin in the HCS dark palette (candidate 2026-11-09)",
+    "timestamp": 1794256647.6279922,
+    "source_iso": "HSCL1-miner-qa-2026-11-09-amd64.iso sha256 e342b3ae"
   },
   {
     "filename": "14_app_kate.png",
@@ -208,5 +211,16 @@
     "description": "Trilingual offline handbook opened from the desktop icon (Firefox, /usr/share/doc/hscl-handbook)",
     "timestamp": 1794243060.2641883,
     "source_iso": "HSCL1-qa-2026-11-09-amd64.iso sha256 118029de"
+  },
+  {
+    "filename": "15_desktop_icons.png",
+    "size": [
+      1280,
+      800
+    ],
+    "description": "Desktop icon labels legible on the dark wallpaper (candidate 2026-11-09)",
+    "bytes": 131781,
+    "timestamp": 1794256691.5252483,
+    "source_iso": "HSCL1-miner-qa-2026-11-09-amd64.iso sha256 e342b3ae"
   }
 ]

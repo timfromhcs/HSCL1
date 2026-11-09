@@ -1680,6 +1680,10 @@ dismissed, six scenario screenshots captured.
 - Launcher: one entry per category (Development, Education, Games, Graphics, Help, Internet, Multimedia,
   Office, Science & Math, System) — no duplicates, so the `.directory` fix holds in a fresh image.
 - `hscl appearance mode` reads `Current appearance mode: dark`.
+- **Showcase refreshed from this artifact:** `01_desktop_clean`, `03_app_launcher_kickoff`,
+  `08_terminal_hscl_status_doctor` (now shows `PASS theme HCSMidnight (from /etc/skel)`),
+  `10_app_dolphin`, plus a new `15_desktop_icons`; every entry carries `source_iso` with the candidate hash.
+  `test_showcase_evidence` and the doc-link gate stay green.
 
 ### V1-Z Candidate boot, palette and launcher verification (2026-11-09)
 
