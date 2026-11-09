@@ -21,6 +21,8 @@ booted-artifact evidence missing).
 | Q-07 | Theme fix from fix #5 needs booted-artifact proof | VM screenshot of Dolphin/Konsole dark | VM-PENDING |
 | Q-08 | Add `hscl doctor`/Control Center guard for the new palette default | `test_theme_defaults.py` extended | DONE (2026-11-09, `tests/unit/test_theme_defaults.py`, 5 tests) |
 | Q-09 | `forge check` false red on a transient WSL launcher failure | retry-once-on-empty-stderr + 2 tests | DONE (2026-11-09, `test_bash_gate_retries_a_launcher_failure_with_empty_stderr`) |
+| Q-19 | Reduce `qmllint` `[unqualified]` warnings in the Control Center (23 of 152) | `qml-gate.sh` warning budget lowered | OPEN — 23 come from `Main.qml`'s C++ context property `cli` and from Repeater delegates reading outer ids; the rest are PlasmaCore imports in the wallpaper plugin |
+| Q-20 | Prevent QML lint regression | `QML_WARN_BUDGET` ratchet in `scripts/dev/qml-gate.sh` | DONE (2026-11-09, budget 152, verified to fail at 10) |
 
 ## Next (after Now)
 
