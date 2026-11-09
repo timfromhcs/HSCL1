@@ -48,3 +48,12 @@ def test_product_strings_match_the_version_file():
     version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
     data = load()
     assert data["strings"]["version"] == version, (data["strings"]["version"], version)
+
+
+def test_no_short_version_string_is_truncated():
+    """The requirements screen said "installing HSCL1 0.1." because shortVersionedName was "HSCL1 0.1".
+    Every version-bearing string must carry the full version."""
+    version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+    strings = load()["strings"]
+    for key in ("shortVersion", "versionedName", "shortVersionedName"):
+        assert version in strings[key], (key, strings[key], version)

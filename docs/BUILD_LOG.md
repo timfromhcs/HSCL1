@@ -1683,8 +1683,17 @@ Artifact: `HSCL1-qa-2026-11-09-amd64.iso` (`118029de…`, source `c8a433a`), QEM
   `docs/img/showcase/manifest.json` with `source_iso`, and the README row is restored. The harness clicks a
   fixed coordinate, so the installer itself was not opened by that flag — a dedicated
   `tests/visual/scenarios/installer-open.json` now starts it through the launcher by name.
-- **Not verified in this run:** installer window/branding (installer not launched), German/French
-  launcher titles, Secure Boot enforcement, LUKS install, in-guest Security Lab and Privacy tracks.
+- **Installer window (Q-04): VM-VERIFIED.** `tests/visual/scenarios/installer-open.json` starts the
+  installer through the launcher (the `--launch-installer` flag clicks a fixed coordinate and hit the
+  handbook icon instead). The window is centred at 1104×668 on 1280×800, the top bar stays visible, and
+  the hexagon logo is **fully** visible — the clipped logo from 2026-11-09 is gone. The "Notes" step is
+  present as designed.
+- **Two remaining installer findings from the same screenshot:** (a) the requirements text read
+  "installing HSCL1 0.1." because `shortVersionedName` was truncated — fixed to the full version and
+  guarded by `test_no_short_version_string_is_truncated`; (b) the content pane is still Calamares'
+  light palette (documented limitation, not changed here).
+- **Not verified in this run:** an actual installation, LUKS, German/French launcher titles, Secure Boot
+  enforcement, Security Lab and Privacy tracks in the guest.
 - **Not verified here:** anything requiring a booted artifact (theme result, launcher merge behaviour,
   installer clipping, screenshots). Those rows stay `VM-PENDING` in `docs/AUTONOMOUS_QUEUE.md`.
 

@@ -13,9 +13,9 @@ strings:
     productName:         HSCL1
     shortProductName:    HSCL1
     version:             0.1.4-alpha.0
-    shortVersion:        0.1
+    shortVersion:        0.1.4-alpha.0
     versionedName:       HSCL1 0.1.4-alpha.0
-    shortVersionedName:  HSCL1 0.1
+    shortVersionedName:  HSCL1 0.1.4-alpha.0
     bootloaderEntryName: HSCL1
     productUrl:          https://github.com/timfromhcs
     supportUrl:          https://github.com/timfromhcs
