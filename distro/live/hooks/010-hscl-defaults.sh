@@ -15,6 +15,21 @@ patch_file() { # file sed-expression
   patched=$((patched + 1))
 }
 
+ensure_key() { # file section key value  (sets a key even when the file does not carry it yet)
+  local f="$1" sec="$2" key="$3" val="$4"
+  [ -f "$f" ] || return 0
+  cp --update=none "$f" "$f.upstream"
+  if grep -q "^${key}=" "$f"; then
+    sed -i "s|^${key}=.*|${key}=${val}|" "$f"
+  elif grep -q "^\[${sec}\]$" "$f"; then
+    sed -i "/^\[${sec}\]$/a ${key}=${val}" "$f"
+  else
+    printf '\n[%s]\n%s=%s\n' "$sec" "$key" "$val" >> "$f"
+  fi
+  if cmp -s "$f" "$f.upstream"; then return 0; fi
+  patched=$((patched + 1))
+}
+
 for lnf in "$ROOTFS"/usr/share/plasma/look-and-feel/org.kubuntu*.desktop/contents; do
   wp=HSCL1Midnight
   case "$lnf" in *org.kubuntulight.desktop*) wp=HSCL1Light ;; esac
@@ -29,7 +44,13 @@ patch_file "$ROOTFS/usr/share/kubuntu-default-settings/kf5-settings/kscreenlocke
 patch_file "$ROOTFS/usr/share/kubuntu-default-settings/kf5-settings/kdeglobals"   's/^LookAndFeelPackage=org.kubuntu.desktop$/LookAndFeelPackage=org.hcs.hscl1.desktop/; s/^DefaultDarkLookAndFeel=.*/DefaultDarkLookAndFeel=org.hcs.hscl1.desktop/'
 # ... and give new users the HCS palette for widget apps (Dolphin, Konsole, Kate). Without this the live/in-
 # stalled session kept Kubuntu's light Breeze palette: Plasma shell dark, Qt apps light (visual QA 2026-11-09).
-patch_file "$ROOTFS/usr/share/kubuntu-default-settings/kf5-settings/kdeglobals"   's/^ColorScheme=.*/ColorScheme=HCSMidnight/; s/^widgetStyle=.*/widgetStyle=Breeze/'
+# The Kubuntu default file carries [General] but no ColorScheme key at all, so this must *ensure* the key
+# rather than sed-replace it (the first attempt changed nothing and the image gate caught it).
+ensure_key "$ROOTFS/usr/share/kubuntu-default-settings/kf5-settings/kdeglobals" General ColorScheme HCSMidnight
+ensure_key "$ROOTFS/usr/share/kubuntu-default-settings/kf5-settings/kdeglobals" General widgetStyle Breeze
+# New and live users are created from /etc/skel, which Plasma reads before any look-and-feel is applied.
+ensure_key "$ROOTFS/etc/skel/.config/kdeglobals" General ColorScheme HCSMidnight
+ensure_key "$ROOTFS/etc/skel/.config/kdeglobals" KDE widgetStyle Breeze
 
 # Installer: use the HSCL1 Calamares branding and name the desktop entry after the product
 patch_file "$ROOTFS/etc/calamares/settings.conf" 's/^branding: *kubuntu$/branding: hscl1/'

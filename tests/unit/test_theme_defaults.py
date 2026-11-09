@@ -32,14 +32,17 @@ def test_scheme_name_helper_matches_the_generator():
 
 def test_hook_makes_the_hcs_palette_the_default():
     name = midnight_scheme_name()
-    assert f"ColorScheme={name}" in HOOK, "the hook must set the palette for new users"
+    # ensure_key, not sed: the Kubuntu default file has [General] but no ColorScheme key at all.
+    assert f"General ColorScheme {name}" in HOOK, "the hook must set the palette for new users"
     assert "kubuntu-default-settings/kf5-settings/kdeglobals" in HOOK
+    assert "/etc/skel/.config/kdeglobals" in HOOK, "live users come from /etc/skel"
 
 
 def test_image_gate_proves_the_palette_is_the_default():
     name = midnight_scheme_name()
     assert f"ColorScheme={name}" in GATE, "verify-image.sh must check the shipped default"
     assert f"/usr/share/color-schemes/{name}.colors" in GATE
+    assert "/etc/skel/.config/kdeglobals" in GATE
 
 
 def test_look_and_feel_defaults_also_name_the_palette():

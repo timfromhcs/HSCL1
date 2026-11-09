@@ -32,6 +32,7 @@ check "HCS top bar template"              test -s "$root/usr/share/plasma/layout
 check "HCS dock template"                 test -s "$root/usr/share/plasma/layout-templates/org.hcs.hscl1.dock/contents/layout.js"
 check "HCS is the default look-and-feel"  grep -q '^LookAndFeelPackage=org.hcs.hscl1.desktop$' "$root/usr/share/kubuntu-default-settings/kf5-settings/kdeglobals"
 check "HCS palette is the default scheme"  grep -q '^ColorScheme=HCSMidnight$' "$root/usr/share/kubuntu-default-settings/kf5-settings/kdeglobals"
+check "new users inherit the HCS palette"  grep -q '^ColorScheme=HCSMidnight$' "$root/etc/skel/.config/kdeglobals"
 check "HCS palette shipped for widget apps" test -s "$root/usr/share/color-schemes/HCSMidnight.colors"
 for d in development internet office graphics multimedia system; do
   check "launcher section directory $d" test -s "$root/usr/share/desktop-directories/hscl-$d.directory"
