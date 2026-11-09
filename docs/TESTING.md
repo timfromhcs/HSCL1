@@ -51,6 +51,8 @@ Measured geometry on a 1280×800 guest (fractions of the screen):
 | Cancel | 1143, 715 | 0.893, 0.894 |
 | Language combo | 762, 608 | 0.595, 0.760 |
 | "No" in the cancel dialog | 795, 413 | 0.621, 0.516 |
+| Partitions: "Erase disk" radio | 293, 170 | 0.229, 0.2125 |
+| Partitions: "Manual partitioning" radio | 293, 232 | 0.229, 0.290 |
 
 Re-measure if the window size or the screen resolution changes. `tests/visual/scenarios/installer-walk.json`
 clicks through the wizard with the measured coordinates and records one screenshot per page - use it to

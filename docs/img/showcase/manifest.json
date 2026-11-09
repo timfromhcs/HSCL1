@@ -181,25 +181,27 @@
   },
   {
     "filename": "11_installer_welcome.png",
-    "bytes": 67450,
+    "bytes": 121766,
     "colors": 9198,
     "size": [
       1280,
       800
     ],
-    "description": "Calamares Installer: Welcome Screen",
-    "timestamp": 1794234914.1948562
+    "description": "Calamares Installer: welcome page in the centred window (candidate 2026-11-09)",
+    "timestamp": 1794262556.1915188,
+    "source_iso": "HSCL1-earlyoom-fix-amd64.iso sha256 e723940b"
   },
   {
     "filename": "12_installer_location.png",
-    "bytes": 82363,
+    "bytes": 298083,
     "colors": 11965,
     "size": [
       1280,
       800
     ],
-    "description": "Calamares Installer: Location & Timezone",
-    "timestamp": 1794234919.1573412
+    "description": "Calamares Installer: location and timezone (candidate 2026-11-09)",
+    "timestamp": 1794262564.9578364,
+    "source_iso": "HSCL1-earlyoom-fix-amd64.iso sha256 e723940b"
   },
   {
     "filename": "13_offline_handbook.png",
@@ -222,5 +224,27 @@
     "bytes": 131781,
     "timestamp": 1794256691.5252483,
     "source_iso": "HSCL1-miner-qa-2026-11-09-amd64.iso sha256 e342b3ae"
+  },
+  {
+    "filename": "18_installer_notes_encryption.png",
+    "size": [
+      1280,
+      800
+    ],
+    "description": "Calamares Installer: the HSCL1 encryption notes page, shown before partitioning (candidate 2026-11-09)",
+    "bytes": 177263,
+    "timestamp": 1794262591.2373447,
+    "source_iso": "HSCL1-earlyoom-fix-amd64.iso sha256 e723940b"
+  },
+  {
+    "filename": "19_installer_partitions.png",
+    "size": [
+      1280,
+      800
+    ],
+    "description": "Calamares Installer: partition page with the real 40 GB disposable disk, erase and manual only (candidate 2026-11-09)",
+    "bytes": 116741,
+    "timestamp": 1794262603.9972832,
+    "source_iso": "HSCL1-earlyoom-fix-amd64.iso sha256 e723940b"
   }
 ]
