@@ -213,6 +213,19 @@ pub struct DeviceInfo {
     pub frequency: Option<i64>,
     pub voltage_mv: Option<i64>,
     pub temp_c: Option<f64>,
+    pub hash_rate: Option<f64>,
+    pub hash_rate_1m: Option<f64>,
+    pub hash_rate_10m: Option<f64>,
+    pub hash_rate_1h: Option<f64>,
+    pub power_w: Option<f64>,
+    pub shares_accepted: Option<u64>,
+    pub shares_rejected: Option<u64>,
+    pub best_diff: Option<f64>,
+    pub uptime_s: Option<u64>,
+    pub rssi: Option<i64>,
+    pub pool_url: Option<String>,
+    pub pool_port: Option<i64>,
+    pub mining_paused: Option<bool>,
     pub raw_keys: Vec<String>,
 }
 
@@ -234,17 +247,52 @@ pub fn probe(host: &str) -> Result<DeviceInfo> {
     };
     let json: serde_json::Value = serde_json::from_slice(&body).unwrap_or(serde_json::Value::Null);
     let get = |k: &str| json.get(k).cloned();
+    let s = |k: &str| get(k).and_then(|v| v.as_str().map(str::to_owned));
+    let f = |k: &str| {
+        get(k).and_then(|v| {
+            v.as_f64()
+                .or_else(|| v.as_str().and_then(|x| x.parse::<f64>().ok()))
+        })
+    };
+    let i = |k: &str| get(k).and_then(|v| v.as_i64());
+    let u = |k: &str| i(k).and_then(|v| u64::try_from(v).ok());
+    let pool = json
+        .get("pools")
+        .and_then(|p| p.as_array())
+        .and_then(|a| a.first())
+        .cloned()
+        .unwrap_or(serde_json::Value::Null);
     Ok(DeviceInfo {
         host: host.to_string(),
         status,
-        asic: get("ASICModel").and_then(|v| v.as_str().map(str::to_owned)),
-        board_version: get("boardVersion").and_then(|v| v.as_str().map(str::to_owned)),
-        firmware: get("version").and_then(|v| v.as_str().map(str::to_owned)),
-        hostname: get("hostname").and_then(|v| v.as_str().map(str::to_owned)),
-        mac: get("macAddr").and_then(|v| v.as_str().map(str::to_owned)),
-        frequency: json.get("frequency").and_then(|v| v.as_i64()),
-        voltage_mv: json.get("coreVoltage").and_then(|v| v.as_i64()),
-        temp_c: json.get("temp").and_then(|v| v.as_f64()),
+        asic: s("ASICModel"),
+        board_version: s("boardVersion"),
+        firmware: s("version"),
+        hostname: s("hostname"),
+        mac: s("macAddr"),
+        frequency: i("frequency"),
+        voltage_mv: i("coreVoltage"),
+        temp_c: f("temp"),
+        hash_rate: f("hashRate"),
+        hash_rate_1m: f("hashRate_1m"),
+        hash_rate_10m: f("hashRate_10m"),
+        hash_rate_1h: f("hashRate_1h"),
+        power_w: f("power"),
+        shares_accepted: u("sharesAccepted"),
+        shares_rejected: u("sharesRejected"),
+        best_diff: f("bestDiff"),
+        uptime_s: u("uptimeSeconds"),
+        rssi: i("wifiRSSI"),
+        pool_url: pool
+            .get("stratumURL")
+            .and_then(|v| v.as_str())
+            .map(str::to_owned)
+            .or_else(|| s("stratumURL")),
+        pool_port: pool
+            .get("stratumPort")
+            .and_then(|v| v.as_i64())
+            .or_else(|| i("stratumPort")),
+        mining_paused: get("miningPaused").and_then(|v| v.as_bool()),
         raw_keys: json
             .as_object()
             .map(|o| o.keys().cloned().collect())

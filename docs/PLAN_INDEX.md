@@ -19,6 +19,11 @@
   `hscl_miner_probe` are read-only MCP tools. Firmware facts and sources are in
   [`miner/FIRMWARE_RESEARCH.md`](miner/FIRMWARE_RESEARCH.md). No hardware was flashed and no device was
   contacted in this session.
+- **Miner track advanced (2026-11-09, later):** `discover`, `serve` (local read-only API), `series`
+  (native), MCP `hscl_miner_discover`; three miners inventoried by MAC; one unit recovered from an
+  NVS-erasing factory flash with a per-unit build (`board 201`, AP fallback, baked credentials) and its
+  pool/wallet restored through the v2.15 `pools` array. See
+  [`miner/TELEMETRY.md`](miner/TELEMETRY.md).
 - Nothing below loses authority. Where a plan says "NEXT" and the queue disagrees, the queue wins for
   ordering; the plans keep their acceptance criteria.
 

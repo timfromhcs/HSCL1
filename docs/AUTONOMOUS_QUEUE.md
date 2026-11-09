@@ -35,6 +35,10 @@ booted-artifact evidence missing).
 | Q-32 | Recovery build after NVS loss (display + network) | serial log + mining resumed | DONE (2026-11-09: `ESP_MINER_BOARD_VERSION=201` fixed `Display init failed`; `ESP_MINER_CONFIG_AP_STUCK=1` keeps `Bitaxe_DD3C` up; pool restored via `pools[]`, 466 GH/s after restart) |
 | Q-33 | Network discovery + local data API | `hscl miner discover`, `hscl miner serve`, MCP `hscl_miner_discover` | DONE (2026-11-09: found `.61/.66/.80` by MAC; `/v1/health`, `/v1/miners`, `/v1/miner?host=` with background polling) |
 | Q-34 | Diagnostics bugs | probe retry, series gaps, reset capture, stale-binary guard | DONE (2026-11-09) |
+| Q-35 | Native `miner series` + full metrics in the API | Rust tests + live run | DONE (2026-11-09: `DeviceInfo` carries hashrate/1m/10m/1h, power, shares, best diff, uptime, RSSI, pool; `hscl miner series --count/--interval/--out`) |
+| Q-36 | WebSocket push (`/api/ws/live`) instead of polling | client + tests | OPEN — research confirms ≤500 ms JSON diffs; implement a dependency-free WS client next |
+| Q-37 | Per-device builds for `.66` and `.80` | firmware + flash log | OPEN — `.66` runs `blackharkminer`, `.80` runs `tim2` (BM1370, board 601); same NVS-loss risk |
+| Q-38 | Pool slot API (`PUT /api/system/pools/<n>`) in the CLI | command + tests | OPEN — currently only the Python restore script writes pools |
 | Q-20 | Prevent QML lint regression | `QML_WARN_BUDGET` ratchet in `scripts/dev/qml-gate.sh` | DONE (2026-11-09, budget 152, verified to fail at 10) |
 | Q-19 | Reduce `qmllint` `[unqualified]` warnings in the Control Center (23 of 152) | `qml-gate.sh` warning budget lowered | OPEN — 23 come from `Main.qml`'s C++ context property `cli` and from Repeater delegates reading outer ids; the rest are PlasmaCore imports in the wallpaper plugin |
 

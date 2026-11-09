@@ -189,6 +189,7 @@ System information, package updates, power actions, and services management (AGE
 | `hscl miner flash` | USB flashing through `esptool`; same authorization phrase, `--dry-run` prints the argv |
 | `hscl miner discover` | Scan a private /24 for AxeOS/Bitaxe miners (read-only, identified by MAC) |
 | `hscl miner serve` | Read-only local API over the configured miners: `/v1/health`, `/v1/miners`, `/v1/miner?host=…` |
+| `hscl miner series` | Sample one miner N times and write the JSON series (native, replaces the ad-hoc script) |
 | `hscl ai model list` | All catalog models with fit information for this machine |
 | `hscl ai model recommend` | Models that fit this machine, best first |
 | `hscl ai model info` | Details, licence and warning of one model |

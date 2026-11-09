@@ -1769,6 +1769,15 @@ Owner instruction in-session: "flash timsminer". Executed through the product pa
 - **Hygiene:** the Kconfig warning printed the Wi-Fi password once into the build log; the copies under
   `artifacts/` were scrubbed (`scripts/dev/scrub_wifi_secret.py`). The value still lives in the
   git-ignored `sdkconfig`, and it appeared in this session — rotate it if that matters.
+- **Research round 2 (2026-11-09):** AxeOS pool configuration is a slot API (`PUT /api/system/pools/<n>`,
+  `pools[]` + `primaryPoolIndex` in PATCH); flat `stratumURL` is ignored — confirmed by the 200-but-no-change
+  behaviour observed here. `GET /api/ws/live` pushes JSON diffs at ≤ 500 ms, which is the next step for the
+  data path; `GET /api/system/statistics/dashboard` is not registered (404 measured).
+- **Tools extended:** `DeviceInfo` now carries hashrate (instant/1m/10m/1h), power, shares, best diff,
+  uptime, RSSI and the pool; `hscl miner series` samples natively and writes JSON. Live check:
+  `[1/3] 335.0 GH/s 59 C 11.09 W shares 173/2 pool sha256.eu.mine.zpool.ca:3333`.
+- **Open from this round:** a WebSocket client (Q-36), per-device builds for `.66`/`.80` (Q-37) and a
+  `pools` write command in the CLI (Q-38).
 - Raw data and the series JSON live in `artifacts/miner/`. The summary is
   [docs/miner/TELEMETRY.md](miner/TELEMETRY.md). The pool account string is deliberately not copied
   into the repository.

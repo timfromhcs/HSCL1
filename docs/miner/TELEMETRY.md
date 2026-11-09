@@ -34,8 +34,21 @@ v6.0.2 on Windows:
 | MAC after | `74:4D:BD:77:DD:3C` (unchanged — correct variant, no eFuse-MAC replacement) |
 | Hostname after | `timsminer` (unchanged) |
 
-## Recovery build (2026-11-09, 19:35 UTC) — display and network restored
+## Native series after the recovery (`hscl miner series`, 3 × 3 s)
 
+| Field | Value |
+|---|---|
+| Hashrate (instant / 1 m) | 335 / 326 GH/s |
+| Temperature | 59–60 °C |
+| Power | 11.0 W |
+| Shares | 173 accepted / 2 rejected (session) |
+| Pool | `sha256.eu.mine.zpool.ca:3333` |
+| RSSI | −50 dBm |
+
+The unit sits ~100 GH/s below the pre-flash 466 GH/s sample. Not diagnosed: pool difficulty ramp,
+thermal settling and the fresh build all differ. It is recorded rather than explained.
+
+## Recovery build (2026-11-09, 19:35 UTC) — display and network restored
 The factory flash had erased NVS, so the app fell back to board `000` and the serial log showed
 `E system: Display init failed` / `esp_lcd_new_panel_io_i2c: i2c add device fail` — the black screen.
 

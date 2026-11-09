@@ -278,6 +278,19 @@ enum MinerCmd {
         #[arg(long = "device")]
         devices: Vec<String>,
     },
+    /// Sample one miner N times and write the series as JSON (native replacement for the script).
+    Series {
+        device: String,
+        #[arg(long, default_value_t = 10)]
+        count: u32,
+        #[arg(long, default_value_t = 10)]
+        interval: u64,
+        /// Output file for the JSON series.
+        #[arg(long)]
+        out: Option<PathBuf>,
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -3847,6 +3860,58 @@ fn run_miner(j: bool, cmd: MinerCmd) -> anyhow::Result<u8> {
                 }
             }
             miner_api::serve(&bind, hosts)?;
+        }
+        MinerCmd::Series {
+            device,
+            count,
+            interval,
+            out,
+            json,
+        } => {
+            if !miner::is_private_host(&device) {
+                bail!("refusing {device}: only private/loopback hosts are allowed");
+            }
+            let mut rows = Vec::new();
+            for n in 0..count {
+                match miner::probe(&device) {
+                    Ok(info) => {
+                        if !json {
+                            println!(
+                                "[{}/{}] {:8.1} GH/s {:3.0} C {:6.2} W shares {}/{} pool {}:{}",
+                                n + 1,
+                                count,
+                                info.hash_rate.unwrap_or(0.0),
+                                info.temp_c.unwrap_or(0.0),
+                                info.power_w.unwrap_or(0.0),
+                                info.shares_accepted.unwrap_or(0),
+                                info.shares_rejected.unwrap_or(0),
+                                info.pool_url.clone().unwrap_or_else(|| "?".into()),
+                                info.pool_port.unwrap_or(0)
+                            );
+                        }
+                        rows.push(info);
+                    }
+                    Err(e) => eprintln!("[{}/{}] gap: {e}", n + 1, count),
+                }
+                if n + 1 < count {
+                    std::thread::sleep(std::time::Duration::from_secs(interval));
+                }
+            }
+            let payload = json!({
+                "host": device,
+                "samples": rows.len(),
+                "requested": count,
+                "rows": rows,
+            });
+            if let Some(path) = out {
+                std::fs::write(&path, serde_json::to_vec_pretty(&payload)?)?;
+                if !json {
+                    println!("written to {}", path.display());
+                }
+            }
+            if json {
+                print_value(true, &payload, || String::new());
+            }
         }
     }
     Ok(exit::OK)

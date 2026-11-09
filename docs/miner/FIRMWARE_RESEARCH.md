@@ -9,9 +9,11 @@ not found here is still open and listed at the end.
 | Fact | Source (checked 2026-11-09) |
 |---|---|
 | `bitaxeorg/ESP-Miner` latest stable tag is **v2.15.4**; v2.15.0 (2026-08-21) embedded the AxeOS web UI into `esp-miner.bin` so no separate `www.bin` is needed | GitHub releases page for `bitaxeorg/ESP-Miner`; release notes v2.15.0 |
-| `POST /api/system/OTAWWW` still exists but on v2.15.0+ only installs a **custom** UI and sets `useCustomWWW` | AxeOS API reference (d-central.tech, published 2026-08-14, re-verified for v2.15.0) and `main/http_server/openapi.yaml` |
-| mDNS support was added in v2.15, so devices answer as `<hostname>.local` | release notes v2.15.0 |
-| Factory/OTA images are per board variant (`esp-miner-factory-XXX-….bin`); flashing the wrong variant replaces the factory MAC with the eFuse MAC | upstream flashing docs; fork `docs/OTA_SAFETY.md` §3 |
+| Pool configuration is a **slot API**: `PUT /api/system/pools/<0..7>`, `DELETE` refused while the slot is primary/fallback, and `PATCH /api/system` accepts a `pools` array plus `primaryPoolIndex`/`secondaryPoolIndex`. Flat `stratumURL` is ignored — measured on timsminer 2026-11-09 (PATCH returned 200 but the pool stayed `public-pool.io`) | AxeOS API reference (d-central.tech, 2026-08-14, re-verified v2.15.0); `main/http_server/openapi.yaml` |
+| `GET /api/system/info` is the one-call dashboard: hashrate (incl. 1 m/10 m/1 h), temperatures, power, shares, pool state, RSSI | same reference; measured |
+| `GET /api/ws/live` streams JSON diffs at ≤ 500 ms, so push is possible instead of polling | same reference |
+| `GET /api/system/statistics/dashboard` is **not registered** in current releases (404 measured) | API reference note + our probe |
+| mDNS support since v2.15, so `<hostname>.local` resolves | release notes v2.15.0 |
 
 ## 2. This fork (`timfromhcs/ESP-Miner`)
 
