@@ -8,6 +8,7 @@ mod appearance;
 mod catalog;
 mod code;
 mod cqhecs;
+mod dev;
 mod doctor;
 mod download;
 mod gguf;
@@ -191,6 +192,11 @@ enum Cmd {
     Recovery {
         #[command(subcommand)]
         cmd: TopRecoveryCmd,
+    },
+    /// Developer workstation environment, setup bundles, Git hygiene, containers, and virtualization (AGENTS.md section 7.1, 7.2 & 8.2).
+    Dev {
+        #[command(subcommand)]
+        cmd: DevCmd,
     },
 }
 
@@ -792,6 +798,53 @@ enum ConfigCmd {
         #[arg(long)]
         dry_run: bool,
     },
+}
+
+#[derive(Subcommand)]
+enum DevCmd {
+    /// Developer environment status across compilers, containers, and virtualization.
+    Status,
+    /// Setup curated opt-in developer bundles (base, python, rust, containers, virt, all).
+    Setup {
+        /// Curated bundle name (base, python, rust, containers, virt, all). Default: base.
+        bundle: Option<String>,
+        /// Preview package installation without modifying system.
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Inspect git configuration hygiene and signing setup.
+    Git {
+        #[command(subcommand)]
+        cmd: GitCmd,
+    },
+    /// Detailed rootless container (Podman) readiness and configuration.
+    Container {
+        #[command(subcommand)]
+        cmd: DevContainerCmd,
+    },
+    /// Hardware virtualization and KVM readiness for local VMs.
+    Vm {
+        #[command(subcommand)]
+        cmd: DevVmCmd,
+    },
+}
+
+#[derive(Subcommand)]
+enum GitCmd {
+    /// Check git identity, signing, and default branch configuration.
+    Doctor,
+}
+
+#[derive(Subcommand)]
+enum DevContainerCmd {
+    /// Check Podman rootless setup, subuids, and cgroups v2.
+    Status,
+}
+
+#[derive(Subcommand)]
+enum DevVmCmd {
+    /// Check KVM hardware acceleration, permissions, and hypervisor daemon.
+    Status,
 }
 
 #[derive(Subcommand)]
@@ -1425,6 +1478,7 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
         Cmd::Privacy { cmd } => return run_privacy(j, cmd),
         Cmd::Logs { cmd } => return run_logs(j, cmd),
         Cmd::Recovery { cmd } => return run_top_recovery(j, cmd),
+        Cmd::Dev { cmd } => return run_dev(j, cmd),
         Cmd::Doctor { full } => {
             let report = doctor::run(full);
             let v = serde_json::to_value(&report)?;
@@ -2603,6 +2657,171 @@ fn run_top_recovery(j: bool, cmd: TopRecoveryCmd) -> anyhow::Result<u8> {
                     ));
                 }
                 s
+            });
+        }
+    }
+    Ok(exit::OK)
+}
+
+fn run_dev(j: bool, cmd: DevCmd) -> anyhow::Result<u8> {
+    match cmd {
+        DevCmd::Status => {
+            let st = dev::get_dev_status();
+            let v = serde_json::to_value(&st)?;
+            print_value(j, &v, || {
+                let comp_str = if st.compilers_ready {
+                    "ready"
+                } else {
+                    "missing"
+                };
+                let git_str = if st.git_ready { "ready" } else { "missing" };
+                let py_str = if st.python_ready { "ready" } else { "missing" };
+                let rust_str = if st.rust_ready { "ready" } else { "missing" };
+                let pod_str = if st.containers_ready {
+                    "ready"
+                } else {
+                    "missing"
+                };
+                let virt_str = if st.virt_ready { "ready" } else { "missing" };
+                let missing_str = if st.missing_recommended.is_empty() {
+                    "none".to_string()
+                } else {
+                    st.missing_recommended.join(", ")
+                };
+                format!(
+                    "readiness:            {}\n\
+                     compilers:            {comp_str}\n\
+                     git:                  {git_str}\n\
+                     python:               {py_str}\n\
+                     rust:                 {rust_str}\n\
+                     containers (podman):  {pod_str}\n\
+                     virtualization (kvm): {virt_str}\n\
+                     missing recommended:  {missing_str}",
+                    st.readiness
+                )
+            });
+        }
+        DevCmd::Setup { bundle, dry_run } => {
+            let plan = dev::plan_dev_setup(bundle.as_deref(), dry_run)?;
+            let v = serde_json::to_value(&plan)?;
+            print_value(j, &v, || plan.message.clone());
+        }
+        DevCmd::Git {
+            cmd: GitCmd::Doctor,
+        } => {
+            let rep = dev::get_git_doctor();
+            let v = serde_json::to_value(&rep)?;
+            print_value(j, &v, || {
+                let health_str = if rep.healthy {
+                    "healthy"
+                } else {
+                    "attention needed"
+                };
+                let user_str = rep.user_name.as_deref().unwrap_or("<unset>");
+                let email_str = rep.user_email.as_deref().unwrap_or("<unset>");
+                let branch_str = rep.default_branch.as_deref().unwrap_or("<default>");
+                let gpg_str = if rep.gpg_sign { "enabled" } else { "disabled" };
+                let mut s = format!(
+                    "health:          {health_str}\n\
+                     user.name:       {user_str}\n\
+                     user.email:      {email_str}\n\
+                     default branch:  {branch_str}\n\
+                     commit.gpgsign:  {gpg_str}\n"
+                );
+                if !rep.issues.is_empty() {
+                    s.push_str("issues:\n");
+                    for issue in &rep.issues {
+                        s.push_str(&format!("  - {issue}\n"));
+                    }
+                }
+                if !rep.recommendations.is_empty() {
+                    s.push_str("recommendations:\n");
+                    for rec in &rep.recommendations {
+                        s.push_str(&format!("  - {rec}\n"));
+                    }
+                }
+                s
+            });
+        }
+        DevCmd::Container {
+            cmd: DevContainerCmd::Status,
+        } => {
+            let cs = dev::get_container_status();
+            let v = serde_json::to_value(&cs)?;
+            print_value(j, &v, || {
+                let inst_str = if cs.podman_installed {
+                    "installed"
+                } else {
+                    "missing"
+                };
+                let ver_str = cs.podman_version.as_deref().unwrap_or("unknown");
+                let subuid_str = if cs.subuid_configured {
+                    "configured"
+                } else {
+                    "missing"
+                };
+                let subgid_str = if cs.subgid_configured {
+                    "configured"
+                } else {
+                    "missing"
+                };
+                let cg_str = if cs.cgroups_v2 {
+                    "v2 active"
+                } else {
+                    "not detected"
+                };
+                let ready_str = if cs.rootless_ready {
+                    "ready"
+                } else {
+                    "incomplete"
+                };
+                format!(
+                    "podman:               {inst_str} ({ver_str})\n\
+                     rootless readiness:   {ready_str}\n\
+                     subuid mapping:       {subuid_str}\n\
+                     subgid mapping:       {subgid_str}\n\
+                     cgroups:              {cg_str}\n\
+                     notice:               {}",
+                    cs.notice
+                )
+            });
+        }
+        DevCmd::Vm {
+            cmd: DevVmCmd::Status,
+        } => {
+            let vs = dev::get_vm_status();
+            let v = serde_json::to_value(&vs)?;
+            print_value(j, &v, || {
+                let dev_str = if vs.kvm_device_present {
+                    "present"
+                } else {
+                    "missing"
+                };
+                let acc_str = if vs.kvm_accessible { "yes" } else { "no" };
+                let cpu_str = if vs.cpu_virtualization_supported {
+                    "supported"
+                } else {
+                    "not detected"
+                };
+                let qemu_str = if vs.qemu_installed {
+                    "installed"
+                } else {
+                    "missing"
+                };
+                let libv_str = if vs.libvirt_running {
+                    "running"
+                } else {
+                    "not running"
+                };
+                format!(
+                    "readiness:            {}\n\
+                     /dev/kvm:             {dev_str} (accessible: {acc_str})\n\
+                     cpu virtualization:   {cpu_str}\n\
+                     qemu:                 {qemu_str}\n\
+                     libvirt daemon:       {libv_str}\n\
+                     guidance:             {}",
+                    vs.readiness, vs.guidance
+                )
             });
         }
     }

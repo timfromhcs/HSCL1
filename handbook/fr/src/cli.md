@@ -20,6 +20,7 @@ $ hscl privacy session explain
 $ hscl logs show
 $ hscl logs collect
 $ hscl recovery status
+$ hscl dev status
 ```
 
 | Code de sortie | Signification |

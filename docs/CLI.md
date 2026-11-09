@@ -118,12 +118,27 @@ System recovery posture, snapshot management, and non-destructive configuration 
 `hscl recovery snapshots create <LABEL> [--dry-run]` creates a timestamped recovery point with configuration manifest (refuses to overwrite).
 `hscl recovery config reset [COMPONENT] [--dry-run]` non-destructively resets configuration components (`shortcuts`, `theme`, `all`) to schema-validated defaults while creating timestamped `.bak` safety preserves.
 
+## `hscl dev` (IMPLEMENTED, unit-tested)
+
+Developer workstation environment, setup bundles, Git hygiene, containers, and virtualization (AGENTS.md section 7.1, 7.2 & 8.2).
+
+`hscl dev status` inspects readiness across compilers, Git, Python, Rust, Node, containers, and virtualization.
+`hscl dev setup [BUNDLE] [--dry-run]` prepares safe installation plans for curated opt-in bundles (`base`, `python`, `rust`, `containers`, `virt`, `all`).
+`hscl dev git doctor` evaluates Git configuration hygiene, identity settings, default branch convention, and commit signing.
+`hscl dev container status` verifies rootless Podman readiness, subuid/subgid mapping, and cgroups v2 resource delegation.
+`hscl dev vm status` checks KVM hardware acceleration, device permissions, and libvirt hypervisor daemon status.
+
 
 ## More commands (rows taken from `--help`; the drift test `cli_doc_lists_every_command` keeps this page complete)
 
 | Command | What it does |
 |---|---|
 | `hscl overview` | Friendly overview of HSCL1 and where to start (also what `hscl1` with no arguments prints) |
+| `hscl dev status` | Developer environment status across compilers, containers, and virtualization |
+| `hscl dev setup` | Setup curated opt-in developer bundles with dry-run support |
+| `hscl dev git doctor` | Inspect git configuration hygiene, identity, and signing setup |
+| `hscl dev container status` | Detailed rootless container readiness, subuids, and cgroups v2 |
+| `hscl dev vm status` | Check KVM hardware acceleration, permissions, and hypervisor daemon |
 | `hscl recovery status` | Inspect system recovery posture and backup provider readiness |
 | `hscl recovery snapshots list` | List all detected recovery snapshots |
 | `hscl recovery snapshots create` | Create a timestamped recovery point with system configuration manifest |
