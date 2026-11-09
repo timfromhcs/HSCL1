@@ -1451,3 +1451,19 @@ Decision rule: pick the one that unblocks the most downstream work. HCSUDA H3c-3
 - **Automated Test Coverage:**
   - Rust unit tests: Added 2 unit tests in `cli/hscl/src/system.rs` covering service unit parsing and power command plan generation.
   - Python unit tests: Created `tests/unit/test_system_cli.py` (5 tests) verifying text/JSON output and dry-run execution safety.
+
+### V1-T HSCL1 Desktop Appearance Subcommands (`hscl appearance`) (2026-11-09)
+
+- **CLI Implementation (AGENTS.md section 4.2 & 8.2):**
+  - Expanded `AppearanceCmd` in `cli/hscl/src/main.rs` with `Theme`, `Wallpaper [list|set]`, `Mode [dark|light|auto]`, and `Dock position [bottom|left|right]`.
+  - Updated `cli/hscl/src/appearance.rs` with:
+    - Color mode planning and validation (`set_mode` and `validate_mode`) supporting `dark`, `light`, and `auto`.
+    - Dock position planning and validation (`set_dock_position` and `validate_dock_position`) supporting `bottom`, `left`, and `right`.
+    - Direct per-user layout configuration persistence (`~/.config/hscl/appearance.json`).
+    - `--dry-run` safety inspection across all appearance configuration changes.
+- **Documentation & Handbook Synchronization:**
+  - Added leaf command rows in `docs/CLI.md`, passing `cli_doc_lists_every_command`.
+  - Updated offline handbook across `handbook/{en,de,fr}/src/cli.md`.
+- **Automated Test Coverage:**
+  - Rust unit tests: Added 2 unit tests in `cli/hscl/src/appearance.rs` covering mode validation and dock position dry-run planning.
+  - Python unit tests: Created `tests/unit/test_appearance_cli.py` (3 tests) verifying text/JSON output and validation contracts.

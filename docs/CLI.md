@@ -178,6 +178,10 @@ System information, package updates, power actions, and services management (AGE
 | `hscl system shutdown` | Request system shutdown/poweroff (via logind/systemctl) |
 | `hscl system lock` | Lock the active desktop session |
 | `hscl system services` | List system services and their enablement status |
+| `hscl appearance wallpaper list` | Available wallpaper shader presets |
+| `hscl appearance wallpaper set` | Apply a wallpaper preset by name |
+| `hscl appearance mode` | Show or set desktop color mode (dark, light, auto) |
+| `hscl appearance dock position` | Set dock screen edge position (bottom, left, right) |
 | `hscl ai model list` | All catalog models with fit information for this machine |
 | `hscl ai model recommend` | Models that fit this machine, best first |
 | `hscl ai model info` | Details, licence and warning of one model |

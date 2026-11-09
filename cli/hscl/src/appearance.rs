@@ -5,7 +5,7 @@
 //! writing a backup of the previous selection.
 
 use anyhow::{bail, Context, Result};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::path::{Path, PathBuf};
 
@@ -182,6 +182,103 @@ pub fn apply(p: &Plan, cfg: &Path, runner: &mut dyn Runner, now: u64) -> Result<
     Ok(())
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct AppearanceConfig {
+    pub theme: Option<String>,
+    pub mode: String,
+    pub dock_position: String,
+}
+
+impl Default for AppearanceConfig {
+    fn default() -> Self {
+        Self {
+            theme: Some(DEFAULT_THEME.to_string()),
+            mode: "dark".to_string(),
+            dock_position: "bottom".to_string(),
+        }
+    }
+}
+
+pub fn validate_mode(mode: &str) -> Result<()> {
+    match mode {
+        "dark" | "light" | "auto" => Ok(()),
+        other => bail!("invalid appearance mode '{other}'; valid modes: dark, light, auto"),
+    }
+}
+
+pub fn validate_dock_position(pos: &str) -> Result<()> {
+    match pos {
+        "bottom" | "left" | "right" => Ok(()),
+        other => bail!("invalid dock position '{other}'; valid positions: bottom, left, right"),
+    }
+}
+
+pub fn load_config(cfg_dir: &Path) -> AppearanceConfig {
+    let path = cfg_dir.join("appearance.json");
+    if let Ok(content) = std::fs::read_to_string(&path) {
+        if let Ok(cfg) = serde_json::from_str::<AppearanceConfig>(&content) {
+            return cfg;
+        }
+    }
+    AppearanceConfig::default()
+}
+
+pub fn save_config(cfg_dir: &Path, cfg: &AppearanceConfig) -> Result<()> {
+    std::fs::create_dir_all(cfg_dir)?;
+    let path = cfg_dir.join("appearance.json");
+    let content = serde_json::to_string_pretty(cfg)?;
+    std::fs::write(&path, content)?;
+    Ok(())
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ModePlan {
+    pub mode: String,
+    pub dry_run: bool,
+    pub message: String,
+}
+
+pub fn set_mode(mode: &str, dry_run: bool, cfg_dir: &Path) -> Result<ModePlan> {
+    validate_mode(mode)?;
+    let message = if dry_run {
+        format!("Dry run: would set appearance mode to '{mode}'")
+    } else {
+        let mut cfg = load_config(cfg_dir);
+        cfg.mode = mode.to_string();
+        save_config(cfg_dir, &cfg)?;
+        format!("Appearance mode set to '{mode}'")
+    };
+    Ok(ModePlan {
+        mode: mode.to_string(),
+        dry_run,
+        message,
+    })
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct DockPlan {
+    pub position: String,
+    pub dry_run: bool,
+    pub message: String,
+}
+
+pub fn set_dock_position(pos: &str, dry_run: bool, cfg_dir: &Path) -> Result<DockPlan> {
+    validate_dock_position(pos)?;
+    let message = if dry_run {
+        format!("Dry run: would set dock position to '{pos}'")
+    } else {
+        let mut cfg = load_config(cfg_dir);
+        cfg.dock_position = pos.to_string();
+        save_config(cfg_dir, &cfg)?;
+        format!("Dock position set to '{pos}'")
+    };
+    Ok(DockPlan {
+        position: pos.to_string(),
+        dry_run,
+        message,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -282,5 +379,39 @@ mod tests {
         let c = catalog_from(&tokens()).unwrap();
         assert!(apply(&plan(&c[1], dir.path(), 3), dir.path(), &mut Fail, 3).is_err());
         assert_eq!(current(dir.path()), None);
+    }
+
+    #[test]
+    fn test_validate_mode_and_plan() {
+        assert!(validate_mode("dark").is_ok());
+        assert!(validate_mode("light").is_ok());
+        assert!(validate_mode("auto").is_ok());
+        assert!(validate_mode("neon").is_err());
+
+        let dir = tempfile::tempdir().unwrap();
+        let plan_dry = set_mode("light", true, dir.path()).unwrap();
+        assert!(plan_dry.dry_run);
+        assert_eq!(load_config(dir.path()).mode, "dark");
+
+        let plan_real = set_mode("light", false, dir.path()).unwrap();
+        assert!(!plan_real.dry_run);
+        assert_eq!(load_config(dir.path()).mode, "light");
+    }
+
+    #[test]
+    fn test_validate_dock_position_and_plan() {
+        assert!(validate_dock_position("bottom").is_ok());
+        assert!(validate_dock_position("left").is_ok());
+        assert!(validate_dock_position("right").is_ok());
+        assert!(validate_dock_position("top").is_err());
+
+        let dir = tempfile::tempdir().unwrap();
+        let plan_dry = set_dock_position("left", true, dir.path()).unwrap();
+        assert!(plan_dry.dry_run);
+        assert_eq!(load_config(dir.path()).dock_position, "bottom");
+
+        let plan_real = set_dock_position("left", false, dir.path()).unwrap();
+        assert!(!plan_real.dry_run);
+        assert_eq!(load_config(dir.path()).dock_position, "left");
     }
 }
