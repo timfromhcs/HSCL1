@@ -262,6 +262,7 @@ HSCL1 adheres to a strict evidence-driven development contract: **nothing is cla
 | **HCSEASYMATH Symbolic Engine** | `TESTED` | 244 math test cases green; differentiate, integrate, evaluate, simplify, solve, plot |
 | **NPBENCH Algorithmic Suite** | `TESTED` | 134 tests green; DIMACS parser, DRAT checker, RUP refutations, WalkSAT, CDCL baseline |
 | **Split & Rejoin Integrity** | `TESTED` | 3 parts (<1900 MiB) join byte-identically to whole ISO; verified via `release-join.sh --verify-only` |
+| **Bitaxe/ESP-Miner OTA (real device)** | `HARDWARE-VERIFIED` (one device) | `timsminer`, board 201, BM1366: firmware built from source (2 758 656 B, SHA-256 `ecb7463…`), flashed via `hscl miner ota` in 263 s; version `v4.0.2-rc1-sha-research` → `v4.0.2-rc1`, board and MAC unchanged; pre/post telemetry in [docs/miner/TELEMETRY.md](docs/miner/TELEMETRY.md) |
 
 *Full evidence log available at [`docs/CLAIMS.md`](docs/CLAIMS.md) and [`docs/BUILD_LOG.md`](docs/BUILD_LOG.md).*
 
@@ -346,6 +347,8 @@ $ scripts/dev/wsl-cycle.sh iso --fast
 - [Quality audit & visual QA (2026-11-09)](docs/QA_FINDINGS_2026-11-09.md) — What works, what is weak, every known defect.
 - [Autonomous work queue](docs/AUTONOMOUS_QUEUE.md) — The ordered list the agent loop executes.
 - [Miner firmware research](docs/miner/FIRMWARE_RESEARCH.md) — Current ESP-Miner/AxeOS facts and limits.
+- [Miner hardware plan](docs/miner/HARDWARE_PLAN.md) — What is proven on hardware, what is not.
+- [Miner telemetry](docs/miner/TELEMETRY.md) — Measured pre/post-flash numbers.
 - [Miner bridge ADR](docs/miner/ARCHITECTURE.md) — Receiver design and the implemented CLI slice.
 - [Licenses & Attributions](docs/LICENSES.md) — Upstream component licenses and intellectual property terms.
 
