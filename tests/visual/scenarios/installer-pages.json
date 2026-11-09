@@ -1,0 +1,21 @@
+[
+  { "keys": ["meta_l"] },
+  { "wait": 3 },
+  { "type": "Install HSCL1" },
+  { "wait": 3 },
+  { "keys": ["ret"] },
+  { "wait": 50 },
+  { "shot": "k1-welcome" },
+  { "keys": ["ret"] },
+  { "wait": 10 },
+  { "shot": "k2-location" },
+  { "keys": ["ret"] },
+  { "wait": 8 },
+  { "shot": "k3-keyboard" },
+  { "keys": ["ret"] },
+  { "wait": 8 },
+  { "shot": "k4-customize" },
+  { "keys": ["ret"] },
+  { "wait": 12 },
+  { "shot": "k5-partitions" }
+]

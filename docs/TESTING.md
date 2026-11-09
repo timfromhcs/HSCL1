@@ -37,6 +37,30 @@ Shell scripts: `shellcheck -S warning scripts/*.sh distro/live/*.sh distro/live/
 | `--steps FILE.json` | run a scenario (`tests/visual/scenarios/*.json`): keys, text, clicks, named screenshots |
 | `--qa-out FILE` | attach the `hscl.qa` virtio port; the guest report (from `hscl-qa`) is written to FILE |
 
+### Writing an installer scenario
+
+Calamares runs as a **centred 1104×668 window** since 2026-11-09, not fullscreen. Click coordinates carried over
+from the old fullscreen layout land on the wrong button: the scenario clicked (0.883, 0.903) for "Next" and hit
+**Cancel**, which opened the "Cancel Installation?" dialog, so the run never left the welcome page.
+Measured geometry on a 1280×800 guest (fractions of the screen):
+
+| Control | Pixels | Fraction |
+|---|---|---|
+| Back | 949, 715 | 0.741, 0.894 |
+| Next | 1041, 715 | **0.813, 0.894** |
+| Cancel | 1143, 715 | 0.893, 0.894 |
+| Language combo | 762, 608 | 0.595, 0.760 |
+| "No" in the cancel dialog | 795, 413 | 0.621, 0.516 |
+
+Re-measure if the window size or the screen resolution changes. `tests/visual/scenarios/installer-walk.json`
+clicks through the wizard with the measured coordinates and records one screenshot per page - use it to
+re-derive coordinates. Attach a disposable disk (`--disk artifacts/vdisks/walk-40g.qcow2 --disk-size 40G`);
+without one Calamares stops on the welcome page with "There is not enough drive space. At least 8 GiB is
+required." and a disabled Next button, which is the intended behaviour and not a scenario failure.
+
+`ret` alone does not advance the wizard: it only presses the focused button, and on a blocked page Next is
+disabled. Use `ret` to launch the installer from Kickoff, then click.
+
 Accelerators: Windows host → native QEMU with WHPX (`winget install SoftwareFreedomConservancy.QEMU`); Linux with
 `/dev/kvm` → KVM; otherwise TCG (about 5× slower). Unix sockets do not work on `/mnt/...` drives under WSL: write the
 output directory inside the WSL home.
