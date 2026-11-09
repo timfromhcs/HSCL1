@@ -1693,9 +1693,12 @@ dismissed, six scenario screenshots captured.
   its output instead of guessing.
 - **Diagnosis (`installer-debug.json`):** `sudo calamares -d` printed **`Killed` / `EXIT=137`** — the process
   was SIGKILLed, and drkonqi itself was killed too ("Gathering crash information failed"). That is the
-  signature of memory pressure, and this image runs `earlyoom` by design. Verification run with 6 GB RAM
-  follows; if the installer opens there, the cause is memory and the fix belongs in the earlyoom policy or
-  in the documented VM minimum, not in Calamares.
+  signature of memory pressure, and this image runs `earlyoom` by design.
+  **Fix and proof:** the drop-in now exempts `calamares` and `drkonqi` (test + image gate), the image was
+  rebuilt (`HSCL1-earlyoom-fix-amd64.iso`, 5 488 771 072 B,
+  SHA-256 `e723940b670c7e20cce341101f16fdccca2bff9a2d57171459ea48ba616deb90`) and a **4 GB** VM run opened the
+  installer normally: centred window, top bar visible, `HSCL1 0.1.4-alpha.0`, and the HCSL1 `Notes` step in
+  the sidebar. 268 s to the desktop, then the installer.
 
 ### V1-Z Candidate boot, palette and launcher verification (2026-11-09)
 
