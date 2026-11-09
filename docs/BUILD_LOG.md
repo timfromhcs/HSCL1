@@ -1670,6 +1670,17 @@ Built from `4cc4135` (miner CLI, discovery, pool slots, WebSocket watch, Control
 Copied to `artifacts/iso/` for the Windows QEMU run. Next: boot it (UEFI/WHPX) with the theme scenario and,
 if it reaches the desktop, re-run the in-guest tracks (Q-12) and the installer check (Q-04).
 
+**Boot result: VM-VERIFIED.** QEMU/WHPX, UEFI, 4 GB, 1280×800: desktop reached in **257 s**, Welcome Center
+dismissed, six scenario screenshots captured.
+
+- `hscl doctor` in the guest: `[PASS] theme  HCSMidnight (from /etc/skel/.config/kdeglobals)` — the palette
+  check now finds the system default, and Secure Boot is honestly `[SKIP] not readable`.
+  Summary: 6 passed, 0 warnings, 0 failed, 1 skipped.
+- Konsole renders in the dark palette; desktop labels are legible.
+- Launcher: one entry per category (Development, Education, Games, Graphics, Help, Internet, Multimedia,
+  Office, Science & Math, System) — no duplicates, so the `.directory` fix holds in a fresh image.
+- `hscl appearance mode` reads `Current appearance mode: dark`.
+
 ### V1-Z Candidate boot, palette and launcher verification (2026-11-09)
 
 Artifact: `HSCL1-qa-2026-11-09-amd64.iso` (`118029de…`, source `c8a433a`), QEMU 9.x + WHPX, UEFI

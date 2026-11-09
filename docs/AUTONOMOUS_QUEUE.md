@@ -47,7 +47,7 @@ booted-artifact evidence missing).
 
 | ID | Item | Gate | Status |
 |---|---|---|---|
-| Q-10 | Build a candidate from the fixed tree (`forge build`) and boot it UEFI | BUILD_LOG entry with source commit, ISO sha256, boot result | **VM-VERIFIED 2026-11-09** — `HSCL1-qa-2026-11-09-amd64.iso` (`118029de…`, source `c8a433a`), desktop reached in 251/257 s under UEFI+WHPX |
+| Q-10 | Build a candidate from the fixed tree (`forge build`) and boot it UEFI | BUILD_LOG entry with source commit, ISO sha256, boot result | **VM-VERIFIED 2026-11-09** — `HSCL1-miner-qa-2026-11-09-amd64.iso` (`e342b3ae…`, source `4cc4135`) booted to the desktop in 257 s; `hscl doctor` shows `[PASS] theme HCSMidnight (from /etc/skel)`, launcher has no duplicate sections |
 | Q-11 | LUKS2 install on a disposable disk from the same candidate | installed boot + wrong/correct passphrase | OPEN |
 | Q-12 | Re-run the 12 in-guest tracks against the new candidate | `verify_in_guest_tracks.py` output | OPEN |
 | Q-13 | Regenerate all showcase screenshots from that candidate | manifest.json with source commit | OPEN |
