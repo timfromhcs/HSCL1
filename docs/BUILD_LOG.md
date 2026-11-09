@@ -1631,7 +1631,13 @@ Source `d817093`, Windows 11 host + Ubuntu 26.04 WSL. No VM boot in this session
   `/etc/skel/.config/kdeglobals` (live users are created from `/etc/skel`), with `widgetStyle` in
   `[KDE]`. `verify-image.sh` now checks both files. A sandbox script
   (`scripts/dev/sandbox_hook_check.sh`) reproduces the missing-key case without building an image.
-- **Attempt 2** started from `e9b7e0d`; result recorded below when the ISO exists.
+- **Attempt 2** (source `e9b7e0d`) FAILED at the next new gate: `FAIL  new users inherit the HCS palette`.
+  Cause: `/etc/skel/.config/kdeglobals` does not exist in the base image, and `ensure_key` returns early
+  for a missing file. Fix (`c8a433a`): the hook now creates `/etc/skel/.config` and an empty
+  `kdeglobals` before writing. Both failure modes (missing key, missing file) are reproduced by
+  `scripts/dev/sandbox_hook_check.sh` and gated by `tests/unit/test_palette_hook_sandbox.py`, which runs
+  the real hook against a throwaway rootfs.
+- **Attempt 3** started from `c8a433a`; result recorded below when the ISO exists.
 - **Not verified here:** anything requiring a booted artifact (theme result, launcher merge behaviour,
   installer clipping, screenshots). Those rows stay `VM-PENDING` in `docs/AUTONOMOUS_QUEUE.md`.
 

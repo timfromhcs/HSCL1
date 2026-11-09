@@ -8,6 +8,23 @@ accordingly.
 This document is the honest picture: what works, what is fragile, what is broken, and what the next
 queue is. Every fixed item names the test that now guards it.
 
+## Resolution status (updated after the first autonomous passes)
+
+| Finding | Status |
+|---|---|
+| 21 pytest failures (harness) | **fixed** — gate green (900+ passed) |
+| Raw check ids / clipped rows in the Control Center | **fixed** — QML tests execute and assert the label |
+| Light Qt apps inside the dark shell | **fixed in code, VM-PENDING** — palette key now written to both `kubuntu-default-settings` and `/etc/skel`; two build attempts taught us the key and then the file were missing |
+| Duplicate mixed-language launcher sections | **fixed in code, VM-PENDING** — titles moved to `.directory` files |
+| Installer logo clipped by the top bar | **fixed in code, VM-PENDING** — centred window instead of fullscreen |
+| False "Offline Handbook" screenshot | **removed** from README and manifest; recapture queued |
+| Desktop icon labels illegible | **same root cause as the palette**; verify in the same VM run |
+| `hscl appearance mode`/`dock` fake success | **fixed** — real scheme/panel actions with Rust tests |
+| Artifact identity drift in `CLAIMS.md` | **fixed** — header names v0.1.4-alpha.0 |
+| Qt/QML gate hole | **closed** — `qml (WSL)` step in `forge check` |
+| Website build flag handling | **fixed** — argparse + tests |
+| Contrast | **verified** — all token pairs ≥ 4.5:1, gated |
+
 ---
 
 ## 1. What is genuinely good
