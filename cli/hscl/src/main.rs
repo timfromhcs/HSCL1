@@ -552,6 +552,50 @@ enum AppearanceCmd {
         #[command(subcommand)]
         cmd: ThemeCmd,
     },
+    /// Wallpaper presets and background configuration.
+    Wallpaper {
+        #[command(subcommand)]
+        cmd: AppearanceWallpaperCmd,
+    },
+    /// Desktop appearance color mode (dark, light, auto).
+    Mode {
+        /// Mode value: dark, light, or auto.
+        mode: Option<String>,
+        /// Preview mode change without applying.
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Dock and taskbar layout configuration.
+    Dock {
+        #[command(subcommand)]
+        cmd: DockCmd,
+    },
+}
+
+#[derive(Subcommand)]
+enum AppearanceWallpaperCmd {
+    /// List available wallpaper presets and active settings.
+    List,
+    /// Apply a wallpaper preset by name.
+    Set {
+        /// Preset name.
+        name: String,
+        /// Preview command without applying.
+        #[arg(long)]
+        dry_run: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum DockCmd {
+    /// Set dock screen edge position (bottom, left, right).
+    Position {
+        /// Screen position: bottom, left, or right.
+        position: String,
+        /// Preview dock position change without applying.
+        #[arg(long)]
+        dry_run: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -1485,9 +1529,7 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
         Cmd::Autotune { dry_run, force } => {
             return run_graphics(j, GraphicsCmd::Apply { dry_run, force });
         }
-        Cmd::Appearance {
-            cmd: AppearanceCmd::Theme { cmd },
-        } => return run_theme(j, cmd),
+        Cmd::Appearance { cmd } => return run_appearance(j, cmd),
         Cmd::Language { cmd } => return run_language(j, cmd),
         Cmd::Privacy { cmd } => return run_privacy(j, cmd),
         Cmd::Logs { cmd } => return run_logs(j, cmd),
@@ -2066,6 +2108,82 @@ fn set_theme(
     let v = json!({"applied": theme.id});
     print_value(j, &v, || format!("applied {}", theme.id));
     Ok(exit::OK)
+}
+
+fn run_appearance(j: bool, cmd: AppearanceCmd) -> anyhow::Result<u8> {
+    match cmd {
+        AppearanceCmd::Theme { cmd } => run_theme(j, cmd),
+        AppearanceCmd::Wallpaper {
+            cmd: AppearanceWallpaperCmd::List,
+        } => {
+            let sys = wallpaper::system_dir();
+            let usr = wallpaper::user_dir();
+            let presets = wallpaper::load_all(&sys, &usr);
+            let v = serde_json::to_value(&presets)?;
+            print_value(j, &v, || {
+                let mut s = format!("Available wallpaper preset(s) ({}):\n", presets.len());
+                for p in &presets {
+                    s.push_str(&format!("  - {:<16} ({})\n", p.id, p.name));
+                }
+                s
+            });
+            Ok(exit::OK)
+        }
+        AppearanceCmd::Wallpaper {
+            cmd: AppearanceWallpaperCmd::Set { name, dry_run },
+        } => {
+            let sys = wallpaper::system_dir();
+            let usr = wallpaper::user_dir();
+            let presets = wallpaper::load_all(&sys, &usr);
+            let preset = wallpaper::find(&presets, &name)?;
+            if dry_run {
+                let cmds = wallpaper::apply_commands(preset)?;
+                let plan = serde_json::json!({
+                    "preset": preset.id,
+                    "commands": cmds,
+                    "dry_run": true,
+                    "message": format!("Dry run: would apply wallpaper preset '{}'", preset.id)
+                });
+                print_value(j, &plan, || {
+                    format!("Dry run: would apply wallpaper preset '{}'", preset.id)
+                });
+            } else {
+                let mut runner = appearance::SystemRunner;
+                wallpaper::apply(preset, false, &mut runner)?;
+                let res = serde_json::json!({
+                    "preset": preset.id,
+                    "dry_run": false,
+                    "message": format!("Applied wallpaper preset '{}'", preset.id)
+                });
+                print_value(j, &res, || {
+                    format!("Applied wallpaper preset '{}'", preset.id)
+                });
+            }
+            Ok(exit::OK)
+        }
+        AppearanceCmd::Mode { mode, dry_run } => {
+            let cfg_dir = appearance::config_dir();
+            if let Some(m) = mode {
+                let plan = appearance::set_mode(&m, dry_run, &cfg_dir)?;
+                let v = serde_json::to_value(&plan)?;
+                print_value(j, &v, || plan.message.clone());
+            } else {
+                let cfg = appearance::load_config(&cfg_dir);
+                let v = serde_json::json!({ "mode": cfg.mode });
+                print_value(j, &v, || format!("Current appearance mode: {}", cfg.mode));
+            }
+            Ok(exit::OK)
+        }
+        AppearanceCmd::Dock {
+            cmd: DockCmd::Position { position, dry_run },
+        } => {
+            let cfg_dir = appearance::config_dir();
+            let plan = appearance::set_dock_position(&position, dry_run, &cfg_dir)?;
+            let v = serde_json::to_value(&plan)?;
+            print_value(j, &v, || plan.message.clone());
+            Ok(exit::OK)
+        }
+    }
 }
 
 fn run_language(j: bool, cmd: LanguageCmd) -> anyhow::Result<u8> {

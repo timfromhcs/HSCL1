@@ -13,6 +13,7 @@ $ hscl security firewall status
 $ hscl security audit
 $ hscl ai detect
 $ hscl appearance theme list
+$ hscl appearance mode
 $ hscl language status
 $ hscl language list
 $ hscl privacy status
