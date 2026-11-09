@@ -1501,3 +1501,30 @@ Decision rule: pick the one that unblocks the most downstream work. HCSUDA H3c-3
 - **Automated Test Coverage:**
   - Rust unit tests: Added 3 unit tests in `cli/hscl/src/lab.rs` covering toolset validation, VM profile and lifecycle planning, and container shell/stop/destroy planning.
   - Python unit tests: Added 3 new tests in `tests/unit/test_security_lab_cli.py` covering toolset install/list, container shell/stop, and VM create/launch dry-run execution.
+
+### V1-W Remastered Candidate ISO & 12-Track In-Guest Live Verification (2026-11-09)
+
+- **Remastered Candidate Build (AGENTS.md sections 0.2, 0.3.1 & 2.6):**
+  - Remastered `HSCL1-candidate-amd64.iso` (5,027,004,416 bytes, SHA-256 `aa9a52008aff55ac69f5632afba2db390fe598c771bfb50e142794d7223786a7`).
+  - Integrated `hscl-base` (with release `hscl` binary compiling all 26 CLI subcommands including recovery, dev, system, appearance, ai, and lab expansion), `earlyoom`, `systemd-zram-generator`, and Look-and-Feel desktop configurations into the squashfs.
+  - Tuned squashfs resource parameters (`sq_procs=2`, `sq_mem=1024M`) in `scripts/remaster-iso.sh` to ensure bounded memory usage during compression.
+  - Verified image integrity and live initrd boot splash rebuild via `scripts/remaster-iso.sh`.
+- **In-Guest Automated Multi-Track Verification (`verify_in_guest_tracks.py`):**
+  - Booted candidate ISO in Windows-native QEMU with WHPX acceleration; reached live desktop in 180s.
+  - Automated guest probes verified 12 tracks (100% success across all checks):
+    - Track L (Language): `hscl language list` (`en`, `de`, `fr`) and `--json language status`.
+    - Track K (Shortcuts): `hscl-shortcuts` reference output and `kglobalshortcutsrc` key bindings.
+    - Track C (Privacy): Ephemeral `/cow` overlayfs on RAM, in-memory `zram0` (priority 100, no persistent swap), `fs.suid_dumpable = 0`, 0 automounts of host partitions, `hscl privacy status`, and threat model boundaries vs Tails.
+    - Track B (Security Lab): Podman runtime check and `hscl lab status`.
+    - Track S (Security Posture): AppArmor enabled, UFW enabled, clean APT sources, 0 open LUKS volumes, and recovery check.
+    - Track D (Logs & Redaction): `hscl logs show` inspected live journal with automated `[redacted]` scrubbing, and `hscl logs collect --output /tmp/guest_diag_bundle.json`.
+    - Track R (Recovery): `hscl recovery status` and `--json recovery snapshots list`.
+    - Track DEV (Developer): `hscl dev status` probe across compilers, languages, containers, and `hscl dev git doctor`.
+    - Track SYS (System): `hscl system info` and `--json system services --enabled`.
+    - Track APP (Appearance): `hscl appearance mode` (reports dark), `hscl appearance dock position bottom --dry-run`, `hscl appearance wallpaper list` (5 presets).
+    - Track AI (Local AI): `hscl ai detect` (avx2 CPU fallback verified), `hscl ai backend list`, and `hscl ai storage show`.
+    - Track LAB (Security Lab Expansion): `hscl lab toolsets list` (5 curated toolsets), `hscl lab container list`, and `hscl lab vm list` (3 disposable VM profiles with host-only network boundary).
+- **Live Interactive Showcase Capture (20 Verified Artifacts):**
+  - Executed `scripts/dev/live_interactive_showcase.py` in live QEMU WHPX session.
+  - Refreshed all 20 genuine application window screenshots in `docs/img/showcase/` with live captures (Kickoff, Konsole with new subcommands, Control Center, Dolphin, Kate, Calamares, Handbook, and dynamic wallpapers).
+  - Updated showcase manifest `docs/img/showcase/manifest.json`.

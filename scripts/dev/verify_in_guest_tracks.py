@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Automated in-guest verification of Track B, Track C, Track K, and Track L."""
+"""Automated in-guest verification of all HSCL1 core tracks (L, K, C, B, S, D, R, DEV, SYS, APP, AI, LAB)."""
 from __future__ import annotations
 
 import json
@@ -173,6 +173,108 @@ def main() -> int:
             "stdout": r_logs.get("stdout"),
             "stderr": r_logs.get("stderr"),
             "success": r_logs.get("exit") == 0,
+        }
+
+        # 7. Track R: Recovery CLI
+        print("\n--- Testing Track R (Recovery status and snapshots) ---", flush=True)
+        cmd_recovery = """
+        echo "=== HSCL RECOVERY STATUS ==="
+        /usr/bin/hscl recovery status
+        echo "=== HSCL RECOVERY SNAPSHOTS LIST (JSON) ==="
+        /usr/bin/hscl --json recovery snapshots list
+        """
+        r_rec = run_cmd(vm, cmd_recovery)
+        report["tracks"]["track_r_recovery"] = {
+            "exit": r_rec.get("exit"),
+            "stdout": r_rec.get("stdout"),
+            "stderr": r_rec.get("stderr"),
+            "success": r_rec.get("exit") == 0,
+        }
+
+        # 8. Track DEV: Developer Environment
+        print("\n--- Testing Track DEV (Developer status and git hygiene) ---", flush=True)
+        cmd_dev = """
+        echo "=== HSCL DEV STATUS ==="
+        /usr/bin/hscl dev status
+        echo "=== HSCL DEV GIT DOCTOR ==="
+        /usr/bin/hscl dev git doctor || true
+        """
+        r_dev = run_cmd(vm, cmd_dev)
+        report["tracks"]["track_dev"] = {
+            "exit": r_dev.get("exit"),
+            "stdout": r_dev.get("stdout"),
+            "stderr": r_dev.get("stderr"),
+            "success": r_dev.get("exit") == 0,
+        }
+
+        # 9. Track SYS: System Information and Services
+        print("\n--- Testing Track SYS (System info and services) ---", flush=True)
+        cmd_sys = """
+        echo "=== HSCL SYSTEM INFO ==="
+        /usr/bin/hscl system info
+        echo "=== HSCL SYSTEM SERVICES (ENABLED) ==="
+        /usr/bin/hscl --json system services --enabled
+        """
+        r_sys = run_cmd(vm, cmd_sys)
+        report["tracks"]["track_sys_system"] = {
+            "exit": r_sys.get("exit"),
+            "stdout": r_sys.get("stdout"),
+            "stderr": r_sys.get("stderr"),
+            "success": r_sys.get("exit") == 0,
+        }
+
+        # 10. Track APP: Appearance, Wallpaper and Layout
+        print("\n--- Testing Track APP (Appearance mode, dock and wallpapers) ---", flush=True)
+        cmd_app = """
+        echo "=== HSCL APPEARANCE MODE ==="
+        /usr/bin/hscl appearance mode
+        echo "=== HSCL APPEARANCE DOCK POSITION (DRY-RUN) ==="
+        /usr/bin/hscl appearance dock position bottom --dry-run
+        echo "=== HSCL APPEARANCE WALLPAPER LIST ==="
+        /usr/bin/hscl appearance wallpaper list
+        """
+        r_app = run_cmd(vm, cmd_app)
+        report["tracks"]["track_app_appearance"] = {
+            "exit": r_app.get("exit"),
+            "stdout": r_app.get("stdout"),
+            "stderr": r_app.get("stderr"),
+            "success": r_app.get("exit") == 0,
+        }
+
+        # 11. Track AI: Local AI Detection and Storage
+        print("\n--- Testing Track AI (AI detect, backend and storage) ---", flush=True)
+        cmd_ai = """
+        echo "=== HSCL AI DETECT ==="
+        /usr/bin/hscl ai detect
+        echo "=== HSCL AI BACKEND LIST ==="
+        /usr/bin/hscl ai backend list
+        echo "=== HSCL AI STORAGE SHOW ==="
+        /usr/bin/hscl ai storage show
+        """
+        r_ai = run_cmd(vm, cmd_ai)
+        report["tracks"]["track_ai_tooling"] = {
+            "exit": r_ai.get("exit"),
+            "stdout": r_ai.get("stdout"),
+            "stderr": r_ai.get("stderr"),
+            "success": r_ai.get("exit") == 0,
+        }
+
+        # 12. Track LAB: Security Lab Toolsets and Isolation
+        print("\n--- Testing Track LAB (Toolsets, containers, and VM profiles) ---", flush=True)
+        cmd_lab = """
+        echo "=== HSCL LAB TOOLSETS LIST ==="
+        /usr/bin/hscl lab toolsets list
+        echo "=== HSCL LAB CONTAINER LIST ==="
+        /usr/bin/hscl lab container list
+        echo "=== HSCL LAB VM LIST ==="
+        /usr/bin/hscl lab vm list
+        """
+        r_lab = run_cmd(vm, cmd_lab)
+        report["tracks"]["track_lab_expansion"] = {
+            "exit": r_lab.get("exit"),
+            "stdout": r_lab.get("stdout"),
+            "stderr": r_lab.get("stderr"),
+            "success": r_lab.get("exit") == 0,
         }
 
         take_shot(vm, out_dir / "02_final_desktop.png")

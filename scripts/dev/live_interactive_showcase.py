@@ -130,11 +130,11 @@ def main() -> int:
         # Run Security Lab commands in Konsole
         q.type_text(vm.qmp, "clear\n")
         time.sleep(0.5)
-        q.type_text(vm.qmp, "hscl lab --help\n")
+        q.type_text(vm.qmp, "hscl lab toolsets list\n")
         time.sleep(1.5)
-        q.type_text(vm.qmp, "hscl graphics detect\n")
+        q.type_text(vm.qmp, "hscl dev status\n")
         time.sleep(1.5)
-        q.type_text(vm.qmp, "hscl memory status\n")
+        q.type_text(vm.qmp, "hscl ai detect\n")
         time.sleep(2.0)
         capture_shot(vm, out_dir, "09_terminal_hscl_lab.png", "Konsole: hscl lab security suite & hardware diagnostics", manifest)
 
