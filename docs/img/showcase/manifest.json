@@ -197,5 +197,16 @@
     ],
     "description": "Calamares Installer: Location & Timezone",
     "timestamp": 1794234919.1573412
+  },
+  {
+    "filename": "13_offline_handbook.png",
+    "bytes": 120241,
+    "size": [
+      1280,
+      800
+    ],
+    "description": "Trilingual offline handbook opened from the desktop icon (Firefox, /usr/share/doc/hscl-handbook)",
+    "timestamp": 1794243060.2641883,
+    "source_iso": "HSCL1-qa-2026-11-09-amd64.iso sha256 118029de"
   }
 ]

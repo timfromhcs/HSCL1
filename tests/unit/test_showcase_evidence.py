@@ -45,6 +45,10 @@ def test_the_manifest_records_a_description_for_every_image():
 
 
 def test_no_evidence_image_claims_an_app_that_is_not_in_the_picture():
-    """The handbook capture is the known failure; it must not come back under the old name until it
-    really contains the window."""
-    assert not (SHOWCASE / "13_offline_handbook.png").exists()
+    """The handbook capture really shows the handbook now (Firefox on /usr/share/doc/hscl-handbook).
+    It must only be re-added together with a manifest entry, which the consistency test enforces;
+    the previous false capture was a bare desktop."""
+    path = SHOWCASE / "13_offline_handbook.png"
+    if path.exists():
+        assert "13_offline_handbook.png" in manifest(), "re-added without a manifest entry"
+        assert manifest()["13_offline_handbook.png"].get("source_iso"), "evidence needs its artifact"

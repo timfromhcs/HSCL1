@@ -1676,6 +1676,13 @@ Artifact: `HSCL1-qa-2026-11-09-amd64.iso` (`118029de…`, source `c8a433a`), QEM
   at `/etc/skel` (where the palette now lives). Fixed in `doctor.rs`: candidate order is
   `$XDG_CONFIG_HOME`, `$HOME/.config`, `/etc/xdg`, `/etc/skel/.config`, and the detail names the source
   file. Unit-tested; the in-guest readback needs the next build.
+- **Handbook capture (Q-03) recovered.** A second run with `--launch-installer` hit the neighbouring
+  desktop icon and opened the offline handbook instead: Firefox on
+  `/usr/share/doc/hscl-handbook/en/index.html`, fully offline, dark chrome. That is the genuine capture the
+  README had claimed all along. It replaces the empty desktop image, is listed in
+  `docs/img/showcase/manifest.json` with `source_iso`, and the README row is restored. The harness clicks a
+  fixed coordinate, so the installer itself was not opened by that flag — a dedicated
+  `tests/visual/scenarios/installer-open.json` now starts it through the launcher by name.
 - **Not verified in this run:** installer window/branding (installer not launched), German/French
   launcher titles, Secure Boot enforcement, LUKS install, in-guest Security Lab and Privacy tracks.
 - **Not verified here:** anything requiring a booted artifact (theme result, launcher merge behaviour,

@@ -1,0 +1,15 @@
+[
+  { "keys": ["meta_l"] },
+  { "wait": 3 },
+  { "type": "Install HSCL1" },
+  { "wait": 3 },
+  { "keys": ["ret"] },
+  { "wait": 50 },
+  { "shot": "i1-welcome" },
+  { "click": [0.883, 0.903] },
+  { "wait": 8 },
+  { "shot": "i2-location" },
+  { "click": [0.883, 0.903] },
+  { "wait": 6 },
+  { "shot": "i3-keyboard" }
+]
