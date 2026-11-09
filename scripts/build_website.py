@@ -219,9 +219,17 @@ def build(out: Path, site: str | None) -> list[str]:
     return urls
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    import argparse
+
+    ap = argparse.ArgumentParser(description="Build the HSCL1 landing page into an output directory.")
+    ap.add_argument("outdir", nargs="?", default=str(WEB / "dist"), help="output directory (default: website/dist)")
+    ap.add_argument("--out", dest="out_flag", help="output directory (same as the positional argument)")
+    args = ap.parse_args(argv)
+    # Until 2026-11-09 an unknown flag was taken as the output directory and `--help` silently created
+    # a directory literally named "--help". argparse now rejects unknown flags.
+    out = Path(args.out_flag or args.outdir)
     site = os.environ.get("SITE_URL", "").rstrip("/") or None
-    out = Path(sys.argv[1]) if len(sys.argv) > 1 else WEB / "dist"
     urls = build(out, site)
     print(f"built {len(urls)} pages into {out}" + ("" if site else " (SITE_URL not set: no canonical/hreflang/sitemap)"))
     return 0
