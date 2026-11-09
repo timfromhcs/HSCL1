@@ -1652,6 +1652,24 @@ Source `d817093`, Windows 11 host + Ubuntu 26.04 WSL. No VM boot in this session
   Dolphin, the `hscl doctor` theme line, the launcher sections and the desktop labels; the
   dark/light verdict is measured with `scripts/dev/check_theme_screenshot.py` (not eyeballed).
 
+### V1-Z2 Candidate rebuild with the miner track (2026-11-09)
+
+Built from `4cc4135` (miner CLI, discovery, pool slots, WebSocket watch, Control Center Miner page) after
+`verify-image: all checks passed`.
+
+| Field | Value |
+|---|---|
+| Artifact | `HSCL1-miner-qa-2026-11-09-amd64.iso` |
+| Bytes | 5 488 771 072 |
+| SHA-256 | `e342b3ae6c8c2b0e67481eca834fe9082203842fd346fe1301c04696398defcd` |
+| Source commit | `4cc4135385a77d4243c7bf35e8c71cc35c40a51d`, `git_dirty: false` |
+| Base ISO | `831e4d4b…` (Kubuntu 26.04.1) |
+| Built | 2026-11-09T20:31:06Z, `--fast`, warm pristine cache |
+| Image gates | 118 checks passed (incl. palette, launcher directories, installer branding, Workshop inert) |
+
+Copied to `artifacts/iso/` for the Windows QEMU run. Next: boot it (UEFI/WHPX) with the theme scenario and,
+if it reaches the desktop, re-run the in-guest tracks (Q-12) and the installer check (Q-04).
+
 ### V1-Z Candidate boot, palette and launcher verification (2026-11-09)
 
 Artifact: `HSCL1-qa-2026-11-09-amd64.iso` (`118029de…`, source `c8a433a`), QEMU 9.x + WHPX, UEFI
