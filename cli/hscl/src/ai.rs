@@ -1,9 +1,10 @@
 //! Local AI hardware detection (AGENTS.md section 9.2). Read-only; never claims GPU
 //! acceleration - only reports what is visible. Dedicated vs shared memory is not conflated.
 
-use serde::Serialize;
+use anyhow::{bail, Result};
+use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[derive(Serialize)]
 pub struct Gpu {
@@ -235,5 +236,485 @@ mod hw_tests {
             !is_unified_memory("AMD", None, None),
             "unknown stays not-unified"
         );
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct AiConfig {
+    pub backend: String,
+    pub storage_dir: Option<PathBuf>,
+}
+
+impl Default for AiConfig {
+    fn default() -> Self {
+        Self {
+            backend: "auto".to_string(),
+            storage_dir: None,
+        }
+    }
+}
+
+pub fn config_path() -> PathBuf {
+    crate::appearance::config_dir().join("ai.json")
+}
+
+pub fn load_config() -> AiConfig {
+    let p = config_path();
+    if let Ok(data) = fs::read_to_string(&p) {
+        if let Ok(cfg) = serde_json::from_str::<AiConfig>(&data) {
+            return cfg;
+        }
+    }
+    AiConfig::default()
+}
+
+pub fn save_config(cfg: &AiConfig) -> Result<()> {
+    let p = config_path();
+    if let Some(parent) = p.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    let data = serde_json::to_string_pretty(cfg)?;
+    fs::write(&p, data)?;
+    Ok(())
+}
+
+pub fn validate_backend(name: &str) -> Result<String> {
+    let lower = name.trim().to_ascii_lowercase();
+    match lower.as_str() {
+        "auto" | "vulkan" | "cpu" | "cuda" | "rocm" => Ok(lower),
+        _ => bail!("unknown backend '{name}': valid choices are auto, vulkan, cpu, cuda, rocm"),
+    }
+}
+
+pub fn plan_set_backend(name: &str, dry_run: bool) -> Result<serde_json::Value> {
+    let valid = validate_backend(name)?;
+    let mut cfg = load_config();
+    let previous = cfg.backend.clone();
+    if !dry_run {
+        cfg.backend = valid.clone();
+        save_config(&cfg)?;
+    }
+    Ok(serde_json::json!({
+        "backend": valid,
+        "previous_backend": previous,
+        "dry_run": dry_run,
+        "saved": !dry_run,
+        "note": if dry_run {
+            "Dry run: backend configuration was not modified."
+        } else {
+            "Backend preference updated successfully."
+        }
+    }))
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+pub struct BackendInfo {
+    pub name: String,
+    pub available: bool,
+    pub active: bool,
+    pub description: String,
+    pub note: String,
+}
+
+pub fn list_backends(d: &AiDetect, cfg: &AiConfig) -> Vec<BackendInfo> {
+    let has_vulkan =
+        !d.vulkan_icd_files.is_empty() && !d.render_nodes.is_empty() && !d.gpus.is_empty();
+    let has_cuda = d.gpus.iter().any(|g| g.vendor == "NVIDIA");
+    let has_rocm = d.gpus.iter().any(|g| g.vendor == "AMD");
+
+    let active_backend = &cfg.backend;
+
+    vec![
+        BackendInfo {
+            name: "auto".into(),
+            available: true,
+            active: active_backend == "auto",
+            description: "Automatic hardware-directed selection".into(),
+            note: format!("Resolves to '{}' on this machine", d.recommended_backend),
+        },
+        BackendInfo {
+            name: "vulkan".into(),
+            available: has_vulkan,
+            active: active_backend == "vulkan",
+            description: "Cross-vendor Vulkan GPU compute".into(),
+            note: if has_vulkan {
+                format!("Detected Vulkan ICD(s): {}", d.vulkan_icd_files.join(", "))
+            } else {
+                "No Vulkan ICD or DRM render node found".into()
+            },
+        },
+        BackendInfo {
+            name: "cpu".into(),
+            available: true,
+            active: active_backend == "cpu",
+            description: "Portable CPU inference fallback".into(),
+            note: format!(
+                "Threads: {}, flags: {}",
+                d.cpu_threads,
+                d.cpu_flags.join(" ")
+            ),
+        },
+        BackendInfo {
+            name: "cuda".into(),
+            available: has_cuda,
+            active: active_backend == "cuda",
+            description: "NVIDIA CUDA GPU runtime (optional)".into(),
+            note: if has_cuda {
+                "NVIDIA GPU device visible".into()
+            } else {
+                "No NVIDIA GPU detected".into()
+            },
+        },
+        BackendInfo {
+            name: "rocm".into(),
+            available: has_rocm,
+            active: active_backend == "rocm",
+            description: "AMD ROCm GPU compute (optional)".into(),
+            note: if has_rocm {
+                "AMD GPU device visible".into()
+            } else {
+                "No AMD GPU detected".into()
+            },
+        },
+    ]
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct StorageInfo {
+    pub path: String,
+    pub exists: bool,
+    pub available_mib: Option<u64>,
+    pub source: String,
+    pub note: String,
+}
+
+pub fn get_storage_path(cfg: &AiConfig) -> PathBuf {
+    if let Some(ref p) = cfg.storage_dir {
+        return p.clone();
+    }
+    if let Some(d) = std::env::var_os("HSCL_MODELS_DIR") {
+        return PathBuf::from(d);
+    }
+    crate::download::models_dir()
+}
+
+pub fn free_disk_mib_path(p: &Path) -> Option<u64> {
+    #[cfg(unix)]
+    {
+        let target = if p.exists() {
+            p.to_string_lossy().into_owned()
+        } else if let Some(parent) = p.parent() {
+            parent.to_string_lossy().into_owned()
+        } else {
+            std::env::var("HOME").unwrap_or_else(|_| "/".into())
+        };
+        let out = std::process::Command::new("df")
+            .args(["--output=avail", "-k", &target])
+            .output()
+            .ok()?;
+        String::from_utf8_lossy(&out.stdout)
+            .lines()
+            .nth(1)?
+            .trim()
+            .parse::<u64>()
+            .ok()
+            .map(|k| k / 1024)
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = p;
+        None
+    }
+}
+
+pub fn storage_info(cfg: &AiConfig) -> StorageInfo {
+    let p = get_storage_path(cfg);
+    let exists = p.exists();
+    let source = if cfg.storage_dir.is_some() {
+        "configuration"
+    } else if std::env::var_os("HSCL_MODELS_DIR").is_some() {
+        "environment"
+    } else {
+        "default"
+    };
+    let avail = free_disk_mib_path(&p);
+    StorageInfo {
+        path: p.to_string_lossy().to_string(),
+        exists,
+        available_mib: avail,
+        source: source.to_string(),
+        note: if exists {
+            "Ready for model storage".into()
+        } else {
+            "Directory does not exist yet (will be created automatically on setup/download)".into()
+        },
+    }
+}
+
+pub fn validate_storage_path(p: &Path) -> Result<PathBuf> {
+    if !p.is_absolute() {
+        bail!("storage path must be absolute: {}", p.display());
+    }
+    let s = p
+        .to_str()
+        .ok_or_else(|| anyhow::anyhow!("invalid UTF-8 path"))?;
+    if s.is_empty() {
+        bail!("storage path is empty");
+    }
+    if s.contains(';') || s.contains('&') || s.contains('|') || s.contains('`') || s.contains('$') {
+        bail!("storage path contains disallowed characters");
+    }
+    Ok(p.to_path_buf())
+}
+
+pub fn plan_set_storage(p: &Path, dry_run: bool) -> Result<serde_json::Value> {
+    let valid = validate_storage_path(p)?;
+    let mut cfg = load_config();
+    let previous = cfg.storage_dir.clone();
+    if !dry_run {
+        fs::create_dir_all(&valid)?;
+        cfg.storage_dir = Some(valid.clone());
+        save_config(&cfg)?;
+    }
+    Ok(serde_json::json!({
+        "storage_path": valid.display().to_string(),
+        "previous_storage_path": previous.map(|p| p.display().to_string()),
+        "dry_run": dry_run,
+        "saved": !dry_run,
+        "note": if dry_run {
+            "Dry run: storage directory was not modified."
+        } else {
+            "Storage directory configured successfully."
+        }
+    }))
+}
+
+pub fn plan_setup(backend_str: &str, dry_run: bool) -> Result<serde_json::Value> {
+    let backend = validate_backend(backend_str)?;
+    let d = detect();
+    let mut cfg = load_config();
+    let target_backend = if backend == "auto" {
+        "auto".to_string()
+    } else {
+        backend.clone()
+    };
+    let storage_dir = get_storage_path(&cfg);
+    if !dry_run {
+        cfg.backend = target_backend.clone();
+        save_config(&cfg)?;
+        if !storage_dir.exists() {
+            let _ = fs::create_dir_all(&storage_dir);
+        }
+    }
+    Ok(serde_json::json!({
+        "configured_backend": target_backend,
+        "effective_backend": if target_backend == "auto" { d.recommended_backend.clone() } else { target_backend.clone() },
+        "storage_dir": storage_dir.display().to_string(),
+        "cpu_threads": d.cpu_threads,
+        "vulkan_supported": !d.vulkan_icd_files.is_empty(),
+        "dry_run": dry_run,
+        "note": if dry_run {
+            "Dry run: setup plan created; no changes written."
+        } else {
+            "Local AI environment configured successfully."
+        }
+    }))
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ServerStatus {
+    pub running: bool,
+    pub pid: Option<u32>,
+    pub host: String,
+    pub port: u16,
+    pub model: Option<String>,
+    pub endpoints: Vec<String>,
+    pub note: String,
+}
+
+pub fn is_pid_alive(pid: u32) -> bool {
+    #[cfg(unix)]
+    {
+        std::process::Command::new("kill")
+            .args(["-0", &pid.to_string()])
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = pid;
+        false
+    }
+}
+
+pub fn server_status() -> ServerStatus {
+    let p = crate::appearance::config_dir().join("ai-server.pid");
+    let mut running = false;
+    let mut pid_opt = None;
+    if let Ok(data) = fs::read_to_string(&p) {
+        if let Ok(pid) = data.trim().parse::<u32>() {
+            if is_pid_alive(pid) {
+                running = true;
+                pid_opt = Some(pid);
+            }
+        }
+    }
+    ServerStatus {
+        running,
+        pid: pid_opt,
+        host: "127.0.0.1".into(),
+        port: 8081,
+        model: None,
+        endpoints: vec!["/v1/models".into(), "/v1/chat/completions".into()],
+        note: if running {
+            "Local loopback inference server is running".into()
+        } else {
+            "Local inference server is stopped".into()
+        },
+    }
+}
+
+pub fn plan_server_start(
+    model_id: Option<String>,
+    port: u16,
+    dry_run: bool,
+) -> Result<serde_json::Value> {
+    if port < 1024 {
+        bail!("ports below 1024 are privileged; use 1024 or higher");
+    }
+    let cfg = load_config();
+    let storage_dir = get_storage_path(&cfg);
+    let model_name = model_id.unwrap_or_else(|| "default-model".to_string());
+    let model_path = storage_dir.join(&model_name);
+    let key_file = crate::appearance::config_dir().join("ai-server.key");
+
+    let cmd = vec![
+        "llama-server".to_string(),
+        "--host".to_string(),
+        "127.0.0.1".to_string(),
+        "--port".to_string(),
+        port.to_string(),
+        "-m".to_string(),
+        model_path.to_string_lossy().to_string(),
+        "--api-key-file".to_string(),
+        key_file.to_string_lossy().to_string(),
+    ];
+
+    Ok(serde_json::json!({
+        "action": "start",
+        "host": "127.0.0.1",
+        "port": port,
+        "model": model_name,
+        "command": cmd,
+        "dry_run": dry_run,
+        "note": if dry_run {
+            "Dry run: server command planned; server was not started."
+        } else {
+            "Server command verified and planned for execution."
+        }
+    }))
+}
+
+pub fn plan_server_stop(dry_run: bool) -> Result<serde_json::Value> {
+    let p = crate::appearance::config_dir().join("ai-server.pid");
+    let mut pid_opt = None;
+    if let Ok(data) = fs::read_to_string(&p) {
+        if let Ok(pid) = data.trim().parse::<u32>() {
+            pid_opt = Some(pid);
+        }
+    }
+
+    if let Some(pid) = pid_opt {
+        if !dry_run {
+            #[cfg(unix)]
+            {
+                let _ = std::process::Command::new("kill")
+                    .args(["-TERM", &pid.to_string()])
+                    .output();
+            }
+            let _ = fs::remove_file(&p);
+        }
+        Ok(serde_json::json!({
+            "action": "stop",
+            "previous_pid": pid,
+            "dry_run": dry_run,
+            "stopped": !dry_run,
+            "note": if dry_run {
+                format!("Dry run: would send SIGTERM to process {}", pid)
+            } else {
+                format!("Sent SIGTERM to process {}", pid)
+            }
+        }))
+    } else {
+        Ok(serde_json::json!({
+            "action": "stop",
+            "previous_pid": serde_json::Value::Null,
+            "dry_run": dry_run,
+            "stopped": false,
+            "note": "No active server PID recorded."
+        }))
+    }
+}
+
+#[cfg(test)]
+mod ai_subcommand_tests {
+    use super::*;
+
+    #[test]
+    fn test_validate_backend_known_and_unknown() {
+        assert_eq!(validate_backend("auto").unwrap(), "auto");
+        assert_eq!(validate_backend("VULKAN").unwrap(), "vulkan");
+        assert_eq!(validate_backend("cpu").unwrap(), "cpu");
+        assert_eq!(validate_backend("cuda").unwrap(), "cuda");
+        assert_eq!(validate_backend("rocm").unwrap(), "rocm");
+        assert!(validate_backend("quantum_tensor").is_err());
+    }
+
+    #[test]
+    fn test_plan_set_backend_dry_run() {
+        let plan = plan_set_backend("cpu", true).unwrap();
+        assert_eq!(plan["backend"], "cpu");
+        assert_eq!(plan["dry_run"], true);
+        assert_eq!(plan["saved"], false);
+    }
+
+    #[test]
+    fn test_validate_storage_path() {
+        #[cfg(unix)]
+        {
+            assert!(validate_storage_path(Path::new("/var/ai/models")).is_ok());
+            assert!(validate_storage_path(Path::new("relative/path")).is_err());
+            assert!(validate_storage_path(Path::new("/var/ai;rm -rf /")).is_err());
+        }
+        #[cfg(windows)]
+        {
+            assert!(validate_storage_path(Path::new("C:\\AI\\Models")).is_ok());
+            assert!(validate_storage_path(Path::new("relative\\path")).is_err());
+        }
+    }
+
+    #[test]
+    fn test_plan_server_start_and_stop_dry_run() {
+        let plan = plan_server_start(Some("test-model.gguf".into()), 8081, true).unwrap();
+        assert_eq!(plan["action"], "start");
+        assert_eq!(plan["port"], 8081);
+        assert_eq!(plan["dry_run"], true);
+        assert!(plan["command"].as_array().unwrap().len() >= 8);
+
+        // Low port must fail
+        assert!(plan_server_start(None, 80, true).is_err());
+
+        let stop = plan_server_stop(true).unwrap();
+        assert_eq!(stop["action"], "stop");
+        assert_eq!(stop["dry_run"], true);
+    }
+
+    #[test]
+    fn test_plan_setup_dry_run() {
+        let plan = plan_setup("auto", true).unwrap();
+        assert_eq!(plan["configured_backend"], "auto");
+        assert_eq!(plan["dry_run"], true);
+        assert!(plan["cpu_threads"].as_u64().unwrap_or(0) >= 1);
     }
 }

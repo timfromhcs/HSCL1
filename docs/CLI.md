@@ -189,6 +189,15 @@ System information, package updates, power actions, and services management (AGE
 | `hscl ai model verify` | Re-check size and sha256 of a downloaded model |
 | `hscl ai model remove` | Delete a downloaded model file (nothing else) |
 | `hscl ai model path` | Show the model storage directory |
+| `hscl ai model add` | Add model file to storage or download catalog model |
+| `hscl ai setup` | Configure local AI runtime and backend preferences (`--backend`, `--dry-run`) |
+| `hscl ai backend list` | Available AI inference backends and hardware compatibility |
+| `hscl ai backend set` | Set preferred inference backend (auto, vulkan, cpu, cuda, rocm) |
+| `hscl ai storage show` | Show model storage directory and filesystem free space |
+| `hscl ai storage set` | Set custom model storage directory path |
+| `hscl ai server start` | Start loopback inference server on 127.0.0.1 (`--port`, `--dry-run`) |
+| `hscl ai server stop` | Stop active local inference server (`--dry-run`) |
+| `hscl ai server status` | Check status, PID, and endpoints of local inference server |
 | `hscl ai fit` | Estimate RAM/VRAM for a GGUF file at a context size (reads only the metadata; an estimate, not a measurement) |
 | `hscl ai profile` | Hardware-adapted run plan for a model (backend, offload, context, KV cache, threads) |
 | `hscl memory status` | RAM, swap, zram devices and the AI budget |

@@ -12,6 +12,10 @@ $ hscl security status
 $ hscl security firewall status
 $ hscl security audit
 $ hscl ai detect
+$ hscl ai setup
+$ hscl ai backend list
+$ hscl ai storage show
+$ hscl ai server status
 $ hscl appearance theme list
 $ hscl appearance mode
 $ hscl language status

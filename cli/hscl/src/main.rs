@@ -919,9 +919,84 @@ enum DevVmCmd {
 }
 
 #[derive(Subcommand)]
+enum BackendCmd {
+    /// List available backends and hardware compatibility.
+    List,
+    /// Set the active inference backend.
+    Set {
+        /// Backend name: auto, vulkan, cpu, cuda, or rocm.
+        name: String,
+        /// Plan the backend change without saving.
+        #[arg(long)]
+        dry_run: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum StorageCmd {
+    /// Show current model storage path and filesystem details.
+    Show,
+    /// Set a custom model storage directory.
+    Set {
+        /// Path to model directory.
+        path: std::path::PathBuf,
+        /// Plan the storage change without saving.
+        #[arg(long)]
+        dry_run: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum ServerCmd {
+    /// Start the local loopback inference server.
+    Start {
+        /// Model ID or file name to serve.
+        model_id: Option<String>,
+        /// TCP port on 127.0.0.1 (default 8081).
+        #[arg(long, default_value_t = 8081)]
+        port: u16,
+        /// Plan the server startup without launching.
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Stop the running local inference server.
+    Stop {
+        /// Plan the stop action without killing the process.
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Inspect status of the local inference server.
+    Status,
+}
+
+#[derive(Subcommand)]
 enum AiCmd {
     /// Detect CPU/RAM/GPU/Vulkan for local inference.
     Detect,
+    /// Setup local AI inference environment and configured backend.
+    Setup {
+        /// Backend to configure: auto, vulkan, cpu, cuda, or rocm.
+        #[arg(long, default_value = "auto")]
+        backend: String,
+        /// Plan the setup without modifying configuration.
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Manage inference backends (list, set).
+    Backend {
+        #[command(subcommand)]
+        cmd: BackendCmd,
+    },
+    /// Manage model storage location and disk capacity.
+    Storage {
+        #[command(subcommand)]
+        cmd: StorageCmd,
+    },
+    /// Manage local inference server (start, stop, status).
+    Server {
+        #[command(subcommand)]
+        cmd: ServerCmd,
+    },
     /// Curated small open models (GGUF) that fit this machine.
     Model {
         #[command(subcommand)]
@@ -1031,6 +1106,16 @@ enum ModelCmd {
     },
     /// Show the model storage directory.
     Path,
+    /// Add a model to local storage (from path or catalog).
+    Add {
+        id: String,
+        /// Path to an existing .gguf model file.
+        #[arg(long, value_name = "PATH")]
+        path: Option<std::path::PathBuf>,
+        /// Target storage directory (default: configured model storage).
+        #[arg(long, value_name = "DIR")]
+        dir: Option<std::path::PathBuf>,
+    },
 }
 
 fn labs_root() -> std::path::PathBuf {
@@ -1308,28 +1393,43 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
         }
         Cmd::System { cmd } => return run_system(j, cmd),
         Cmd::Security { cmd } => return run_security(j, cmd),
-        Cmd::Ai {
-            cmd:
-                AiCmd::Serve {
-                    model,
-                    port,
-                    ctx,
-                    api_key_file,
-                    router_dir,
-                    models_max,
-                    metrics,
-                    load_mode,
-                    kv_in_ram,
-                    draft_model,
-                    draft_max,
-                },
-        } => {
-            let o = serve::ServeOpts {
-                model: model.unwrap_or_default(),
+        Cmd::Ai { cmd } => match cmd {
+            AiCmd::Detect => {
+                let d = ai::detect();
+                let v = serde_json::to_value(&d)?;
+                print_value(j, &v, || ai::render(&d));
+            }
+            AiCmd::Setup { backend, dry_run } => return run_ai_setup(j, backend, dry_run),
+            AiCmd::Backend { cmd } => return run_backend(j, cmd),
+            AiCmd::Storage { cmd } => return run_storage(j, cmd),
+            AiCmd::Server { cmd } => return run_server(j, cmd),
+            AiCmd::Model { cmd } => return run_model(j, cmd),
+            AiCmd::Profile {
+                model,
+                low_vram,
+                backend,
+            } => return run_profile(j, model, low_vram, backend),
+            AiCmd::Fit {
+                path,
+                ctx,
+                kv,
+                ram_mib,
+                vram_mib,
+            } => {
+                let g = gguf::parse_file(&path)?;
+                let sum = gguf::summarize(&g)?;
+                let ram = ram_mib.or_else(|| {
+                    Some(memory::status(&appearance::config_dir()).ai_budget_mib).filter(|m| *m > 0)
+                });
+                let f = gguf::fit(&sum, ctx, gguf::KvType::parse(&kv)?, ram, vram_mib);
+                let v = json!({"model": sum, "fit": f, "estimate": true});
+                print_value(j, &v, || gguf::render(&sum, &f));
+            }
+            AiCmd::Serve {
+                model,
                 port,
                 ctx,
-                api_key_file: api_key_file
-                    .unwrap_or_else(|| appearance::config_dir().join("ai-server.key")),
+                api_key_file,
                 router_dir,
                 models_max,
                 metrics,
@@ -1337,46 +1437,26 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
                 kv_in_ram,
                 draft_model,
                 draft_max,
-            };
-            let argv = serve::serve_argv(&o, &download::models_dir())?;
-            let v = json!({"argv": argv, "executed": false, "note": "Printed only. Create the key file yourself (one random line, mode 0600) before starting the server."});
-            print_value(j, &v, || serve::render(&argv));
-        }
-        Cmd::Ai {
-            cmd: AiCmd::Model { cmd },
-        } => return run_model(j, cmd),
-        Cmd::Ai {
-            cmd:
-                AiCmd::Profile {
-                    model,
-                    low_vram,
-                    backend,
-                },
-        } => return run_profile(j, model, low_vram, backend),
-        Cmd::Ai {
-            cmd:
-                AiCmd::Fit {
-                    path,
+            } => {
+                let o = serve::ServeOpts {
+                    model: model.unwrap_or_default(),
+                    port,
                     ctx,
-                    kv,
-                    ram_mib,
-                    vram_mib,
-                },
-        } => {
-            let g = gguf::parse_file(&path)?;
-            let sum = gguf::summarize(&g)?;
-            let ram = ram_mib.or_else(|| {
-                Some(memory::status(&appearance::config_dir()).ai_budget_mib).filter(|m| *m > 0)
-            });
-            let f = gguf::fit(&sum, ctx, gguf::KvType::parse(&kv)?, ram, vram_mib);
-            let v = json!({"model": sum, "fit": f, "estimate": true});
-            print_value(j, &v, || gguf::render(&sum, &f));
-        }
-        Cmd::Ai { cmd: AiCmd::Detect } => {
-            let d = ai::detect();
-            let v = serde_json::to_value(&d)?;
-            print_value(j, &v, || ai::render(&d));
-        }
+                    api_key_file: api_key_file
+                        .unwrap_or_else(|| appearance::config_dir().join("ai-server.key")),
+                    router_dir,
+                    models_max,
+                    metrics,
+                    load_mode,
+                    kv_in_ram,
+                    draft_model,
+                    draft_max,
+                };
+                let argv = serve::serve_argv(&o, &download::models_dir())?;
+                let v = json!({"argv": argv, "executed": false, "note": "Printed only. Create the key file yourself (one random line, mode 0600) before starting the server."});
+                print_value(j, &v, || serve::render(&argv));
+            }
+        },
         Cmd::Report { output } => {
             let r = report::build()?;
             match output {
@@ -1966,7 +2046,197 @@ fn run_model(j: bool, cmd: ModelCmd) -> anyhow::Result<u8> {
                 )
             });
         }
+        ModelCmd::Add { id, path, dir } => {
+            let target_dir = dir.unwrap_or_else(|| {
+                let cfg = ai::load_config();
+                ai::get_storage_path(&cfg)
+            });
+            if let Some(src) = path {
+                if !src.exists() {
+                    anyhow::bail!("model file does not exist: {}", src.display());
+                }
+                let ext = src.extension().and_then(|e| e.to_str()).unwrap_or("");
+                if ext != "gguf" {
+                    anyhow::bail!("model file must have a .gguf extension: {}", src.display());
+                }
+                std::fs::create_dir_all(&target_dir)?;
+                let file_name = src
+                    .file_name()
+                    .ok_or_else(|| anyhow::anyhow!("invalid file name"))?;
+                let dest = target_dir.join(file_name);
+                if dest.exists() && dest != src {
+                    anyhow::bail!("target file already exists: {}", dest.display());
+                }
+                if dest != src {
+                    std::fs::copy(&src, &dest)?;
+                }
+                let v = json!({
+                    "id": id,
+                    "source": src.display().to_string(),
+                    "target": dest.display().to_string(),
+                    "added": true,
+                });
+                print_value(j, &v, || format!("model added: {}", dest.display()));
+            } else {
+                let m = catalog::find(&models, &id)?;
+                if !m.warning.is_empty() {
+                    anyhow::bail!(
+                        "{}\nTo add/download this catalog model, run `hscl ai model download {} --accept-warning`.",
+                        m.warning,
+                        id
+                    );
+                }
+                let (p, mm) = download::download(
+                    m,
+                    &target_dir,
+                    false,
+                    home_free_disk(),
+                    &download::CurlFetcher,
+                )?;
+                let v = json!({
+                    "id": id,
+                    "model": p.display().to_string(),
+                    "mmproj": mm.map(|m| m.display().to_string()),
+                    "added": true,
+                });
+                print_value(j, &v, || {
+                    format!("model added and verified: {}", p.display())
+                });
+            }
+        }
     }
+    Ok(exit::OK)
+}
+
+fn run_backend(j: bool, cmd: BackendCmd) -> anyhow::Result<u8> {
+    let d = ai::detect();
+    let cfg = ai::load_config();
+    match cmd {
+        BackendCmd::List => {
+            let list = ai::list_backends(&d, &cfg);
+            let v = serde_json::to_value(&list)?;
+            print_value(j, &v, || {
+                let mut s = format!("Active backend: {}\n", cfg.backend);
+                for b in &list {
+                    let mark = if b.active {
+                        "*"
+                    } else if b.available {
+                        "+"
+                    } else {
+                        "-"
+                    };
+                    s += &format!("{mark} {:<8} {:<36} ({})\n", b.name, b.description, b.note);
+                }
+                s + "(* active, + available, - unavailable)"
+            });
+        }
+        BackendCmd::Set { name, dry_run } => {
+            let plan = ai::plan_set_backend(&name, dry_run)?;
+            print_value(j, &plan, || {
+                if dry_run {
+                    format!("dry-run: would set backend to '{name}'")
+                } else {
+                    format!("backend set to '{name}'")
+                }
+            });
+        }
+    }
+    Ok(exit::OK)
+}
+
+fn run_storage(j: bool, cmd: StorageCmd) -> anyhow::Result<u8> {
+    let cfg = ai::load_config();
+    match cmd {
+        StorageCmd::Show => {
+            let info = ai::storage_info(&cfg);
+            let v = serde_json::to_value(&info)?;
+            print_value(j, &v, || {
+                format!(
+                    "Model storage: {}\nSource:        {}\nExists:        {}\nFree space:    {} MiB\nNote:          {}",
+                    info.path,
+                    info.source,
+                    if info.exists { "yes" } else { "no" },
+                    info.available_mib.map(|m| m.to_string()).unwrap_or_else(|| "unknown".into()),
+                    info.note
+                )
+            });
+        }
+        StorageCmd::Set { path, dry_run } => {
+            let plan = ai::plan_set_storage(&path, dry_run)?;
+            print_value(j, &plan, || {
+                if dry_run {
+                    format!("dry-run: would set storage path to '{}'", path.display())
+                } else {
+                    format!("storage path set to '{}'", path.display())
+                }
+            });
+        }
+    }
+    Ok(exit::OK)
+}
+
+fn run_server(j: bool, cmd: ServerCmd) -> anyhow::Result<u8> {
+    match cmd {
+        ServerCmd::Status => {
+            let s = ai::server_status();
+            let v = serde_json::to_value(&s)?;
+            print_value(j, &v, || {
+                format!(
+                    "Inference server: {}\nHost:             {}:{}\nPID:              {}\nEndpoints:        {}\nNote:             {}",
+                    if s.running { "running" } else { "stopped" },
+                    s.host,
+                    s.port,
+                    s.pid.map(|p| p.to_string()).unwrap_or_else(|| "none".into()),
+                    s.endpoints.join(", "),
+                    s.note
+                )
+            });
+        }
+        ServerCmd::Start {
+            model_id,
+            port,
+            dry_run,
+        } => {
+            let plan = ai::plan_server_start(model_id, port, dry_run)?;
+            print_value(j, &plan, || {
+                if dry_run {
+                    format!(
+                        "dry-run: would start server on 127.0.0.1:{} with model '{}'",
+                        port,
+                        plan["model"].as_str().unwrap_or("")
+                    )
+                } else {
+                    format!("server planned for 127.0.0.1:{} (loopback only)", port)
+                }
+            });
+        }
+        ServerCmd::Stop { dry_run } => {
+            let res = ai::plan_server_stop(dry_run)?;
+            print_value(j, &res, || {
+                res["note"].as_str().unwrap_or("stopped").to_string()
+            });
+        }
+    }
+    Ok(exit::OK)
+}
+
+fn run_ai_setup(j: bool, backend: String, dry_run: bool) -> anyhow::Result<u8> {
+    let res = ai::plan_setup(&backend, dry_run)?;
+    print_value(j, &res, || {
+        if dry_run {
+            format!(
+                "dry-run: setup plan created (backend: {}, storage: {})",
+                res["configured_backend"].as_str().unwrap_or(""),
+                res["storage_dir"].as_str().unwrap_or("")
+            )
+        } else {
+            format!(
+                "local AI setup complete (backend: {}, storage: {})",
+                res["configured_backend"].as_str().unwrap_or(""),
+                res["storage_dir"].as_str().unwrap_or("")
+            )
+        }
+    });
     Ok(exit::OK)
 }
 

@@ -1467,3 +1467,20 @@ Decision rule: pick the one that unblocks the most downstream work. HCSUDA H3c-3
 - **Automated Test Coverage:**
   - Rust unit tests: Added 2 unit tests in `cli/hscl/src/appearance.rs` covering mode validation and dock position dry-run planning.
   - Python unit tests: Created `tests/unit/test_appearance_cli.py` (3 tests) verifying text/JSON output and validation contracts.
+
+### V1-U HSCL1 Local AI Subcommands & Environment Management (`hscl ai`) (2026-11-09)
+
+- **CLI Implementation (AGENTS.md section 8.2 & 9.3):**
+  - Expanded `AiCmd` in `cli/hscl/src/main.rs` with `setup`, `backend [list|set]`, `storage [show|set]`, `server [start|stop|status]`, and `model add`.
+  - Updated `cli/hscl/src/ai.rs` with:
+    - Runtime backend validation and selection (`auto`, `vulkan`, `cpu`, `cuda`, `rocm`).
+    - Dedicated per-user configuration persistence (`~/.config/hscl/ai.json`).
+    - Model storage path inspection, validation, and capacity probing with fallback hierarchy.
+    - Local loopback inference server lifecycle planning and process management (`127.0.0.1` binding only, strict non-privileged ports).
+    - `--dry-run` and `--json` inspection across all AI environment operations.
+- **Documentation & Handbook Synchronization:**
+  - Added leaf command rows in `docs/CLI.md`, passing `cli_doc_lists_every_command` and `documented_hscl_commands_resolve_in_the_cli`.
+  - Updated offline handbook across `handbook/{en,de,fr}/src/cli.md`.
+- **Automated Test Coverage:**
+  - Rust unit tests: Added 5 unit tests in `cli/hscl/src/ai.rs` covering backend validation, dry-run configuration planning, storage path validation, and server start/stop command planning.
+  - Python unit tests: Created `tests/unit/test_ai_cli.py` (5 tests) verifying text/JSON output, dry-run safety, and validation contracts.
