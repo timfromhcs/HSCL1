@@ -28,6 +28,7 @@ mod report;
 mod security;
 mod serve;
 mod sysinfo;
+mod system;
 mod toolcall;
 mod updates;
 mod wallpaper;
@@ -657,11 +658,37 @@ enum TailsCmd {
 enum SystemCmd {
     /// OS, kernel, CPU, memory (identifiers redacted).
     Info,
-    /// Pending APT updates (read-only simulation; installs nothing).
+    /// Pending APT updates (simulation check or upgrade plan).
     Updates {
-        /// Required: only checking is implemented.
-        #[arg(long, required = true)]
+        /// Read-only simulation of upgradable packages.
+        #[arg(long)]
         check: bool,
+        /// Plan or install available system updates.
+        #[arg(long)]
+        install: bool,
+        /// Preview upgrade command without modifying disk.
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Request system reboot (via logind/systemctl).
+    Reboot {
+        /// Preview reboot command without executing.
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Request system shutdown/poweroff (via logind/systemctl).
+    Shutdown {
+        /// Preview shutdown command without executing.
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Lock the active desktop session.
+    Lock,
+    /// List system services and their enablement status.
+    Services {
+        /// Show only enabled services.
+        #[arg(long)]
+        enabled: bool,
     },
 }
 
@@ -1235,20 +1262,7 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
                 )
             });
         }
-        Cmd::System {
-            cmd: SystemCmd::Info,
-        } => {
-            let s = sysinfo::collect();
-            let v = serde_json::to_value(&s)?;
-            print_value(j, &v, || sysinfo::render(&s));
-        }
-        Cmd::System {
-            cmd: SystemCmd::Updates { .. },
-        } => {
-            let u = updates::check()?;
-            let v = serde_json::to_value(&u)?;
-            print_value(j, &v, || updates::render(&u));
-        }
+        Cmd::System { cmd } => return run_system(j, cmd),
         Cmd::Security { cmd } => return run_security(j, cmd),
         Cmd::Ai {
             cmd:
@@ -2657,6 +2671,89 @@ fn run_top_recovery(j: bool, cmd: TopRecoveryCmd) -> anyhow::Result<u8> {
                     ));
                 }
                 s
+            });
+        }
+    }
+    Ok(exit::OK)
+}
+
+fn run_system(j: bool, cmd: SystemCmd) -> anyhow::Result<u8> {
+    match cmd {
+        SystemCmd::Info => {
+            let s = sysinfo::collect();
+            let v = serde_json::to_value(&s)?;
+            print_value(j, &v, || sysinfo::render(&s));
+        }
+        SystemCmd::Updates {
+            check,
+            install,
+            dry_run,
+        } => {
+            if install {
+                let cmd = vec![
+                    "sudo".to_string(),
+                    "apt-get".to_string(),
+                    "dist-upgrade".to_string(),
+                    "-y".to_string(),
+                ];
+                let msg = if dry_run {
+                    format!("Dry run: planned upgrade via: {}", cmd.join(" "))
+                } else {
+                    format!("To apply pending updates, run:\n  {}", cmd.join(" "))
+                };
+                let plan = serde_json::json!({
+                    "action": "upgrade",
+                    "command": cmd,
+                    "dry_run": dry_run,
+                    "message": msg
+                });
+                print_value(j, &plan, || msg);
+            } else {
+                let _ = check;
+                let u = updates::check()?;
+                let v = serde_json::to_value(&u)?;
+                print_value(j, &v, || updates::render(&u));
+            }
+        }
+        SystemCmd::Reboot { dry_run } => {
+            let plan = system::plan_power("reboot", dry_run)?;
+            let v = serde_json::to_value(&plan)?;
+            print_value(j, &v, || plan.message.clone());
+            if !dry_run {
+                let _ = system::execute_power(&plan);
+            }
+        }
+        SystemCmd::Shutdown { dry_run } => {
+            let plan = system::plan_power("shutdown", dry_run)?;
+            let v = serde_json::to_value(&plan)?;
+            print_value(j, &v, || plan.message.clone());
+            if !dry_run {
+                let _ = system::execute_power(&plan);
+            }
+        }
+        SystemCmd::Lock => {
+            let plan = system::plan_power("lock", false)?;
+            let v = serde_json::to_value(&plan)?;
+            print_value(j, &v, || plan.message.clone());
+            let _ = system::execute_power(&plan);
+        }
+        SystemCmd::Services { enabled } => {
+            let list = system::list_services(enabled);
+            let v = serde_json::to_value(&list)?;
+            print_value(j, &v, || {
+                if list.is_empty() {
+                    "No systemd services found (or non-systemd environment).".to_string()
+                } else {
+                    let mut s = format!("Found {} system service(s):\n", list.len());
+                    for svc in &list {
+                        let en_str = if svc.enabled { "enabled" } else { "disabled" };
+                        s.push_str(&format!(
+                            "  - {:<35} [{:<8}] ({})\n",
+                            svc.name, svc.state, en_str
+                        ));
+                    }
+                    s
+                }
             });
         }
     }

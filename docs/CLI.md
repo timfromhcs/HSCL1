@@ -128,6 +128,17 @@ Developer workstation environment, setup bundles, Git hygiene, containers, and v
 `hscl dev container status` verifies rootless Podman readiness, subuid/subgid mapping, and cgroups v2 resource delegation.
 `hscl dev vm status` checks KVM hardware acceleration, device permissions, and libvirt hypervisor daemon status.
 
+## `hscl system` (IMPLEMENTED, unit-tested)
+
+System information, package updates, power actions, and services management (AGENTS.md section 8.2 & rule 0.3.7).
+
+`hscl system info` reports redacted OS, kernel, CPU model, threads, and memory metrics.
+`hscl system updates [--check|--install] [--dry-run]` provides read-only simulation check or safe upgrade plan.
+`hscl system reboot [--dry-run]` requests system restart via systemd/logind APIs.
+`hscl system shutdown [--dry-run]` requests clean system poweroff via systemd/logind APIs.
+`hscl system lock` locks the active desktop session safely.
+`hscl system services [--enabled]` lists system services and their enablement states.
+
 
 ## More commands (rows taken from `--help`; the drift test `cli_doc_lists_every_command` keeps this page complete)
 
@@ -161,7 +172,12 @@ Developer workstation environment, setup bundles, Git hygiene, containers, and v
 | `hscl language status` | Show current language configuration and active environment |
 | `hscl language list` | List supported languages (en, de, fr) |
 | `hscl language set` | Set the user desktop language (en, de, fr); `--dry-run` previews without writing |
-| `hscl system updates` | Pending APT updates (read-only simulation; installs nothing) |
+| `hscl system info` | OS, kernel, CPU, memory (identifiers redacted) |
+| `hscl system updates` | Pending APT updates (simulation check or upgrade plan) |
+| `hscl system reboot` | Request system reboot (via logind/systemctl) |
+| `hscl system shutdown` | Request system shutdown/poweroff (via logind/systemctl) |
+| `hscl system lock` | Lock the active desktop session |
+| `hscl system services` | List system services and their enablement status |
 | `hscl ai model list` | All catalog models with fit information for this machine |
 | `hscl ai model recommend` | Models that fit this machine, best first |
 | `hscl ai model info` | Details, licence and warning of one model |
