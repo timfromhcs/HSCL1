@@ -234,22 +234,55 @@ pub fn save_config(cfg_dir: &Path, cfg: &AppearanceConfig) -> Result<()> {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ModePlan {
     pub mode: String,
+    pub scheme: Option<String>,
     pub dry_run: bool,
     pub message: String,
 }
 
-pub fn set_mode(mode: &str, dry_run: bool, cfg_dir: &Path) -> Result<ModePlan> {
+/// The colour scheme that a mode request applies. `auto` deliberately maps to `None`: HSCL1 does not
+/// ship a day/night timer yet, so the scheme is left alone and only the preference is recorded.
+pub fn scheme_for_mode(mode: &str) -> Option<&'static str> {
+    match mode {
+        "dark" => Some("HCSMidnight"),
+        "light" => Some("HCSLight"),
+        _ => None,
+    }
+}
+
+pub fn set_mode(
+    mode: &str,
+    dry_run: bool,
+    cfg_dir: &Path,
+    runner: &mut dyn Runner,
+) -> Result<ModePlan> {
     validate_mode(mode)?;
+    let scheme = scheme_for_mode(mode);
     let message = if dry_run {
-        format!("Dry run: would set appearance mode to '{mode}'")
+        match scheme {
+            Some(s) => format!(
+                "Dry run: would set appearance mode to '{mode}' and apply colour scheme '{s}'"
+            ),
+            None => {
+                format!("Dry run: would set appearance mode to '{mode}' (no colour scheme change)")
+            }
+        }
     } else {
         let mut cfg = load_config(cfg_dir);
         cfg.mode = mode.to_string();
         save_config(cfg_dir, &cfg)?;
-        format!("Appearance mode set to '{mode}'")
+        // Until 2026-11-09 this only wrote the JSON and reported success: the desktop never changed.
+        // AGENTS.md 0.3.1 forbids a command that only prints success, so the scheme is really applied
+        // and a failing helper is a failing command.
+        if let Some(s) = scheme {
+            runner.run(&["plasma-apply-colorscheme".into(), s.into()])?;
+            format!("Appearance mode set to '{mode}' (colour scheme {s})")
+        } else {
+            format!("Appearance mode set to '{mode}' (colour scheme unchanged)")
+        }
     };
     Ok(ModePlan {
         mode: mode.to_string(),
+        scheme: scheme.map(str::to_owned),
         dry_run,
         message,
     })
@@ -258,15 +291,44 @@ pub fn set_mode(mode: &str, dry_run: bool, cfg_dir: &Path) -> Result<ModePlan> {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct DockPlan {
     pub position: String,
+    pub script: String,
     pub dry_run: bool,
     pub message: String,
 }
 
-pub fn set_dock_position(pos: &str, dry_run: bool, cfg_dir: &Path) -> Result<DockPlan> {
+/// Plasma scripting snippet that moves the first panel which is not the HSCL1 top bar. Used by
+/// `hscl appearance dock position`; it is a pure function so the generated script can be tested
+/// without a desktop session.
+pub fn dock_script(pos: &str) -> String {
+    let loc = match pos {
+        "left" => "left",
+        "right" => "right",
+        _ => "bottom",
+    };
+    format!(
+        "var ps = panels();\nfor (var i = 0; i < ps.length; i++) {{\n  if (ps[i].location !== 'top') {{ ps[i].location = '{loc}'; break; }}\n}}\n"
+    )
+}
+
+pub fn set_dock_position(
+    pos: &str,
+    dry_run: bool,
+    cfg_dir: &Path,
+    runner: &mut dyn Runner,
+) -> Result<DockPlan> {
     validate_dock_position(pos)?;
     let message = if dry_run {
-        format!("Dry run: would set dock position to '{pos}'")
+        format!("Dry run: would move the dock to '{pos}' and record the preference")
     } else {
+        // Until 2026-11-09 this only wrote the JSON: nothing consumed the value, so the command
+        // reported success while the dock stayed where it was. It now scripts the running panel.
+        runner.run(&[
+            "qdbus6".into(),
+            "org.kde.plasmashell".into(),
+            "/PlasmaShell".into(),
+            "org.kde.PlasmaShell.evaluateScript".into(),
+            dock_script(pos),
+        ])?;
         let mut cfg = load_config(cfg_dir);
         cfg.dock_position = pos.to_string();
         save_config(cfg_dir, &cfg)?;
@@ -274,6 +336,7 @@ pub fn set_dock_position(pos: &str, dry_run: bool, cfg_dir: &Path) -> Result<Doc
     };
     Ok(DockPlan {
         position: pos.to_string(),
+        script: dock_script(pos),
         dry_run,
         message,
     })
@@ -389,13 +452,40 @@ mod tests {
         assert!(validate_mode("neon").is_err());
 
         let dir = tempfile::tempdir().unwrap();
-        let plan_dry = set_mode("light", true, dir.path()).unwrap();
+        let mut dry_runner = Rec::default();
+        let plan_dry = set_mode("light", true, dir.path(), &mut dry_runner).unwrap();
         assert!(plan_dry.dry_run);
+        assert_eq!(plan_dry.scheme.as_deref(), Some("HCSLight"));
+        assert!(
+            dry_runner.0.is_empty(),
+            "a dry run must not touch the desktop"
+        );
         assert_eq!(load_config(dir.path()).mode, "dark");
 
-        let plan_real = set_mode("light", false, dir.path()).unwrap();
+        let mut runner = Rec::default();
+        let plan_real = set_mode("light", false, dir.path(), &mut runner).unwrap();
         assert!(!plan_real.dry_run);
         assert_eq!(load_config(dir.path()).mode, "light");
+        assert_eq!(
+            runner.0,
+            vec![vec![
+                "plasma-apply-colorscheme".to_string(),
+                "HCSLight".to_string()
+            ]],
+            "the mode must really apply the colour scheme, not only write JSON"
+        );
+        assert!(plan_real.message.contains("HCSLight"));
+    }
+
+    #[test]
+    fn auto_records_the_preference_without_changing_the_scheme() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut runner = Rec::default();
+        let plan = set_mode("auto", false, dir.path(), &mut runner).unwrap();
+        assert_eq!(plan.scheme, None);
+        assert!(runner.0.is_empty(), "auto must not pick a scheme blindly");
+        assert_eq!(load_config(dir.path()).mode, "auto");
+        assert!(plan.message.contains("unchanged"));
     }
 
     #[test]
@@ -406,12 +496,41 @@ mod tests {
         assert!(validate_dock_position("top").is_err());
 
         let dir = tempfile::tempdir().unwrap();
-        let plan_dry = set_dock_position("left", true, dir.path()).unwrap();
+        let mut dry_runner = Rec::default();
+        let plan_dry = set_dock_position("left", true, dir.path(), &mut dry_runner).unwrap();
         assert!(plan_dry.dry_run);
+        assert!(
+            dry_runner.0.is_empty(),
+            "a dry run must not script the panel"
+        );
         assert_eq!(load_config(dir.path()).dock_position, "bottom");
 
-        let plan_real = set_dock_position("left", false, dir.path()).unwrap();
+        let mut runner = Rec::default();
+        let plan_real = set_dock_position("left", false, dir.path(), &mut runner).unwrap();
         assert!(!plan_real.dry_run);
         assert_eq!(load_config(dir.path()).dock_position, "left");
+        assert_eq!(runner.0.len(), 1, "the panel must really be moved");
+        let argv = &runner.0[0];
+        assert_eq!(argv[0], "qdbus6");
+        assert_eq!(argv[3], "org.kde.PlasmaShell.evaluateScript");
+        assert!(argv[4].contains("location = 'left'"), "{}", argv[4]);
+        assert!(
+            argv[4].contains("!== 'top'"),
+            "the top bar must never be moved"
+        );
+    }
+
+    #[test]
+    fn dock_script_targets_the_non_top_panel_only() {
+        for (pos, expected) in [
+            ("bottom", "'bottom'"),
+            ("left", "'left'"),
+            ("right", "'right'"),
+        ] {
+            let s = dock_script(pos);
+            assert!(s.contains(expected), "{}", s);
+            assert!(s.contains("ps[i].location !== 'top'"));
+            assert!(s.contains("break"), "only one panel should move");
+        }
     }
 }

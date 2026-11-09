@@ -21,8 +21,11 @@ booted-artifact evidence missing).
 | Q-07 | Theme fix from fix #5 needs booted-artifact proof | VM screenshot of Dolphin/Konsole dark | VM-PENDING |
 | Q-08 | Palette guard in `hscl doctor` and the Control Center | Rust tests + `test_theme_defaults.py` | DONE (2026-11-09: `doctor` gained a `theme` check — pass on `HCS*`, warn on any other scheme, skip when no kdeglobals is readable; `SecurityPage` labels it EN/DE/FR) |
 | Q-09 | `forge check` false red on a transient WSL launcher failure | retry-once-on-empty-stderr + 2 tests | DONE (2026-11-09, `test_bash_gate_retries_a_launcher_failure_with_empty_stderr`) |
-| Q-19 | Reduce `qmllint` `[unqualified]` warnings in the Control Center (23 of 152) | `qml-gate.sh` warning budget lowered | OPEN — 23 come from `Main.qml`'s C++ context property `cli` and from Repeater delegates reading outer ids; the rest are PlasmaCore imports in the wallpaper plugin |
+| Q-21 | `hscl appearance mode` / `dock position` were no-ops that reported success | Rust tests + docs | DONE (2026-11-09: mode now applies `plasma-apply-colorscheme` (dark→HCSMidnight, light→HCSLight, auto records only), dock position scripts the non-top Plasma panel through `qdbus6`; both fail loudly instead of pretending). Live-desktop result `VM-PENDING`. |
+| Q-22 | Docs link gate | `tests/unit/test_doc_links.py` | DONE (2026-11-09, 148 Markdown files, 0 broken links) |
+| Q-23 | Website build accepted unknown flags as an output path (`--help` created a directory) | `tests/unit/test_website_build.py` | DONE (2026-11-09, argparse + EN/DE/FR page check) |
 | Q-20 | Prevent QML lint regression | `QML_WARN_BUDGET` ratchet in `scripts/dev/qml-gate.sh` | DONE (2026-11-09, budget 152, verified to fail at 10) |
+| Q-19 | Reduce `qmllint` `[unqualified]` warnings in the Control Center (23 of 152) | `qml-gate.sh` warning budget lowered | OPEN — 23 come from `Main.qml`'s C++ context property `cli` and from Repeater delegates reading outer ids; the rest are PlasmaCore imports in the wallpaper plugin |
 
 ## Next (after Now)
 

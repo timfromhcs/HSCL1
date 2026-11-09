@@ -1597,6 +1597,17 @@ Source `d817093`, Windows 11 host + Ubuntu 26.04 WSL. No VM boot in this session
   ("widget apps will not match the HCS palette") and skips when no file is readable. Two Rust tests cover
   the section-scoped parser and the three verdicts; the Control Center maps the `theme` id to a translated
   label. Rust total is now 247 tests.
+- **Fake successes removed (Q-21).** `hscl appearance mode` wrote `~/.config/hscl/appearance.json` and
+  printed success without changing anything, and `hscl appearance dock position` stored a value that no
+  component read. `mode` now runs `plasma-apply-colorscheme` (dark→`HCSMidnight`, light→`HCSLight`,
+  `auto` deliberately changes nothing and says so) and fails when the helper fails; `dock position`
+  scripts the first non-top Plasma panel via
+  `qdbus6 … org.kde.PlasmaShell.evaluateScript`, so the top bar can never be moved by accident. Dry runs
+  execute nothing and both paths are covered by Rust tests (249 total). Live result `VM-PENDING`.
+- **Tooling fixes (Q-22/Q-23).** `python scripts/build_website.py --help` used to treat `--help` as the
+  output directory and built 12 pages into a directory of that literal name; it now uses argparse and is
+  covered by `tests/unit/test_website_build.py` (including an EN/DE/FR page check).
+  `tests/unit/test_doc_links.py` checks every relative Markdown link across 148 files.
 - **Not verified here:** anything requiring a booted artifact (theme result, launcher merge behaviour,
   installer clipping, screenshots). Those rows stay `VM-PENDING` in `docs/AUTONOMOUS_QUEUE.md`.
 

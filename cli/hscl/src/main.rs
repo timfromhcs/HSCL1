@@ -2883,7 +2883,8 @@ fn run_appearance(j: bool, cmd: AppearanceCmd) -> anyhow::Result<u8> {
         AppearanceCmd::Mode { mode, dry_run } => {
             let cfg_dir = appearance::config_dir();
             if let Some(m) = mode {
-                let plan = appearance::set_mode(&m, dry_run, &cfg_dir)?;
+                let mut runner = appearance::SystemRunner;
+                let plan = appearance::set_mode(&m, dry_run, &cfg_dir, &mut runner)?;
                 let v = serde_json::to_value(&plan)?;
                 print_value(j, &v, || plan.message.clone());
             } else {
@@ -2897,7 +2898,8 @@ fn run_appearance(j: bool, cmd: AppearanceCmd) -> anyhow::Result<u8> {
             cmd: DockCmd::Position { position, dry_run },
         } => {
             let cfg_dir = appearance::config_dir();
-            let plan = appearance::set_dock_position(&position, dry_run, &cfg_dir)?;
+            let mut runner = appearance::SystemRunner;
+            let plan = appearance::set_dock_position(&position, dry_run, &cfg_dir, &mut runner)?;
             let v = serde_json::to_value(&plan)?;
             print_value(j, &v, || plan.message.clone());
             Ok(exit::OK)
