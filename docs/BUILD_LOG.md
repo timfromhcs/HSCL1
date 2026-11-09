@@ -1571,6 +1571,12 @@ Source `d817093`, Windows 11 host + Ubuntu 26.04 WSL. No VM boot in this session
   the 152 remaining `[unqualified]` warnings are tracked as queue work, not silently accepted.
   Result: `tests/qml_plugin` 14/14, Control Center 7/7 — the new `Architecture` label assertion in
   `tst_pages.qml` therefore executes, not just reads.
+- **Installer window (Q-04).** `branding.desc` used `windowExpanding: fullscreen`, so the 36 px Plasma top
+  bar was painted over the branding sidebar and clipped the logo. Calamares supports `normal`, `noexpand`
+  and `fullscreen` only (no `maximize`; checked against the upstream `branding.desc` documentation), so the
+  installer now runs as a centred `1100x640` window that stays clear of the bar and the dock on the
+  smallest supported 1366×768 screen. Guard: `tests/unit/test_installer_branding.py` (window policy, size
+  bounds, HCS palette values, version string equals `VERSION`). Visual result remains `VM-PENDING`.
 - **Not verified here:** anything requiring a booted artifact (theme result, launcher merge behaviour,
   installer clipping, screenshots). Those rows stay `VM-PENDING` in `docs/AUTONOMOUS_QUEUE.md`.
 

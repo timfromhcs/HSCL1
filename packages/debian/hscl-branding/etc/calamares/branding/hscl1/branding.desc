@@ -1,7 +1,13 @@
 ---
 componentName: hscl1
 
-windowExpanding:    fullscreen
+windowExpanding:    normal
+windowSize:         1100px,640px
+windowPlacement:    center
+# Fullscreen put the 36 px top bar on top of the branding sidebar and clipped the logo
+# (visual QA 2026-11-09, docs/img/showcase/11_installer_welcome.png). 1100x640 stays clear of the
+# dock on the smallest supported screen (1366x768) and keeps the bar visible.
+welcomeExpandingLogo: true
 
 strings:
     productName:         HSCL1
