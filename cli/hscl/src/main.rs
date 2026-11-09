@@ -21,6 +21,7 @@ mod mcp;
 mod memory;
 mod privacy;
 mod profile;
+mod recovery;
 mod redact;
 mod report;
 mod security;
@@ -185,6 +186,11 @@ enum Cmd {
     Logs {
         #[command(subcommand)]
         cmd: LogsCmd,
+    },
+    /// System recovery, backup posture, snapshots, and configuration reset (AGENTS.md section 8.2 & 8.4).
+    Recovery {
+        #[command(subcommand)]
+        cmd: TopRecoveryCmd,
     },
 }
 
@@ -743,6 +749,48 @@ enum LogsCmd {
         /// Write JSON log bundle to this new file (never overwrites).
         #[arg(long, value_name = "PATH")]
         output: Option<std::path::PathBuf>,
+    },
+}
+
+#[derive(Subcommand)]
+enum TopRecoveryCmd {
+    /// Inspect system recovery posture and backup provider readiness.
+    Status,
+    /// Recovery snapshot management (list, create).
+    Snapshots {
+        #[command(subcommand)]
+        cmd: SnapshotsCmd,
+    },
+    /// Non-destructive configuration reset of HSCL1 desktop components with safety backup.
+    Config {
+        #[command(subcommand)]
+        cmd: ConfigCmd,
+    },
+}
+
+#[derive(Subcommand)]
+enum SnapshotsCmd {
+    /// List all detected recovery snapshots.
+    List,
+    /// Create a timestamped recovery point with system configuration manifest.
+    Create {
+        /// Descriptive label for the snapshot (alphanumeric, underscores, hyphens, max 32 chars).
+        label: String,
+        /// Preview creation without writing files.
+        #[arg(long)]
+        dry_run: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum ConfigCmd {
+    /// Reset configuration component to schema-validated default (shortcuts, theme, all).
+    Reset {
+        /// Component to reset (shortcuts, theme, all). Default: shortcuts.
+        component: Option<String>,
+        /// Preview changes without modifying files.
+        #[arg(long)]
+        dry_run: bool,
     },
 }
 
@@ -1376,6 +1424,7 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
         Cmd::Language { cmd } => return run_language(j, cmd),
         Cmd::Privacy { cmd } => return run_privacy(j, cmd),
         Cmd::Logs { cmd } => return run_logs(j, cmd),
+        Cmd::Recovery { cmd } => return run_top_recovery(j, cmd),
         Cmd::Doctor { full } => {
             let report = doctor::run(full);
             let v = serde_json::to_value(&report)?;
@@ -2471,6 +2520,90 @@ fn run_logs(j: bool, cmd: LogsCmd) -> anyhow::Result<u8> {
                     s
                 });
             }
+        }
+    }
+    Ok(exit::OK)
+}
+
+fn run_top_recovery(j: bool, cmd: TopRecoveryCmd) -> anyhow::Result<u8> {
+    match cmd {
+        TopRecoveryCmd::Status => {
+            let st = recovery::get_recovery_status(None);
+            let v = serde_json::to_value(&st)?;
+            print_value(j, &v, || {
+                let dir_str = if st.backup_dir_exists {
+                    "present"
+                } else {
+                    "not created"
+                };
+                let ts_str = if st.timeshift_detected {
+                    "detected"
+                } else {
+                    "none"
+                };
+                let snap_str = if st.snapper_detected {
+                    "detected"
+                } else {
+                    "none"
+                };
+                format!(
+                    "readiness:            {}\n\
+                     backup directory:     {} ({dir_str})\n\
+                     snapshots available:  {}\n\
+                     timeshift provider:   {ts_str}\n\
+                     snapper provider:     {snap_str}\n\
+                     notice:               {}",
+                    st.readiness, st.backup_dir, st.snapshots_found, st.notice
+                )
+            });
+        }
+        TopRecoveryCmd::Snapshots {
+            cmd: SnapshotsCmd::List,
+        } => {
+            let list = recovery::list_snapshots(None);
+            let v = serde_json::to_value(&list)?;
+            print_value(j, &v, || {
+                if list.is_empty() {
+                    "No recovery snapshots found across active providers.".to_string()
+                } else {
+                    let mut s = format!("Found {} recovery snapshot(s):\n", list.len());
+                    for snap in &list {
+                        s.push_str(&format!(
+                            "  - [{}] {} (label: '{}', path: {})\n",
+                            snap.provider, snap.id, snap.label, snap.path
+                        ));
+                    }
+                    s
+                }
+            });
+        }
+        TopRecoveryCmd::Snapshots {
+            cmd: SnapshotsCmd::Create { label, dry_run },
+        } => {
+            let plan = recovery::create_snapshot(&label, dry_run, None)?;
+            let v = serde_json::to_value(&plan)?;
+            print_value(j, &v, || plan.message.clone());
+        }
+        TopRecoveryCmd::Config {
+            cmd: ConfigCmd::Reset { component, dry_run },
+        } => {
+            let home = std::env::var("HOME")
+                .map(std::path::PathBuf::from)
+                .unwrap_or_else(|_| std::path::PathBuf::from("/home/hscl1"));
+            let sys = std::path::Path::new("/");
+            let plan = recovery::plan_config_reset(component.as_deref(), dry_run, &home, sys)?;
+            let v = serde_json::to_value(&plan)?;
+            print_value(j, &v, || {
+                let mut s = format!("{}\nComponent: {}\n", plan.message, plan.component);
+                for item in &plan.items {
+                    let bak_str = item.backup_path.as_deref().unwrap_or("none");
+                    s.push_str(&format!(
+                        "  - target: {} (status: {}, backup: {})\n",
+                        item.target_path, item.status, bak_str
+                    ));
+                }
+                s
+            });
         }
     }
     Ok(exit::OK)

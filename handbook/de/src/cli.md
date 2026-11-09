@@ -19,6 +19,7 @@ $ hscl privacy status
 $ hscl privacy session explain
 $ hscl logs show
 $ hscl logs collect
+$ hscl recovery status
 ```
 
 | Exit-Code | Bedeutung |
