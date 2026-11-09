@@ -1459,7 +1459,7 @@ Decision rule: pick the one that unblocks the most downstream work. HCSUDA H3c-3
   - Updated `cli/hscl/src/appearance.rs` with:
     - Color mode planning and validation (`set_mode` and `validate_mode`) supporting `dark`, `light`, and `auto`.
     - Dock position planning and validation (`set_dock_position` and `validate_dock_position`) supporting `bottom`, `left`, and `right`.
-    - Atomic per-user layout persistence (`~/.config/hscl/appearance.json`).
+    - Direct per-user layout configuration persistence (`~/.config/hscl/appearance.json`).
     - `--dry-run` safety inspection across all appearance configuration changes.
 - **Documentation & Handbook Synchronization:**
   - Added leaf command rows in `docs/CLI.md`, passing `cli_doc_lists_every_command`.
