@@ -1726,12 +1726,14 @@ Two runs failed with no installer window at all. The cause is **not** the instal
 | `sudo` works without a password in the live session | `sudo -n true` → `rc=0`; user `hscl1` is in `adm,cdrom,sudo,dip,plugdev,users,lpadmin,sambashare` |
 | the real launcher works | from Konsole: `sudo /usr/bin/calamares-launch-normal` → `procs=2`, Calamares window, requirements log readable |
 | the desktop entry | upstream `Exec=sudo /usr/bin/calamares-launch-normal` (Kubuntu's, we only rename `Name=`) |
-| what goes wrong | a KDE **crash-handler window** is on screen before Kickoff is used; it takes the keyboard focus, so the typed "Install HSCL1" never reaches Kickoff's search field and `ret` hits the dialog |
+| what goes wrong | a KDE **crash-handler window** appears right after the desktop-icon launch; the click at e00b proved the desktop was clean beforehand and the window is visible 55 s later, so it is tied to the launch and not to session start |
 | what crashed | not recorded: `coredumpctl list` says "No coredumps found" (core dumps are off in this image by design) |
 
 The scenario now clicks the crash-handler's real close button (0.706, 0.204 - the earlier 0.691 hit
-*maximize*) twice before opening Kickoff. The underlying crash is still unidentified and is listed in
-`docs/KNOWN_LIMITATIONS.md`; it is intermittent (4 of 7 boots had no dialog at all).
+*maximize*) twice before opening Kickoff, and `tests/visual/scenarios/install-terminal.json` starts the same
+launcher from Konsole (`sudo -b /usr/bin/calamares-launch-normal`), which was proven to work. The underlying
+crash is still unidentified and is listed in `docs/KNOWN_LIMITATIONS.md`; it is intermittent (4 of 8 boots had
+no dialog at all).
 
 ### V1-Z Candidate boot, palette and launcher verification (2026-11-09)
 
