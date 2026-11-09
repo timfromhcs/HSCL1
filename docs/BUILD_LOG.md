@@ -1700,6 +1700,23 @@ dismissed, six scenario screenshots captured.
   installer normally: centred window, top bar visible, `HSCL1 0.1.4-alpha.0`, and the HCSL1 `Notes` step in
   the sidebar. 268 s to the desktop, then the installer.
 
+### Installer page walk and the coordinate bug (2026-11-09, later)
+
+Two more 4 GB runs with a disposable 40 GB disk:
+
+| Run | Scenario | Result |
+|---|---|---|
+| `install-e2e-fixed` | `install-normal-kickoff.json` (clicks at 0.883/0.903) | **scenario defect**: that coordinate is the **Cancel** button in the centred window, so the "Cancel Installation?" dialog opened on the first page and every later shot showed the same dialog. The installer itself was fine. |
+| `boot-installer-walk` | `installer-walk.json` (measured 0.813/0.894) | Calamares was **gone** by the first screenshot, only the KDE crash handler window, no installer page was captured |
+| `boot-installer-debug2` | Konsole → `sudo calamares -d`, same 4 GB, same disk | Calamares **started normally** and stayed up |
+
+So the crash is **intermittent at 4 GB with a disk attached**, not deterministic: identical settings produced
+one crash and one healthy start. Nothing is claimed about the cause yet. The measured geometry is now in
+`docs/TESTING.md` and the corrected Next coordinate is in the scenario.
+
+A run without any disk is a valid negative test: Calamares refuses with "There is not enough drive space.
+At least 8 GiB is required." and a disabled Next button - the safety behaviour, worth keeping as evidence.
+
 ### V1-Z Candidate boot, palette and launcher verification (2026-11-09)
 
 Artifact: `HSCL1-qa-2026-11-09-amd64.iso` (`118029de…`, source `c8a433a`), QEMU 9.x + WHPX, UEFI
