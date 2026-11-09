@@ -1419,3 +1419,20 @@ Decision rule: pick the one that unblocks the most downstream work. HCSUDA H3c-3
 - **Automated Test Coverage:**
   - Rust unit tests: Added 5 unit tests in `cli/hscl/src/recovery.rs` covering label validation, fixture status, sorting, snapshot creation, and safety backup preservation.
   - Python unit tests: Created `tests/unit/test_recovery_cli.py` (5 tests) verifying text/JSON output, label syntax enforcement, and dry-run planning.
+
+### V1-R HSCL1 Developer Environment Subcommands (`hscl dev`) (2026-11-09)
+
+- **CLI Implementation (AGENTS.md section 7.1, 7.2 & 8.2):**
+  - Added `Dev` top-level subcommand with `Status`, `Setup [BUNDLE]`, `Git Doctor`, `Container Status`, and `Vm Status` in `cli/hscl/src/main.rs`.
+  - Created `cli/hscl/src/dev.rs` implementing:
+    - Developer workstation readiness check (`get_dev_status`) across compilers (`gcc`, `clang`, `make`, `pkg-config`), VCS (`git`), languages (`python3`, `rustc`, `cargo`, `node`), containers (`podman`), virtualization (`qemu`), and resource monitors (`btop`).
+    - Curated opt-in developer bundles (`plan_dev_setup`) per AGENTS.md 748-758 (`base`, `python`, `rust`, `containers`, `virt`, `all`) with `--dry-run` inspection and safe package argument vectors.
+    - Git hygiene diagnostic report (`get_git_doctor` and `parse_gitconfig`) evaluating `user.name`, `user.email`, `init.defaultBranch`, and `commit.gpgsign`.
+    - Rootless container environment check (`get_container_status`) verifying Podman binary, subuid/subgid mapping, and cgroups v2 resource delegation.
+    - Hardware virtualization check (`get_vm_status`) inspecting `/dev/kvm` presence, read/write accessibility, CPU virtualization flags (`vmx`/`svm`), and libvirt daemon state.
+- **Documentation & Handbook Synchronization:**
+  - Added section `## hscl dev` and leaf command rows in `docs/CLI.md`, passing `cli_doc_lists_every_command`.
+  - Updated offline handbook across `handbook/{en,de,fr}/src/cli.md`.
+- **Automated Test Coverage:**
+  - Rust unit tests: Added 5 unit tests in `cli/hscl/src/dev.rs` covering bundle validation, dry-run package plans, gitconfig parsing, subuid verification, and readiness calculation.
+  - Python unit tests: Created `tests/unit/test_dev_cli.py` (5 tests) verifying text/JSON output and validation contracts across all subcommands.
