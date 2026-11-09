@@ -1403,3 +1403,19 @@ Decision rule: pick the one that unblocks the most downstream work. HCSUDA H3c-3
   - Expanded `live_interactive_showcase.py` to capture 20 unedited in-guest window captures.
   - Added terminal showcase screens: `16_terminal_privacy_security.png` and `17_terminal_logs_and_diag.png`.
   - Updated `README.md` showcase gallery with 2x2 terminal matrix conforming to 2026 README best practices.
+
+### V1-Q HSCL1 Recovery Subcommand Implementation & Configuration Reset (2026-11-09)
+
+- **CLI Implementation (AGENTS.md section 8.2 & 8.4):**
+  - Added `Recovery` top-level subcommand with `Status`, `Snapshots(List, Create)`, and `Config(Reset)` in `cli/hscl/src/main.rs`.
+  - Created `cli/hscl/src/recovery.rs` implementing:
+    - Recovery posture and readiness check (`get_recovery_status`) across `/var/backups/hscl`, Timeshift, Snapper, and Btrfs.
+    - Snapshot listing (`list_snapshots`) returning structured metadata sorted newest first.
+    - Timestamped snapshot creation (`create_snapshot`) with label validation, manifest generation, config file capture, and overwrite refusal.
+    - Non-destructive configuration reset (`plan_config_reset`) for `shortcuts`, `theme`, and `all`, strictly creating safety backups (`.bak.<TIMESTAMP>`) before restoring schema-validated defaults.
+- **Documentation & Handbook Synchronization:**
+  - Added section `## hscl recovery` and table rows in `docs/CLI.md`, passing `cli_doc_lists_every_command`.
+  - Updated offline handbook across `handbook/{en,de,fr}/src/cli.md`.
+- **Automated Test Coverage:**
+  - Rust unit tests: Added 5 unit tests in `cli/hscl/src/recovery.rs` covering label validation, fixture status, sorting, snapshot creation, and safety backup preservation.
+  - Python unit tests: Created `tests/unit/test_recovery_cli.py` (5 tests) verifying text/JSON output, label syntax enforcement, and dry-run planning.

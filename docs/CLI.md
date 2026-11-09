@@ -109,12 +109,25 @@ Diagnostic log inspection and bundle collection with automatic redaction (AGENTS
 `hscl logs show [SERVICE] [--lines N]` inspects recent log output for a service (`system`, `kernel`/`dmesg`, `calamares`/`installer`, `sddm`, `xorg`, or systemd units) with usernames, hostnames, MAC addresses, private IPv4 addresses, and credentials automatically redacted.
 `hscl logs collect [--output PATH]` gathers multi-source diagnostic logs into a unified JSON bundle; `--output` never overwrites an existing file.
 
+## `hscl recovery` (IMPLEMENTED, unit-tested)
+
+System recovery posture, snapshot management, and non-destructive configuration reset (AGENTS.md section 8.2 & 8.4).
+
+`hscl recovery status` inspects recovery readiness across active providers (`/var/backups/hscl`, Timeshift, Snapper, Btrfs).
+`hscl recovery snapshots list` lists all detected snapshots sorted newest first.
+`hscl recovery snapshots create <LABEL> [--dry-run]` creates a timestamped recovery point with configuration manifest (refuses to overwrite).
+`hscl recovery config reset [COMPONENT] [--dry-run]` non-destructively resets configuration components (`shortcuts`, `theme`, `all`) to schema-validated defaults while creating timestamped `.bak` safety preserves.
+
 
 ## More commands (rows taken from `--help`; the drift test `cli_doc_lists_every_command` keeps this page complete)
 
 | Command | What it does |
 |---|---|
 | `hscl overview` | Friendly overview of HSCL1 and where to start (also what `hscl1` with no arguments prints) |
+| `hscl recovery status` | Inspect system recovery posture and backup provider readiness |
+| `hscl recovery snapshots list` | List all detected recovery snapshots |
+| `hscl recovery snapshots create` | Create a timestamped recovery point with system configuration manifest |
+| `hscl recovery config reset` | Reset desktop configuration component with safety backup creation |
 | `hscl logs show` | Inspect recent log lines for a service with automatic redaction |
 | `hscl logs collect` | Collect redacted diagnostic logs into an exportable bundle |
 | `hscl security firewall status` | Inspect UFW firewall status, default policies, and active profile |
