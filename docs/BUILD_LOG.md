@@ -1789,6 +1789,22 @@ Two observations to follow up, neither blocking:
 - the Welcome Center opens on the generic KDE Plasma page (Konqui) rather than the HSCL1 page, which is one
   of the eight dots.
 
+### Two reporting bugs the installed system exposed (fixed 2026-11-10)
+
+Running the real system found two wrong sentences that no unit test could see:
+
+1. `hscl doctor` said `[SKIP] secure-boot not readable (non-UEFI or no efivars)` in a guest that *is* UEFI:
+   `/sys/firmware/efi` exists and efivars list `Boot0000…Boot0002`; the firmware simply exposes no
+   `SecureBoot` variable because Secure Boot is off. Three different situations (legacy BIOS, UEFI without the
+   variable, unreadable efivars) shared one misleading message. `doctor::secure_boot_skip_reason_at` now tells
+   them apart, with a unit test for all three.
+2. `hscl privacy status` printed `WARNING: active persistent disk swap detected` on the installed system,
+   where the installer's own swap file is expected; and `internal disk mounts: none (host disks unmounted)`
+   although the internal disk is the root filesystem. The text now depends on the measured session type
+   (`session:` line, swap only warns in an ephemeral session), with a CLI test.
+
+Both fixes need a rebuilt image to be seen in a guest; the source and tests are green here.
+
 ### V1-Z Candidate boot, palette and launcher verification (2026-11-09)
 
 Artifact: `HSCL1-qa-2026-11-09-amd64.iso` (`118029de…`, source `c8a433a`), QEMU 9.x + WHPX, UEFI

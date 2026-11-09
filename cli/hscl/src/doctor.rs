@@ -86,13 +86,28 @@ pub fn evaluate(s: &sysinfo::SysInfo, sec: &security::Security) -> Vec<Check> {
     v.push(match sec.secure_boot {
         State::Yes => c("secure-boot", Level::Pass, "enabled"),
         State::No => c("secure-boot", Level::Warn, "disabled (informational)"),
-        State::Unknown => c(
-            "secure-boot",
-            Level::Skip,
-            "not readable (non-UEFI or no efivars)",
-        ),
+        State::Unknown => c("secure-boot", Level::Skip, secure_boot_skip_reason()),
     });
     v
+}
+
+/// Why Secure Boot could not be determined. Three very different situations used to share one message
+/// ("non-UEFI or no efivars"), which was wrong in the installed UEFI VM measured on 2026-11-10: efivars
+/// existed, the firmware simply exposed no `SecureBoot` variable because Secure Boot was off.
+pub fn secure_boot_skip_reason() -> &'static str {
+    secure_boot_skip_reason_at(std::path::Path::new("/sys/firmware"))
+}
+
+pub fn secure_boot_skip_reason_at(firmware_root: &std::path::Path) -> &'static str {
+    if !firmware_root.join("efi").is_dir() {
+        return "not determined: legacy BIOS boot (no /sys/firmware/efi)";
+    }
+    match std::fs::read_dir(firmware_root.join("efi/efivars")) {
+        Ok(_) => {
+            "not determined: UEFI without a SecureBoot variable (firmware has Secure Boot off)"
+        }
+        Err(_) => "not determined: /sys/firmware/efi/efivars is not readable",
+    }
 }
 
 /// The active KDE colour scheme, read from a kdeglobals body. `hscl doctor` uses this to catch the
@@ -236,6 +251,17 @@ mod tests {
             luks_mapped_devices: None,
             forbidden_apt_sources: bad,
         }
+    }
+
+    #[test]
+    fn the_secure_boot_skip_reason_distinguishes_bios_uefi_and_unreadable() {
+        use std::fs;
+        let tmp = tempfile::tempdir().unwrap();
+        assert!(secure_boot_skip_reason_at(tmp.path()).contains("legacy BIOS"));
+        fs::create_dir_all(tmp.path().join("efi/efivars")).unwrap();
+        assert!(secure_boot_skip_reason_at(tmp.path()).contains("without a SecureBoot variable"));
+        fs::remove_dir_all(tmp.path().join("efi/efivars")).unwrap();
+        assert!(secure_boot_skip_reason_at(tmp.path()).contains("not readable"));
     }
 
     #[test]

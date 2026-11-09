@@ -36,6 +36,7 @@ def hscl_bin() -> Path:
 def test_privacy_status_text_and_json(hscl_bin: Path):
     res = subprocess.run([str(hscl_bin), "privacy", "status"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res.returncode == 0
+    assert "session:" in res.stdout
     assert "ephemeral overlay:" in res.stdout
     assert "root filesystem:" in res.stdout
     assert "zram memory swap:" in res.stdout
@@ -43,6 +44,21 @@ def test_privacy_status_text_and_json(hscl_bin: Path):
     assert "tor service:" in res.stdout
     assert "tor browser:" in res.stdout
     assert "Notice: HSCL1 Privacy Mode is NOT Tails" in res.stdout
+
+
+def test_privacy_status_does_not_warn_about_normal_swap_outside_a_privacy_session(hscl_bin: Path):
+    """Measured 2026-11-10 in the installed VM: the installer's own swap file was reported as a WARNING.
+
+    A persistent disk swap is only a problem in a session that claims to be ephemeral, so the wording must
+    depend on the session type instead of warning unconditionally.
+    """
+    res = subprocess.run([str(hscl_bin), "privacy", "status"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
+    assert res.returncode == 0
+    if "ephemeral (volatile RAM overlay)" in res.stdout:
+        assert "WARNING: active persistent disk swap" in res.stdout or "none" in res.stdout
+    else:
+        assert "installed (persistent root)" in res.stdout
+        assert "WARNING: active persistent disk swap" not in res.stdout
 
     res_j = subprocess.run([str(hscl_bin), "--json", "privacy", "status"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res_j.returncode == 0

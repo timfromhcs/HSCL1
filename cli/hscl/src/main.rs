@@ -3384,10 +3384,19 @@ fn run_privacy(j: bool, cmd: PrivacyCmd) -> anyhow::Result<u8> {
                 } else {
                     "inactive"
                 };
-                let disk_swap_str = if st.persistent_swap_active {
-                    "WARNING: active persistent disk swap detected"
+                // The same fact means different things per session type: swap on an installed system is
+                // normal, swap in a session that claims to be ephemeral is a leak. Measured 2026-11-10 in
+                // the installed VM: the old text called the installer's own swap file a WARNING.
+                let ephemeral = st.ephemeral_overlay;
+                let session_str = if ephemeral {
+                    "ephemeral (volatile RAM overlay)"
                 } else {
-                    "none (safe for ephemeral session)"
+                    "installed (persistent root)"
+                };
+                let disk_swap_str = match (st.persistent_swap_active, ephemeral) {
+                    (true, true) => "WARNING: active persistent disk swap in an ephemeral session",
+                    (true, false) => "active (expected on an installed system)",
+                    (false, _) => "none",
                 };
                 let suid_str = if st.suid_dumpable_disabled {
                     "disabled (fs.suid_dumpable = 0)"
@@ -3395,7 +3404,11 @@ fn run_privacy(j: bool, cmd: PrivacyCmd) -> anyhow::Result<u8> {
                     "enabled (dumpable)"
                 };
                 let auto_str = if st.internal_disks_automounted.is_empty() {
-                    "none (host disks unmounted)"
+                    if ephemeral {
+                        "none (host disks unmounted)"
+                    } else {
+                        "none beyond the root filesystem"
+                    }
                 } else {
                     "disks mounted:"
                 };
@@ -3410,7 +3423,8 @@ fn run_privacy(j: bool, cmd: PrivacyCmd) -> anyhow::Result<u8> {
                 };
 
                 let mut out = format!(
-                    "ephemeral overlay:     {ephem_str}\n\
+                    "session:               {session_str}\n\
+                     ephemeral overlay:     {ephem_str}\n\
                      root filesystem:       {}\n\
                      zram memory swap:      {zram_str}\n\
                      persistent disk swap:  {disk_swap_str}\n\
