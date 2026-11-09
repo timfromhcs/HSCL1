@@ -48,6 +48,10 @@ v6.0.2 on Windows:
 The unit sits ~100 GH/s below the pre-flash 466 GH/s sample. Not diagnosed: pool difficulty ramp,
 thermal settling and the fresh build all differ. It is recorded rather than explained.
 
+Latest sample (2026-11-09, 21:15): `296–365 GH/s`, 60 °C, 11.15 W, **797 accepted / 2 rejected**
+(0.25 %), pool `sha256.eu.mine.zpool.ca:3333`. The instant hashrate is noisy; the 1 h average is the
+number to compare.
+
 ## Recovery build (2026-11-09, 19:35 UTC) — display and network restored
 The factory flash had erased NVS, so the app fell back to board `000` and the serial log showed
 `E system: Display init failed` / `esp_lcd_new_panel_io_i2c: i2c add device fail` — the black screen.

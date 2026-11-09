@@ -208,6 +208,9 @@ exposes `hscl_miner_status`, `hscl_miner_probe` and `hscl_miner_discover` as rea
 - **Not implemented:** receiver daemon, pairing, fleet discovery, pool credentials, eFuse/Secure Boot
   provisioning. Mining hardware is not shipped by HSCL1.
 
+The Control Center has a **Miner** page that shows the last device's address, hostname, board, firmware,
+hashrate, temperature, power, shares and pool from that same CLI path — read-only, localised EN/DE/FR.
+
 ## ⚡ Command Line Interface (`hscl`)
 
 The `hscl` tool provides unified control over the workstation, security tooling, memory policies, and local AI workflows:
