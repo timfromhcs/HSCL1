@@ -1612,6 +1612,26 @@ Source `d817093`, Windows 11 host + Ubuntu 26.04 WSL. No VM boot in this session
   `text-primary`, `text-secondary`, `text-muted` and `accent` over `surface-0/1/2` in all four HCS
   themes: every pair is ≥ 4.5:1 (lowest is `text-muted` on `surface-2`, 4.68:1 in HCS Nord), and
   `text-inverse` on `accent` also passes. The test also fails if a theme stops differing from Midnight.
+
+### V1-Y Candidate build from the audited tree (2026-11-09)
+
+- **Source:** branch `codex/qa-2026-11-09`, WSL checkout `~/hscl1-src`, base ISO
+  `kubuntu-26.04.1-desktop-amd64.iso` (checksum verified against the upstream-signed SHA256SUMS by the
+  remaster script). WSL host: 6 vCPU, ~3.1 GB MemAvailable, 753 GB free — inside the script's 3000 MB
+  guard but tight; `mksquashfs` runs with `sq_procs=2, sq_mem=1024M`.
+- **Attempt 1 (source `03bee00`) FAILED at `verify-image.sh`**, not at boot or packaging:
+  `FAIL  HCS palette is the default scheme`. Root cause: Kubuntu's
+  `kubuntu-default-settings/kf5-settings/kdeglobals` has a `[General]` header but **no `ColorScheme`
+  key**, so the `sed 's/^ColorScheme=.*/…/'` in the hook matched nothing and silently changed nothing.
+  The image gate added in this session caught exactly the defect the screenshot hinted at — a nice
+  proof that the gate is real.
+- **Fix (`40f274a`, `e9b7e0d`):** new `ensure_key file section key value` helper in
+  `distro/live/hooks/010-hscl-defaults.sh` that replaces the key when present, inserts it under the
+  section when absent and appends the section otherwise. Applied to the Kubuntu defaults and to
+  `/etc/skel/.config/kdeglobals` (live users are created from `/etc/skel`), with `widgetStyle` in
+  `[KDE]`. `verify-image.sh` now checks both files. A sandbox script
+  (`scripts/dev/sandbox_hook_check.sh`) reproduces the missing-key case without building an image.
+- **Attempt 2** started from `e9b7e0d`; result recorded below when the ISO exists.
 - **Not verified here:** anything requiring a booted artifact (theme result, launcher merge behaviour,
   installer clipping, screenshots). Those rows stay `VM-PENDING` in `docs/AUTONOMOUS_QUEUE.md`.
 

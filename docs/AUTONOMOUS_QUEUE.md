@@ -32,7 +32,7 @@ booted-artifact evidence missing).
 
 | ID | Item | Gate | Status |
 |---|---|---|---|
-| Q-10 | Build a candidate from the fixed tree (`forge build`) and boot it UEFI | BUILD_LOG entry with source commit, ISO sha256, boot result | OPEN |
+| Q-10 | Build a candidate from the fixed tree (`forge build`) and boot it UEFI | BUILD_LOG entry with source commit, ISO sha256, boot result | DOING — WSL `~/hscl1-src` is on the branch, attempt 1 stopped at `verify-image.sh` ("HCS palette is the default scheme"), fixed in `e9b7e0d`, attempt 2 running |
 | Q-11 | LUKS2 install on a disposable disk from the same candidate | installed boot + wrong/correct passphrase | OPEN |
 | Q-12 | Re-run the 12 in-guest tracks against the new candidate | `verify_in_guest_tracks.py` output | OPEN |
 | Q-13 | Regenerate all showcase screenshots from that candidate | manifest.json with source commit | OPEN |
