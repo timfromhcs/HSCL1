@@ -16,6 +16,7 @@ mod graphics;
 mod hw;
 mod lab;
 mod language;
+mod logs;
 mod mcp;
 mod memory;
 mod privacy;
@@ -179,6 +180,11 @@ enum Cmd {
     Privacy {
         #[command(subcommand)]
         cmd: PrivacyCmd,
+    },
+    /// Diagnostic log inspection and collection with redaction (AGENTS.md section 8.2 & 8.3).
+    Logs {
+        #[command(subcommand)]
+        cmd: LogsCmd,
     },
 }
 
@@ -720,6 +726,24 @@ enum EncryptionCmd {
 enum RecoveryCmd {
     /// Check backup snapshots and disaster recovery readiness.
     Check,
+}
+
+#[derive(Subcommand)]
+enum LogsCmd {
+    /// Inspect recent log lines for a service with automatic redaction.
+    Show {
+        /// Service or log target (system, kernel, calamares, sddm, xorg, or systemd unit).
+        service: Option<String>,
+        /// Number of lines to inspect (default: 50).
+        #[arg(long, default_value = "50")]
+        lines: usize,
+    },
+    /// Collect redacted diagnostic logs into an exportable bundle.
+    Collect {
+        /// Write JSON log bundle to this new file (never overwrites).
+        #[arg(long, value_name = "PATH")]
+        output: Option<std::path::PathBuf>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -1351,6 +1375,7 @@ fn run(cli: Cli) -> anyhow::Result<u8> {
         } => return run_theme(j, cmd),
         Cmd::Language { cmd } => return run_language(j, cmd),
         Cmd::Privacy { cmd } => return run_privacy(j, cmd),
+        Cmd::Logs { cmd } => return run_logs(j, cmd),
         Cmd::Doctor { full } => {
             let report = doctor::run(full);
             let v = serde_json::to_value(&report)?;
@@ -2393,6 +2418,59 @@ fn run_privacy(j: bool, cmd: PrivacyCmd) -> anyhow::Result<u8> {
                     report.command, report.safety_notice
                 )
             });
+        }
+    }
+    Ok(exit::OK)
+}
+
+fn run_logs(j: bool, cmd: LogsCmd) -> anyhow::Result<u8> {
+    match cmd {
+        LogsCmd::Show { service, lines } => {
+            let res = logs::show_log(service.as_deref(), lines, None);
+            let v = serde_json::to_value(&res)?;
+            print_value(j, &v, || {
+                format!(
+                    "=== Log: {} (last {} lines, redacted) ===\n{}",
+                    res.target, res.lines_returned, res.content
+                )
+            });
+        }
+        LogsCmd::Collect { output } => {
+            let bundle = logs::collect_logs(None);
+            if let Some(out_path) = output {
+                logs::write_bundle(&out_path, &bundle)?;
+                let v = json!({
+                    "timestamp": bundle.timestamp,
+                    "redacted": bundle.redacted,
+                    "sources_collected": bundle.entries.len(),
+                    "total_bytes": bundle.total_bytes,
+                    "output_file": out_path.display().to_string(),
+                });
+                print_value(j, &v, || {
+                    format!(
+                        "Collected {} redacted log sources ({} bytes) -> {}",
+                        bundle.entries.len(),
+                        bundle.total_bytes,
+                        out_path.display()
+                    )
+                });
+            } else {
+                let v = serde_json::to_value(&bundle)?;
+                print_value(j, &v, || {
+                    let mut s = format!(
+                        "=== Diagnostic Log Bundle (redacted, {} sources, {} total bytes) ===\n",
+                        bundle.entries.len(),
+                        bundle.total_bytes
+                    );
+                    for entry in &bundle.entries {
+                        s.push_str(&format!(
+                            "\n--- [{}] ({} lines, {} bytes) ---\n{}\n",
+                            entry.source, entry.lines, entry.bytes, entry.content
+                        ));
+                    }
+                    s
+                });
+            }
         }
     }
     Ok(exit::OK)

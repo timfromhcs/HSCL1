@@ -102,12 +102,21 @@ Security posture, firewall profiles, AppArmor mandatory access control, disk enc
 `hscl security encryption status` checks mapped `CRYPT-LUKS` volumes, crypttab entries, and root disk encryption.
 `hscl security recovery check` inspects disaster recovery snapshot directories (`/var/backups/hscl`, Timeshift, snapper).
 
+## `hscl logs` (IMPLEMENTED, unit-tested)
+
+Diagnostic log inspection and bundle collection with automatic redaction (AGENTS.md section 8.2, 8.3 & rule 0.3.8).
+
+`hscl logs show [SERVICE] [--lines N]` inspects recent log output for a service (`system`, `kernel`/`dmesg`, `calamares`/`installer`, `sddm`, `xorg`, or systemd units) with usernames, hostnames, MAC addresses, private IPv4 addresses, and credentials automatically redacted.
+`hscl logs collect [--output PATH]` gathers multi-source diagnostic logs into a unified JSON bundle; `--output` never overwrites an existing file.
+
 
 ## More commands (rows taken from `--help`; the drift test `cli_doc_lists_every_command` keeps this page complete)
 
 | Command | What it does |
 |---|---|
 | `hscl overview` | Friendly overview of HSCL1 and where to start (also what `hscl1` with no arguments prints) |
+| `hscl logs show` | Inspect recent log lines for a service with automatic redaction |
+| `hscl logs collect` | Collect redacted diagnostic logs into an exportable bundle |
 | `hscl security firewall status` | Inspect UFW firewall status, default policies, and active profile |
 | `hscl security firewall profile list` | List defined firewall profiles with descriptions and policies |
 | `hscl security firewall profile set` | Apply or preview a firewall profile (standard, public-wifi, lab, privacy) |
