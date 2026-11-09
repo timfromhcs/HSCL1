@@ -1585,6 +1585,12 @@ Source `d817093`, Windows 11 host + Ubuntu 26.04 WSL. No VM boot in this session
   `<Directory>`. `test_menu_file.py` grew two guards (`test_submenus_carry_only_the_default_name`,
   `test_every_section_references_a_localised_directory_file`) and `verify-image.sh` checks the six files
   in the built image. Bilingual launcher behaviour stays `VM-PENDING`.
+- **Showcase evidence (Q-03).** The README captioned `13_offline_handbook.png` as the offline handbook,
+  but the file (and its copy in `artifacts/screenshots-showcase/`) contains only the desktop — the capture
+  never showed the app. The image and `15_desktop_final.png` (a duplicate desktop shot) were removed from
+  the README and `docs/img/showcase/manifest.json`, and the README now says the capture is pending.
+  `tests/unit/test_showcase_evidence.py` fails if a linked image is missing, if the manifest and the
+  directory disagree, or if a manifest entry has no description.
 - **Not verified here:** anything requiring a booted artifact (theme result, launcher merge behaviour,
   installer clipping, screenshots). Those rows stay `VM-PENDING` in `docs/AUTONOMOUS_QUEUE.md`.
 

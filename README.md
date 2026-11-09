@@ -120,8 +120,10 @@ Familiar window ergonomics, Dolphin file manager with HCS styling, Kate text edi
 | Dolphin File Manager (HCS Theme) | Kate Text Editor (`/etc/os-release`) |
 |:---:|:---:|
 | ![Dolphin File Manager](docs/img/showcase/10_app_dolphin.png) | ![Kate Text Editor](docs/img/showcase/14_app_kate.png) |
-| **Trilingual Offline Handbook** | **Post-Session Desktop State** |
-| ![Offline Handbook](docs/img/showcase/13_offline_handbook.png) | ![Final Desktop](docs/img/showcase/15_desktop_final.png) |
+
+*The trilingual offline handbook (`hscl-handbook`, EN/DE/FR) is installed and documented, but its showcase
+capture is still pending: the previous image showed only the desktop. It will be added with the next
+candidate build — see [Quality audit](docs/QA_FINDINGS_2026-11-09.md).*
 
 ---
 

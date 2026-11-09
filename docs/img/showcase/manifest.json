@@ -196,27 +196,5 @@
     ],
     "description": "Calamares Installer: Location & Timezone",
     "timestamp": 1794234919.1573412
-  },
-  {
-    "filename": "13_offline_handbook.png",
-    "bytes": 47819,
-    "colors": 6186,
-    "size": [
-      1280,
-      800
-    ],
-    "description": "Trilingual Offline Handbook in Browser",
-    "timestamp": 1794234928.9017587
-  },
-  {
-    "filename": "15_desktop_final.png",
-    "bytes": 47817,
-    "colors": 6187,
-    "size": [
-      1280,
-      800
-    ],
-    "description": "Final live desktop state after showcase sequence",
-    "timestamp": 1794234933.4551864
   }
 ]
