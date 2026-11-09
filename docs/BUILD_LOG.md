@@ -1637,7 +1637,20 @@ Source `d817093`, Windows 11 host + Ubuntu 26.04 WSL. No VM boot in this session
   `kdeglobals` before writing. Both failure modes (missing key, missing file) are reproduced by
   `scripts/dev/sandbox_hook_check.sh` and gated by `tests/unit/test_palette_hook_sandbox.py`, which runs
   the real hook against a throwaway rootfs.
-- **Attempt 3** started from `c8a433a`; result recorded below when the ISO exists.
+- **Attempt 3** (source `c8a433a`, clean tree) **SUCCEEDED**:
+  `verify-image: all checks passed` (including both palette gates and the six launcher `.directory`
+  files), initrd rebuilt, squashfs 100 %, boot structure replayed.
+  - Artifact: `HSCL1-qa-2026-11-09-amd64.iso`, 5,488,640,000 bytes,
+    SHA-256 `118029de7e939ce6a97f91ab5d772f9885007d6b5b9e7464f13091e7ac7f3098`,
+    `git_commit c8a433ad65c66431dfe8e8abf2da6d7dbf101191`, `git_dirty: false`,
+    base ISO `831e4d4b…` (Kubuntu 26.04.1), built 2026-11-09T16:18:41Z.
+  - Copied to `artifacts/iso/HSCL1-qa-2026-11-09-amd64.iso` for the Windows QEMU run.
+  - WSL wedged with `WSAETIMEDOUT` right after the 5 GB write; `wsl --terminate Ubuntu` recovered it and
+    the on-disk ISO hash matches the manifest, so the artifact is intact.
+  - Build time: ~7 minutes wall clock at `--fast` with a warm pristine cache.
+- **Next**: `scripts/qemu_boot_test.py` with `--steps tests/visual/scenarios/theme-check.json` captures
+  Dolphin, the `hscl doctor` theme line, the launcher sections and the desktop labels; the
+  dark/light verdict is measured with `scripts/dev/check_theme_screenshot.py` (not eyeballed).
 - **Not verified here:** anything requiring a booted artifact (theme result, launcher merge behaviour,
   installer clipping, screenshots). Those rows stay `VM-PENDING` in `docs/AUTONOMOUS_QUEUE.md`.
 
