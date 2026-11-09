@@ -17,6 +17,8 @@ $ hscl language status
 $ hscl language list
 $ hscl privacy status
 $ hscl privacy session explain
+$ hscl logs show
+$ hscl logs collect
 ```
 
 | Code de sortie | Signification |

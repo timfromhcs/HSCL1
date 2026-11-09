@@ -1365,3 +1365,21 @@ Decision rule: pick the one that unblocks the most downstream work. HCSUDA H3c-3
   - Rust unit tests: Added 5 unit tests in `cli/hscl/src/security.rs`. All 219 tests passed with 0 failures (`cargo test -p hscl`).
   - Python unit tests: Created `tests/unit/test_security_cli.py` (7 tests) asserting CLI output, JSON payloads, dry-run commands, report writing, overwrite prevention, and recovery checks.
   - Verified `cargo fmt -- --check` and `cargo clippy -p hscl -- -D warnings` 100% clean.
+
+### V1-O HSCL1 Diagnostic Log Inspection & Collection with Redaction (2026-11-09)
+
+- **CLI Implementation (AGENTS.md section 8.2, 8.3 & rule 0.3.8):**
+  - Added `Logs` subcommand with `Show { service, lines }` and `Collect { output }` in `cli/hscl/src/main.rs`.
+  - Created `cli/hscl/src/logs.rs` implementing:
+    - Service log targeting: `system`, `kernel`/`dmesg`, `calamares`/`installer`, `sddm`, `xorg`, or arbitrary systemd units.
+    - Credential sanitization (`sanitize_credentials`): Redacts `password`, `passphrase`, `secret`, `token`, and `recovery_key` patterns to `[redacted-credential]`.
+    - Identity and network redaction (`redact_log_text`): Leverages `redact::redact` to scrub user names, host names, MAC addresses, and private IPv4 addresses.
+    - Diagnostic bundle collection (`collect_logs`): Gathers multi-source redacted diagnostic entries (system/journal, kernel/dmesg, calamares/installer, sddm) into a unified bundle.
+    - Overwrite prevention (`write_bundle`): Exporting bundles with `--output PATH` strictly enforces create-new semantics and refuses to overwrite existing files.
+- **Documentation & Handbook Synchronization:**
+  - Added section `## hscl logs` and table rows in `docs/CLI.md`, satisfying `doc_drift_tests::cli_doc_lists_every_command`.
+  - Updated offline handbook in English, German, and French (`handbook/{en,de,fr}/src/cli.md`).
+- **Automated Test Coverage:**
+  - Rust unit tests: Added 4 unit tests in `cli/hscl/src/logs.rs` verifying credential sanitization, MAC/IP redaction, log file tailing, and overwrite refusal.
+  - Python unit tests: Created `tests/unit/test_logs_cli.py` (4 tests) verifying text/JSON output, line limits, target options, bundle contents, and overwrite refusal.
+  - Passed all 230 tests in `cargo test -p hscl`.
