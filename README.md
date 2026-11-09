@@ -34,7 +34,7 @@
 
 1. **Cohesive Keyboard-First Ergonomics:** A unified workstation experience combining the speed and aesthetics of Omarchy with the rock-solid hardware stability of Ubuntu 26.04 LTS and KDE Plasma 6.6 LTS. Slim top status bar, centered floating dock, and dynamic GPU/CPU shader-driven wallpapers.
 2. **Three Structurally Isolated Modes:** Seamless switching between everyday **Workstation**, isolated **Security Lab** (rootless Podman + official Kali Linux OCI containers), and an ephemeral **Privacy Session** (RAM overlay, unmounted host storage, isolated network routing).
-3. **Zero Telemetry & Rigorous Attestation:** Zero analytics, 100% offline documentation in 3 languages (English, German, French), Argon2id full-disk encryption, and an unbending evidence-based contract—every feature is verified by automated VM tests and cryptographic proof.
+3. **No HSCL1 telemetry & rigorous attestation:** HSCL1 adds no analytics, no crash upload and no remote control; 100% offline documentation in 3 languages (English, German, French), LUKS2 full-disk encryption with Argon2id, and an evidence-based contract—features are backed by automated tests and recorded proof. Base-system network contacts (time sync, package mirrors, the installer's connectivity and geo-IP check) are disclosed in [Known limitations](docs/KNOWN_LIMITATIONS.md).
 
 > [!IMPORTANT]
 > **Status: Pre-Alpha (`0.1.4-alpha.0`).**
