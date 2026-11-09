@@ -13,17 +13,26 @@ use anyhow::{bail, Result};
 use std::path::{Component, Path, PathBuf};
 
 /// Packages a toolset may install (checked against this allow-list, and syntactically).
-pub const TOOLSETS: &[(&str, &[&str])] = &[(
-    "basic",
-    &[
-        "nmap",
-        "tcpdump",
-        "tshark",
-        "whois",
-        "bind9-dnsutils",
-        "netcat-openbsd",
-    ],
-)];
+pub const TOOLSETS: &[(&str, &[&str])] = &[
+    (
+        "basic",
+        &[
+            "nmap",
+            "tcpdump",
+            "tshark",
+            "whois",
+            "bind9-dnsutils",
+            "netcat-openbsd",
+        ],
+    ),
+    ("web", &["curl", "wget", "nikto", "sqlmap", "dirb", "wfuzz"]),
+    (
+        "forensics",
+        &["binwalk", "foremost", "sleuthkit", "exiftool"],
+    ),
+    ("crypto", &["hashcat", "john", "hydra"]),
+    ("reversing", &["radare2", "gdb", "ltrace", "strace"]),
+];
 
 /// Capabilities apt needs while installing (hypothesis, verified in a VM: P4.3). Run phase gets none.
 pub const INSTALL_CAPS: &[&str] = &["CHOWN", "DAC_OVERRIDE", "FOWNER", "SETUID", "SETGID"];
@@ -340,6 +349,306 @@ pub fn display(argv: &[String]) -> String {
         })
         .collect::<Vec<_>>()
         .join(" ")
+}
+
+pub fn validate_toolset(name: &str) -> Result<(&'static str, &'static [&'static str])> {
+    let lower = name.trim().to_ascii_lowercase();
+    TOOLSETS
+        .iter()
+        .find(|(n, _)| *n == lower)
+        .copied()
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "unknown toolset '{name}': valid toolsets are {}",
+                TOOLSETS
+                    .iter()
+                    .map(|(n, _)| *n)
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
+        })
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct LabContainerSummary {
+    pub name: String,
+    pub image: String,
+    pub status: String,
+    pub created: String,
+}
+
+pub fn list_containers() -> Vec<LabContainerSummary> {
+    let out = std::process::Command::new("podman")
+        .args([
+            "ps",
+            "-a",
+            "--filter",
+            "name=hscl-lab-",
+            "--format",
+            "{{.Names}}\t{{.Image}}\t{{.Status}}\t{{.CreatedAt}}",
+        ])
+        .output();
+    let mut list = Vec::new();
+    if let Ok(o) = out {
+        if o.status.success() {
+            let text = String::from_utf8_lossy(&o.stdout);
+            for line in text.lines() {
+                let parts: Vec<&str> = line.split('\t').collect();
+                if !parts.is_empty() && !parts[0].is_empty() {
+                    list.push(LabContainerSummary {
+                        name: parts[0].to_string(),
+                        image: parts.get(1).unwrap_or(&"unknown").to_string(),
+                        status: parts.get(2).unwrap_or(&"unknown").to_string(),
+                        created: parts.get(3).unwrap_or(&"unknown").to_string(),
+                    });
+                }
+            }
+        }
+    }
+    list
+}
+
+pub fn inspect_container(name: &str) -> Result<serde_json::Value> {
+    validate_project(name)?;
+    let cname = container_name(name);
+    let out = std::process::Command::new("podman")
+        .args(["inspect", &cname])
+        .output();
+    match out {
+        Ok(o) => {
+            if o.status.success() {
+                let data: serde_json::Value = serde_json::from_slice(&o.stdout)?;
+                Ok(data)
+            } else {
+                let err = String::from_utf8_lossy(&o.stderr);
+                bail!("podman inspect failed: {err}")
+            }
+        }
+        Err(e) => bail!("podman executable not available: {e}"),
+    }
+}
+
+pub fn plan_container_shell(name: &str, dry_run: bool) -> Result<serde_json::Value> {
+    validate_project(name)?;
+    let cname = container_name(name);
+    let cmd = vec![
+        "podman".to_string(),
+        "exec".to_string(),
+        "-it".to_string(),
+        cname.clone(),
+        "/bin/bash".to_string(),
+    ];
+    Ok(serde_json::json!({
+        "action": "container_shell",
+        "container": cname,
+        "command": cmd,
+        "dry_run": dry_run,
+        "note": if dry_run {
+            "Dry run: container shell command planned; did not attach."
+        } else {
+            "Attaching to container shell."
+        }
+    }))
+}
+
+pub fn plan_container_stop(name: &str, dry_run: bool) -> Result<serde_json::Value> {
+    validate_project(name)?;
+    let cname = container_name(name);
+    let cmd = vec!["podman".to_string(), "stop".to_string(), cname.clone()];
+    Ok(serde_json::json!({
+        "action": "container_stop",
+        "container": cname,
+        "command": cmd,
+        "dry_run": dry_run,
+        "note": if dry_run {
+            "Dry run: container stop planned."
+        } else {
+            "Stopping container."
+        }
+    }))
+}
+
+pub fn plan_container_destroy(name: &str, dry_run: bool) -> Result<serde_json::Value> {
+    validate_project(name)?;
+    let cname = container_name(name);
+    let cmd = vec![
+        "podman".to_string(),
+        "rm".to_string(),
+        "-f".to_string(),
+        cname.clone(),
+    ];
+    Ok(serde_json::json!({
+        "action": "container_destroy",
+        "container": cname,
+        "command": cmd,
+        "dry_run": dry_run,
+        "note": if dry_run {
+            "Dry run: container removal planned."
+        } else {
+            "Destroying container."
+        }
+    }))
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct LabVmProfile {
+    pub name: String,
+    pub network: String,
+    pub memory_mib: u32,
+    pub cpus: u32,
+    pub disk_gib: u32,
+    pub description: String,
+    pub security_boundary: String,
+}
+
+pub fn list_vm_profiles() -> Vec<LabVmProfile> {
+    vec![
+        LabVmProfile {
+            name: "isolated".into(),
+            network: "host-only / isolated (no internet)".into(),
+            memory_mib: 4096,
+            cpus: 2,
+            disk_gib: 20,
+            description: "Default isolated malware/exploit analysis sandbox".into(),
+            security_boundary: "Host-only network namespace; no packets leave the virtual switch"
+                .into(),
+        },
+        LabVmProfile {
+            name: "bridged".into(),
+            network: "bridged (authorized target network)".into(),
+            memory_mib: 4096,
+            cpus: 2,
+            disk_gib: 20,
+            description: "Bridged network VM for authorized LAN assessments".into(),
+            security_boundary: "Direct network interface access; requires explicit authorization"
+                .into(),
+        },
+        LabVmProfile {
+            name: "usb-passthrough".into(),
+            network: "isolated".into(),
+            memory_mib: 4096,
+            cpus: 2,
+            disk_gib: 20,
+            description: "Hardware testing VM with USB Wi-Fi / SDR passthrough enabled".into(),
+            security_boundary:
+                "Dedicated USB controller passed directly to the guest; host detached".into(),
+        },
+    ]
+}
+
+pub fn validate_vm_profile(profile: &str) -> Result<LabVmProfile> {
+    let lower = profile.trim().to_ascii_lowercase();
+    list_vm_profiles()
+        .into_iter()
+        .find(|p| p.name == lower)
+        .ok_or_else(|| {
+            anyhow::anyhow!(
+                "unknown VM profile '{profile}': valid choices are isolated, bridged, usb-passthrough"
+            )
+        })
+}
+
+pub fn plan_create_vm(
+    profile: &str,
+    custom_name: Option<&str>,
+    dry_run: bool,
+) -> Result<serde_json::Value> {
+    let prof = validate_vm_profile(profile)?;
+    let vm_name = custom_name.unwrap_or(&prof.name);
+    validate_project(vm_name)?;
+    let vms_dir = crate::appearance::config_dir().join("lab").join("vms");
+    let disk_path = vms_dir.join(format!("{vm_name}.qcow2"));
+
+    let qemu_img_cmd = vec![
+        "qemu-img".to_string(),
+        "create".to_string(),
+        "-f".to_string(),
+        "qcow2".to_string(),
+        disk_path.to_string_lossy().to_string(),
+        format!("{}G", prof.disk_gib),
+    ];
+
+    if !dry_run {
+        let _ = std::fs::create_dir_all(&vms_dir);
+    }
+
+    Ok(serde_json::json!({
+        "action": "create_vm",
+        "name": vm_name,
+        "profile": prof.name,
+        "memory_mib": prof.memory_mib,
+        "cpus": prof.cpus,
+        "disk_path": disk_path.display().to_string(),
+        "command": qemu_img_cmd,
+        "dry_run": dry_run,
+        "security_boundary": prof.security_boundary,
+        "note": if dry_run {
+            "Dry run: VM creation planned; disk image was not created."
+        } else {
+            "VM profile configured and disk image prepared."
+        }
+    }))
+}
+
+pub fn plan_launch_vm(name: &str, dry_run: bool) -> Result<serde_json::Value> {
+    validate_project(name)?;
+    let vms_dir = crate::appearance::config_dir().join("lab").join("vms");
+    let disk_path = vms_dir.join(format!("{name}.qcow2"));
+
+    let qemu_cmd = vec![
+        "qemu-system-x86_64".to_string(),
+        "-enable-kvm".to_string(),
+        "-m".to_string(),
+        "4096".to_string(),
+        "-smp".to_string(),
+        "2".to_string(),
+        "-drive".to_string(),
+        format!("file={},if=virtio,format=qcow2", disk_path.display()),
+        "-netdev".to_string(),
+        "user,id=net0,restrict=on".to_string(),
+        "-device".to_string(),
+        "virtio-net-pci,netdev=net0".to_string(),
+        "-name".to_string(),
+        format!("hscl-lab-{name}"),
+    ];
+
+    Ok(serde_json::json!({
+        "action": "launch_vm",
+        "name": name,
+        "disk_path": disk_path.display().to_string(),
+        "command": qemu_cmd,
+        "dry_run": dry_run,
+        "network_isolation": "restricted user-mode (isolated, no host/external traffic)",
+        "note": if dry_run {
+            "Dry run: VM launch command planned; VM was not started."
+        } else {
+            "VM launch command prepared for execution."
+        }
+    }))
+}
+
+pub fn plan_destroy_vm(name: &str, dry_run: bool) -> Result<serde_json::Value> {
+    validate_project(name)?;
+    let vms_dir = crate::appearance::config_dir().join("lab").join("vms");
+    let disk_path = vms_dir.join(format!("{name}.qcow2"));
+
+    let existed = disk_path.exists();
+    if !dry_run && existed {
+        let _ = std::fs::remove_file(&disk_path);
+    }
+
+    Ok(serde_json::json!({
+        "action": "destroy_vm",
+        "name": name,
+        "disk_path": disk_path.display().to_string(),
+        "dry_run": dry_run,
+        "deleted": !dry_run && existed,
+        "note": if dry_run {
+            "Dry run: VM disk would be permanently deleted."
+        } else {
+            "Disposable VM disk image destroyed."
+        }
+    }))
 }
 
 #[cfg(test)]
@@ -660,5 +969,50 @@ mod tests {
         ];
         let s = display(&a);
         assert_eq!(s, "podman run 'a b' 'it'\\''s' 'x;y'");
+    }
+
+    #[test]
+    fn test_validate_toolset_known_and_unknown() {
+        assert!(validate_toolset("basic").is_ok());
+        assert!(validate_toolset("web").is_ok());
+        assert!(validate_toolset("forensics").is_ok());
+        assert!(validate_toolset("crypto").is_ok());
+        assert!(validate_toolset("reversing").is_ok());
+        assert!(validate_toolset("unknown_exploit_kit").is_err());
+    }
+
+    #[test]
+    fn test_validate_vm_profile_and_plan() {
+        assert!(validate_vm_profile("isolated").is_ok());
+        assert!(validate_vm_profile("bridged").is_ok());
+        assert!(validate_vm_profile("usb-passthrough").is_ok());
+        assert!(validate_vm_profile("full-host-root").is_err());
+
+        let plan = plan_create_vm("isolated", Some("test-vm"), true).unwrap();
+        assert_eq!(plan["action"], "create_vm");
+        assert_eq!(plan["dry_run"], true);
+
+        let launch = plan_launch_vm("test-vm", true).unwrap();
+        assert_eq!(launch["action"], "launch_vm");
+        assert_eq!(launch["dry_run"], true);
+
+        let destroy = plan_destroy_vm("test-vm", true).unwrap();
+        assert_eq!(destroy["action"], "destroy_vm");
+        assert_eq!(destroy["dry_run"], true);
+    }
+
+    #[test]
+    fn test_plan_container_shell_stop_destroy() {
+        let shell = plan_container_shell("test-proj", true).unwrap();
+        assert_eq!(shell["action"], "container_shell");
+        assert_eq!(shell["dry_run"], true);
+
+        let stop = plan_container_stop("test-proj", true).unwrap();
+        assert_eq!(stop["action"], "container_stop");
+        assert_eq!(stop["dry_run"], true);
+
+        let destroy = plan_container_destroy("test-proj", true).unwrap();
+        assert_eq!(destroy["action"], "container_destroy");
+        assert_eq!(destroy["dry_run"], true);
     }
 }

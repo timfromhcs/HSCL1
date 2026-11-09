@@ -222,6 +222,19 @@ System information, package updates, power actions, and services management (AGE
 | `hscl lab status` | Is podman present, is the lab folder there, and which toolsets exist |
 | `hscl lab setup` | Create the lab root folder (~/SecurityLabs, mode 0700) |
 | `hscl lab toolsets` | List the toolsets and the packages each installs (inside the container only) |
+| `hscl lab toolsets list` | List available toolsets and their included packages |
+| `hscl lab toolset list` | List available curated security toolsets |
+| `hscl lab toolset install` | Install a curated toolset into a lab project container |
+| `hscl lab toolset remove` | Remove an installed toolset from a project |
+| `hscl lab container list` | List active and stopped lab containers |
+| `hscl lab container inspect` | Inspect details and security parameters of a lab container |
+| `hscl lab container shell` | Open an interactive shell inside a lab container |
+| `hscl lab container stop` | Stop a running lab container cleanly |
+| `hscl lab container destroy` | Destroy a lab container and remove its temporary storage |
+| `hscl lab vm list` | List disposable lab VM profiles and configurations |
+| `hscl lab vm create` | Create a disposable security testing VM profile |
+| `hscl lab vm launch` | Launch a disposable lab VM with explicit network boundary |
+| `hscl lab vm destroy` | Destroy a disposable lab VM and discard its overlay |
 | `hscl lab spec` | Print the exact podman command for a project (nothing is executed) |
 | `hscl lab run` | Execute the run phase through the CLI (no shell; requires --yes attestation) |
 | `hscl lab install` | Execute the install phase: toolset packages into a local image (attestation required) |
