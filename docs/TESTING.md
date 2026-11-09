@@ -69,6 +69,26 @@ output directory inside the WSL home.
 
 Evaluate a guest report: `python scripts/qa_report.py REPORT.txt` (exit 0 only if all checks pass).
 
+### End-to-end install and installed-system boot
+
+```console
+# 1) install onto a disposable disk (never a real one)
+$ python scripts/qemu_boot_test.py artifacts/iso/HSCL1-...-amd64.iso artifacts/install-e2e \
+    --firmware uefi --accel whpx --mem 6144 --smp 4 \
+    --disk artifacts/vdisks/install-e2e.qcow2 --disk-size 40G \
+    --try-live --dismiss-welcome --steps tests/visual/scenarios/install-normal-kickoff.json --timeout 5400
+
+# 2) boot that disk instead of the ISO (iso = the literal string "none")
+$ python scripts/qemu_boot_test.py none artifacts/boot-installed \
+    --firmware uefi --accel whpx --mem 4096 --smp 4 \
+    --disk artifacts/vdisks/install-e2e.qcow2 --login-password 'the password typed in the installer'
+
+# 3) encrypted install: add --unlock-passphrase (and optionally --unlock-first-wrong)
+```
+
+`install-normal-kickoff.json` installs unencrypted; ticking "Encrypt system" is a separate run because it
+adds a passphrase prompt at every boot.
+
 ## Stress and fault gate (disposable VM only)
 
 `scripts/stress_vm.sh [--out DIR]` runs `stress-ng --klog-check --metrics-brief`, `fio` (4k randrw, 1 GiB file,
