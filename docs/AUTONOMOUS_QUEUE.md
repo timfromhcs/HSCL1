@@ -13,7 +13,7 @@ booted-artifact evidence missing).
 | ID | Item | Gate | Status |
 |---|---|---|---|
 | Q-01 | Desktop icon label legibility (Plasma FolderView foreground/shadow) | static config test + VM screenshot | VM-PENDING — same root cause as Q-07 (light session palette ⇒ dark text on dark wallpaper); verify together |
-| Q-02 | Launcher duplicate/mixed-language sections | `test_menu_file.py` + bilingual VM screenshot | OPEN (needs an owner decision: `.directory` localization vs dropping the merged file) |
+| Q-02 | Launcher duplicate/mixed-language sections | `test_menu_file.py` + bilingual VM screenshot | VM-PENDING — root cause was localised `<Name xml:lang>` children preventing KDE from merging our sections with the base menu. Titles now live in six `hscl-*.directory` files (`/usr/share/desktop-directories`), guarded by `test_submenus_carry_only_the_default_name` and `test_every_section_references_a_localised_directory_file`. Bilingual VM run still required. |
 | Q-03 | Recapture `13_offline_handbook.png` with a visible handbook window | pixel check of the caption subject | BLOCKED (needs booted candidate) |
 | Q-04 | Installer top-bar clipping + localized step labels | VM screenshot at 1280×800 | VM-PENDING — `branding.desc` now uses `windowExpanding: normal`, `windowSize: 1100px,640px`, `windowPlacement: center` (guard: `tests/unit/test_installer_branding.py`). Step labels come from Calamares' own translations and apply after the language is chosen; no code change. |
 | Q-05 | Reconcile `CLAIMS.md` artifact identity with `VERSION`/README | `docs/CLAIMS.md` header matches `VERSION` and release assets | DONE (2026-11-09, header names v0.1.4-alpha.0 and marks every row artifact-bound) |

@@ -54,12 +54,34 @@ def test_no_submenu_is_empty_or_duplicated():
     assert len(names) == len(set(names)), f"duplicate submenu names: {names}"
 
 
-def test_the_submenus_are_named_in_english_german_and_french():
+def test_submenus_carry_only_the_default_name():
+    """Localised <Name xml:lang> children stopped KDE from merging our sections with the base menu, so
+    the launcher listed "Development" next to "Développement" (visual QA 2026-11-09). Translated titles
+    belong in the .directory files."""
     root = ET.fromstring(MENU.read_text(encoding="utf-8"))
-    top = root.find("Menu")
-    assert top is not None
-    langs = {n.get("{http://www.w3.org/XML/1998/namespace}lang") or "C" for n in top.findall("Name")}
-    assert {"C", "de", "fr"} <= langs, langs
+    offenders = []
+    for menu, names_by_lang, _ in _menus(root):
+        extra = set(names_by_lang) - {"C"}
+        if extra:
+            offenders.append((names_by_lang.get("C", "?"), sorted(extra)))
+    assert not offenders, f"localised <Name> entries break menu merging: {offenders}"
+
+
+DIRECTORIES = ROOT / "packages/debian/hscl-branding/usr/share/desktop-directories"
+
+
+def test_every_section_references_a_localised_directory_file():
+    root = ET.fromstring(MENU.read_text(encoding="utf-8"))
+    refs = [d.text for d in root.iter("Directory") if d.text]
+    assert refs, "sections must reference .directory files for their translated titles"
+    for ref in refs:
+        path = DIRECTORIES / ref
+        assert path.is_file(), f"missing {path}"
+        text = path.read_text(encoding="utf-8")
+        assert "Type=Directory" in text
+        for lang in ("Name=", "Name[de]=", "Name[fr]="):
+            assert lang in text, f"{ref}: missing {lang}"
+        assert "Icon=" in text, f"{ref}: a section without an icon"
 
 
 def test_the_three_modes_are_not_invented_as_menu_sections():
@@ -74,12 +96,11 @@ def test_the_three_modes_are_not_invented_as_menu_sections():
 
 
 def test_any_directory_reference_points_at_a_shipped_file():
-    """A <Directory> names a .directory file that supplies the section icon/comment. A dangling
-    reference is silent in a launcher, so it is checked: either the file is shipped here or the
-    element is absent (the <Name> then comes from this menu file alone)."""
+    """A <Directory> names a .directory file from $XDG_DATA_DIRS/desktop-directories (not from the menu
+    directory). A dangling reference is silent in a launcher, so it is checked against the package."""
     root = ET.fromstring(MENU.read_text(encoding="utf-8"))
     refs = [d.text for d in root.iter("Directory") if d.text]
-    missing = [r for r in refs if not (MENU.parent / r).is_file()]
+    missing = [r for r in refs if not (DIRECTORIES / r).is_file()]
     assert not missing, f"<Directory> without a shipped file: {missing}"
 
 

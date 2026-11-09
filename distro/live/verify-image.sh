@@ -33,6 +33,9 @@ check "HCS dock template"                 test -s "$root/usr/share/plasma/layout
 check "HCS is the default look-and-feel"  grep -q '^LookAndFeelPackage=org.hcs.hscl1.desktop$' "$root/usr/share/kubuntu-default-settings/kf5-settings/kdeglobals"
 check "HCS palette is the default scheme"  grep -q '^ColorScheme=HCSMidnight$' "$root/usr/share/kubuntu-default-settings/kf5-settings/kdeglobals"
 check "HCS palette shipped for widget apps" test -s "$root/usr/share/color-schemes/HCSMidnight.colors"
+for d in development internet office graphics multimedia system; do
+  check "launcher section directory $d" test -s "$root/usr/share/desktop-directories/hscl-$d.directory"
+done
 check "sysctl hardening installed"        test -s "$root/etc/sysctl.d/90-hscl.conf"
 check "security baseline service enabled" test -L "$root/etc/systemd/system/multi-user.target.wants/hscl-security-baseline.service"
 check "autotune autostart at login"        grep -q '^Exec=hscl autotune$' "$root/etc/xdg/autostart/hscl-autotune.desktop"

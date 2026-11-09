@@ -4,21 +4,24 @@
      entries today: Development, Internet, Office, Graphics, Multimedia (AudioVideo), System.
      "Favorites" is a launcher feature, not a menu section. "Security Lab" and "Privacy" are
      deliberately absent: HSCL1 ships no desktop entries for them yet, and an empty section is a
-     button that does nothing (see docs/KNOWN_LIMITATIONS.md). Add them together with the entries. -->
+     button that does nothing (see docs/KNOWN_LIMITATIONS.md). Add them together with the entries.
+
+     IMPORTANT (visual QA 2026-11-09): a <Menu> is merged with the base menu by its *default* <Name>.
+     Localised <Name xml:lang=".."> children made KDE treat these as separate menus, so the launcher
+     showed "Development" next to "Développement" and "Graphics" next to "Graphisme". The translated
+     titles now live in the .directory files under /usr/share/desktop-directories/ (XDG way). -->
 <Menu>
   <Name>Applications</Name>
   <Menu>
     <Name>Development</Name>
-    <Name xml:lang="de">Entwicklung</Name>
-    <Name xml:lang="fr">Développement</Name>
+    <Directory>hscl-development.directory</Directory>
     <Include>
       <Category>Development</Category>
     </Include>
   </Menu>
   <Menu>
     <Name>Internet</Name>
-    <Name xml:lang="de">Internet</Name>
-    <Name xml:lang="fr">Internet</Name>
+    <Directory>hscl-internet.directory</Directory>
     <Include>
       <Category>Network</Category>
     </Include>
@@ -31,32 +34,28 @@
   </Menu>
   <Menu>
     <Name>Office</Name>
-    <Name xml:lang="de">Büro</Name>
-    <Name xml:lang="fr">Bureau</Name>
+    <Directory>hscl-office.directory</Directory>
     <Include>
       <Category>Office</Category>
     </Include>
   </Menu>
   <Menu>
     <Name>Graphics</Name>
-    <Name xml:lang="de">Grafik</Name>
-    <Name xml:lang="fr">Graphisme</Name>
+    <Directory>hscl-graphics.directory</Directory>
     <Include>
       <Category>Graphics</Category>
     </Include>
   </Menu>
   <Menu>
     <Name>Multimedia</Name>
-    <Name xml:lang="de">Multimedia</Name>
-    <Name xml:lang="fr">Multimédia</Name>
+    <Directory>hscl-multimedia.directory</Directory>
     <Include>
       <Category>AudioVideo</Category>
     </Include>
   </Menu>
   <Menu>
     <Name>System</Name>
-    <Name xml:lang="de">System</Name>
-    <Name xml:lang="fr">Système</Name>
+    <Directory>hscl-system.directory</Directory>
     <Include>
       <Category>System</Category>
     </Include>

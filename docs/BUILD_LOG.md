@@ -1577,6 +1577,14 @@ Source `d817093`, Windows 11 host + Ubuntu 26.04 WSL. No VM boot in this session
   installer now runs as a centred `1100x640` window that stays clear of the bar and the dock on the
   smallest supported 1366×768 screen. Guard: `tests/unit/test_installer_branding.py` (window policy, size
   bounds, HCS palette values, version string equals `VERSION`). Visual result remains `VM-PENDING`.
+- **Launcher sections (Q-02).** The merged menu declared its sections twice in the launcher
+  (`Development` + `Développement`, `Graphics` + `Graphisme`): localised `<Name xml:lang>` children stop
+  KDE from merging a section with the stock menu's section of the same name. Translations moved into six
+  `.directory` files under `/usr/share/desktop-directories/` (the XDG location), each with `Name`,
+  `Name[de]`, `Name[fr]` and an icon; the menu file now carries only the default `<Name>` plus
+  `<Directory>`. `test_menu_file.py` grew two guards (`test_submenus_carry_only_the_default_name`,
+  `test_every_section_references_a_localised_directory_file`) and `verify-image.sh` checks the six files
+  in the built image. Bilingual launcher behaviour stays `VM-PENDING`.
 - **Not verified here:** anything requiring a booted artifact (theme result, launcher merge behaviour,
   installer clipping, screenshots). Those rows stay `VM-PENDING` in `docs/AUTONOMOUS_QUEUE.md`.
 
