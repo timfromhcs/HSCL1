@@ -19,6 +19,7 @@ Item {
         case "firewall": return qsTr("Firewall")
         case "apt-sources": return qsTr("APT sources")
         case "secure-boot": return qsTr("Secure Boot")
+        case "theme": return qsTr("Theme")
         default: return id
         }
     }

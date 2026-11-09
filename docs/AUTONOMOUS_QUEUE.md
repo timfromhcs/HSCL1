@@ -19,7 +19,7 @@ booted-artifact evidence missing).
 | Q-05 | Reconcile `CLAIMS.md` artifact identity with `VERSION`/README | `docs/CLAIMS.md` header matches `VERSION` and release assets | DONE (2026-11-09, header names v0.1.4-alpha.0 and marks every row artifact-bound) |
 | Q-06 | Qt/QML test runner in WSL (`qt6-declarative-dev-tools`) | `qmltestrunner` + `qmllint` execute `tests/qml_plugin` and `tst_pages.qml` | DONE (2026-11-09: tools live in `/usr/lib/qt6/bin`; `scripts/dev/qml-gate.sh` runs both suites + qmllint, wired into `forge check` as `qml (WSL)`) |
 | Q-07 | Theme fix from fix #5 needs booted-artifact proof | VM screenshot of Dolphin/Konsole dark | VM-PENDING |
-| Q-08 | Add `hscl doctor`/Control Center guard for the new palette default | `test_theme_defaults.py` extended | DONE (2026-11-09, `tests/unit/test_theme_defaults.py`, 5 tests) |
+| Q-08 | Palette guard in `hscl doctor` and the Control Center | Rust tests + `test_theme_defaults.py` | DONE (2026-11-09: `doctor` gained a `theme` check — pass on `HCS*`, warn on any other scheme, skip when no kdeglobals is readable; `SecurityPage` labels it EN/DE/FR) |
 | Q-09 | `forge check` false red on a transient WSL launcher failure | retry-once-on-empty-stderr + 2 tests | DONE (2026-11-09, `test_bash_gate_retries_a_launcher_failure_with_empty_stderr`) |
 | Q-19 | Reduce `qmllint` `[unqualified]` warnings in the Control Center (23 of 152) | `qml-gate.sh` warning budget lowered | OPEN — 23 come from `Main.qml`'s C++ context property `cli` and from Repeater delegates reading outer ids; the rest are PlasmaCore imports in the wallpaper plugin |
 | Q-20 | Prevent QML lint regression | `QML_WARN_BUDGET` ratchet in `scripts/dev/qml-gate.sh` | DONE (2026-11-09, budget 152, verified to fail at 10) |

@@ -195,6 +195,10 @@
         <source>APT sources</source>
         <translation>Sources APT</translation>
     </message>
+    <message>
+        <source>Theme</source>
+        <translation>Thème</translation>
+    </message>
 </context>
 <context>
     <name>AppearancePage</name>

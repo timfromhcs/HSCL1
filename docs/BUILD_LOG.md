@@ -1591,6 +1591,12 @@ Source `d817093`, Windows 11 host + Ubuntu 26.04 WSL. No VM boot in this session
   the README and `docs/img/showcase/manifest.json`, and the README now says the capture is pending.
   `tests/unit/test_showcase_evidence.py` fails if a linked image is missing, if the manifest and the
   directory disagree, or if a manifest entry has no description.
+- **Palette detection in the product (Q-08).** `hscl doctor` now reports a `theme` check:
+  `parse_color_scheme()` reads `[General] ColorScheme` from `~/.config/kdeglobals` (fallback
+  `/etc/xdg/kdeglobals`), the check passes for any `HCS*` scheme, warns with the actual name otherwise
+  ("widget apps will not match the HCS palette") and skips when no file is readable. Two Rust tests cover
+  the section-scoped parser and the three verdicts; the Control Center maps the `theme` id to a translated
+  label. Rust total is now 247 tests.
 - **Not verified here:** anything requiring a booted artifact (theme result, launcher merge behaviour,
   installer clipping, screenshots). Those rows stay `VM-PENDING` in `docs/AUTONOMOUS_QUEUE.md`.
 
