@@ -11,6 +11,18 @@ Item {
     Fetcher { id: docFetch; backend: page.backend; args: ["doctor"] }
     Component.onCompleted: { secFetch.reload(); docFetch.reload() }
 
+    function checkLabel(id) {
+        switch (id) {
+        case "arch": return qsTr("Architecture")
+        case "memory": return qsTr("Memory")
+        case "apparmor": return qsTr("AppArmor")
+        case "firewall": return qsTr("Firewall")
+        case "apt-sources": return qsTr("APT sources")
+        case "secure-boot": return qsTr("Secure Boot")
+        default: return id
+        }
+    }
+
     ScrollView {
         anchors.fill: parent
         contentWidth: availableWidth
@@ -31,7 +43,7 @@ Item {
                 title: qsTr("Health check")
                 Repeater {
                     model: docFetch.result ? docFetch.result.checks : []
-                    delegate: Row2 { label: modelData.id; value: st.label(modelData.level) + " - " + modelData.detail }
+                    delegate: Row2 { label: page.checkLabel(modelData.id); value: st.label(modelData.level) + " - " + modelData.detail }
                 }
             }
             Item { Layout.preferredHeight: Theme.space5 }

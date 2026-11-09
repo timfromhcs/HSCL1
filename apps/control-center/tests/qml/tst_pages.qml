@@ -18,7 +18,7 @@ Item {
             var data = null
             if (key === "system info") data = { os_pretty: "MockOS 9.9", arch: "mockarch", kernel: "9.9.9-mock", mem_total_mib: 12345 }
             else if (key === "security status") data = { secure_boot: "yes", apparmor: "no", firewall_ufw_enabled: "unknown", forbidden_apt_sources: ["evil.example"] }
-            else if (key === "doctor") data = { passed: 7, warned: 3, failed: 2, skipped: 1, checks: [{ id: "probe-x", level: "warn", detail: "mock detail" }] }
+            else if (key === "doctor") data = { passed: 7, warned: 3, failed: 2, skipped: 1, checks: [{ id: "arch", level: "pass", detail: "x86_64" }, { id: "probe-x", level: "warn", detail: "mock detail" }] }
             else if (key === "version") data = { product: "HSCL1", version: "9.8.7-mock" }
             else if (key === "appearance theme list") data = { current: "hcs-nord", themes: [{ id: "hcs-midnight", title: "HCS Midnight" }, { id: "hcs-nord", title: "HCS Nord" }] }
             var ok = data !== null
@@ -58,6 +58,8 @@ Item {
             tryVerify(function () { return joined(p).indexOf("evil.example") >= 0 })
             verify(joined(p).indexOf("probe-x") >= 0)
             verify(joined(p).indexOf("mock detail") >= 0)
+            // Known check ids are shown as human labels, unknown ones stay as they are.
+            verify(joined(p).indexOf("Architecture") >= 0)
         }
 
         function test_appearance_lists_themes_and_apply_sends_exact_command() {

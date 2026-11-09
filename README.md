@@ -229,7 +229,7 @@ HSCL1 adheres to a strict evidence-driven development contract: **nothing is cla
 | **Remastered Live/Installer ISO** | `VM-VERIFIED` | Boots to live desktop in 130 s under UEFI (QEMU+WHPX); Welcome dismissed; [`docs/img/showcase/01_desktop_clean.png`](docs/img/showcase/01_desktop_clean.png) |
 | **Secure Boot Firmware Boot** | `VM-VERIFIED` | Boots under OVMF Secure Boot code + Microsoft-key vars; signed shim/GRUB/kernel bootchain preserved |
 | **LUKS2 Full-Disk Installation** | `VM-VERIFIED` | 40 GB virtual disk; Argon2id key derivation, `/` = `0:0 755`, no passphrase leak in logs; [`docs/img/desktop-installed.png`](docs/img/desktop-installed.png) |
-| **Rust `hscl` CLI Workspace** | `TESTED` | 202 unit tests (Windows) + 209 unit tests (Linux/WSL); 0 failures; `cargo clippy -D warnings` clean |
+| **Rust `hscl` CLI Workspace** | `TESTED` | 245 unit tests (Windows, 2026-11-09); 0 failures; `cargo clippy --all-targets -D warnings` and `cargo fmt --check` clean |
 | **Security Lab CLI** | `TESTED` | `run`, `install`, `commit`, `destroy` subcommands with mandatory `--yes` gate; builder probe verified |
 | **MCP Stdio Server Protocol** | `TESTED` | 7/7 protocol tests passed via `scripts/dev/mcp_selftest.py` (JSON-RPC handshake, 14 tools listed) |
 | **Memory Manager Baseline** | `VM-VERIFIED` | `/dev/zram0` (1.9 GB zstd, priority 100), `earlyoom` active, `hscl-ai.slice` memory capped at 60% |
@@ -317,6 +317,8 @@ $ scripts/dev/wsl-cycle.sh iso --fast
 - [Threat Model & Security](docs/THREAT_MODEL.md) — Security assumptions and container isolation rules.
 - [Build Log](docs/BUILD_LOG.md) — Chronological engineering execution and test logs.
 - [Roadmap to v1.0.0](docs/superpowers/plans/2026-11-08-selfheal-masterplan.md) — Active self-healing research masterplan.
+- [Quality audit & visual QA (2026-11-09)](docs/QA_FINDINGS_2026-11-09.md) — What works, what is weak, every known defect.
+- [Autonomous work queue](docs/AUTONOMOUS_QUEUE.md) — The ordered list the agent loop executes.
 - [Licenses & Attributions](docs/LICENSES.md) — Upstream component licenses and intellectual property terms.
 
 ---

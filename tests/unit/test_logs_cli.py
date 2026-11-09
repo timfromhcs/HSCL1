@@ -31,12 +31,12 @@ def hscl_bin() -> Path:
 
 
 def test_logs_show_text_and_json(hscl_bin: Path):
-    res = subprocess.run([str(hscl_bin), "logs", "show"], capture_output=True, text=True, cwd=str(ROOT))
+    res = subprocess.run([str(hscl_bin), "logs", "show"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res.returncode == 0
     assert "=== Log: system" in res.stdout
     assert "redacted" in res.stdout
 
-    res_j = subprocess.run([str(hscl_bin), "--json", "logs", "show"], capture_output=True, text=True, cwd=str(ROOT))
+    res_j = subprocess.run([str(hscl_bin), "--json", "logs", "show"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res_j.returncode == 0
     data = json.loads(res_j.stdout)
     assert data["target"] == "system"
@@ -50,7 +50,7 @@ def test_logs_show_lines_and_service(hscl_bin: Path):
     res_j = subprocess.run(
         [str(hscl_bin), "--json", "logs", "show", "kernel", "--lines", "15"],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         cwd=str(ROOT),
     )
     assert res_j.returncode == 0
@@ -61,11 +61,11 @@ def test_logs_show_lines_and_service(hscl_bin: Path):
 
 
 def test_logs_collect_stdout_text_and_json(hscl_bin: Path):
-    res = subprocess.run([str(hscl_bin), "logs", "collect"], capture_output=True, text=True, cwd=str(ROOT))
+    res = subprocess.run([str(hscl_bin), "logs", "collect"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res.returncode == 0
     assert "=== Diagnostic Log Bundle (redacted," in res.stdout
 
-    res_j = subprocess.run([str(hscl_bin), "--json", "logs", "collect"], capture_output=True, text=True, cwd=str(ROOT))
+    res_j = subprocess.run([str(hscl_bin), "--json", "logs", "collect"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res_j.returncode == 0
     data = json.loads(res_j.stdout)
     assert "timestamp" in data
@@ -87,7 +87,7 @@ def test_logs_collect_output_file_and_refuses_overwrite(hscl_bin: Path, tmp_path
     res = subprocess.run(
         [str(hscl_bin), "logs", "collect", "--output", str(bundle_file)],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         cwd=str(ROOT),
     )
     assert res.returncode == 0
@@ -103,7 +103,7 @@ def test_logs_collect_output_file_and_refuses_overwrite(hscl_bin: Path, tmp_path
     res_refuse = subprocess.run(
         [str(hscl_bin), "logs", "collect", "--output", str(bundle_file)],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         cwd=str(ROOT),
     )
     assert res_refuse.returncode != 0

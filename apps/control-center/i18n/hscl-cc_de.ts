@@ -183,6 +183,18 @@
         <source>Loading…</source>
         <translation>Lädt …</translation>
     </message>
+    <message>
+        <source>Architecture</source>
+        <translation>Architektur</translation>
+    </message>
+    <message>
+        <source>Memory</source>
+        <translation>Arbeitsspeicher</translation>
+    </message>
+    <message>
+        <source>APT sources</source>
+        <translation>APT-Quellen</translation>
+    </message>
 </context>
 <context>
     <name>AppearancePage</name>

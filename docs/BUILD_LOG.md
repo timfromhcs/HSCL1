@@ -1503,7 +1503,6 @@ Decision rule: pick the one that unblocks the most downstream work. HCSUDA H3c-3
   - Python unit tests: Added 3 new tests in `tests/unit/test_security_lab_cli.py` covering toolset install/list, container shell/stop, and VM create/launch dry-run execution.
 
 ### V1-W Remastered Candidate ISO & 12-Track In-Guest Live Verification (2026-11-09)
-
 - **Remastered Candidate Build (AGENTS.md sections 0.2, 0.3.1 & 2.6):**
   - Remastered `HSCL1-candidate-amd64.iso` (5,027,004,416 bytes, SHA-256 `aa9a52008aff55ac69f5632afba2db390fe598c771bfb50e142794d7223786a7`).
   - Integrated `hscl-base` (with release `hscl` binary compiling all 26 CLI subcommands including recovery, dev, system, appearance, ai, and lab expansion), `earlyoom`, `systemd-zram-generator`, and Look-and-Feel desktop configurations into the squashfs.
@@ -1528,3 +1527,36 @@ Decision rule: pick the one that unblocks the most downstream work. HCSUDA H3c-3
   - Executed `scripts/dev/live_interactive_showcase.py` in live QEMU WHPX session.
   - Refreshed all 20 genuine application window screenshots in `docs/img/showcase/` with live captures (Kickoff, Konsole with new subcommands, Control Center, Dolphin, Kate, Calamares, Handbook, and dynamic wallpapers).
   - Updated showcase manifest `docs/img/showcase/manifest.json`.
+
+### V1-X Local quality audit, test-harness repair and visual QA (2026-11-09)
+
+Source `d817093`, Windows 11 host + Ubuntu 26.04 WSL. No VM boot in this session.
+
+- **Baseline measurement.** `python scripts/forge.py check` initially **FAILED**: 21 pytest failures
+  (866 passed). Root causes, all in the harness/CLI rather than the product logic:
+  `_find_hscl()` selected the Linux ELF `target/debug/hscl` before `hscl.exe` on Windows
+  (`WinError 193`); `validate_storage_path` used `Path::is_absolute()` so POSIX paths like
+  `/tmp/hscl_ai_models` were rejected when the binary ran on Windows; eleven CLI test modules called
+  `subprocess.run(text=True)` and therefore decoded UTF-8 output with the ANSI code page.
+- **Fixes.** Platform-aware binary lookup in `tests/unit/test_{ai,appearance,dev,system}_cli.py`;
+  `is_absolute_any_platform()` in `cli/hscl/src/ai.rs`; UTF-8 decoding in the eleven CLI test modules
+  and `test_workshop_evidence.py`; `/proc/cpuinfo` fallback to `available_parallelism()` for
+  `hscl ai detect` on non-Linux hosts.
+- **Control Center.** `SecurityPage` now renders human labels for known doctor check ids instead of raw
+  ids (`arch`, `apt-sources`, `secure-boot`) with DE/FR translations; `Row2` sizes to
+  `contentHeight`, so wrapped rows are no longer clipped by the `Card` (visible in the 2026-11-09
+  screenshot).
+- **Theme default.** Hook `010-hscl-defaults.sh` now also writes `ColorScheme=HCSMidnight` into
+  `kubuntu-default-settings/kf5-settings/kdeglobals`; `distro/live/verify-image.sh` gained the matching
+  gate. Evidence for the defect: `docs/img/showcase/10_app_dolphin.png` and
+  `08_terminal_hscl_status_doctor.png` show light Qt chrome inside a dark shell.
+- **New guard.** `tests/unit/test_theme_defaults.py` binds the scheme name derived from
+  `themes/tokens/tokens.json` to the hook, the image gate and the look-and-feel `defaults`.
+- **Result.** `forge check` → 6/6 PASS (887 passed, 22 skipped, 53 deselected). `cargo test --all` →
+  245 passed. `cargo clippy --all-targets -D warnings` and `cargo fmt --check` clean.
+- **Visual QA.** `docs/QA_FINDINGS_2026-11-09.md` records ten findings from the committed screenshots,
+  including the illegible desktop icon labels, duplicate mixed-language launcher sections, the clipped
+  installer logo and the `13_offline_handbook.png` capture that contains no handbook window.
+- **Not verified here:** anything requiring a booted artifact (theme result, launcher merge behaviour,
+  installer clipping, screenshots). Those rows stay `VM-PENDING` in `docs/AUTONOMOUS_QUEUE.md`.
+

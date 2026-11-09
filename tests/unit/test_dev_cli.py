@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -10,11 +11,10 @@ from pathlib import Path
 
 def _find_hscl() -> str:
     root = Path(__file__).resolve().parent.parent.parent
+    exe = "hscl.exe" if os.name == "nt" else "hscl"
     candidates = [
-        root / "target" / "debug" / "hscl",
-        root / "target" / "debug" / "hscl.exe",
-        root / "target" / "release" / "hscl",
-        root / "target" / "release" / "hscl.exe",
+        root / "target" / "debug" / exe,
+        root / "target" / "release" / exe,
     ]
     for c in candidates:
         if c.is_file():
@@ -32,7 +32,7 @@ def _run_hscl(args: list[str]) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         cmd,
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         check=False,
     )
 

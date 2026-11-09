@@ -132,8 +132,19 @@ pub fn detect() -> AiDetect {
         )
     };
     let _ = Path::new("/");
+    // /proc/cpuinfo is Linux-only; fall back to the portable thread count so the
+    // CLI still reports a truthful value when built or tested on another host.
+    let mut cpu_threads = cpuinfo
+        .lines()
+        .filter(|l| l.starts_with("processor"))
+        .count();
+    if cpu_threads == 0 {
+        cpu_threads = std::thread::available_parallelism()
+            .map(|n| n.get())
+            .unwrap_or(1);
+    }
     AiDetect {
-        cpu_threads: cpuinfo.lines().filter(|l| l.starts_with("processor")).count(),
+        cpu_threads,
         cpu_flags: interesting_flags(&cpuinfo),
         mem_total_mib: crate::sysinfo::meminfo_mib(&mem, "MemTotal:"),
         mem_available_mib: crate::sysinfo::meminfo_mib(&mem, "MemAvailable:"),
@@ -451,8 +462,20 @@ pub fn storage_info(cfg: &AiConfig) -> StorageInfo {
     }
 }
 
+/// True for a platform-native absolute path, or for a POSIX-rooted path when
+/// the binary is built on a non-Unix host (HSCL1 targets Linux; the CLI is also
+/// unit-tested on Windows, where `/var/ai/models` must stay valid input).
+fn is_absolute_any_platform(p: &Path) -> bool {
+    if p.is_absolute() {
+        return true;
+    }
+    let s = p.to_string_lossy();
+    let bytes = s.as_bytes();
+    bytes.len() > 1 && bytes[0] == b'/' && bytes[1] != b'/'
+}
+
 pub fn validate_storage_path(p: &Path) -> Result<PathBuf> {
-    if !p.is_absolute() {
+    if !is_absolute_any_platform(p) {
         bail!("storage path must be absolute: {}", p.display());
     }
     let s = p
@@ -681,12 +704,12 @@ mod ai_subcommand_tests {
 
     #[test]
     fn test_validate_storage_path() {
-        #[cfg(unix)]
-        {
-            assert!(validate_storage_path(Path::new("/var/ai/models")).is_ok());
-            assert!(validate_storage_path(Path::new("relative/path")).is_err());
-            assert!(validate_storage_path(Path::new("/var/ai;rm -rf /")).is_err());
-        }
+        // POSIX-rooted paths are valid on every host: HSCL1 targets Linux.
+        assert!(validate_storage_path(Path::new("/var/ai/models")).is_ok());
+        assert!(validate_storage_path(Path::new("/tmp/hscl_ai_models")).is_ok());
+        assert!(validate_storage_path(Path::new("relative/path")).is_err());
+        assert!(validate_storage_path(Path::new("/var/ai;rm -rf /")).is_err());
+        assert!(validate_storage_path(Path::new("/")).is_err());
         #[cfg(windows)]
         {
             assert!(validate_storage_path(Path::new("C:\\AI\\Models")).is_ok());

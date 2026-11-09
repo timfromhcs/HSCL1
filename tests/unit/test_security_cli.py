@@ -31,7 +31,7 @@ def hscl_bin() -> Path:
 
 
 def test_security_status_text_and_json(hscl_bin: Path):
-    res = subprocess.run([str(hscl_bin), "security", "status"], capture_output=True, text=True, cwd=str(ROOT))
+    res = subprocess.run([str(hscl_bin), "security", "status"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res.returncode == 0
     assert "AppArmor enabled:" in res.stdout
     assert "UFW enabled:" in res.stdout
@@ -39,7 +39,7 @@ def test_security_status_text_and_json(hscl_bin: Path):
     assert "LUKS volumes open:" in res.stdout
     assert "Forbidden APT repos:" in res.stdout
 
-    res_j = subprocess.run([str(hscl_bin), "--json", "security", "status"], capture_output=True, text=True, cwd=str(ROOT))
+    res_j = subprocess.run([str(hscl_bin), "--json", "security", "status"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res_j.returncode == 0
     data = json.loads(res_j.stdout)
     assert "apparmor" in data
@@ -50,13 +50,13 @@ def test_security_status_text_and_json(hscl_bin: Path):
 
 
 def test_security_firewall_status_and_profiles(hscl_bin: Path):
-    res = subprocess.run([str(hscl_bin), "security", "firewall", "status"], capture_output=True, text=True, cwd=str(ROOT))
+    res = subprocess.run([str(hscl_bin), "security", "firewall", "status"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res.returncode == 0
     assert "ufw service:" in res.stdout
     assert "default incoming:" in res.stdout
     assert "active profile:" in res.stdout
 
-    res_j = subprocess.run([str(hscl_bin), "--json", "security", "firewall", "status"], capture_output=True, text=True, cwd=str(ROOT))
+    res_j = subprocess.run([str(hscl_bin), "--json", "security", "firewall", "status"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res_j.returncode == 0
     data = json.loads(res_j.stdout)
     assert "enabled" in data
@@ -69,14 +69,14 @@ def test_security_firewall_status_and_profiles(hscl_bin: Path):
 
 
 def test_security_firewall_profile_list_and_set_dry_run(hscl_bin: Path):
-    res = subprocess.run([str(hscl_bin), "security", "firewall", "profile", "list"], capture_output=True, text=True, cwd=str(ROOT))
+    res = subprocess.run([str(hscl_bin), "security", "firewall", "profile", "list"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res.returncode == 0
     assert "standard" in res.stdout
     assert "public-wifi" in res.stdout
     assert "lab" in res.stdout
     assert "privacy" in res.stdout
 
-    res_j = subprocess.run([str(hscl_bin), "--json", "security", "firewall", "profile", "list"], capture_output=True, text=True, cwd=str(ROOT))
+    res_j = subprocess.run([str(hscl_bin), "--json", "security", "firewall", "profile", "list"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res_j.returncode == 0
     data = json.loads(res_j.stdout)
     assert "profiles" in data
@@ -87,7 +87,7 @@ def test_security_firewall_profile_list_and_set_dry_run(hscl_bin: Path):
     res_std = subprocess.run(
         [str(hscl_bin), "--json", "security", "firewall", "profile", "set", "standard", "--dry-run"],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         cwd=str(ROOT),
     )
     assert res_std.returncode == 0
@@ -100,7 +100,7 @@ def test_security_firewall_profile_list_and_set_dry_run(hscl_bin: Path):
     res_priv = subprocess.run(
         [str(hscl_bin), "--json", "security", "firewall", "profile", "set", "privacy", "--dry-run"],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         cwd=str(ROOT),
     )
     assert res_priv.returncode == 0
@@ -110,12 +110,12 @@ def test_security_firewall_profile_list_and_set_dry_run(hscl_bin: Path):
 
 
 def test_security_apparmor_status(hscl_bin: Path):
-    res = subprocess.run([str(hscl_bin), "security", "apparmor", "status"], capture_output=True, text=True, cwd=str(ROOT))
+    res = subprocess.run([str(hscl_bin), "security", "apparmor", "status"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res.returncode == 0
     assert "AppArmor:" in res.stdout
     assert "profiles loaded:" in res.stdout
 
-    res_j = subprocess.run([str(hscl_bin), "--json", "security", "apparmor", "status"], capture_output=True, text=True, cwd=str(ROOT))
+    res_j = subprocess.run([str(hscl_bin), "--json", "security", "apparmor", "status"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res_j.returncode == 0
     data = json.loads(res_j.stdout)
     assert "enabled" in data
@@ -125,14 +125,14 @@ def test_security_apparmor_status(hscl_bin: Path):
 
 
 def test_security_audit_and_report_file(hscl_bin: Path, tmp_path: Path):
-    res = subprocess.run([str(hscl_bin), "security", "audit"], capture_output=True, text=True, cwd=str(ROOT))
+    res = subprocess.run([str(hscl_bin), "security", "audit"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res.returncode == 0
     assert "HSCL1 Security Posture Audit" in res.stdout
     assert "AppArmor:" in res.stdout
     assert "UFW Firewall:" in res.stdout
     assert "Verdict:" in res.stdout
 
-    res_j = subprocess.run([str(hscl_bin), "--json", "security", "audit"], capture_output=True, text=True, cwd=str(ROOT))
+    res_j = subprocess.run([str(hscl_bin), "--json", "security", "audit"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res_j.returncode == 0
     data = json.loads(res_j.stdout)
     assert "apparmor" in data
@@ -147,7 +147,7 @@ def test_security_audit_and_report_file(hscl_bin: Path, tmp_path: Path):
     res_file = subprocess.run(
         [str(hscl_bin), "security", "audit", "--output", str(report_file)],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         cwd=str(ROOT),
     )
     assert res_file.returncode == 0
@@ -159,7 +159,7 @@ def test_security_audit_and_report_file(hscl_bin: Path, tmp_path: Path):
     res_overwrite = subprocess.run(
         [str(hscl_bin), "security", "audit", "--output", str(report_file)],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         cwd=str(ROOT),
     )
     assert res_overwrite.returncode != 0
@@ -167,12 +167,12 @@ def test_security_audit_and_report_file(hscl_bin: Path, tmp_path: Path):
 
 
 def test_security_encryption_status(hscl_bin: Path):
-    res = subprocess.run([str(hscl_bin), "security", "encryption", "status"], capture_output=True, text=True, cwd=str(ROOT))
+    res = subprocess.run([str(hscl_bin), "security", "encryption", "status"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res.returncode == 0
     assert "LUKS mapped volumes:" in res.stdout
     assert "Root encrypted:" in res.stdout
 
-    res_j = subprocess.run([str(hscl_bin), "--json", "security", "encryption", "status"], capture_output=True, text=True, cwd=str(ROOT))
+    res_j = subprocess.run([str(hscl_bin), "--json", "security", "encryption", "status"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res_j.returncode == 0
     data = json.loads(res_j.stdout)
     assert "luks_mapped_volumes" in data
@@ -181,13 +181,13 @@ def test_security_encryption_status(hscl_bin: Path):
 
 
 def test_security_recovery_check(hscl_bin: Path):
-    res = subprocess.run([str(hscl_bin), "security", "recovery", "check"], capture_output=True, text=True, cwd=str(ROOT))
+    res = subprocess.run([str(hscl_bin), "security", "recovery", "check"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res.returncode == 0
     assert "backup directories:" in res.stdout
     assert "snapshots found:" in res.stdout
     assert "notice:" in res.stdout
 
-    res_j = subprocess.run([str(hscl_bin), "--json", "security", "recovery", "check"], capture_output=True, text=True, cwd=str(ROOT))
+    res_j = subprocess.run([str(hscl_bin), "--json", "security", "recovery", "check"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res_j.returncode == 0
     data = json.loads(res_j.stdout)
     assert "backup_dir_exists" in data

@@ -1,5 +1,22 @@
 # HSCL1 plan reconciliation index
 
+## Live status, 2026-11-09 (source `d817093`)
+
+- **Fast gate is green:** `python scripts/forge.py check` → 6/6 PASS (887 passed, 22 skipped,
+  53 deselected). `cargo test --all` → 245 passed; clippy `-D warnings` and `fmt --check` clean.
+  Before this date the gate was red with 21 failures caused by Windows-only harness defects.
+- **New artefacts in this reconciliation:** [`QA_FINDINGS_2026-11-09.md`](QA_FINDINGS_2026-11-09.md)
+  (assessment + visual QA with measured evidence) and
+  [`AUTONOMOUS_QUEUE.md`](AUTONOMOUS_QUEUE.md) (the single ordered work queue the agent loop consumes).
+- **Three defect classes are now explicit:** desktop icon label legibility, duplicate mixed-language
+  launcher sections, and light Qt chrome inside the dark shell. The Qt palette has a fix in the image
+  hook and a unit gate; the other two need a booted candidate and are `OPEN` in the queue.
+- **Evidence drift is a first-class item:** `CLAIMS.md` still describes a 0.1.3 artifact while
+  `VERSION`/README are 0.1.4 and the last BUILD_LOG candidate is no longer on disk. Rows must name their
+  artifact before any v1 readiness claim.
+- Nothing below loses authority. Where a plan says "NEXT" and the queue disagrees, the queue wins for
+  ordering; the plans keep their acceptance criteria.
+
 **Owner authorization update, 2026-11-08:** the owner explicitly confirmed that
 the related repositories are theirs and authorized updates/pushes there, including
 CQ-HECS, ESP-Miner and their sub-repositories. Earlier B-P1/P10/M4 prohibitions on

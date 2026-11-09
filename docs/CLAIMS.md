@@ -1,8 +1,15 @@
-# Claims and their evidence (reconciled 2026-11-08)
+# Claims and their evidence (reconciled 2026-11-09)
 
-Rule: nothing is stated as working without evidence. "unit-tested" means only the code logic ran in tests; it is **not** a claim that the feature works on real hardware or in the image.
+Rule: nothing is stated as working without evidence. "unit-tested" means only the code logic ran in tests;
+it is **not** a claim that the feature works on real hardware or in the image.
 
-Source snapshot for this reconciliation: `0ef918a` (`codex/autonomous-wave1`) on branch `codex/unified-self-healing-master`. The candidate `0.1.3-alpha.0` release ISO `HSCL1-0.1.3-alpha.0-amd64.iso` (SHA-256 `2e30b750a741fdbcf8ea3ffd0efe15a7ab36b9bcb559bb0defc1906ec7129fc3`, size: 5,488,246,784 bytes) was built 2026-11-08, booted to live desktop in 143 s (WHPX), and split into 3 verified parts (<1900 MiB each, verified via `release-join.sh --verify-only`). See [release readiness audit](research/2026-11-08-release-readiness-audit.md) and `BUILD_LOG.md`.
+**Artifact identity.** The current source is `d817093` (2026-11-09). The published prerelease is
+`v0.1.4-alpha.0`: three split parts whose SHA-256 digests match the GitHub release assets
+(`bb47493b…`, `7c9de400…`, `e6effeff…`) and join to `HSCL1-0.1.4-alpha.0-amd64.iso`
+(`a7e055a7…`, 5,488,312,320 bytes). Rows below were recorded against earlier images (`0.1.3-alpha.0`
+`2e30b750…`, built from `a55e023`; and a later local candidate that is no longer on disk). **A row is
+historical evidence for the artifact it names and never proof for the current tree.** The 2026-11-09
+audit and the list of open defect rows are in [QA_FINDINGS_2026-11-09.md](QA_FINDINGS_2026-11-09.md).
 
 Current source corrections (2026-11-08): HCSEASYMATH has six API/CLI operations and all six are exposed by the one-page UI at `d9a6f02`; `plot` returns sampled data rendered as SVG, not a verified mathematical plot image. The recorded app gate is 244 passed (`artifacts/forge/20261108-134544/summary.json`); it is not a browser accessibility or OS-image test. `hscl lab` has CLI execution wired (`hscl lab run`, `install`, `commit`, `destroy`) with mandatory `--yes="I am authorized to test this target"` preflight checks; rootless Podman execution and basic tool installation verified on the builder host; in-guest guest integration remains the next verification target.
 

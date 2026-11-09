@@ -35,12 +35,12 @@ REQUIRED_ATTESTATION = "I am authorized to test this target"
 
 
 def test_lab_status_text_and_json(hscl_bin: Path):
-    res = subprocess.run([str(hscl_bin), "lab", "status"], capture_output=True, text=True, cwd=str(ROOT))
+    res = subprocess.run([str(hscl_bin), "lab", "status"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res.returncode == 0
     assert "lab folder:" in res.stdout
     assert "toolsets:" in res.stdout
 
-    res_json = subprocess.run([str(hscl_bin), "--json", "lab", "status"], capture_output=True, text=True, cwd=str(ROOT))
+    res_json = subprocess.run([str(hscl_bin), "--json", "lab", "status"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res_json.returncode == 0
     data = json.loads(res_json.stdout)
     assert "podman_installed" in data
@@ -51,11 +51,11 @@ def test_lab_status_text_and_json(hscl_bin: Path):
 
 
 def test_lab_toolsets_text_and_json(hscl_bin: Path):
-    res = subprocess.run([str(hscl_bin), "lab", "toolsets"], capture_output=True, text=True, cwd=str(ROOT))
+    res = subprocess.run([str(hscl_bin), "lab", "toolsets"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res.returncode == 0
     assert "basic: nmap tcpdump tshark whois bind9-dnsutils netcat-openbsd" in res.stdout
 
-    res_json = subprocess.run([str(hscl_bin), "--json", "lab", "toolsets"], capture_output=True, text=True, cwd=str(ROOT))
+    res_json = subprocess.run([str(hscl_bin), "--json", "lab", "toolsets"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res_json.returncode == 0
     data = json.loads(res_json.stdout)
     assert isinstance(data, list)
@@ -69,7 +69,7 @@ def test_lab_spec_generates_command_without_attestation(hscl_bin: Path):
     res = subprocess.run(
         [str(hscl_bin), "lab", "spec", "--project", "testproj", "--image", VALID_IMAGE],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         cwd=str(ROOT),
     )
     assert res.returncode == 0
@@ -92,7 +92,7 @@ def test_lab_subcommands_fail_closed_without_attestation(hscl_bin: Path):
     ]
 
     for sub in subcommands:
-        res = subprocess.run([str(hscl_bin), "lab", *sub], capture_output=True, text=True, cwd=str(ROOT))
+        res = subprocess.run([str(hscl_bin), "lab", *sub], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
         assert res.returncode == 1
         output = res.stdout + res.stderr
         if have_podman:
@@ -105,7 +105,7 @@ def test_lab_subcommands_fail_closed_without_attestation(hscl_bin: Path):
         res_wrong = subprocess.run(
             [str(hscl_bin), "lab", *sub, "--yes=yes"],
             capture_output=True,
-            text=True,
+            text=True, encoding="utf-8", errors="replace",
             cwd=str(ROOT),
         )
         assert res_wrong.returncode == 1
@@ -119,7 +119,7 @@ def test_lab_subcommands_fail_closed_without_attestation(hscl_bin: Path):
         res_json = subprocess.run(
             [str(hscl_bin), "--json", "lab", *sub],
             capture_output=True,
-            text=True,
+            text=True, encoding="utf-8", errors="replace",
             cwd=str(ROOT),
         )
         assert res_json.returncode == 1
@@ -131,7 +131,7 @@ def test_lab_subcommands_fail_closed_without_attestation(hscl_bin: Path):
 
 
 def test_lab_toolset_subcommands_dry_run_and_attestation(hscl_bin: Path):
-    res_list = subprocess.run([str(hscl_bin), "lab", "toolset", "list"], capture_output=True, text=True, cwd=str(ROOT))
+    res_list = subprocess.run([str(hscl_bin), "lab", "toolset", "list"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res_list.returncode == 0
     assert "web:" in res_list.stdout
     assert "forensics:" in res_list.stdout
@@ -140,7 +140,7 @@ def test_lab_toolset_subcommands_dry_run_and_attestation(hscl_bin: Path):
     res_inst = subprocess.run(
         [str(hscl_bin), "--json", "lab", "toolset", "install", "web", "--dry-run"],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         cwd=str(ROOT),
     )
     assert res_inst.returncode == 0
@@ -153,7 +153,7 @@ def test_lab_toolset_subcommands_dry_run_and_attestation(hscl_bin: Path):
     res_fail = subprocess.run(
         [str(hscl_bin), "lab", "toolset", "install", "web"],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         cwd=str(ROOT),
     )
     assert res_fail.returncode == 1
@@ -161,7 +161,7 @@ def test_lab_toolset_subcommands_dry_run_and_attestation(hscl_bin: Path):
 
 
 def test_lab_container_subcommands_dry_run_and_attestation(hscl_bin: Path):
-    res_list = subprocess.run([str(hscl_bin), "--json", "lab", "container", "list"], capture_output=True, text=True, cwd=str(ROOT))
+    res_list = subprocess.run([str(hscl_bin), "--json", "lab", "container", "list"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res_list.returncode == 0
     data = json.loads(res_list.stdout)
     assert isinstance(data, list)
@@ -170,7 +170,7 @@ def test_lab_container_subcommands_dry_run_and_attestation(hscl_bin: Path):
     res_shell = subprocess.run(
         [str(hscl_bin), "--json", "lab", "container", "shell", "testproj", "--dry-run"],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         cwd=str(ROOT),
     )
     assert res_shell.returncode == 0
@@ -182,7 +182,7 @@ def test_lab_container_subcommands_dry_run_and_attestation(hscl_bin: Path):
     res_stop = subprocess.run(
         [str(hscl_bin), "--json", "lab", "container", "stop", "testproj", "--dry-run"],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         cwd=str(ROOT),
     )
     assert res_stop.returncode == 0
@@ -192,7 +192,7 @@ def test_lab_container_subcommands_dry_run_and_attestation(hscl_bin: Path):
 
 
 def test_lab_vm_subcommands_dry_run_and_attestation(hscl_bin: Path):
-    res_list = subprocess.run([str(hscl_bin), "--json", "lab", "vm", "list"], capture_output=True, text=True, cwd=str(ROOT))
+    res_list = subprocess.run([str(hscl_bin), "--json", "lab", "vm", "list"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res_list.returncode == 0
     profiles = json.loads(res_list.stdout)
     assert isinstance(profiles, list)
@@ -205,7 +205,7 @@ def test_lab_vm_subcommands_dry_run_and_attestation(hscl_bin: Path):
     res_create = subprocess.run(
         [str(hscl_bin), "--json", "lab", "vm", "create", "isolated", "--name", "sec-test", "--dry-run"],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         cwd=str(ROOT),
     )
     assert res_create.returncode == 0
@@ -218,7 +218,7 @@ def test_lab_vm_subcommands_dry_run_and_attestation(hscl_bin: Path):
     res_launch = subprocess.run(
         [str(hscl_bin), "--json", "lab", "vm", "launch", "sec-test", "--dry-run"],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         cwd=str(ROOT),
     )
     assert res_launch.returncode == 0

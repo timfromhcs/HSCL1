@@ -31,13 +31,13 @@ def hscl_bin() -> Path:
 
 
 def test_recovery_status_text_and_json(hscl_bin: Path):
-    res = subprocess.run([str(hscl_bin), "recovery", "status"], capture_output=True, text=True, cwd=str(ROOT))
+    res = subprocess.run([str(hscl_bin), "recovery", "status"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res.returncode == 0
     assert "readiness:" in res.stdout
     assert "backup directory:" in res.stdout
     assert "snapshots available:" in res.stdout
 
-    res_j = subprocess.run([str(hscl_bin), "--json", "recovery", "status"], capture_output=True, text=True, cwd=str(ROOT))
+    res_j = subprocess.run([str(hscl_bin), "--json", "recovery", "status"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res_j.returncode == 0
     data = json.loads(res_j.stdout)
     assert "backup_dir" in data
@@ -50,10 +50,10 @@ def test_recovery_status_text_and_json(hscl_bin: Path):
 
 
 def test_recovery_snapshots_list_text_and_json(hscl_bin: Path):
-    res = subprocess.run([str(hscl_bin), "recovery", "snapshots", "list"], capture_output=True, text=True, cwd=str(ROOT))
+    res = subprocess.run([str(hscl_bin), "recovery", "snapshots", "list"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res.returncode == 0
 
-    res_j = subprocess.run([str(hscl_bin), "--json", "recovery", "snapshots", "list"], capture_output=True, text=True, cwd=str(ROOT))
+    res_j = subprocess.run([str(hscl_bin), "--json", "recovery", "snapshots", "list"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res_j.returncode == 0
     data = json.loads(res_j.stdout)
     assert isinstance(data, list)
@@ -63,7 +63,7 @@ def test_recovery_snapshots_create_dry_run(hscl_bin: Path):
     res = subprocess.run(
         [str(hscl_bin), "recovery", "snapshots", "create", "test_baseline", "--dry-run"],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         cwd=str(ROOT),
     )
     assert res.returncode == 0
@@ -72,7 +72,7 @@ def test_recovery_snapshots_create_dry_run(hscl_bin: Path):
     res_j = subprocess.run(
         [str(hscl_bin), "--json", "recovery", "snapshots", "create", "test_baseline", "--dry-run"],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         cwd=str(ROOT),
     )
     assert res_j.returncode == 0
@@ -87,7 +87,7 @@ def test_recovery_snapshots_create_invalid_label(hscl_bin: Path):
     res_bad = subprocess.run(
         [str(hscl_bin), "recovery", "snapshots", "create", "../bad_path"],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         cwd=str(ROOT),
     )
     assert res_bad.returncode != 0
@@ -95,7 +95,7 @@ def test_recovery_snapshots_create_invalid_label(hscl_bin: Path):
     res_spaces = subprocess.run(
         [str(hscl_bin), "recovery", "snapshots", "create", "has spaces in label"],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         cwd=str(ROOT),
     )
     assert res_spaces.returncode != 0
@@ -105,7 +105,7 @@ def test_recovery_config_reset_dry_run(hscl_bin: Path):
     res = subprocess.run(
         [str(hscl_bin), "recovery", "config", "reset", "shortcuts", "--dry-run"],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         cwd=str(ROOT),
     )
     assert res.returncode == 0
@@ -114,7 +114,7 @@ def test_recovery_config_reset_dry_run(hscl_bin: Path):
     res_j = subprocess.run(
         [str(hscl_bin), "--json", "recovery", "config", "reset", "shortcuts", "--dry-run"],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         cwd=str(ROOT),
     )
     assert res_j.returncode == 0

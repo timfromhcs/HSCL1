@@ -41,7 +41,7 @@ class McpSession:
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            text=True,
+            text=True, encoding="utf-8", errors="replace",
             cwd=str(ROOT),
         )
 

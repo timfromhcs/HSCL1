@@ -32,7 +32,7 @@ def hscl_bin() -> Path:
 
 
 def test_privacy_status_text_and_json(hscl_bin: Path):
-    res = subprocess.run([str(hscl_bin), "privacy", "status"], capture_output=True, text=True, cwd=str(ROOT))
+    res = subprocess.run([str(hscl_bin), "privacy", "status"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res.returncode == 0
     assert "ephemeral overlay:" in res.stdout
     assert "root filesystem:" in res.stdout
@@ -42,7 +42,7 @@ def test_privacy_status_text_and_json(hscl_bin: Path):
     assert "tor browser:" in res.stdout
     assert "Notice: HSCL1 Privacy Mode is NOT Tails" in res.stdout
 
-    res_j = subprocess.run([str(hscl_bin), "--json", "privacy", "status"], capture_output=True, text=True, cwd=str(ROOT))
+    res_j = subprocess.run([str(hscl_bin), "--json", "privacy", "status"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res_j.returncode == 0
     data = json.loads(res_j.stdout)
     assert "ephemeral_overlay" in data
@@ -59,13 +59,13 @@ def test_privacy_status_text_and_json(hscl_bin: Path):
 
 
 def test_privacy_tor_status_text_and_json(hscl_bin: Path):
-    res = subprocess.run([str(hscl_bin), "privacy", "tor", "status"], capture_output=True, text=True, cwd=str(ROOT))
+    res = subprocess.run([str(hscl_bin), "privacy", "tor", "status"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res.returncode == 0
     assert "tor service:" in res.stdout
     assert "tor browser:" in res.stdout
     assert "fail-closed:    enforced (no direct browser fallback)" in res.stdout
 
-    res_j = subprocess.run([str(hscl_bin), "--json", "privacy", "tor", "status"], capture_output=True, text=True, cwd=str(ROOT))
+    res_j = subprocess.run([str(hscl_bin), "--json", "privacy", "tor", "status"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res_j.returncode == 0
     data = json.loads(res_j.stdout)
     assert "service_active" in data
@@ -76,7 +76,7 @@ def test_privacy_tor_status_text_and_json(hscl_bin: Path):
 
 def test_privacy_tor_launch_fail_closed_without_browser(hscl_bin: Path):
     # In test environments without torbrowser-launcher, must fail closed
-    res = subprocess.run([str(hscl_bin), "privacy", "tor", "launch", "--dry-run"], capture_output=True, text=True, cwd=str(ROOT))
+    res = subprocess.run([str(hscl_bin), "privacy", "tor", "launch", "--dry-run"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     if shutil.which("torbrowser-launcher") is None and shutil.which("tor-browser") is None:
         assert res.returncode != 0
         output = res.stdout + res.stderr
@@ -88,7 +88,7 @@ def test_privacy_tor_launch_fail_closed_without_browser(hscl_bin: Path):
 
 
 def test_privacy_session_explain_text_and_json(hscl_bin: Path):
-    res = subprocess.run([str(hscl_bin), "privacy", "session", "explain"], capture_output=True, text=True, cwd=str(ROOT))
+    res = subprocess.run([str(hscl_bin), "privacy", "session", "explain"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res.returncode == 0
     assert "Ephemeral Overlay Filesystem" in res.stdout
     assert "Volatile Memory & Swap Security" in res.stdout
@@ -97,7 +97,7 @@ def test_privacy_session_explain_text_and_json(hscl_bin: Path):
     assert "Tor Network & Browser Fail-Closed Policy" in res.stdout
     assert "Clear Boundaries vs Authentic Tails" in res.stdout
 
-    res_j = subprocess.run([str(hscl_bin), "--json", "privacy", "session", "explain"], capture_output=True, text=True, cwd=str(ROOT))
+    res_j = subprocess.run([str(hscl_bin), "--json", "privacy", "session", "explain"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res_j.returncode == 0
     data = json.loads(res_j.stdout)
     assert "explanation" in data
@@ -117,7 +117,7 @@ def test_privacy_tails_verify_and_launch(hscl_bin: Path, tmp_path: Path):
     valid_sha = h.hexdigest()
 
     # 1. Verify without expected sha (calculates hash)
-    res = subprocess.run([str(hscl_bin), "--json", "privacy", "tails", "verify", str(dummy_iso)], capture_output=True, text=True, cwd=str(ROOT))
+    res = subprocess.run([str(hscl_bin), "--json", "privacy", "tails", "verify", str(dummy_iso)], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res.returncode == 0
     data = json.loads(res.stdout)
     assert data["verified"] is True
@@ -129,7 +129,7 @@ def test_privacy_tails_verify_and_launch(hscl_bin: Path, tmp_path: Path):
     res_match = subprocess.run(
         [str(hscl_bin), "--json", "privacy", "tails", "verify", str(dummy_iso), "--expected-sha256", valid_sha],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         cwd=str(ROOT),
     )
     assert res_match.returncode == 0
@@ -141,7 +141,7 @@ def test_privacy_tails_verify_and_launch(hscl_bin: Path, tmp_path: Path):
     res_mismatch = subprocess.run(
         [str(hscl_bin), "privacy", "tails", "verify", str(dummy_iso), "--expected-sha256", "0" * 64],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         cwd=str(ROOT),
     )
     assert res_mismatch.returncode != 0
@@ -151,7 +151,7 @@ def test_privacy_tails_verify_and_launch(hscl_bin: Path, tmp_path: Path):
     res_launch = subprocess.run(
         [str(hscl_bin), "--json", "privacy", "tails", "launch", str(dummy_iso), "--ram-mb", "8192", "--dry-run"],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         cwd=str(ROOT),
     )
     assert res_launch.returncode == 0

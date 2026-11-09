@@ -81,3 +81,17 @@ One heavy job: ISO/VM, local inference or HCSUDA. VM disks on inspected NVMe und
 Every batch: observe diff, hypothesis, smallest patch, targeted/subsystem/full gates, log exact counts/skips/artifacts, update plan/ledger, release lock. Preserve unrelated work. Three meaningful failed remedies need a concrete blocker/reproducer; continue independent work without guessing. Do not create background automations, contact devices or send messages as side effects.
 
 V1-A source checkpoint: `8680e5d`; full Forge 857 passed / 22 skipped, changed WSL 57 passed, separate full WSL 876 passed / 3 skipped, Rust 202 passed. verify MCP cannot discover this suite; that tool result remains ok:false. V1-B builder experiment now proves the existing image digest and restricted run/basic install on Ubuntu WSL only; see [lab probe](../../research/2026-11-08-security-lab-builder-probe.md). Next: make the lab lifecycle/execution and package dependencies real, then test them in an HSCL1 candidate guest; close installer recovery/Privacy/critical-i18n gaps before stable acceptance. v1 remains the objective, not the current status.
+
+### V1-X — local quality audit and harness repair (2026-11-09, source `d817093`)
+
+The fast gate was red on the Windows host (21 failures) for harness reasons, not product logic. Repaired
+and now green: `forge check` 6/6 (887 passed, 22 skipped), Rust 245 passed, clippy/fmt clean.
+
+- Full findings: [`docs/QA_FINDINGS_2026-11-09.md`](../../QA_FINDINGS_2026-11-09.md).
+- Ordered work: [`docs/AUTONOMOUS_QUEUE.md`](../../AUTONOMOUS_QUEUE.md). Item Q-10 (clean candidate build)
+  is the blocking dependency for every `VM-PENDING` row, including the Qt palette fix.
+- New open defects that v1 acceptance must close: desktop icon label legibility, duplicate mixed-language
+  launcher sections, installer top-bar clipping, stale showcase caption, Qt/QML gate hole, artifact
+  identity drift in `CLAIMS.md`.
+- Carried forward unchanged: V1-C (clean candidate), V1-D (exact-image VM/install matrix), V1-E
+  (integrity/review/publication). No stable claim is made by this section.

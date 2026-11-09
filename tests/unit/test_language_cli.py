@@ -31,7 +31,7 @@ def hscl_bin() -> Path:
 
 
 def test_language_list_text_and_json(hscl_bin: Path):
-    res = subprocess.run([str(hscl_bin), "language", "list"], capture_output=True, text=True, cwd=str(ROOT))
+    res = subprocess.run([str(hscl_bin), "language", "list"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res.returncode == 0
     assert "en" in res.stdout
     assert "de" in res.stdout
@@ -40,7 +40,7 @@ def test_language_list_text_and_json(hscl_bin: Path):
     assert "Deutsch" in res.stdout
     assert "Français" in res.stdout
 
-    res_j = subprocess.run([str(hscl_bin), "--json", "language", "list"], capture_output=True, text=True, cwd=str(ROOT))
+    res_j = subprocess.run([str(hscl_bin), "--json", "language", "list"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res_j.returncode == 0
     data = json.loads(res_j.stdout)
     assert "languages" in data
@@ -51,7 +51,7 @@ def test_language_list_text_and_json(hscl_bin: Path):
 def test_language_status_json(hscl_bin: Path, tmp_path: Path):
     env = os.environ.copy()
     env["HSCL_CONFIG_DIR"] = str(tmp_path)
-    res = subprocess.run([str(hscl_bin), "--json", "language", "status"], capture_output=True, text=True, cwd=str(ROOT), env=env)
+    res = subprocess.run([str(hscl_bin), "--json", "language", "status"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT), env=env)
     assert res.returncode == 0
     data = json.loads(res.stdout)
     assert data["supported"] == ["en", "de", "fr"]
@@ -67,7 +67,7 @@ def test_language_set_dry_run(hscl_bin: Path, tmp_path: Path):
     res = subprocess.run(
         [str(hscl_bin), "--json", "language", "set", "de", "--dry-run"],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         cwd=str(ROOT),
         env=env,
     )
@@ -86,7 +86,7 @@ def test_language_set_applies_and_updates_status(hscl_bin: Path, tmp_path: Path)
     res = subprocess.run(
         [str(hscl_bin), "--json", "language", "set", "fr"],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         cwd=str(ROOT),
         env=env,
     )
@@ -109,7 +109,7 @@ def test_language_set_applies_and_updates_status(hscl_bin: Path, tmp_path: Path)
     res_st = subprocess.run(
         [str(hscl_bin), "--json", "language", "status"],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         cwd=str(ROOT),
         env=env,
     )
@@ -126,7 +126,7 @@ def test_language_set_invalid(hscl_bin: Path, tmp_path: Path):
     res = subprocess.run(
         [str(hscl_bin), "language", "set", "es"],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         cwd=str(ROOT),
         env=env,
     )
