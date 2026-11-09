@@ -1,200 +1,222 @@
 [
   {
     "filename": "01_desktop_clean.png",
-    "bytes": 129094,
-    "colors": 16862,
+    "bytes": 131943,
+    "colors": 18406,
     "size": [
       1280,
       800
     ],
     "description": "Clean HSCL1 Live Desktop with top bar and dock",
-    "timestamp": 1794161095.1250966
+    "timestamp": 1794183998.6338563
   },
   {
     "filename": "02_wallpaper_aurora.png",
-    "bytes": 74712,
-    "colors": 7987,
+    "bytes": 74662,
+    "colors": 7953,
     "size": [
       1280,
       800
     ],
     "description": "Dynamic wallpaper shader: aurora",
-    "timestamp": 1794161098.9721692
+    "timestamp": 1794184002.4740758
   },
   {
     "filename": "02_wallpaper_grid.png",
-    "bytes": 76882,
-    "colors": 8489,
+    "bytes": 76842,
+    "colors": 8458,
     "size": [
       1280,
       800
     ],
     "description": "Dynamic wallpaper shader: grid",
-    "timestamp": 1794161102.7643528
+    "timestamp": 1794184006.2620087
   },
   {
     "filename": "02_wallpaper_starfield.png",
-    "bytes": 48057,
-    "colors": 6257,
+    "bytes": 47952,
+    "colors": 6210,
     "size": [
       1280,
       800
     ],
     "description": "Dynamic wallpaper shader: starfield",
-    "timestamp": 1794161106.5833676
+    "timestamp": 1794184010.0859017
   },
   {
     "filename": "02_wallpaper_rain.png",
-    "bytes": 47818,
-    "colors": 6204,
+    "bytes": 47717,
+    "colors": 6151,
     "size": [
       1280,
       800
     ],
     "description": "Dynamic wallpaper shader: rain",
-    "timestamp": 1794161110.455718
+    "timestamp": 1794184013.86522
   },
   {
     "filename": "03_app_launcher_kickoff.png",
-    "bytes": 94433,
-    "colors": 11264,
+    "bytes": 94304,
+    "colors": 11209,
     "size": [
       1280,
       800
     ],
     "description": "Kickoff Application Launcher / Start Menu",
-    "timestamp": 1794161114.0211399
+    "timestamp": 1794184017.4272118
   },
   {
     "filename": "08_terminal_hscl_status_doctor.png",
-    "bytes": 42098,
-    "colors": 2839,
+    "bytes": 42001,
+    "colors": 2832,
     "size": [
       1280,
       800
     ],
     "description": "Konsole: hscl status & diagnostic doctor in action",
-    "timestamp": 1794161134.7986047
+    "timestamp": 1794184038.0669286
   },
   {
     "filename": "09_terminal_hscl_lab.png",
-    "bytes": 74957,
-    "colors": 3682,
+    "bytes": 75018,
+    "colors": 3715,
     "size": [
       1280,
       800
     ],
     "description": "Konsole: hscl lab security suite & hardware diagnostics",
-    "timestamp": 1794161160.2930079
+    "timestamp": 1794184063.569206
+  },
+  {
+    "filename": "16_terminal_privacy_security.png",
+    "bytes": 49000,
+    "colors": 2488,
+    "size": [
+      1280,
+      800
+    ],
+    "description": "Konsole: hscl privacy posture & security baseline",
+    "timestamp": 1794184083.032994
+  },
+  {
+    "filename": "17_terminal_logs_and_diag.png",
+    "bytes": 87275,
+    "colors": 2782,
+    "size": [
+      1280,
+      800
+    ],
+    "description": "Konsole: hscl logs redaction & language switching",
+    "timestamp": 1794184103.4154072
   },
   {
     "filename": "04_control_center_overview.png",
-    "bytes": 96353,
-    "colors": 14934,
+    "bytes": 96109,
+    "colors": 14924,
     "size": [
       1280,
       800
     ],
     "description": "Control Center: System Overview & Hardware",
-    "timestamp": 1794161169.3770802
+    "timestamp": 1794184112.5056262
   },
   {
     "filename": "05_control_center_appearance.png",
-    "bytes": 76400,
-    "colors": 10254,
+    "bytes": 76276,
+    "colors": 10212,
     "size": [
       1280,
       800
     ],
     "description": "Control Center: Appearance, Tokens & Themes",
-    "timestamp": 1794161173.0334883
+    "timestamp": 1794184116.1236658
   },
   {
     "filename": "06_control_center_security.png",
-    "bytes": 107136,
-    "colors": 16480,
+    "bytes": 106982,
+    "colors": 16431,
     "size": [
       1280,
       800
     ],
     "description": "Control Center: Security Baseline & Firewall Policy",
-    "timestamp": 1794161176.590953
+    "timestamp": 1794184119.68204
   },
   {
     "filename": "07_control_center_about.png",
-    "bytes": 91490,
-    "colors": 14860,
+    "bytes": 91276,
+    "colors": 14781,
     "size": [
       1280,
       800
     ],
     "description": "Control Center: About & System Attestation",
-    "timestamp": 1794161180.1888914
+    "timestamp": 1794184123.235018
   },
   {
     "filename": "10_app_dolphin.png",
-    "bytes": 84637,
-    "colors": 11234,
+    "bytes": 84531,
+    "colors": 11196,
     "size": [
       1280,
       800
     ],
     "description": "Dolphin File Manager with HCS styling",
-    "timestamp": 1794161188.7678528
+    "timestamp": 1794184131.9135547
   },
   {
     "filename": "14_app_kate.png",
-    "bytes": 112562,
-    "colors": 15622,
+    "bytes": 112234,
+    "colors": 15499,
     "size": [
       1280,
       800
     ],
     "description": "Kate Text Editor showing /etc/os-release",
-    "timestamp": 1794161197.846581
+    "timestamp": 1794184140.9880195
   },
   {
     "filename": "11_installer_welcome.png",
-    "bytes": 82813,
-    "colors": 12050,
+    "bytes": 82481,
+    "colors": 11954,
     "size": [
       1280,
       800
     ],
     "description": "Calamares Installer: Welcome Screen",
-    "timestamp": 1794161207.9191585
+    "timestamp": 1794184151.0929549
   },
   {
     "filename": "12_installer_location.png",
-    "bytes": 82646,
-    "colors": 12066,
+    "bytes": 82343,
+    "colors": 11980,
     "size": [
       1280,
       800
     ],
     "description": "Calamares Installer: Location & Timezone",
-    "timestamp": 1794161212.8945081
+    "timestamp": 1794184156.135469
   },
   {
     "filename": "13_offline_handbook.png",
-    "bytes": 47901,
-    "colors": 6231,
+    "bytes": 47844,
+    "colors": 6193,
     "size": [
       1280,
       800
     ],
     "description": "Trilingual Offline Handbook in Browser",
-    "timestamp": 1794161222.4728942
+    "timestamp": 1794184165.7082477
   },
   {
     "filename": "15_desktop_final.png",
-    "bytes": 47882,
-    "colors": 6204,
+    "bytes": 47844,
+    "colors": 6190,
     "size": [
       1280,
       800
     ],
     "description": "Final live desktop state after showcase sequence",
-    "timestamp": 1794161227.0330243
+    "timestamp": 1794184170.2587063
   }
 ]

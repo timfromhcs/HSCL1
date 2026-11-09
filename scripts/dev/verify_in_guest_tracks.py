@@ -132,6 +132,49 @@ def main() -> int:
             "success": r_podman.get("exit") == 0,
         }
 
+        # 5. Track S: Security Posture, Firewall Profiles, AppArmor, Encryption
+        print("\n--- Testing Track S (Security CLI subcommands) ---", flush=True)
+        cmd_security = """
+        echo "=== HSCL SECURITY STATUS ==="
+        /usr/bin/hscl security status
+        echo "=== HSCL SECURITY FIREWALL STATUS (JSON) ==="
+        /usr/bin/hscl --json security firewall status
+        echo "=== HSCL SECURITY FIREWALL PROFILES ==="
+        /usr/bin/hscl security firewall profile list
+        echo "=== HSCL SECURITY APPARMOR STATUS ==="
+        /usr/bin/hscl security apparmor status
+        echo "=== HSCL SECURITY ENCRYPTION STATUS ==="
+        /usr/bin/hscl security encryption status
+        echo "=== HSCL SECURITY RECOVERY CHECK ==="
+        /usr/bin/hscl security recovery check
+        """
+        r_sec = run_cmd(vm, cmd_security)
+        report["tracks"]["track_s_security"] = {
+            "exit": r_sec.get("exit"),
+            "stdout": r_sec.get("stdout"),
+            "stderr": r_sec.get("stderr"),
+            "success": r_sec.get("exit") == 0,
+        }
+
+        # 6. Track D: Diagnostic Logs & Redaction
+        print("\n--- Testing Track D (Logs inspection and collection) ---", flush=True)
+        cmd_logs = """
+        echo "=== HSCL LOGS SHOW (SYSTEM) ==="
+        /usr/bin/hscl logs show --lines 10
+        echo "=== HSCL LOGS SHOW (KERNEL) ==="
+        /usr/bin/hscl --json logs show kernel --lines 5
+        echo "=== HSCL LOGS COLLECT ==="
+        /usr/bin/hscl logs collect --output /tmp/guest_diag_bundle.json
+        test -f /tmp/guest_diag_bundle.json
+        """
+        r_logs = run_cmd(vm, cmd_logs)
+        report["tracks"]["track_d_logs"] = {
+            "exit": r_logs.get("exit"),
+            "stdout": r_logs.get("stdout"),
+            "stderr": r_logs.get("stderr"),
+            "success": r_logs.get("exit") == 0,
+        }
+
         take_shot(vm, out_dir / "02_final_desktop.png")
         report["overall_success"] = all(
             t.get("success", False) for t in report["tracks"].values()
