@@ -248,6 +248,7 @@ Detailed CLI documentation is available in [`docs/CLI.md`](docs/CLI.md).
 | Issue | Cause | Solution |
 |---|---|---|
 | **Black screen or sluggish boot** | Hardware acceleration disabled in QEMU | Ensure `-accel whpx,kernel-irqchip=off` (Windows) or `-enable-kvm` (Linux) is active. |
+| **Installer closes / "Crash Handler" at 4 GB** | `earlyoom` killed Calamares (exit 137) | Fixed in the image from 2026-11-09 (Calamares and drkonqi are exempt). With an older image give the VM **6 GB**. |
 | **Out-of-memory / kernel panic** | Allocating < 3 GB RAM to the VM | The live ISO unpacks a zstd squashfs into RAM overlay; allocate at least **3072 MB** (recommended: **4096 MB**). |
 | **Welcome screen doesn't dismiss** | Plasma first-run dialog modal grab | Press `Esc` or click the bottom-left "Skip" button (`(0.288, 0.848)` screen coordinates). |
 | **Secure Boot verification failure** | Unsigned test image on third-party UEFI | Use the signed Ubuntu shim/GRUB bootchain or run with standard OVMF firmware (`--firmware uefi`). |
