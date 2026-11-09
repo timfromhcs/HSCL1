@@ -128,3 +128,101 @@ def test_lab_subcommands_fail_closed_without_attestation(hscl_bin: Path):
             assert data["executed"] is False
             assert data["required_attestation"] == REQUIRED_ATTESTATION
             assert REQUIRED_ATTESTATION in data["hint"]
+
+
+def test_lab_toolset_subcommands_dry_run_and_attestation(hscl_bin: Path):
+    res_list = subprocess.run([str(hscl_bin), "lab", "toolset", "list"], capture_output=True, text=True, cwd=str(ROOT))
+    assert res_list.returncode == 0
+    assert "web:" in res_list.stdout
+    assert "forensics:" in res_list.stdout
+
+    # Install dry-run
+    res_inst = subprocess.run(
+        [str(hscl_bin), "--json", "lab", "toolset", "install", "web", "--dry-run"],
+        capture_output=True,
+        text=True,
+        cwd=str(ROOT),
+    )
+    assert res_inst.returncode == 0
+    data = json.loads(res_inst.stdout)
+    assert data["action"] == "install_toolset"
+    assert data["toolset"] == "web"
+    assert data["dry_run"] is True
+
+    # Install without attestation and without dry-run must fail
+    res_fail = subprocess.run(
+        [str(hscl_bin), "lab", "toolset", "install", "web"],
+        capture_output=True,
+        text=True,
+        cwd=str(ROOT),
+    )
+    assert res_fail.returncode == 1
+    assert "refused" in res_fail.stdout.lower()
+
+
+def test_lab_container_subcommands_dry_run_and_attestation(hscl_bin: Path):
+    res_list = subprocess.run([str(hscl_bin), "--json", "lab", "container", "list"], capture_output=True, text=True, cwd=str(ROOT))
+    assert res_list.returncode == 0
+    data = json.loads(res_list.stdout)
+    assert isinstance(data, list)
+
+    # Shell dry-run
+    res_shell = subprocess.run(
+        [str(hscl_bin), "--json", "lab", "container", "shell", "testproj", "--dry-run"],
+        capture_output=True,
+        text=True,
+        cwd=str(ROOT),
+    )
+    assert res_shell.returncode == 0
+    shell_data = json.loads(res_shell.stdout)
+    assert shell_data["action"] == "container_shell"
+    assert shell_data["dry_run"] is True
+
+    # Stop dry-run
+    res_stop = subprocess.run(
+        [str(hscl_bin), "--json", "lab", "container", "stop", "testproj", "--dry-run"],
+        capture_output=True,
+        text=True,
+        cwd=str(ROOT),
+    )
+    assert res_stop.returncode == 0
+    stop_data = json.loads(res_stop.stdout)
+    assert stop_data["action"] == "container_stop"
+    assert stop_data["dry_run"] is True
+
+
+def test_lab_vm_subcommands_dry_run_and_attestation(hscl_bin: Path):
+    res_list = subprocess.run([str(hscl_bin), "--json", "lab", "vm", "list"], capture_output=True, text=True, cwd=str(ROOT))
+    assert res_list.returncode == 0
+    profiles = json.loads(res_list.stdout)
+    assert isinstance(profiles, list)
+    names = [p["name"] for p in profiles]
+    assert "isolated" in names
+    assert "bridged" in names
+    assert "usb-passthrough" in names
+
+    # Create dry-run
+    res_create = subprocess.run(
+        [str(hscl_bin), "--json", "lab", "vm", "create", "isolated", "--name", "sec-test", "--dry-run"],
+        capture_output=True,
+        text=True,
+        cwd=str(ROOT),
+    )
+    assert res_create.returncode == 0
+    create_data = json.loads(res_create.stdout)
+    assert create_data["action"] == "create_vm"
+    assert create_data["name"] == "sec-test"
+    assert create_data["dry_run"] is True
+
+    # Launch dry-run
+    res_launch = subprocess.run(
+        [str(hscl_bin), "--json", "lab", "vm", "launch", "sec-test", "--dry-run"],
+        capture_output=True,
+        text=True,
+        cwd=str(ROOT),
+    )
+    assert res_launch.returncode == 0
+    launch_data = json.loads(res_launch.stdout)
+    assert launch_data["action"] == "launch_vm"
+    assert launch_data["dry_run"] is True
+

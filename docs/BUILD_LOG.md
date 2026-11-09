@@ -1484,3 +1484,20 @@ Decision rule: pick the one that unblocks the most downstream work. HCSUDA H3c-3
 - **Automated Test Coverage:**
   - Rust unit tests: Added 5 unit tests in `cli/hscl/src/ai.rs` covering backend validation, dry-run configuration planning, storage path validation, and server start/stop command planning.
   - Python unit tests: Created `tests/unit/test_ai_cli.py` (5 tests) verifying text/JSON output, dry-run safety, and validation contracts.
+
+### V1-V HSCL1 Security Lab Expansion Subcommands (`hscl lab`) (2026-11-09)
+
+- **CLI Implementation (AGENTS.md section 1.2 B, 6.6 & 8.2):**
+  - Expanded `LabCmd` in `cli/hscl/src/main.rs` with `toolsets list`, `toolset [list|install|remove]`, `container [list|inspect|shell|stop|destroy]`, and `vm [list|create|launch|destroy]`.
+  - Updated `cli/hscl/src/lab.rs` with:
+    - Expanded curated toolsets: `basic` (network), `web` (app testing), `forensics` (analysis), `crypto` (evaluation), and `reversing` (disassembly).
+    - Container lifecycle planning and safe rootless Podman execution wrappers.
+    - Disposable VM profiles (`isolated`, `bridged`, `usb-passthrough`) with strict network boundaries (host-only restricted user-mode networking by default).
+    - Mandatory authorization attestation enforcement (`--yes="I am authorized to test this target"`) on all mutating operations with fail-closed safety.
+    - `--dry-run` and `--json` inspection across all security lab subcommands.
+- **Documentation & Handbook Synchronization:**
+  - Added leaf command rows in `docs/CLI.md`, passing `cli_doc_lists_every_command` and `documented_hscl_commands_resolve_in_the_cli`.
+  - Updated offline handbook across `handbook/{en,de,fr}/src/cli.md`.
+- **Automated Test Coverage:**
+  - Rust unit tests: Added 3 unit tests in `cli/hscl/src/lab.rs` covering toolset validation, VM profile and lifecycle planning, and container shell/stop/destroy planning.
+  - Python unit tests: Added 3 new tests in `tests/unit/test_security_lab_cli.py` covering toolset install/list, container shell/stop, and VM create/launch dry-run execution.

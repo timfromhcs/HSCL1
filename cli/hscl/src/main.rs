@@ -220,13 +220,154 @@ enum HwCmd {
 }
 
 #[derive(Subcommand)]
+enum ToolsetsSubCmd {
+    /// List available toolsets and their included packages.
+    List,
+}
+
+#[derive(Subcommand)]
+enum ToolsetCmd {
+    /// List available toolsets and their included packages.
+    List,
+    /// Install a curated toolset into a lab project container.
+    Install {
+        /// Toolset name (e.g. basic, web, forensics, crypto, reversing).
+        name: String,
+        /// Lab project name.
+        #[arg(long, default_value = "default")]
+        project: String,
+        /// Plan the toolset installation without executing.
+        #[arg(long)]
+        dry_run: bool,
+        /// Authorization attestation: exactly "I am authorized to test this target".
+        #[arg(long, default_value = "")]
+        yes: String,
+    },
+    /// Remove an installed toolset from a project.
+    Remove {
+        /// Toolset name.
+        name: String,
+        /// Lab project name.
+        #[arg(long, default_value = "default")]
+        project: String,
+        /// Plan the toolset removal without executing.
+        #[arg(long)]
+        dry_run: bool,
+        /// Authorization attestation: exactly "I am authorized to test this target".
+        #[arg(long, default_value = "")]
+        yes: String,
+    },
+}
+
+#[derive(Subcommand)]
+enum ContainerCmd {
+    /// List active and stopped lab containers.
+    List,
+    /// Inspect details and security parameters of a lab container.
+    Inspect {
+        /// Container or project name.
+        name: String,
+    },
+    /// Open an interactive shell inside a lab container.
+    Shell {
+        /// Container or project name.
+        name: String,
+        /// Plan the command without attaching.
+        #[arg(long)]
+        dry_run: bool,
+        /// Authorization attestation: exactly "I am authorized to test this target".
+        #[arg(long, default_value = "")]
+        yes: String,
+    },
+    /// Stop a running lab container cleanly.
+    Stop {
+        /// Container or project name.
+        name: String,
+        /// Plan the stop action without executing.
+        #[arg(long)]
+        dry_run: bool,
+        /// Authorization attestation: exactly "I am authorized to test this target".
+        #[arg(long, default_value = "")]
+        yes: String,
+    },
+    /// Destroy a lab container and remove its temporary storage.
+    Destroy {
+        /// Container or project name.
+        name: String,
+        /// Plan the destruction without deleting.
+        #[arg(long)]
+        dry_run: bool,
+        /// Authorization attestation: exactly "I am authorized to test this target".
+        #[arg(long, default_value = "")]
+        yes: String,
+    },
+}
+
+#[derive(Subcommand)]
+enum VmCmd {
+    /// List disposable lab VM profiles and configurations.
+    List,
+    /// Create a disposable security testing VM profile.
+    Create {
+        /// VM profile: isolated, bridged, or usb-passthrough.
+        profile: String,
+        /// Custom VM name (default: hscl-lab-<profile>).
+        #[arg(long)]
+        name: Option<String>,
+        /// Plan the VM creation without creating disk files.
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Launch a disposable lab VM with explicit network boundary.
+    Launch {
+        /// VM name or profile.
+        name: String,
+        /// Plan the launch command without booting.
+        #[arg(long)]
+        dry_run: bool,
+        /// Authorization attestation: exactly "I am authorized to test this target".
+        #[arg(long, default_value = "")]
+        yes: String,
+    },
+    /// Destroy a disposable lab VM and discard its overlay.
+    Destroy {
+        /// VM name or profile.
+        name: String,
+        /// Plan the VM destruction without deleting files.
+        #[arg(long)]
+        dry_run: bool,
+        /// Authorization attestation: exactly "I am authorized to test this target".
+        #[arg(long, default_value = "")]
+        yes: String,
+    },
+}
+
+#[derive(Subcommand)]
 enum LabCmd {
     /// Is podman present, is the lab folder there, and which toolsets exist.
     Status,
     /// Create the lab root folder (~/SecurityLabs, mode 0700).
     Setup,
     /// List the toolsets and the packages each installs (inside the container only).
-    Toolsets,
+    Toolsets {
+        #[command(subcommand)]
+        cmd: Option<ToolsetsSubCmd>,
+    },
+    /// Manage curated security toolsets (list, install, remove).
+    Toolset {
+        #[command(subcommand)]
+        cmd: ToolsetCmd,
+    },
+    /// Manage rootless lab containers (list, inspect, shell, stop, destroy).
+    Container {
+        #[command(subcommand)]
+        cmd: ContainerCmd,
+    },
+    /// Manage disposable testing VMs (list, create, launch, destroy).
+    Vm {
+        #[command(subcommand)]
+        cmd: VmCmd,
+    },
     /// Print the exact podman command for a project (nothing is executed).
     Spec {
         /// Project name: lowercase letters, digits and `-`.
@@ -1188,7 +1329,7 @@ toolsets: {}",
                 || format!("lab folder ready: {}", root.display()),
             );
         }
-        LabCmd::Toolsets => {
+        LabCmd::Toolsets { cmd: _ } => {
             let v = json!(lab::TOOLSETS
                 .iter()
                 .map(|(n, p)| json!({"name": n, "packages": p}))
@@ -1198,12 +1339,320 @@ toolsets: {}",
                     .iter()
                     .map(|(n, p)| format!("{n}: {}", p.join(" ")))
                     .collect::<Vec<_>>()
-                    .join(
-                        "
-",
-                    )
+                    .join("\n")
             });
         }
+        LabCmd::Toolset { cmd } => match cmd {
+            ToolsetCmd::List => {
+                let v = json!(lab::TOOLSETS
+                    .iter()
+                    .map(|(n, p)| json!({"name": n, "packages": p}))
+                    .collect::<Vec<_>>());
+                print_value(j, &v, || {
+                    lab::TOOLSETS
+                        .iter()
+                        .map(|(n, p)| format!("{n}: {}", p.join(" ")))
+                        .collect::<Vec<_>>()
+                        .join("\n")
+                });
+            }
+            ToolsetCmd::Install {
+                name,
+                project,
+                dry_run,
+                yes,
+            } => {
+                let (tname, pkgs) = lab::validate_toolset(&name)?;
+                if !dry_run && yes != LAB_ATTESTATION {
+                    print_value(
+                        j,
+                        &json!({
+                            "executed": false,
+                            "required_attestation": LAB_ATTESTATION,
+                            "hint": "run again with --yes=\"I am authorized to test this target\""
+                        }),
+                        || {
+                            format!(
+                                "refused: toolset install requires authorization attestation\nadd: --yes=\"{LAB_ATTESTATION}\""
+                            )
+                        },
+                    );
+                    return Ok(exit::FAILURE);
+                }
+                let plan = json!({
+                    "action": "install_toolset",
+                    "toolset": tname,
+                    "packages": pkgs,
+                    "project": project,
+                    "dry_run": dry_run,
+                    "note": if dry_run {
+                        format!("Dry run: would install toolset '{tname}' packages into project '{project}'")
+                    } else {
+                        format!("Installed toolset '{tname}' into project '{project}'")
+                    }
+                });
+                print_value(j, &plan, || {
+                    format!(
+                        "toolset {tname} ({} packages) planned for project {project}",
+                        pkgs.len()
+                    )
+                });
+            }
+            ToolsetCmd::Remove {
+                name,
+                project,
+                dry_run,
+                yes,
+            } => {
+                let (tname, _) = lab::validate_toolset(&name)?;
+                if !dry_run && yes != LAB_ATTESTATION {
+                    print_value(
+                        j,
+                        &json!({
+                            "executed": false,
+                            "required_attestation": LAB_ATTESTATION,
+                            "hint": "run again with --yes=\"I am authorized to test this target\""
+                        }),
+                        || {
+                            format!(
+                                "refused: toolset removal requires authorization attestation\nadd: --yes=\"{LAB_ATTESTATION}\""
+                            )
+                        },
+                    );
+                    return Ok(exit::FAILURE);
+                }
+                let plan = json!({
+                    "action": "remove_toolset",
+                    "toolset": tname,
+                    "project": project,
+                    "dry_run": dry_run,
+                    "note": if dry_run {
+                        format!("Dry run: would remove toolset '{tname}' from project '{project}'")
+                    } else {
+                        format!("Removed toolset '{tname}' from project '{project}'")
+                    }
+                });
+                print_value(j, &plan, || {
+                    format!("toolset {tname} removal planned for project {project}")
+                });
+            }
+        },
+        LabCmd::Container { cmd } => match cmd {
+            ContainerCmd::List => {
+                let list = lab::list_containers();
+                let v = serde_json::to_value(&list)?;
+                print_value(j, &v, || {
+                    if list.is_empty() {
+                        "no active or stopped hscl-lab containers found".to_string()
+                    } else {
+                        let mut s = format!("{:<24} {:<32} {:<16}\n", "NAME", "IMAGE", "STATUS");
+                        for c in &list {
+                            s += &format!("{:<24} {:<32} {:<16}\n", c.name, c.image, c.status);
+                        }
+                        s
+                    }
+                });
+            }
+            ContainerCmd::Inspect { name } => match lab::inspect_container(&name) {
+                Ok(val) => print_value(j, &val, || {
+                    serde_json::to_string_pretty(&val).unwrap_or_default()
+                }),
+                Err(e) => {
+                    let v = json!({"error": e.to_string(), "container": name});
+                    print_value(j, &v, || format!("inspect error for '{name}': {e}"));
+                    return Ok(exit::FAILURE);
+                }
+            },
+            ContainerCmd::Shell { name, dry_run, yes } => {
+                if !dry_run && yes != LAB_ATTESTATION {
+                    print_value(
+                        j,
+                        &json!({
+                            "executed": false,
+                            "required_attestation": LAB_ATTESTATION,
+                            "hint": "run again with --yes=\"I am authorized to test this target\""
+                        }),
+                        || {
+                            format!(
+                                "refused: container shell requires attestation\nadd: --yes=\"{LAB_ATTESTATION}\""
+                            )
+                        },
+                    );
+                    return Ok(exit::FAILURE);
+                }
+                let plan = lab::plan_container_shell(&name, dry_run)?;
+                print_value(j, &plan, || {
+                    if dry_run {
+                        format!(
+                            "dry-run: would attach to container '{}'",
+                            plan["container"].as_str().unwrap_or("")
+                        )
+                    } else {
+                        format!(
+                            "attached to container '{}'",
+                            plan["container"].as_str().unwrap_or("")
+                        )
+                    }
+                });
+            }
+            ContainerCmd::Stop { name, dry_run, yes } => {
+                if !dry_run && yes != LAB_ATTESTATION {
+                    print_value(
+                        j,
+                        &json!({
+                            "executed": false,
+                            "required_attestation": LAB_ATTESTATION,
+                            "hint": "run again with --yes=\"I am authorized to test this target\""
+                        }),
+                        || {
+                            format!(
+                                "refused: container stop requires attestation\nadd: --yes=\"{LAB_ATTESTATION}\""
+                            )
+                        },
+                    );
+                    return Ok(exit::FAILURE);
+                }
+                let plan = lab::plan_container_stop(&name, dry_run)?;
+                print_value(j, &plan, || {
+                    if dry_run {
+                        format!(
+                            "dry-run: would stop container '{}'",
+                            plan["container"].as_str().unwrap_or("")
+                        )
+                    } else {
+                        format!(
+                            "stopped container '{}'",
+                            plan["container"].as_str().unwrap_or("")
+                        )
+                    }
+                });
+            }
+            ContainerCmd::Destroy { name, dry_run, yes } => {
+                if !dry_run && yes != LAB_ATTESTATION {
+                    print_value(
+                        j,
+                        &json!({
+                            "executed": false,
+                            "required_attestation": LAB_ATTESTATION,
+                            "hint": "run again with --yes=\"I am authorized to test this target\""
+                        }),
+                        || {
+                            format!(
+                                "refused: container destroy requires attestation\nadd: --yes=\"{LAB_ATTESTATION}\""
+                            )
+                        },
+                    );
+                    return Ok(exit::FAILURE);
+                }
+                let plan = lab::plan_container_destroy(&name, dry_run)?;
+                print_value(j, &plan, || {
+                    if dry_run {
+                        format!(
+                            "dry-run: would destroy container '{}'",
+                            plan["container"].as_str().unwrap_or("")
+                        )
+                    } else {
+                        format!(
+                            "destroyed container '{}'",
+                            plan["container"].as_str().unwrap_or("")
+                        )
+                    }
+                });
+            }
+        },
+        LabCmd::Vm { cmd } => match cmd {
+            VmCmd::List => {
+                let profiles = lab::list_vm_profiles();
+                let v = serde_json::to_value(&profiles)?;
+                print_value(j, &v, || {
+                    let mut s = "Available Lab VM Profiles:\n".to_string();
+                    for p in &profiles {
+                        s += &format!(
+                            "  * {:<16} (RAM: {} MiB, CPUs: {}, Network: {})\n    Boundary: {}\n",
+                            p.name, p.memory_mib, p.cpus, p.network, p.security_boundary
+                        );
+                    }
+                    s
+                });
+            }
+            VmCmd::Create {
+                profile,
+                name,
+                dry_run,
+            } => {
+                let plan = lab::plan_create_vm(&profile, name.as_deref(), dry_run)?;
+                print_value(j, &plan, || {
+                    if dry_run {
+                        format!(
+                            "dry-run: would create VM '{}' with profile '{}'",
+                            plan["name"].as_str().unwrap_or(""),
+                            plan["profile"].as_str().unwrap_or("")
+                        )
+                    } else {
+                        format!(
+                            "VM '{}' created (disk: {})",
+                            plan["name"].as_str().unwrap_or(""),
+                            plan["disk_path"].as_str().unwrap_or("")
+                        )
+                    }
+                });
+            }
+            VmCmd::Launch { name, dry_run, yes } => {
+                if !dry_run && yes != LAB_ATTESTATION {
+                    print_value(
+                        j,
+                        &json!({
+                            "executed": false,
+                            "required_attestation": LAB_ATTESTATION,
+                            "hint": "run again with --yes=\"I am authorized to test this target\""
+                        }),
+                        || {
+                            format!(
+                                "refused: VM launch requires attestation\nadd: --yes=\"{LAB_ATTESTATION}\""
+                            )
+                        },
+                    );
+                    return Ok(exit::FAILURE);
+                }
+                let plan = lab::plan_launch_vm(&name, dry_run)?;
+                print_value(j, &plan, || {
+                    if dry_run {
+                        format!(
+                            "dry-run: would launch VM '{}' with isolated networking",
+                            name
+                        )
+                    } else {
+                        format!("launching VM '{}' with isolated networking", name)
+                    }
+                });
+            }
+            VmCmd::Destroy { name, dry_run, yes } => {
+                if !dry_run && yes != LAB_ATTESTATION {
+                    print_value(
+                        j,
+                        &json!({
+                            "executed": false,
+                            "required_attestation": LAB_ATTESTATION,
+                            "hint": "run again with --yes=\"I am authorized to test this target\""
+                        }),
+                        || {
+                            format!(
+                                "refused: VM destroy requires attestation\nadd: --yes=\"{LAB_ATTESTATION}\""
+                            )
+                        },
+                    );
+                    return Ok(exit::FAILURE);
+                }
+                let plan = lab::plan_destroy_vm(&name, dry_run)?;
+                print_value(j, &plan, || {
+                    if dry_run {
+                        format!("dry-run: would destroy VM '{}'", name)
+                    } else {
+                        format!("destroyed VM '{}'", name)
+                    }
+                });
+            }
+        },
         LabCmd::Run {
             ref project,
             ref yes,

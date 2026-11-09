@@ -26,6 +26,10 @@ $ hscl logs show
 $ hscl logs collect
 $ hscl recovery status
 $ hscl dev status
+$ hscl lab status
+$ hscl lab toolsets
+$ hscl lab container list
+$ hscl lab vm list
 $ hscl system info
 ```
 
