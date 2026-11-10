@@ -1843,6 +1843,23 @@ Purpose: carry the two CLI corrections (`doctor` Secure Boot reason, session-awa
 image, so they stop being source-only claims. Boot verification at 4 GB with
 `tests/visual/scenarios/verify-cli-honesty.json`.
 
+**Result: VM-VERIFIED at 4 GB** (desktop in ~190 s, scenario shots `z0`…`z3` in
+`artifacts/boot-honesty-4g`):
+
+```
+[SKIP] secure-boot not determined: UEFI without a SecureBoot variable (firmware has Secure Boot off)
+6 passed, 0 warnings, 0 failed, 1 skipped
+
+session:               ephemeral (volatile RAM overlay)
+ephemeral overlay:     active (volatile RAM overlayfs)
+root filesystem:       overlay
+persistent disk swap:  none
+internal disk mounts:  none (host disks unmounted)
+```
+
+Both messages are now true for the session they describe, and the 4 GB run again reached the desktop with the
+installer exemption in place.
+
 ### LUKS2 install and unlock: VM-VERIFIED (2026-11-10)
 
 | Item | Value |
