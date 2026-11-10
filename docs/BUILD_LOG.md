@@ -2389,3 +2389,45 @@ Owner instruction in-session: "flash timsminer". Executed through the product pa
 - **Not done in this pass:** no ISO was rebuilt, no VM was booted, nothing was pushed or released.
   Those are Q-56 and the queue items that follow.
 
+### 0.1.5-alpha.0: rebuilt from the audited tree and booted (2026-11-10)
+
+| Field | Value |
+|---|---|
+| Artifact | `HSCL1-0.1.5-alpha.0-amd64.iso` |
+| Bytes | 5 027 135 488 |
+| SHA-256 | `c3ae31a6311f767187f57d4811a762159e76ce4ae29372e9567b7174b28c1ae3` |
+| Source commit | `406186d` (`git_dirty: false`) |
+| Compression | xz (release path, not `--fast`) |
+| Volume id | `HSCL1 0.1.5-alpha.0 amd64` |
+| Image gates | `verify-image: all checks passed` (including the new `desktop font is upright` check) |
+
+Why this build exists: the published `v0.1.4-alpha.0` image was built from `ea8bbdc` and is 118 commits
+behind the tree, so it does not contain the installer-crash fix, the lab exit-code/local-image fixes or the
+honest Secure Boot/privacy reporting (Q-56). The version was bumped in `VERSION`, the workspace, `Cargo.lock`,
+the Calamares branding and the handbook before building, so the artifact names itself `0.1.5-alpha.0`
+(checked on the ISO volume id, not just in the file name).
+
+Boot evidence (Windows QEMU 9.2.0, WHPX, UEFI/OVMF, 4 GB, `--try-live --dismiss-welcome --qa-out`):
+
+```
+{"firmware": "uefi", "reached_desktop": true, "desktop_final_wallpaper_match": 0.131, "elapsed_s": 242}
+qa_report.py artifacts/boot-0.1.5-uefi/hscl1-report.txt -> exit 0
+  ok os-release NAME is HSCL1 / ID=ubuntu / desktop session / hscl status+doctor JSON /
+     kptr_restrict=2 / firewall baseline / no failed hscl units / default look-and-feel is HCS
+  info secure-boot: This system doesn't support Secure Boot
+```
+
+Artifacts: `artifacts/boot-0.1.5-uefi/` (result.json, desktop-final.png, hscl1-report.txt).
+
+**Provenance nuance:** three commits landed after the build commit (`dc7cfcc`, `57f677e`, `fb8f892`,
+`d32cf51`); they touch tests, docs and one `rustfmt` reflow of `ai.rs`, no runtime behaviour. The artifact
+therefore reports `git_commit: 406186d` and the release notes say so instead of implying it is HEAD.
+
+**Open visual defect confirmed on this artifact:** the desktop icon labels are still oblique
+(`desktop-final.png`) even though the hook pins an upright `desktopFont` - the image contains **no Noto font**
+(`fc-list | grep -ci noto` = 0), so the family is substituted. Q-52 stays open.
+
+**Boot-harness fix found here:** two harness runs (mine and another agent's VM on the same host) raced for
+QMP port 4444; QEMU exited with "Failed to find an available port" while the client hung. `--qmp-port` now
+defaults to 0 (OS-assigned), committed as `11019ef`.
+
