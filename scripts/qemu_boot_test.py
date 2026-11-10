@@ -269,7 +269,9 @@ def main():
     ap.add_argument("--unlock-at", type=int, default=50, help="seconds after start until the passphrase prompt is expected")
     ap.add_argument("--no-mem-guard", action="store_true", help="start even when free memory is low (not recommended)")
     ap.add_argument("--accel", help="override accelerator (kvm|whpx|tcg)")
-    ap.add_argument("--qmp-port", type=int, default=4444, help="QMP TCP port (Windows QEMU only)")
+    ap.add_argument("--qmp-port", type=int, default=0,
+                    help="QMP TCP port (Windows QEMU only); 0 picks a free port so two harness runs "
+                         "(or another agent's VM) never collide on 4444")
     ap.add_argument("--mem", type=int, default=4096)
     ap.add_argument("--smp", type=int, default=4)
     ap.add_argument("--timeout", type=int, default=2400)
@@ -293,6 +295,13 @@ def main():
         qemu_bin = str(qdir / "qemu-system-x86_64.exe")
         accel = a.accel or "whpx,kernel-irqchip=off"
         cpu = "qemu64,+ssse3,+sse4.1,+sse4.2,+popcnt,+avx2" if accel.startswith("whpx") else "max"
+        if a.qmp_port <= 0:
+            # Ask the OS for a free port instead of assuming 4444. Two harness runs (or another
+            # agent's VM on the same host) raced for 4444 on 2026-11-10; QEMU then died with
+            # "Failed to find an available port" and the QMP client timed out.
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+                probe.bind(("127.0.0.1", 0))
+                a.qmp_port = probe.getsockname()[1]
         qmp_arg = "tcp:127.0.0.1:%d,server=on,wait=off" % a.qmp_port
         qmp_path = "tcp:127.0.0.1:%d" % a.qmp_port
     else:
