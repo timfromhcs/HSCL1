@@ -1,0 +1,20 @@
+[
+  { "wait": 10 },
+  { "keys": ["meta_l"] },
+  { "wait": 4 },
+  { "type": "Konsole" },
+  { "wait": 3 },
+  { "keys": ["ret"] },
+  { "wait": 14 },
+  { "type": "( sudo apt-get update > /tmp/apt.log 2>&1; sudo DEBIAN_FRONTEND=noninteractive apt-get install -y podman >> /tmp/apt.log 2>&1; podman --version >> /tmp/apt.log 2>&1; podman pull docker.io/kalilinux/kali-rolling@sha256:5cc5e418c51098ae3c48f9a1d5b3bc74a508588900765a3964259da783652b03 > /tmp/pull.log 2>&1; echo PULL_EXIT=$? >> /tmp/pull.log; hscl lab install --project demo --image docker.io/kalilinux/kali-rolling@sha256:5cc5e418c51098ae3c48f9a1d5b3bc74a508588900765a3964259da783652b03 --toolset basic --yes=\"I am authorized to test this target\" > /tmp/inst.log 2>&1; echo INSTALL_EXIT=$? >> /tmp/inst.log; hscl lab commit --project demo --yes=\"I am authorized to test this target\" > /tmp/commit.log 2>&1; echo COMMIT_EXIT=$? >> /tmp/commit.log; hscl lab run --project demo --image docker.io/kalilinux/kali-rolling@sha256:5cc5e418c51098ae3c48f9a1d5b3bc74a508588900765a3964259da783652b03 --yes=\"I am authorized to test this target\" -- nmap --version > /tmp/run.log 2>&1; echo RUN_EXIT=$? >> /tmp/run.log ) > /dev/null 2>&1; kdialog --title lab --msgbox \"$(tail -2 /tmp/pull.log; echo ---; tail -2 /tmp/commit.log; echo ---; tail -4 /tmp/run.log)\"" },
+  { "keys": ["ret"] },
+  { "wait": 900 },
+  { "shot": "r1-result" },
+  { "keys": ["ret"] },
+  { "wait": 5 },
+  { "shot": "r2-closed" },
+  { "type": "podman images | head -6; echo ===; tail -6 /tmp/run.log" },
+  { "keys": ["ret"] },
+  { "wait": 6 },
+  { "shot": "r3-images" }
+]
