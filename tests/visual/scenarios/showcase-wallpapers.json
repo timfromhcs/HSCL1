@@ -1,41 +1,131 @@
 [
-  { "wait": 10 },
-  { "keys": ["meta_l"] },
-  { "wait": 4 },
-  { "type": "Konsole" },
-  { "wait": 3 },
-  { "keys": ["ret"] },
-  { "wait": 14 },
-  { "type": "hscl appearance wallpaper set aurora" },
-  { "keys": ["ret"] },
-  { "wait": 10 },
-  { "shot": "wp1-aurora" },
-  { "type": "hscl appearance wallpaper set starfield" },
-  { "keys": ["ret"] },
-  { "wait": 10 },
-  { "shot": "wp2-starfield" },
-  { "type": "hscl appearance wallpaper set grid" },
-  { "keys": ["ret"] },
-  { "wait": 10 },
-  { "shot": "wp3-grid" },
-  { "type": "hscl appearance wallpaper set rain" },
-  { "keys": ["ret"] },
-  { "wait": 10 },
-  { "shot": "wp4-rain" },
-  { "type": "hscl appearance mode" },
-  { "keys": ["ret"] },
-  { "wait": 3 },
-  { "shot": "wp5-mode" },
-  { "keys": ["meta_l"] },
-  { "wait": 4 },
-  { "type": "Kate" },
-  { "wait": 4 },
-  { "keys": ["ret"] },
-  { "wait": 20 },
-  { "shot": "app1-kate" },
-  { "keys": ["alt", "f4"] },
-  { "wait": 4 },
-  { "dclick": [0.133, 0.15] },
-  { "wait": 20 },
-  { "shot": "app2-handbook" }
+ {
+  "wait": 10
+ },
+ {
+  "keys": [
+   "ctrl",
+   "alt",
+   "t"
+  ]
+ },
+ {
+  "wait": 14
+ },
+ {
+  "type": "hscl appearance wallpaper set aurora"
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 10
+ },
+ {
+  "shot": "wp1-aurora"
+ },
+ {
+  "type": "hscl appearance wallpaper set starfield"
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 10
+ },
+ {
+  "shot": "wp2-starfield"
+ },
+ {
+  "type": "hscl appearance wallpaper set grid"
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 10
+ },
+ {
+  "shot": "wp3-grid"
+ },
+ {
+  "type": "hscl appearance wallpaper set rain"
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 10
+ },
+ {
+  "shot": "wp4-rain"
+ },
+ {
+  "type": "hscl appearance mode"
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 3
+ },
+ {
+  "shot": "wp5-mode"
+ },
+ {
+  "keys": [
+   "meta_l"
+  ]
+ },
+ {
+  "wait": 4
+ },
+ {
+  "type": "Kate"
+ },
+ {
+  "wait": 4
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 20
+ },
+ {
+  "shot": "app1-kate"
+ },
+ {
+  "keys": [
+   "alt",
+   "f4"
+  ]
+ },
+ {
+  "wait": 4
+ },
+ {
+  "dclick": [
+   0.133,
+   0.15
+  ]
+ },
+ {
+  "wait": 20
+ },
+ {
+  "shot": "app2-handbook"
+ }
 ]

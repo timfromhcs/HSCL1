@@ -1,26 +1,74 @@
 [
-  { "wait": 20 },
-  { "shot": "w0-desktop" },
-  { "keys": ["meta_l"] },
-  { "wait": 4 },
-  { "type": "Konsole" },
-  { "wait": 3 },
-  { "keys": ["ret"] },
-  { "wait": 14 },
-  { "type": "[ -d /sys/firmware/efi ] && echo EFI-MODE || echo BIOS-MODE; ls /sys/firmware/efi/efivars 2>/dev/null | head -3" },
-  { "keys": ["ret"] },
-  { "wait": 3 },
-  { "shot": "w1-firmware-mode" },
-  { "type": "grep -rs '^Current' /etc/sddm.conf /etc/sddm.conf.d/ 2>/dev/null; ls /usr/share/sddm/themes" },
-  { "keys": ["ret"] },
-  { "wait": 3 },
-  { "shot": "w2-sddm-theme" },
-  { "type": "hscl security status | head -10; hscl privacy status | head -6" },
-  { "keys": ["ret"] },
-  { "wait": 5 },
-  { "shot": "w3-security-status" },
-  { "type": "systemctl is-enabled earlyoom zramswap 2>&1; systemctl --failed --no-pager | head -5" },
-  { "keys": ["ret"] },
-  { "wait": 3 },
-  { "shot": "w4-services" }
+ {
+  "wait": 20
+ },
+ {
+  "shot": "w0-desktop"
+ },
+ {
+  "keys": [
+   "ctrl",
+   "alt",
+   "t"
+  ]
+ },
+ {
+  "wait": 14
+ },
+ {
+  "type": "[ -d /sys/firmware/efi ] && echo EFI-MODE || echo BIOS-MODE; ls /sys/firmware/efi/efivars 2>/dev/null | head -3"
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 3
+ },
+ {
+  "shot": "w1-firmware-mode"
+ },
+ {
+  "type": "grep -rs '^Current' /etc/sddm.conf /etc/sddm.conf.d/ 2>/dev/null; ls /usr/share/sddm/themes"
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 3
+ },
+ {
+  "shot": "w2-sddm-theme"
+ },
+ {
+  "type": "hscl security status | head -10; hscl privacy status | head -6"
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 5
+ },
+ {
+  "shot": "w3-security-status"
+ },
+ {
+  "type": "systemctl is-enabled earlyoom zramswap 2>&1; systemctl --failed --no-pager | head -5"
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 3
+ },
+ {
+  "shot": "w4-services"
+ }
 ]

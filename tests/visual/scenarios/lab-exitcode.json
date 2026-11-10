@@ -1,20 +1,54 @@
 [
-  { "wait": 10 },
-  { "keys": ["meta_l"] },
-  { "wait": 4 },
-  { "type": "Konsole" },
-  { "wait": 3 },
-  { "keys": ["ret"] },
-  { "wait": 14 },
-  { "type": "( sudo apt-get update > /tmp/a.log 2>&1; sudo DEBIAN_FRONTEND=noninteractive apt-get install -y podman >> /tmp/a.log 2>&1; hscl lab run --project demo --image docker.io/kalilinux/kali-rolling@sha256:5cc5e418c51098ae3c48f9a1d5b3bc74a508588900765a3964259da783652b03 --yes=\"I am authorized to test this target\" -- true > /tmp/r.log 2>&1; echo RUN_EXIT=$? >> /tmp/r.log ) > /dev/null 2>&1; kdialog --title rc --msgbox \"$(tail -2 /tmp/a.log; echo ---; tail -4 /tmp/r.log)\"" },
-  { "keys": ["ret"] },
-  { "wait": 420 },
-  { "shot": "x1-result" },
-  { "keys": ["ret"] },
-  { "wait": 5 },
-  { "shot": "x2-closed" },
-  { "type": "hscl --version; hscl lab run --project demo --image docker.io/kalilinux/kali-rolling@sha256:5cc5e418c51098ae3c48f9a1d5b3bc74a508588900765a3964259da783652b03 --yes=\"I am authorized to test this target\" -- true; echo SECOND_EXIT=$?" },
-  { "keys": ["ret"] },
-  { "wait": 30 },
-  { "shot": "x3-second-run" }
+ {
+  "wait": 10
+ },
+ {
+  "keys": [
+   "ctrl",
+   "alt",
+   "t"
+  ]
+ },
+ {
+  "wait": 14
+ },
+ {
+  "type": "( sudo apt-get update > /tmp/a.log 2>&1; sudo DEBIAN_FRONTEND=noninteractive apt-get install -y podman >> /tmp/a.log 2>&1; hscl lab run --project demo --image docker.io/kalilinux/kali-rolling@sha256:5cc5e418c51098ae3c48f9a1d5b3bc74a508588900765a3964259da783652b03 --yes=\"I am authorized to test this target\" -- true > /tmp/r.log 2>&1; echo RUN_EXIT=$? >> /tmp/r.log ) > /dev/null 2>&1; kdialog --title rc --msgbox \"$(tail -2 /tmp/a.log; echo ---; tail -4 /tmp/r.log)\""
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 420
+ },
+ {
+  "shot": "x1-result"
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 5
+ },
+ {
+  "shot": "x2-closed"
+ },
+ {
+  "type": "hscl --version; hscl lab run --project demo --image docker.io/kalilinux/kali-rolling@sha256:5cc5e418c51098ae3c48f9a1d5b3bc74a508588900765a3964259da783652b03 --yes=\"I am authorized to test this target\" -- true; echo SECOND_EXIT=$?"
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 30
+ },
+ {
+  "shot": "x3-second-run"
+ }
 ]

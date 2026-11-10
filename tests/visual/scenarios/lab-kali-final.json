@@ -1,32 +1,96 @@
 [
-  { "wait": 10 },
-  { "keys": ["meta_l"] },
-  { "wait": 4 },
-  { "type": "Konsole" },
-  { "wait": 3 },
-  { "keys": ["ret"] },
-  { "wait": 14 },
-  { "type": "D=docker.io/kalilinux/kali-rolling@sha256:5cc5e418c51098ae3c48f9a1d5b3bc74a508588900765a3964259da783652b03" },
-  { "keys": ["ret"] },
-  { "wait": 2 },
-  { "type": "sudo apt-get update -qq; sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq podman; podman --version" },
-  { "keys": ["ret"] },
-  { "wait": 240 },
-  { "shot": "f1-podman" },
-  { "type": "podman pull $D" },
-  { "keys": ["ret"] },
-  { "wait": 180 },
-  { "shot": "f2-pull" },
-  { "type": "hscl lab install --project demo --image $D --toolset basic --yes=\"I am authorized to test this target\"; echo INSTALL=$?" },
-  { "keys": ["ret"] },
-  { "wait": 300 },
-  { "shot": "f3-install" },
-  { "type": "hscl lab commit --project demo --yes=\"I am authorized to test this target\"; echo COMMIT=$?" },
-  { "keys": ["ret"] },
-  { "wait": 60 },
-  { "shot": "f4-commit" },
-  { "type": "hscl lab run --project demo --image localhost/hscl-lab-demo:latest --yes=\"I am authorized to test this target\" -- nmap --version; echo RUN=$?" },
-  { "keys": ["ret"] },
-  { "wait": 180 },
-  { "shot": "f5-nmap" }
+ {
+  "wait": 10
+ },
+ {
+  "keys": [
+   "ctrl",
+   "alt",
+   "t"
+  ]
+ },
+ {
+  "wait": 14
+ },
+ {
+  "type": "D=docker.io/kalilinux/kali-rolling@sha256:5cc5e418c51098ae3c48f9a1d5b3bc74a508588900765a3964259da783652b03"
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 2
+ },
+ {
+  "type": "sudo apt-get update -qq; sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq podman; podman --version"
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 240
+ },
+ {
+  "shot": "f1-podman"
+ },
+ {
+  "type": "podman pull $D"
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 180
+ },
+ {
+  "shot": "f2-pull"
+ },
+ {
+  "type": "hscl lab install --project demo --image $D --toolset basic --yes=\"I am authorized to test this target\"; echo INSTALL=$?"
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 300
+ },
+ {
+  "shot": "f3-install"
+ },
+ {
+  "type": "hscl lab commit --project demo --yes=\"I am authorized to test this target\"; echo COMMIT=$?"
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 60
+ },
+ {
+  "shot": "f4-commit"
+ },
+ {
+  "type": "hscl lab run --project demo --image localhost/hscl-lab-demo:latest --yes=\"I am authorized to test this target\" -- nmap --version; echo RUN=$?"
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 180
+ },
+ {
+  "shot": "f5-nmap"
+ }
 ]

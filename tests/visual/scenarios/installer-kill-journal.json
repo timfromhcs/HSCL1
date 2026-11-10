@@ -1,27 +1,82 @@
 [
-  { "wait": 10 },
-  { "keys": ["meta_l"] },
-  { "wait": 4 },
-  { "type": "Konsole" },
-  { "wait": 3 },
-  { "keys": ["ret"] },
-  { "wait": 14 },
-  { "type": "journalctl -b -o short --no-pager | grep -iE 'earlyoom|killed process|oom-kill' | tail -5; echo BASELINE_DONE" },
-  { "keys": ["ret"] },
-  { "wait": 5 },
-  { "shot": "b1-baseline" },
-  { "keys": ["meta_l"] },
-  { "wait": 4 },
-  { "type": "Install HSCL1" },
-  { "wait": 4 },
-  { "keys": ["ret"] },
-  { "wait": 55 },
-  { "shot": "b2-after-icon-launch" },
-  { "click": [0.404, 0.946] },
-  { "wait": 3 },
-  { "type": "journalctl -b -o short --no-pager | grep -iE 'earlyoom|killed process|oom-kill|status=137|calamares' | tail -12 > /tmp/j.log; kdialog --title journal --msgbox \"$(tail -8 /tmp/j.log)\"" },
-  { "keys": ["ret"] },
-  { "wait": 8 },
-  { "shot": "b3-journal" },
-  { "keys": ["ret"] }
+ {
+  "wait": 10
+ },
+ {
+  "keys": [
+   "ctrl",
+   "alt",
+   "t"
+  ]
+ },
+ {
+  "wait": 14
+ },
+ {
+  "type": "journalctl -b -o short --no-pager | grep -iE 'earlyoom|killed process|oom-kill' | tail -5; echo BASELINE_DONE"
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 5
+ },
+ {
+  "shot": "b1-baseline"
+ },
+ {
+  "keys": [
+   "meta_l"
+  ]
+ },
+ {
+  "wait": 4
+ },
+ {
+  "type": "Install HSCL1"
+ },
+ {
+  "wait": 4
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 55
+ },
+ {
+  "shot": "b2-after-icon-launch"
+ },
+ {
+  "click": [
+   0.404,
+   0.946
+  ]
+ },
+ {
+  "wait": 3
+ },
+ {
+  "type": "journalctl -b -o short --no-pager | grep -iE 'earlyoom|killed process|oom-kill|status=137|calamares' | tail -12 > /tmp/j.log; kdialog --title journal --msgbox \"$(tail -8 /tmp/j.log)\""
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 8
+ },
+ {
+  "shot": "b3-journal"
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ }
 ]

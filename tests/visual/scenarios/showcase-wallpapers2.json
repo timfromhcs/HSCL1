@@ -1,63 +1,183 @@
 [
-  { "wait": 10 },
-  { "keys": ["meta_l"] },
-  { "wait": 4 },
-  { "type": "Konsole" },
-  { "wait": 3 },
-  { "keys": ["ret"] },
-  { "wait": 14 },
-  { "type": "hscl appearance wallpaper set aurora" },
-  { "keys": ["ret"] },
-  { "wait": 10 },
-  { "keys": ["alt", "f4"] },
-  { "wait": 6 },
-  { "shot": "wc1-aurora" },
-  { "keys": ["meta_l"] },
-  { "wait": 4 },
-  { "type": "Konsole" },
-  { "wait": 3 },
-  { "keys": ["ret"] },
-  { "wait": 12 },
-  { "type": "hscl appearance wallpaper set starfield" },
-  { "keys": ["ret"] },
-  { "wait": 10 },
-  { "keys": ["alt", "f4"] },
-  { "wait": 6 },
-  { "shot": "wc2-starfield" },
-  { "keys": ["meta_l"] },
-  { "wait": 4 },
-  { "type": "Konsole" },
-  { "wait": 3 },
-  { "keys": ["ret"] },
-  { "wait": 12 },
-  { "type": "hscl appearance wallpaper set grid" },
-  { "keys": ["ret"] },
-  { "wait": 10 },
-  { "keys": ["alt", "f4"] },
-  { "wait": 6 },
-  { "shot": "wc3-grid" },
-  { "keys": ["meta_l"] },
-  { "wait": 4 },
-  { "type": "Konsole" },
-  { "wait": 3 },
-  { "keys": ["ret"] },
-  { "wait": 12 },
-  { "type": "hscl appearance wallpaper set rain" },
-  { "keys": ["ret"] },
-  { "wait": 10 },
-  { "keys": ["alt", "f4"] },
-  { "wait": 6 },
-  { "shot": "wc4-rain" },
-  { "keys": ["meta_l"] },
-  { "wait": 4 },
-  { "type": "Kate" },
-  { "wait": 4 },
-  { "keys": ["ret"] },
-  { "wait": 22 },
-  { "shot": "wc5-kate" },
-  { "keys": ["alt", "f4"] },
-  { "wait": 4 },
-  { "dclick": [0.133, 0.15] },
-  { "wait": 22 },
-  { "shot": "wc6-handbook" }
+ {
+  "wait": 10
+ },
+ {
+  "keys": [
+   "ctrl",
+   "alt",
+   "t"
+  ]
+ },
+ {
+  "wait": 14
+ },
+ {
+  "type": "hscl appearance wallpaper set aurora"
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 10
+ },
+ {
+  "keys": [
+   "alt",
+   "f4"
+  ]
+ },
+ {
+  "wait": 6
+ },
+ {
+  "shot": "wc1-aurora"
+ },
+ {
+  "keys": [
+   "ctrl",
+   "alt",
+   "t"
+  ]
+ },
+ {
+  "wait": 12
+ },
+ {
+  "type": "hscl appearance wallpaper set starfield"
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 10
+ },
+ {
+  "keys": [
+   "alt",
+   "f4"
+  ]
+ },
+ {
+  "wait": 6
+ },
+ {
+  "shot": "wc2-starfield"
+ },
+ {
+  "keys": [
+   "ctrl",
+   "alt",
+   "t"
+  ]
+ },
+ {
+  "wait": 12
+ },
+ {
+  "type": "hscl appearance wallpaper set grid"
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 10
+ },
+ {
+  "keys": [
+   "alt",
+   "f4"
+  ]
+ },
+ {
+  "wait": 6
+ },
+ {
+  "shot": "wc3-grid"
+ },
+ {
+  "keys": [
+   "ctrl",
+   "alt",
+   "t"
+  ]
+ },
+ {
+  "wait": 12
+ },
+ {
+  "type": "hscl appearance wallpaper set rain"
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 10
+ },
+ {
+  "keys": [
+   "alt",
+   "f4"
+  ]
+ },
+ {
+  "wait": 6
+ },
+ {
+  "shot": "wc4-rain"
+ },
+ {
+  "keys": [
+   "meta_l"
+  ]
+ },
+ {
+  "wait": 4
+ },
+ {
+  "type": "Kate"
+ },
+ {
+  "wait": 4
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 22
+ },
+ {
+  "shot": "wc5-kate"
+ },
+ {
+  "keys": [
+   "alt",
+   "f4"
+  ]
+ },
+ {
+  "wait": 4
+ },
+ {
+  "dclick": [
+   0.133,
+   0.15
+  ]
+ },
+ {
+  "wait": 22
+ },
+ {
+  "shot": "wc6-handbook"
+ }
 ]

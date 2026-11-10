@@ -103,6 +103,14 @@ PANIC-LIKE: artifacts/install-luks-final/l09-before-finish.png (98% panic purple
 Two install runs died that way on 2026-11-10 (`KERNEL PANIC! Attempted to kill init! exitcode=0x0000000b`).
 The detector is a colour heuristic, not a console read: it finds the symptom, not the cause.
 
+### Open the terminal with Ctrl+Alt+T, not through the launcher
+
+Measured 2026-11-10: one install run typed the whole `sudo -b /usr/bin/calamares-launch-normal` line into
+**KRunner** because the launcher's search result was not there yet when `ret` arrived - the screenshot showed
+`o;olesudo -b …` as a web-search query and the installer never started. Every scenario now opens Konsole with
+`{"keys": ["ctrl", "alt", "t"]}`, which the image binds (`org.kde.konsole.desktop _launch=Meta+Return\tCtrl+Alt+T`)
+and which needs no search.
+
 ### One command per checkpoint
 
 Typing the next step while a long command still runs corrupts both: on 2026-11-10 a scenario typed

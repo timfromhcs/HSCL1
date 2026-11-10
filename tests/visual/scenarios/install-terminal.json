@@ -1,57 +1,204 @@
 [
-  { "keys": ["meta_l"] },
-  { "wait": 4 },
-  { "type": "Konsole" },
-  { "wait": 3 },
-  { "keys": ["ret"] },
-  { "wait": 14 },
-  { "type": "sudo -b /usr/bin/calamares-launch-normal" },
-  { "keys": ["ret"] },
-  { "wait": 55 },
-  { "shot": "t01-welcome" },
-  { "click": [0.813, 0.894] },
-  { "wait": 8 },
-  { "shot": "t02-location" },
-  { "click": [0.813, 0.894] },
-  { "wait": 8 },
-  { "shot": "t03-keyboard" },
-  { "click": [0.813, 0.894] },
-  { "wait": 8 },
-  { "shot": "t04-customize" },
-  { "click": [0.813, 0.894] },
-  { "wait": 8 },
-  { "shot": "t05-notes" },
-  { "click": [0.813, 0.894] },
-  { "wait": 12 },
-  { "shot": "t06-partitions" },
-  { "click": [0.229, 0.2125] },
-  { "wait": 4 },
-  { "shot": "t07-erase-selected" },
-  { "click": [0.813, 0.894] },
-  { "wait": 8 },
-  { "shot": "t08-users-empty" },
-  { "type": "HSCL1 Tester" },
-  { "keys": ["tab"] },
-  { "keys": ["tab"] },
-  { "keys": ["tab"] },
-  { "type": "hscl1-test-pass-2026" },
-  { "keys": ["tab"] },
-  { "type": "hscl1-test-pass-2026" },
-  { "wait": 2 },
-  { "shot": "t09-users-filled" },
-  { "click": [0.813, 0.894] },
-  { "wait": 10 },
-  { "shot": "t10-summary" },
-  { "click": [0.813, 0.894] },
-  { "wait": 5 },
-  { "shot": "t11-confirm" },
-  { "keys": ["ret"] },
-  { "wait": 45 },
-  { "shot": "t12-installing" },
-  { "wait_disk_idle": { "idle": 180, "max": 2700 } },
-  { "shot": "t13-before-finish" },
-  { "click": [0.813, 0.894] },
-  { "wait": 6 },
-  { "shot": "t14-after-finish" },
-  { "wait_exit": 300 }
+ {
+  "keys": [
+   "ctrl",
+   "alt",
+   "t"
+  ]
+ },
+ {
+  "wait": 14
+ },
+ {
+  "type": "sudo -b /usr/bin/calamares-launch-normal"
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 55
+ },
+ {
+  "shot": "t01-welcome"
+ },
+ {
+  "click": [
+   0.813,
+   0.894
+  ]
+ },
+ {
+  "wait": 8
+ },
+ {
+  "shot": "t02-location"
+ },
+ {
+  "click": [
+   0.813,
+   0.894
+  ]
+ },
+ {
+  "wait": 8
+ },
+ {
+  "shot": "t03-keyboard"
+ },
+ {
+  "click": [
+   0.813,
+   0.894
+  ]
+ },
+ {
+  "wait": 8
+ },
+ {
+  "shot": "t04-customize"
+ },
+ {
+  "click": [
+   0.813,
+   0.894
+  ]
+ },
+ {
+  "wait": 8
+ },
+ {
+  "shot": "t05-notes"
+ },
+ {
+  "click": [
+   0.813,
+   0.894
+  ]
+ },
+ {
+  "wait": 12
+ },
+ {
+  "shot": "t06-partitions"
+ },
+ {
+  "click": [
+   0.229,
+   0.2125
+  ]
+ },
+ {
+  "wait": 4
+ },
+ {
+  "shot": "t07-erase-selected"
+ },
+ {
+  "click": [
+   0.813,
+   0.894
+  ]
+ },
+ {
+  "wait": 8
+ },
+ {
+  "shot": "t08-users-empty"
+ },
+ {
+  "type": "HSCL1 Tester"
+ },
+ {
+  "keys": [
+   "tab"
+  ]
+ },
+ {
+  "keys": [
+   "tab"
+  ]
+ },
+ {
+  "keys": [
+   "tab"
+  ]
+ },
+ {
+  "type": "hscl1-test-pass-2026"
+ },
+ {
+  "keys": [
+   "tab"
+  ]
+ },
+ {
+  "type": "hscl1-test-pass-2026"
+ },
+ {
+  "wait": 2
+ },
+ {
+  "shot": "t09-users-filled"
+ },
+ {
+  "click": [
+   0.813,
+   0.894
+  ]
+ },
+ {
+  "wait": 10
+ },
+ {
+  "shot": "t10-summary"
+ },
+ {
+  "click": [
+   0.813,
+   0.894
+  ]
+ },
+ {
+  "wait": 5
+ },
+ {
+  "shot": "t11-confirm"
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 45
+ },
+ {
+  "shot": "t12-installing"
+ },
+ {
+  "wait_disk_idle": {
+   "idle": 180,
+   "max": 2700
+  }
+ },
+ {
+  "shot": "t13-before-finish"
+ },
+ {
+  "click": [
+   0.813,
+   0.894
+  ]
+ },
+ {
+  "wait": 6
+ },
+ {
+  "shot": "t14-after-finish"
+ },
+ {
+  "wait_exit": 300
+ }
 ]

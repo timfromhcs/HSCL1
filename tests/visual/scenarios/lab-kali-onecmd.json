@@ -1,26 +1,74 @@
 [
-  { "wait": 10 },
-  { "keys": ["meta_l"] },
-  { "wait": 4 },
-  { "type": "Konsole" },
-  { "wait": 3 },
-  { "keys": ["ret"] },
-  { "wait": 14 },
-  { "type": "( sudo apt-get install -y podman; podman --version; hscl lab setup; hscl lab spec --project demo --image docker.io/kalilinux/kali-rolling@sha256:5cc5e418c51098ae3c48f9a1d5b3bc74a508588900765a3964259da783652b03 --phase install --toolset basic > /tmp/spec.log 2>&1; echo SPEC_EXIT=$?; hscl lab install --project demo --image docker.io/kalilinux/kali-rolling@sha256:5cc5e418c51098ae3c48f9a1d5b3bc74a508588900765a3964259da783652b03 --toolset basic --yes=\"I am authorized to test this target\" > /tmp/inst.log 2>&1; echo INSTALL_EXIT=$? >> /tmp/inst.log ) > /tmp/all.log 2>&1; kdialog --title lab --msgbox \"$(tail -3 /tmp/spec.log; echo ---; tail -6 /tmp/inst.log)\"" },
-  { "keys": ["ret"] },
-  { "wait": 600 },
-  { "shot": "k1-midway" },
-  { "wait": 600 },
-  { "shot": "k2-later" },
-  { "keys": ["ret"] },
-  { "wait": 5 },
-  { "shot": "k3-dialog-closed" },
-  { "type": "tail -25 /tmp/all.log" },
-  { "keys": ["ret"] },
-  { "wait": 5 },
-  { "shot": "k4-all-log" },
-  { "type": "podman images | head -6; podman ps -a | head -4" },
-  { "keys": ["ret"] },
-  { "wait": 6 },
-  { "shot": "k5-images" }
+ {
+  "wait": 10
+ },
+ {
+  "keys": [
+   "ctrl",
+   "alt",
+   "t"
+  ]
+ },
+ {
+  "wait": 14
+ },
+ {
+  "type": "( sudo apt-get install -y podman; podman --version; hscl lab setup; hscl lab spec --project demo --image docker.io/kalilinux/kali-rolling@sha256:5cc5e418c51098ae3c48f9a1d5b3bc74a508588900765a3964259da783652b03 --phase install --toolset basic > /tmp/spec.log 2>&1; echo SPEC_EXIT=$?; hscl lab install --project demo --image docker.io/kalilinux/kali-rolling@sha256:5cc5e418c51098ae3c48f9a1d5b3bc74a508588900765a3964259da783652b03 --toolset basic --yes=\"I am authorized to test this target\" > /tmp/inst.log 2>&1; echo INSTALL_EXIT=$? >> /tmp/inst.log ) > /tmp/all.log 2>&1; kdialog --title lab --msgbox \"$(tail -3 /tmp/spec.log; echo ---; tail -6 /tmp/inst.log)\""
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 600
+ },
+ {
+  "shot": "k1-midway"
+ },
+ {
+  "wait": 600
+ },
+ {
+  "shot": "k2-later"
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 5
+ },
+ {
+  "shot": "k3-dialog-closed"
+ },
+ {
+  "type": "tail -25 /tmp/all.log"
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 5
+ },
+ {
+  "shot": "k4-all-log"
+ },
+ {
+  "type": "podman images | head -6; podman ps -a | head -4"
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 6
+ },
+ {
+  "shot": "k5-images"
+ }
 ]

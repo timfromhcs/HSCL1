@@ -1,21 +1,57 @@
 [
-  { "keys": ["meta_l"] },
-  { "wait": 4 },
-  { "type": "Konsole" },
-  { "wait": 3 },
-  { "keys": ["ret"] },
-  { "wait": 14 },
-  { "type": "sudo systemctl stop earlyoom; systemctl is-active earlyoom; free -m | head -2" },
-  { "keys": ["ret"] },
-  { "wait": 4 },
-  { "shot": "n0-earlyoom-stopped" },
-  { "keys": ["meta_l"] },
-  { "wait": 3 },
-  { "type": "Install HSCL1" },
-  { "wait": 3 },
-  { "keys": ["ret"] },
-  { "wait": 55 },
-  { "shot": "n1-launch" },
-  { "wait": 30 },
-  { "shot": "n2-launch-later" }
+ {
+  "keys": [
+   "ctrl",
+   "alt",
+   "t"
+  ]
+ },
+ {
+  "wait": 14
+ },
+ {
+  "type": "sudo systemctl stop earlyoom; systemctl is-active earlyoom; free -m | head -2"
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 4
+ },
+ {
+  "shot": "n0-earlyoom-stopped"
+ },
+ {
+  "keys": [
+   "meta_l"
+  ]
+ },
+ {
+  "wait": 3
+ },
+ {
+  "type": "Install HSCL1"
+ },
+ {
+  "wait": 3
+ },
+ {
+  "keys": [
+   "ret"
+  ]
+ },
+ {
+  "wait": 55
+ },
+ {
+  "shot": "n1-launch"
+ },
+ {
+  "wait": 30
+ },
+ {
+  "shot": "n2-launch-later"
+ }
 ]
