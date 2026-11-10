@@ -142,6 +142,15 @@ HSCL_IN_DISPOSABLE_VM=1 scripts/stress_vm.sh --out /tmp/stress
 Tests (fake `stress-ng`/`fio`/`memtester` on `PATH`, no real load):
 `python -m pytest tests/unit/test_stress_vm.py -q`.
 
+### Test order is pinned
+
+`pytest-randomly` is installed, so a plain `pytest tests` shuffles the order on every run. On 2026-11-10 three
+consecutive gate runs failed on **three different** WSL-backed tests (`palette_hook_sandbox`,
+`workshop_evidence`, `hcscoder`), each of which passes standalone and in a fixed order. `scripts/forge.py`
+therefore passes `-p no:randomly`: the gate is reproducible, and a real failure shows up every time instead of
+one time in three. The underlying order dependence is still unexplained and tracked in
+[AUTONOMOUS_QUEUE](AUTONOMOUS_QUEUE.md).
+
 ## Evidence rules
 
 Status words (`TESTED`, `VM-VERIFIED`, …) follow AGENTS.md §0.4 and are recorded in `docs/BUILD_LOG.md` with the
