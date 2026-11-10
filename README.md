@@ -38,7 +38,7 @@
 
 > [!IMPORTANT]
 > **Status: Pre-Alpha (`0.1.4-alpha.0`).**
-> HSCL1 is currently verified **in virtual machines only** (UEFI, BIOS, and Secure-Boot firmware via QEMU 9.2.0 with WHPX / KVM acceleration). It has **not** yet been tested on bare-metal physical hardware, and releases are **unsigned** (SHA-256 integrity checksums provided). Read [Known limitations](docs/KNOWN_LIMITATIONS.md) and the [evidence ledger](docs/CLAIMS.md) before installing. Do not use HSCL1 on systems requiring security certifications.
+> HSCL1 is currently verified **in virtual machines only** (UEFI, BIOS, and Secure-Boot firmware via QEMU 9.2.0 with WHPX / KVM acceleration). Verified on 2026-11-10 in QEMU: a **full installation** onto a disposable 40 GB disk (`All done`, then booted: `hscl doctor` 6 passed / 0 failed / 1 skipped) and an **LUKS2 installation** (wrong passphrase refused by cryptsetup, correct one unlocks, `LUKS volumes open: 1`). It has **not** yet been tested on bare-metal physical hardware, and releases are **unsigned** (SHA-256 integrity checksums provided). Read [Known limitations](docs/KNOWN_LIMITATIONS.md) and the [evidence ledger](docs/CLAIMS.md) before installing. Do not use HSCL1 on systems requiring security certifications.
 
 > [!NOTE]
 > HSCL1 is **not Tails**, **not an official Kali release**, and is not affiliated with or endorsed by the Tails project, Canonical, the KDE/Kubuntu projects, or Offensive Security. It makes **no anonymity claim**.
