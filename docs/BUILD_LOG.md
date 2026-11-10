@@ -1729,30 +1729,31 @@ Two runs failed with no installer window at all. The cause is **not** the instal
 | what goes wrong | a KDE **crash-handler window** appears right after the desktop-icon launch; the click at e00b proved the desktop was clean beforehand and the window is visible 55 s later, so it is tied to the launch and not to session start |
 | what crashed | not recorded: `coredumpctl list` says "No coredumps found" because `fs.suid_dumpable = 0` in our hardening - a `sudo`-started process cannot dump. Re-run with dumps enabled, see below |
 
-**The journal finally named the mechanism** (`installer-coredump.json`, 2026-11-10):
+**The journal finally named the mechanism** (`installer-kill-journal.json`, 2026-11-10, second reproduction):
 
 ```
-/usr/bin/calamares-launch-normal: line 16: 2764 Killed
-  calamares -D8
-app-kubuntu\x2dcalamares@15e6a8ab5b624ffaa7f7d2f0aab49761.service:
-  Main process exited, code=exited, status=137/n/a
-… drkonqi … Failed to get unit by pid
+… [6]: void CalamaresApplication::initViewSteps()
+… [6]: void Calamares::ModuleManager::checkRequirements()
+… KCrash: Application 'calamares' crashing... crashRecursionCounter = 2
+… KCrash: Arguments: /usr/bin/calamares -D8
+/usr/bin/calamares-launch-normal: line 16: 2781 Killed   calamares -D8
+app-kubuntu\x2dcalamares@…service: Main process exited, code=exited, status=137/n/a
 ```
 
-So Calamares is **SIGKILLed** (137) inside the transient `app-kubuntu-calamares@…service` scope that the
-Plasma launcher creates - it does not crash. That also explains the missing evidence: with
-`fs.suid_dumpable=1` and `kernel.core_pattern=/tmp/hsclcore` set beforehand, **no core file appeared at all**
-(`/tmp/hsclcore: No such file or directory`), because a killed process does not dump.
+Read in that order it is not an external killer at all: **Calamares crashes inside
+`ModuleManager::checkRequirements()`** at startup, KCrash tries to handle the crash, its handler fails twice
+(`crashRecursionCounter = 2`, which is also the "Crash Handler has closed unexpectedly" dialog), and KCrash's
+last resort is to SIGKILL the process - hence `status=137` and no core dump (a SIGKILL never dumps, so the
+`fs.suid_dumpable` experiment could never have produced one).
 
-| Candidate | Status |
-|---|---|
-| Calamares bug | ruled out - the same binary started from a terminal installs twice (2026-11-10) |
-| `sudo`/polkit | ruled out - `sudo -n true` returns 0 in the live session |
-| `systemd-oomd` | ruled out - not installed in this image (`/usr/lib/systemd/systemd-oomd` absent) |
-| kernel OOM killer | no `Killed process` line; the failing run had 4.4 GiB free of 5.9 GiB |
-| earlyoom | **possible but unproven**: with `systemctl stop earlyoom` the icon launch worked, but that run had no memory pressure, so the success proves nothing |
+That reframes the earlier hypotheses: it is not `sudo`, not `systemd-oomd` (not installed), not the OOM killer,
+and not the launcher scope. The `internet` entry in `/etc/calamares/modules/welcome.conf` performs an HTTPS
+request against `https://networkcheck.kde.org` in exactly that phase - a plausible, intermittent crash source,
+and an unnecessary one for an image that installs offline.
 
-The killer of the scope is therefore still unidentified; the workaround (start from a terminal) is verified.
+**Fix:** the hook deletes the `- internet` line from `welcome.conf` (storage/ram/power/root stay), the image gate
+asserts it, and `tests/unit/test_installer_no_network_probe.py` pins it. A rebuilt ISO is being tested with
+repeated desktop-icon launches; until that passes, Q-46 stays open and the terminal workaround stands.
 
 The scenario also clicks the crash-handler's real close button (0.706, 0.204 - the earlier 0.691 hit
 *maximize*) before opening Kickoff, and `tests/visual/scenarios/install-terminal.json` starts the launcher
