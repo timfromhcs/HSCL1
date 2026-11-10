@@ -70,6 +70,11 @@ patch_file "$ROOTFS/etc/calamares/settings.conf" 's/^branding: *kubuntu$/brandin
 patch_file "$ROOTFS/etc/calamares/modules/welcome.conf" '/^        - internet$/d'
 patch_file "$ROOTFS/usr/share/applications/kubuntu-calamares.desktop" \
   '/^\(Name\|GenericName\)\(\[[^]]*\]\)\?=/ s/Kubuntu 26\.04/HSCL1/; /^\(Name\|GenericName\)\(\[[^]]*\]\)\?=/ s/Kubuntu/HSCL1/'
+# Calamares' Qt Quick UI crashed intermittently in VMs while building its first view (KCrash after the requirement
+# check, `qrc:/ui/MainPage.qml`), and KCrash then SIGKILLed it. The wrapper sets QT_QUICK_BACKEND=software, which
+# removes that crash class; the installer UI is simple enough that software rendering costs nothing.
+patch_file "$ROOTFS/usr/share/applications/kubuntu-calamares.desktop" \
+  's#^Exec=sudo /usr/bin/calamares-launch-normal$#Exec=sudo /usr/bin/hscl-calamares#'
 
 patch_file "$ROOTFS/usr/share/applications/calamares-launch-oem.desktop"   '/^\(Name\|GenericName\)\(\[[^]]*\]\)\?=/ s/Kubuntu 26\.04/HSCL1/; /^\(Name\|GenericName\)\(\[[^]]*\]\)\?=/ s/Kubuntu/HSCL1/'
 

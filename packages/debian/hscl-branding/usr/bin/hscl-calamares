@@ -1,0 +1,14 @@
+#!/bin/sh
+# HSCL1 installer launcher.
+#
+# Calamares' Qt Quick UI crashes intermittently on QEMU's std VGA: the journal shows `KCrash: Application
+# 'calamares' crashing` immediately after `Got 4 requirements` while the first view is built
+# (`qrc:/ui/MainPage.qml`), and KCrash then SIGKILLs the process so the installer disappears (measured
+# 2026-11-10 on `HSCL1-rc2`, 4 GB, UEFI). The same image installs fine on the next attempt, so it is a race in
+# the graphics stack, not in the installer logic.
+#
+# Software rendering removes that class of failure. The installer shows a handful of simple pages, so the speed
+# difference does not matter, and it works on every GPU and in every VM.
+export QT_QUICK_BACKEND=software
+export LIBGL_ALWAYS_SOFTWARE=1
+exec /usr/bin/calamares-launch-normal "$@"
