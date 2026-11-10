@@ -1727,13 +1727,36 @@ Two runs failed with no installer window at all. The cause is **not** the instal
 | the real launcher works | from Konsole: `sudo /usr/bin/calamares-launch-normal` → `procs=2`, Calamares window, requirements log readable |
 | the desktop entry | upstream `Exec=sudo /usr/bin/calamares-launch-normal` (Kubuntu's, we only rename `Name=`) |
 | what goes wrong | a KDE **crash-handler window** appears right after the desktop-icon launch; the click at e00b proved the desktop was clean beforehand and the window is visible 55 s later, so it is tied to the launch and not to session start |
-| what crashed | not recorded: `coredumpctl list` says "No coredumps found" (core dumps are off in this image by design) |
+| what crashed | not recorded: `coredumpctl list` says "No coredumps found" because `fs.suid_dumpable = 0` in our hardening - a `sudo`-started process cannot dump. Re-run with dumps enabled, see below |
 
-The scenario now clicks the crash-handler's real close button (0.706, 0.204 - the earlier 0.691 hit
-*maximize*) twice before opening Kickoff, and `tests/visual/scenarios/install-terminal.json` starts the same
-launcher from Konsole (`sudo -b /usr/bin/calamares-launch-normal`), which was proven to work. The underlying
-crash is still unidentified and is listed in `docs/KNOWN_LIMITATIONS.md`; it is intermittent (4 of 8 boots had
-no dialog at all).
+**The journal finally named the mechanism** (`installer-coredump.json`, 2026-11-10):
+
+```
+/usr/bin/calamares-launch-normal: line 16: 2764 Killed
+  calamares -D8
+app-kubuntu\x2dcalamares@15e6a8ab5b624ffaa7f7d2f0aab49761.service:
+  Main process exited, code=exited, status=137/n/a
+… drkonqi … Failed to get unit by pid
+```
+
+So Calamares is **SIGKILLed** (137) inside the transient `app-kubuntu-calamares@…service` scope that the
+Plasma launcher creates - it does not crash. That also explains the missing evidence: with
+`fs.suid_dumpable=1` and `kernel.core_pattern=/tmp/hsclcore` set beforehand, **no core file appeared at all**
+(`/tmp/hsclcore: No such file or directory`), because a killed process does not dump.
+
+| Candidate | Status |
+|---|---|
+| Calamares bug | ruled out - the same binary started from a terminal installs twice (2026-11-10) |
+| `sudo`/polkit | ruled out - `sudo -n true` returns 0 in the live session |
+| `systemd-oomd` | ruled out - not installed in this image (`/usr/lib/systemd/systemd-oomd` absent) |
+| kernel OOM killer | no `Killed process` line; the failing run had 4.4 GiB free of 5.9 GiB |
+| earlyoom | **possible but unproven**: with `systemctl stop earlyoom` the icon launch worked, but that run had no memory pressure, so the success proves nothing |
+
+The killer of the scope is therefore still unidentified; the workaround (start from a terminal) is verified.
+
+The scenario also clicks the crash-handler's real close button (0.706, 0.204 - the earlier 0.691 hit
+*maximize*) before opening Kickoff, and `tests/visual/scenarios/install-terminal.json` starts the launcher
+from Konsole.
 
 ### First complete installation (2026-11-09/10)
 
