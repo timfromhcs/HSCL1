@@ -1767,6 +1767,11 @@ so the installer fix did not regress anything the QA channel covers.
 
 ### rc1 candidate: all fixes in one image (2026-11-10)
 
+> **Disk hygiene note (2026-11-10):** the older local ISOs on `E:` were deleted to make room for rebuilds
+> (`0.1.0`…`0.1.3-dev`, the two 2026-11-09 QA images, `honesty-fixes` and `qa-green`). Their hashes stay in this
+> log and in `CLAIMS.md`, but the files are gone: a row that names `5d4ea47e…` is a record, not a download.
+> Kept locally: `earlyoom-fix` (`e723940b…`), `installer-fix` (`3e8ebce1…`) and `rc1` (`f8ae5c52…`).
+
 | Field | Value |
 |---|---|
 | Artifact | `HSCL1-rc1-amd64.iso` |
