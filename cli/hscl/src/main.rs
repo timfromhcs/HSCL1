@@ -1839,8 +1839,10 @@ toolsets: {}",
             }
             let project = project.clone();
             let action = lab_action(cmd)?;
-            lab_execute(&action, j, &project)?;
-            return Ok(exit::OK);
+            // Propagate podman's exit code: discarding it made `hscl lab …` exit 0 even when the container
+            // failed (measured 2026-11-10 in the live guest: "lab action finished: … exit=125" with exit 0).
+            let code = lab_execute(&action, j, &project)?;
+            return Ok(code);
         }
         LabCmd::Spec {
             project,
@@ -4350,6 +4352,21 @@ fn main() -> ExitCode {
 #[cfg(test)]
 mod brand_tests {
     use super::*;
+
+    #[test]
+    fn lab_execute_returns_the_command_exit_code() {
+        // Regression: the exit code used to be discarded, so a failed container still exited 0
+        // (`lab action finished: … exit=125` with process exit 0, measured in the live guest 2026-11-10).
+        #[cfg(unix)]
+        let argv = vec!["sh".to_string(), "-c".to_string(), "exit 7".to_string()];
+        #[cfg(windows)]
+        let argv = vec!["cmd".to_string(), "/c".to_string(), "exit 7".to_string()];
+        let action = LabAction {
+            argvs: vec![argv],
+            interactive: false,
+        };
+        assert_eq!(lab_execute(&action, true, "demo").unwrap(), 7);
+    }
 
     #[test]
     fn the_name_hscl1_is_also_a_program() {
