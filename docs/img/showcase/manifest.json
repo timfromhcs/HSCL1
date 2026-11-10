@@ -92,14 +92,15 @@
   },
   {
     "filename": "16_terminal_privacy_security.png",
-    "bytes": 49000,
+    "bytes": 124748,
     "colors": 2488,
     "size": [
       1280,
       800
     ],
-    "description": "Konsole: hscl privacy posture & security baseline",
-    "timestamp": 1794234846.1432793
+    "description": "Konsole: hscl privacy status with the session line, hscl security status and the honest lab state 'podman: NOT installed' (candidate 2026-11-10)",
+    "timestamp": 1794305992.316073,
+    "source_iso": "HSCL1-qa-green-amd64.iso sha256 5d4ea47e"
   },
   {
     "filename": "17_terminal_logs_and_diag.png",
@@ -114,47 +115,51 @@
   },
   {
     "filename": "04_control_center_overview.png",
-    "bytes": 95979,
+    "bytes": 121334,
     "colors": 14894,
     "size": [
       1280,
       800
     ],
-    "description": "Control Center: System Overview & Hardware",
-    "timestamp": 1794234875.7080317
+    "description": "Control Center: live overview - HSCL1 0.1.4-alpha.0, kernel 7.0.0-30, health 6 passed / 0 failed / 1 skipped (candidate 2026-11-10)",
+    "timestamp": 1794305913.636564,
+    "source_iso": "HSCL1-qa-green-amd64.iso sha256 5d4ea47e"
   },
   {
     "filename": "05_control_center_appearance.png",
-    "bytes": 76155,
+    "bytes": 98448,
     "colors": 10175,
     "size": [
       1280,
       800
     ],
-    "description": "Control Center: Appearance, Tokens & Themes",
-    "timestamp": 1794234879.2650654
+    "description": "Control Center: appearance with the four HCS themes, each with Preview and Apply (candidate 2026-11-10)",
+    "timestamp": 1794305916.9840486,
+    "source_iso": "HSCL1-qa-green-amd64.iso sha256 5d4ea47e"
   },
   {
     "filename": "06_control_center_security.png",
-    "bytes": 106853,
+    "bytes": 135898,
     "colors": 16398,
     "size": [
       1280,
       800
     ],
-    "description": "Control Center: Security Baseline & Firewall Policy",
-    "timestamp": 1794234882.825309
+    "description": "Control Center: security page with the honest Secure Boot line 'UEFI without a SecureBoot variable (firmware has Secure Boot off)' (candidate 2026-11-10)",
+    "timestamp": 1794305920.3303485,
+    "source_iso": "HSCL1-qa-green-amd64.iso sha256 5d4ea47e"
   },
   {
     "filename": "07_control_center_about.png",
-    "bytes": 91104,
+    "bytes": 119791,
     "colors": 14745,
     "size": [
       1280,
       800
     ],
-    "description": "Control Center: About & System Attestation",
-    "timestamp": 1794234886.3840575
+    "description": "Control Center: About page (candidate 2026-11-10)",
+    "timestamp": 1794305927.0279353,
+    "source_iso": "HSCL1-qa-green-amd64.iso sha256 5d4ea47e"
   },
   {
     "filename": "10_app_dolphin.png",
@@ -246,5 +251,16 @@
     "bytes": 116741,
     "timestamp": 1794262603.9972832,
     "source_iso": "HSCL1-earlyoom-fix-amd64.iso sha256 e723940b"
+  },
+  {
+    "filename": "20_control_center_miner.png",
+    "size": [
+      1280,
+      800
+    ],
+    "description": "Control Center: the Miner page with no device configured - it says so instead of showing values (candidate 2026-11-10)",
+    "bytes": 110066,
+    "timestamp": 1794305923.6789474,
+    "source_iso": "HSCL1-qa-green-amd64.iso sha256 5d4ea47e"
   }
 ]

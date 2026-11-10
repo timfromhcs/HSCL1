@@ -305,6 +305,21 @@ pub fn parse_secure_boot(bytes: &[u8]) -> State {
     }
 }
 
+/// Why the Secure Boot state is unknown, in one short phrase for the status table.
+pub fn secure_boot_unknown_note() -> &'static str {
+    secure_boot_unknown_note_at(Path::new("/sys/firmware"))
+}
+
+pub fn secure_boot_unknown_note_at(firmware_root: &Path) -> &'static str {
+    if !firmware_root.join("efi").is_dir() {
+        return "unknown (legacy BIOS boot)";
+    }
+    match fs::read_dir(firmware_root.join("efi/efivars")) {
+        Ok(_) => "unknown (no SecureBoot variable; Secure Boot off)",
+        Err(_) => "unknown (efivars not readable)",
+    }
+}
+
 pub fn secure_boot() -> State {
     let dir = Path::new("/sys/firmware/efi/efivars");
     let Ok(rd) = fs::read_dir(dir) else {
@@ -461,7 +476,13 @@ pub fn render(s: &Security) -> String {
         "AppArmor enabled:   {}\nUFW enabled:        {}\nSecure Boot:        {}\nLUKS volumes open:  {}\nForbidden APT repos: {}",
         st(s.apparmor),
         st(s.firewall_ufw_enabled),
-        st(s.secure_boot),
+        if s.secure_boot == State::Unknown {
+            // "unknown (not readable)" was wrong in a UEFI guest with efivars and no SecureBoot variable
+            // (measured 2026-11-10); say which of the three cases it is.
+            secure_boot_unknown_note()
+        } else {
+            st(s.secure_boot)
+        },
         s.luks_mapped_devices.map_or("unknown".into(), |n| n.to_string()),
         if s.forbidden_apt_sources.is_empty() {
             "none".into()
@@ -500,6 +521,28 @@ mod tests {
         let (enforce, complain) = parse_apparmor_profiles(sample);
         assert_eq!(enforce, 2);
         assert_eq!(complain, 1);
+    }
+
+    #[test]
+    fn the_status_table_names_the_secure_boot_case_instead_of_claiming_nothing_is_readable() {
+        use std::fs;
+        let tmp = tempfile::tempdir().unwrap();
+        assert!(secure_boot_unknown_note_at(tmp.path()).contains("legacy BIOS"));
+        fs::create_dir_all(tmp.path().join("efi/efivars")).unwrap();
+        assert!(secure_boot_unknown_note_at(tmp.path()).contains("no SecureBoot variable"));
+        fs::remove_dir_all(tmp.path().join("efi/efivars")).unwrap();
+        assert!(secure_boot_unknown_note_at(tmp.path()).contains("not readable"));
+
+        let s = Security {
+            apparmor: State::Yes,
+            firewall_ufw_enabled: State::Yes,
+            secure_boot: State::Unknown,
+            luks_mapped_devices: Some(0),
+            forbidden_apt_sources: Vec::new(),
+        };
+        let text = render(&s);
+        assert!(text.contains("Secure Boot:        unknown ("), "{text}");
+        assert!(!text.contains("unknown (not readable)\nLUKS"), "{text}");
     }
 
     #[test]

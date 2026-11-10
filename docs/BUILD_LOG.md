@@ -1996,8 +1996,28 @@ instead of pretending. Then, inside the live session:
 | `podman info` `.Host.Security.Rootless` | `true` (the second field of my Go template was wrong for 5.7, so that line errored - cosmetic) |
 
 **Not yet verified:** the two-phase Kali toolset build from a digest-pinned official image, and therefore any
-tool run inside the lab container. The `hscl lab` code path that builds that image was not executed in a guest;
-Q-18 stays open for exactly that remainder.
+tool run inside the lab container. The `hscl lab` code path that builds that image was not executed in a
+guest; Q-18 stays open for exactly that remainder.
+
+### Showcase refreshed from the current candidate (2026-11-10)
+
+One 4 GB run (`showcase-green.json`) captured the Control Center with keyboard navigation through the rail
+(the rail is `keyNavigationEnabled`, so no coordinate guessing) and the terminal tracks. Six images replaced,
+all with `source_iso` in the manifest:
+
+| Image | What it now shows |
+|---|---|
+| `04_control_center_overview` | live system data, health 6 passed / 0 failed / 1 skipped |
+| `05_control_center_appearance` | the four HCS themes with Preview/Apply |
+| `06_control_center_security` | the honest Secure Boot line, in the GUI |
+| `20_control_center_miner` | **new**: the Miner page, saying "No device configured" instead of inventing values |
+| `07_control_center_about` | About page |
+| `16_terminal_privacy_security` | `privacy status` with the session line, `security status`, and `lab status` reporting `podman: NOT installed` |
+
+While looking at that terminal capture, `hscl security status` turned out to still print
+`Secure Boot: unknown (not readable)` - the same misleading sentence I had fixed in `doctor` only.
+`security::render` now names the case too (`legacy BIOS boot` / `no SecureBoot variable; Secure Boot off` /
+`efivars not readable`), with a unit test; on this Windows host it prints `unknown (legacy BIOS boot)`.
 
 ### LUKS2 install and unlock: VM-VERIFIED (2026-11-10)
 
