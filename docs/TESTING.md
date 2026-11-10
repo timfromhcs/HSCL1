@@ -103,6 +103,23 @@ PANIC-LIKE: artifacts/install-luks-final/l09-before-finish.png (98% panic purple
 Two install runs died that way on 2026-11-10 (`KERNEL PANIC! Attempted to kill init! exitcode=0x0000000b`).
 The detector is a colour heuristic, not a console read: it finds the symptom, not the cause.
 
+### One command per checkpoint
+
+Typing the next step while a long command still runs corrupts both: on 2026-11-10 a scenario typed
+`hscl lab spec …` while `apt-get install podman` was still executing, the terminal interleaved apt's output with
+the typed line, and the shell ended up running `ls`. Screenshots looked plausible, the command did not.
+
+Write the whole chain into **one** typed command that logs to files, then read the log:
+
+```text
+( sudo apt-get install -y podman; hscl lab setup; hscl lab spec … > /tmp/spec.log 2>&1;
+  hscl lab install … > /tmp/inst.log 2>&1; echo INSTALL_EXIT=$? >> /tmp/inst.log ) > /tmp/all.log 2>&1;
+kdialog --title lab --msgbox "$(tail -3 /tmp/spec.log; echo ---; tail -6 /tmp/inst.log)"
+```
+
+`tests/visual/scenarios/lab-kali-onecmd.json` follows that shape. A `kdialog` at the end is readable in a
+screenshot even when the installer or another window covers the terminal.
+
 ## Stress and fault gate (disposable VM only)
 
 `scripts/stress_vm.sh [--out DIR]` runs `stress-ng --klog-check --metrics-brief`, `fio` (4k randrw, 1 GiB file,
