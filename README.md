@@ -37,7 +37,10 @@
 3. **No HSCL1 telemetry & rigorous attestation:** HSCL1 adds no analytics, no crash upload and no remote control; 100% offline documentation in 3 languages (English, German, French), LUKS2 full-disk encryption with Argon2id, and an evidence-based contract—features are backed by automated tests and recorded proof. Base-system network contacts (time sync, package mirrors, the installer's connectivity and geo-IP check) are disclosed in [Known limitations](docs/KNOWN_LIMITATIONS.md).
 
 > [!IMPORTANT]
-> **Status: Pre-Alpha (`0.1.4-alpha.0`).**
+> **Status: Pre-Alpha — published release `0.1.4-alpha.0`, source tree `0.1.5-alpha.0`.**
+> The last published prerelease is **v0.1.4-alpha.0**; the tree has since moved to 0.1.5-alpha.0
+> (installer fixes, honest status wording, the two-phase Security Lab chain), and the newest local
+> candidates (`HSCL1-rc1`…`rc3`) report 0.1.5-alpha.0 because they are built from this tree.
 > HSCL1 is verified **in virtual machines only** (UEFI and BIOS firmware under QEMU 9.2.0 with WHPX / KVM acceleration). The current candidate is `HSCL1-rc2-amd64.iso` (`0ed86405…`, built from `ddf3323`); the published release `v0.1.4-alpha.0` is the split form of the 0.1.4 line and the earlier candidates are named in the [build log](docs/BUILD_LOG.md). Verified in QEMU on 2026-11-10:
 >
 > - a **full unencrypted installation at the documented 4 GB minimum** (`All done`, the disk then boots with `iso=none`, logs in, and reports `hscl doctor` 6 passed / 0 failed / 1 skipped);

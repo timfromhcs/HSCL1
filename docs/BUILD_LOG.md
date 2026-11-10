@@ -1776,6 +1776,14 @@ The same artifact also passes the machine-readable report at 4 GB
 (`artifacts/qa/report-installer-fix.txt`, `qa_report.py` exit 0: 9 checks ok, one `info` line about Secure Boot),
 so the installer fix did not regress anything the QA channel covers.
 
+### Version state (2026-11-10)
+
+`VERSION` in the tree is **0.1.5-alpha.0** (commit `014b71e`, authored 2026-11-10 22:29, touching VERSION,
+workspace, lock, Calamares branding and handbook). The **published** prerelease is still
+`v0.1.4-alpha.0`, and the screenshots in `docs/img/showcase` were captured from candidates built before the
+bump (`rc2` reports 0.1.4-alpha.0). `rc3` is the first artifact that reports 0.1.5-alpha.0. README and
+CLAIMS now state both numbers instead of implying one.
+
 ### rc2 candidate: the lab chain becomes usable (2026-11-10)
 
 | Field | Value |
