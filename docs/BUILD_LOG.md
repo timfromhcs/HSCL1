@@ -1810,6 +1810,17 @@ qcow2 ("All done", `artifacts/install-rc1/t13`), and that disk then booted with 
 accepted the login and showed the HSCL1 desktop (`artifacts/boot-installed-rc1/w0-desktop`). Both
 install (4 GB, unencrypted) and LUKS2 (8 GB) evidence now exists for candidates built after the fix.
 
+Inside that installed system (`artifacts/boot-installed-rc1/w1`…`w4`): `EFI-MODE` with efivars, SDDM
+`Current=hscl1`, and the corrected wording is live where it matters:
+
+```
+AppArmor enabled:  yes      UFW enabled:  yes
+Secure Boot:       unknown (no SecureBoot variable; Secure Boot off)
+session:           installed (persistent root)
+persistent disk swap: active (expected on an installed system)
+```
+
+
 | Attempt | RAM | Result |
 |---|---|---|
 | `install-luks-final` | 6 GB | **KERNEL PANIC** mid-install: `Attempted to kill init! exitcode=0x0000000b` (SIGSEGV in PID 1), qcow2 stopped at 9.29 GB |
