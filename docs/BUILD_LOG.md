@@ -1765,6 +1765,23 @@ The same artifact also passes the machine-readable report at 4 GB
 (`artifacts/qa/report-installer-fix.txt`, `qa_report.py` exit 0: 9 checks ok, one `info` line about Secure Boot),
 so the installer fix did not regress anything the QA channel covers.
 
+### rc2 candidate: the lab chain becomes usable (2026-11-10)
+
+| Field | Value |
+|---|---|
+| Artifact | `HSCL1-rc2-amd64.iso` |
+| Bytes | 5 488 771 072 |
+| SHA-256 | `0ed86405c67f3b00c22ff25b79a2ae5eeab8f21ed0ba49da13b6cc39f361a511` |
+| Source commit | `ddf3323` |
+| Gates | `verify-image: all checks passed`; manifest and checksum written by the build itself this time |
+
+Carries one more fix found in the guest: `hscl lab run` refused every image that was not digest-pinned, but
+`hscl lab commit` produces `localhost/hscl-lab-<project>:latest`, which has no digest until it is pushed - so the
+documented install → commit → run chain could not be finished. `validate_image` now accepts a **local**
+(`localhost/<name>:<tag>`) reference and still refuses remote tags (`docker.io/kalilinux/kali-rolling:latest` is
+rejected with the new message). `run` already passes `--pull=never`, so a local reference can only name an image
+that exists on the machine. Unit test `a_local_committed_image_is_accepted_but_remote_tags_stay_refused`.
+
 ### rc1 candidate: all fixes in one image (2026-11-10)
 
 > **Disk hygiene note (2026-11-10):** the older local ISOs on `E:` were deleted to make room for rebuilds
