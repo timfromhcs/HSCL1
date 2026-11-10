@@ -1,0 +1,10 @@
+[
+  { "wait": 10 },
+  { "keys": ["meta_l"] },
+  { "wait": 4 },
+  { "type": "Install HSCL1" },
+  { "wait": 4 },
+  { "keys": ["ret"] },
+  { "wait": 50 },
+  { "shot": "i1-launch" }
+]

@@ -1752,8 +1752,14 @@ request against `https://networkcheck.kde.org` in exactly that phase - a plausib
 and an unnecessary one for an image that installs offline.
 
 **Fix:** the hook deletes the `- internet` line from `welcome.conf` (storage/ram/power/root stay), the image gate
-asserts it, and `tests/unit/test_installer_no_network_probe.py` pins it. A rebuilt ISO is being tested with
-repeated desktop-icon launches; until that passes, Q-46 stays open and the terminal workaround stands.
+asserts it, and `tests/unit/test_installer_no_network_probe.py` pins it.
+
+**Verified (2026-11-10):** rebuilt `HSCL1-installer-fix-amd64.iso`
+(`3e8ebce153d2f591e457bf6d275530c7404404a842da447713f2c4bb5cce89c0`, image gate
+`ok installer: no internet requirement`), 4 GB, UEFI. The desktop icon was clicked in three separate boots and
+the installer window opened every time (`boot-icon-3x/a1`, `boot-icon-once-1/i1`, `boot-icon-once-2/i1`), with no
+KCrash line and no crash-handler dialog. Three successes do not prove the crash is impossible, but the phase
+that crashed is gone from this image.
 
 The scenario also clicks the crash-handler's real close button (0.706, 0.204 - the earlier 0.691 hit
 *maximize*) before opening Kickoff, and `tests/visual/scenarios/install-terminal.json` starts the launcher
