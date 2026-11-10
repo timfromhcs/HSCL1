@@ -1928,6 +1928,32 @@ The look-and-feel check now reads the three real sources and finds `org.hcs.hscl
 which is exactly what the earlier run misreported as "missing". The remaining `info` line is correct for this
 firmware (no Secure Boot support); the Secure-Boot-enabled OVMF path is still untested.
 
+### Complete install and boot at the documented 4 GB minimum (2026-11-10)
+
+Same candidate `HSCL1-qa-green-amd64.iso` (`5d4ea47e…`), UEFI + WHPX, **4 GB RAM**, 4 vCPU, disposable 40 GB
+qcow2 (`artifacts/vdisks/walk-green.qcow2`):
+
+| Step | Evidence |
+|---|---|
+| Installer start | Konsole → `sudo -b /usr/bin/calamares-launch-normal` (the desktop-icon path is Q-46) |
+| Window | centred, top bar and controls visible, all ten step labels, heading `HSCL1 0.1.4-alpha.0` (`t01`) |
+| Plan | ESP 300 MiB FAT32 + `hscl1_root` 39.71 GiB ext4 (`t07`) |
+| Confirmation | "Continue with Installation? … You will not be able to undo these changes." (`t11`) |
+| Result | **"All done. HSCL1 0.1.4-alpha.0 has been installed"** (`t13`), 27 min total run, no OOM kill |
+| Installed boot | qcow2 booted with `iso=none` at 4 GB, SDDM login, HSCL1 desktop |
+
+In that installed system, the corrected wording is visible (`artifacts/boot-installed-green/w3`):
+
+```
+session:               installed (persistent root)
+ephemeral overlay:     inactive (persistent root)
+persistent disk swap:  active (expected on an installed system)
+```
+
+That is the fix working where it matters: the old text called the installer's own swap file a WARNING.
+`hscl security status` reports AppArmor and ufw enabled, `LUKS volumes open: 0`, no forbidden apt sources, and
+the guest is in EFI mode with efivars present.
+
 ### LUKS2 install and unlock: VM-VERIFIED (2026-11-10)
 
 | Item | Value |
