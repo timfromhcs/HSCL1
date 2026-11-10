@@ -3,10 +3,11 @@
 Rule: nothing is stated as working without evidence. "unit-tested" means only the code logic ran in tests;
 it is **not** a claim that the feature works on real hardware or in the image.
 
-**Artifact identity.** The current source is `189760f` (2026-11-10); the newest local candidate is
-`HSCL1-qa-green-amd64.iso` (`5d4ea47e…`, 5 488 771 072 bytes, commit `28b8221`), and the install evidence from
-the same day belongs to `HSCL1-earlyoom-fix-amd64.iso` (`e723940b…`). The published prerelease is still
-`v0.1.4-alpha.0`: three split parts whose SHA-256 digests match the GitHub release assets
+**Artifact identity.** The current source is `43004d5` (2026-11-10); the newest local candidate is
+`HSCL1-installer-fix-amd64.iso` (`3e8ebce1…`, 5 488 771 072 bytes), which carries the installer startup fix and
+passes the QA report at 4 GB. The install and LUKS evidence from the same day belongs to
+`HSCL1-earlyoom-fix-amd64.iso` (`e723940b…`) and `HSCL1-qa-green-amd64.iso` (`5d4ea47e…`). The published
+prerelease is still `v0.1.4-alpha.0`: three split parts whose SHA-256 digests match the GitHub release assets
 (`bb47493b…`, `7c9de400…`, `e6effeff…`) and join to `HSCL1-0.1.4-alpha.0-amd64.iso`
 (`a7e055a7…`, 5,488,312,320 bytes). Rows below were recorded against earlier images (`0.1.3-alpha.0`
 `2e30b750…`, built from `a55e023`; and a later local candidate that is no longer on disk). **A row is

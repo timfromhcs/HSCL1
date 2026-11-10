@@ -1761,6 +1761,10 @@ the installer window opened every time (`boot-icon-3x/a1`, `boot-icon-once-1/i1`
 KCrash line and no crash-handler dialog. Three successes do not prove the crash is impossible, but the phase
 that crashed is gone from this image.
 
+The same artifact also passes the machine-readable report at 4 GB
+(`artifacts/qa/report-installer-fix.txt`, `qa_report.py` exit 0: 9 checks ok, one `info` line about Secure Boot),
+so the installer fix did not regress anything the QA channel covers.
+
 The scenario also clicks the crash-handler's real close button (0.706, 0.204 - the earlier 0.691 hit
 *maximize*) before opening Kickoff, and `tests/visual/scenarios/install-terminal.json` starts the launcher
 from Konsole.
