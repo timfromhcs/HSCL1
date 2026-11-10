@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Parse and evaluate the guest report written by the hscl-qa package (see packages/debian/hscl-qa).
+"""Parse and evaluate the guest report written by the Workshop evidence runner
+(packages/debian/hscl-workshop/usr/lib/hscl/workshop/evidence.sh; it starts from the udev rule when a
+hypervisor provides the `hscl.qa` virtio port). The section header inside the report is still `hscl-qa`.
 
 Usage: qa_report.py REPORT.txt [--profile live]     exit 0 only if every check passes
 """
@@ -68,8 +70,21 @@ def evaluate(sections: dict[str, str], profile: str = "live") -> list[Check]:
     add("kernel.kptr_restrict = 2", "kernel.kptr_restrict = 2" in sections.get("sysctl", ""), sections.get("sysctl", "")[:80])
     add("firewall baseline active", "Status: active" in sections.get("ufw", ""), sections.get("ufw", "")[:60])
     add("no failed hscl units", "hscl" not in sections.get("failed-units", ""), sections.get("failed-units", "")[:80])
-    lnf = sections.get("user-lookandfeel", "")
-    add("default look-and-feel is HCS", lnf == "org.hcs.hscl1.desktop", lnf or "missing")
+    # The active look-and-feel lives in the system default (kubuntu-default-settings) unless the user
+    # overrode it. The old check read only the user's kdeglobals, which legitimately has no
+    # LookAndFeelPackage, so it reported "missing" on a correct image (measured 2026-11-10 in the live VM).
+    lnf_user = sections.get("user-lookandfeel", "").strip()
+    lnf_system = sections.get("system-lookandfeel", "").strip()
+    lnf_skel = sections.get("skel-lookandfeel", "").strip()
+    effective = next(
+        (v for v in (lnf_user, lnf_skel, lnf_system) if v == "org.hcs.hscl1.desktop"),
+        lnf_user or lnf_skel or lnf_system,
+    )
+    add(
+        "default look-and-feel is HCS",
+        effective == "org.hcs.hscl1.desktop",
+        effective or "missing",
+    )
     return checks
 
 

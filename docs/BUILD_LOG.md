@@ -1860,6 +1860,44 @@ internal disk mounts:  none (host disks unmounted)
 Both messages are now true for the session they describe, and the 4 GB run again reached the desktop with the
 installer exemption in place.
 
+### Machine-readable guest report, and a check that lied (2026-11-10)
+
+`--qa-out` works: booting this ISO at 4 GB with the `hscl.qa` virtio port produced
+`artifacts/qa/hscl1-report.txt` (2 844 bytes, 16 sections) from the Workshop evidence runner, and
+`scripts/qa_report.py` evaluated it:
+
+```
+ok   os-release NAME is HSCL1
+ok   os-release keeps ID=ubuntu
+ok   desktop session running
+ok   hscl status emits valid JSON
+ok   hscl doctor emits valid JSON
+ok   kernel.kptr_restrict = 2
+ok   firewall baseline active
+ok   no failed hscl units
+FAIL default look-and-feel is HCS  [missing]
+info secure-boot: This system doesn't support Secure Boot
+```
+
+The FAIL was **the check, not the image**: `user-lookandfeel` is empty because a fresh user's
+`~/.config/kdeglobals` carries no `LookAndFeelPackage` - the active look-and-feel is the *system* default from
+`/usr/share/kubuntu-default-settings/kf5-settings/kdeglobals`, which the same report shows as
+`org.hcs.hscl1.desktop` in `look-and-feel-packages`. Reported as "missing", it looked like a product defect.
+
+Fixed in the harness, with tests:
+
+- `evidence.sh` now reports `system-lookandfeel` and `skel-lookandfeel` next to the user section (bare values).
+- `qa_report.py` accepts the HCS package from any of the three sources, and a real user override still wins;
+  `tests/unit/test_qa_report.py` covers both directions, `test_workshop_evidence.py` pins the new sections.
+- The sandbox hook check writes its log inside its own `mktemp -d` instead of a shared `/tmp` path, and prints
+  the log when it fails.
+
+The `secure-boot` info line is correct for this firmware: `mokutil --sb-state` says the system has no Secure
+Boot support, which is a different statement from the doctor's "UEFI without a SecureBoot variable".
+
+**Honest status:** the harness fix is committed and unit-tested, but `evidence.sh` ships inside the image, so
+the next rebuilt ISO is needed before this report turns green in a guest.
+
 ### LUKS2 install and unlock: VM-VERIFIED (2026-11-10)
 
 | Item | Value |

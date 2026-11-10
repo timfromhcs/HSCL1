@@ -29,7 +29,7 @@ def test_report_sections_when_port_exists(tmp_path):
     r = run(out)
     assert r.returncode == 0, r.stderr
     text = out.read_text(encoding="utf-8", errors="replace")
-    for name in ("hscl-qa", "os-release", "hscl-status", "hscl-doctor", "secure-boot", "apparmor", "ufw", "listening", "failed-units", "sysctl", "end"):
+    for name in ("hscl-qa", "os-release", "hscl-status", "hscl-doctor", "secure-boot", "apparmor", "ufw", "listening", "failed-units", "sysctl", "look-and-feel-packages", "system-lookandfeel", "skel-lookandfeel", "end"):
         assert f"== {name} ==" in text, name
     assert text.rstrip().endswith("== end ==")
 

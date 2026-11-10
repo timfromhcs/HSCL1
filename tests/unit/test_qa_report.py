@@ -59,3 +59,26 @@ def test_incomplete_report_is_rejected():
 def test_each_regression_is_detected(needle, repl, failing):
     checks = {c.name: c.ok for c in qr.evaluate(qr.parse(GOOD.replace(needle, repl)))}
     assert checks[failing] is False
+
+
+def test_the_system_default_counts_as_the_active_look_and_feel():
+    """Measured 2026-11-10: a correct live image failed this check because the user's kdeglobals is empty.
+
+    The active look-and-feel on a fresh system is the system default from kubuntu-default-settings, so an
+    empty user section plus `org.hcs.hscl1.desktop` in the system section must pass.
+    """
+    report = GOOD.replace(
+        "== user-lookandfeel ==\norg.hcs.hscl1.desktop\n",
+        "== user-lookandfeel ==\n\n== system-lookandfeel ==\norg.hcs.hscl1.desktop\n",
+    )
+    checks = {c.name: c.ok for c in qr.evaluate(qr.parse(report))}
+    assert checks["default look-and-feel is HCS"] is True
+
+
+def test_a_kubuntu_look_and_feel_still_fails_when_only_the_system_default_says_it():
+    report = GOOD.replace(
+        "== user-lookandfeel ==\norg.hcs.hscl1.desktop\n",
+        "== user-lookandfeel ==\n\n== system-lookandfeel ==\norg.kubuntu.desktop\n",
+    )
+    checks = {c.name: c.ok for c in qr.evaluate(qr.parse(report))}
+    assert checks["default look-and-feel is HCS"] is False

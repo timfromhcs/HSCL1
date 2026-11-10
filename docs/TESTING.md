@@ -35,7 +35,7 @@ Shell scripts: `shellcheck -S warning scripts/*.sh distro/live/*.sh distro/live/
 | `--try-live --dismiss-welcome` | click "Try", close the Plasma Welcome Center, capture `desktop-final.png` |
 | `--launch-installer` | double-click the installer icon and capture `installer-N.png` (no disk attached; nothing is written) |
 | `--steps FILE.json` | run a scenario (`tests/visual/scenarios/*.json`): keys, text, clicks, named screenshots |
-| `--qa-out FILE` | attach the `hscl.qa` virtio port; the guest report (from `hscl-qa`) is written to FILE |
+| `--qa-out FILE` | attach the `hscl.qa` virtio port; the guest report from the Workshop evidence runner (`packages/debian/hscl-workshop/usr/lib/hscl/workshop/evidence.sh`, started by the udev rule when the port exists) is written to FILE |
 
 ### Writing an installer scenario
 

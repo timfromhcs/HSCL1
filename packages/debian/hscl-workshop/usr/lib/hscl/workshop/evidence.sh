@@ -31,6 +31,10 @@ user="$(ps -o user= -C plasmashell 2>/dev/null | head -n 1 | tr -d ' ')"
   section failed-units systemctl --failed --no-legend
   section sysctl sysctl kernel.kptr_restrict kernel.dmesg_restrict fs.protected_symlinks
   section look-and-feel-packages ls /usr/share/plasma/look-and-feel
+  # The default look-and-feel is a system default (Kubuntu ships it in kubuntu-default-settings), so the
+  # user's kdeglobals is legitimately empty on a freshly installed system. Report all three sources, bare values.
+  section system-lookandfeel sh -c "grep -h '^LookAndFeelPackage=' /usr/share/kubuntu-default-settings/kf5-settings/kdeglobals /etc/xdg/kdeglobals 2>/dev/null | sed 's/^LookAndFeelPackage=//'"
+  section skel-lookandfeel sh -c "grep -h '^LookAndFeelPackage=' /etc/skel/.config/kdeglobals 2>/dev/null | sed 's/^LookAndFeelPackage=//'"
   if [ -n "$user" ] && command -v runuser >/dev/null 2>&1; then
     section user-lookandfeel runuser -l "$user" -c "kreadconfig6 --file kdeglobals --group KDE --key LookAndFeelPackage 2>/dev/null"
     section user-colorscheme runuser -l "$user" -c "kreadconfig6 --file kdeglobals --group General --key ColorScheme 2>/dev/null"
