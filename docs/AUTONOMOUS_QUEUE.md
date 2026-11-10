@@ -60,8 +60,8 @@ booted-artifact evidence missing).
 | Q-12 | Re-run the 12 in-guest tracks against the new candidate | `verify_in_guest_tracks.py` output | OPEN |
 | Q-13 | Regenerate all showcase screenshots from that candidate | manifest.json with source commit | OPEN |
 | Q-14 | Accessibility pass: focus order, labels, reduced motion (QML + docs) | review notes + QML test | OPEN |
-| Q-15 | `hscl` docs ↔ CLI drift check for every new subcommand | `cli_doc_lists_every_command` | OPEN |
-| Q-16 | Secure Boot guest state read (`mokutil`/efivars) in the VM | recorded evidence hash | OPEN |
+| Q-15 | `hscl` docs ↔ CLI drift check for every new subcommand | `cli_doc_lists_every_command` | **DONE (verified 2026-11-10)** - `documented_hscl_commands_resolve_in_the_cli` (Rust) scans every markdown file, extracts `hscl ...` invocations from code blocks and prose, resolves each against clap and fails with file plus reason; it asserts more than ten files so it cannot pass vacuously. Green with the three new miner rows in `docs/CLI.md` (`miner pool list`, `miner pool set`, `miner watch`). |
+| Q-16 | Secure Boot guest state read (`mokutil`/efivars) in the VM | recorded evidence hash | **DONE (VM evidence 2026-11-10)** - the `hscl.qa` report carries a `secure-boot` section (`mokutil --sb-state` in the guest: "This system doesn't support Secure Boot" for the non-Secure-Boot firmware), and `hscl doctor` prints the matching, more precise line "UEFI without a SecureBoot variable (firmware has Secure Boot off)". A Secure-Boot-enabled OVMF run is still pending for the positive case. |
 | Q-17 | Privacy mode: packet-capture evidence for DNS/IPv6/Tor-unavailable | capture artefact + doc row | BLOCKED (needs candidate VM) |
 | Q-18 | Security Lab: in-guest rootless Podman run from the candidate | `hscl lab` in-guest transcript | OPEN |
 
