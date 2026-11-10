@@ -38,7 +38,7 @@
 
 > [!IMPORTANT]
 > **Status: Pre-Alpha (`0.1.4-alpha.0`).**
-> HSCL1 is currently verified **in virtual machines only** (UEFI, BIOS, and Secure-Boot firmware via QEMU 9.2.0 with WHPX / KVM acceleration). Verified on 2026-11-10 in QEMU against `HSCL1-installer-fix-amd64.iso` (`3e8ebce1…`) and the two candidates before it (`HSCL1-qa-green` `5d4ea47e…`, `HSCL1-earlyoom-fix` `e723940b…`):
+> HSCL1 is currently verified **in virtual machines only** (UEFI, BIOS, and Secure-Boot firmware via QEMU 9.2.0 with WHPX / KVM acceleration). Verified on 2026-11-10 in QEMU against `HSCL1-rc1-amd64.iso` (`f8ae5c52…`) and the candidates before it (`HSCL1-installer-fix` `3e8ebce1…`, `HSCL1-qa-green` `5d4ea47e…`, `HSCL1-earlyoom-fix` `e723940b…`):
 > a **full installation at the documented 4 GB minimum** (`All done`, then the disk boots, logs in and reports `hscl doctor` 6 passed / 0 failed / 1 skipped), an **LUKS2 installation** (wrong passphrase refused by cryptsetup, correct one unlocks, `LUKS volumes open: 1`), and a **machine-readable guest report** (`scripts/qa_report.py` exits 0 with 9 checks). **Rootless Podman** was verified in the live session (`ROOTLESS_OK`, `Host.Security.Rootless=true`); the digest-pinned Kali toolset image is **not** built or run yet. It has **not** yet been tested on bare-metal physical hardware, and releases are **unsigned** (SHA-256 integrity checksums provided). Known open defect: starting the installer from the desktop icon is sometimes SIGKILLed (exit 137) — start it from a terminal instead, see [Known limitations](docs/KNOWN_LIMITATIONS.md). Read that file and the [evidence ledger](docs/CLAIMS.md) before installing. Do not use HSCL1 on systems requiring security certifications.
 
 > [!NOTE]

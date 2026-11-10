@@ -1787,6 +1787,19 @@ this one. A later build will regenerate both normally.
 Booted at 4 GB with `--qa-out`: `python scripts/qa_report.py artifacts/qa/report-rc1.txt` → **exit 0**
 (9 checks ok, one `info` line about Secure Boot), so the rc1 image keeps the properties the QA channel covers.
 
+The exit-code fix is verified **in the image**, twice, in one session (`artifacts/boot-rc1`):
+
+```
+Error: docker.io/kalilinux/kali-rolling@sha256:5cc5e418…: image not known
+lab action finished: project=demo exit=125
+RUN_EXIT=125            # before the fix this printed 0
+…
+SECOND_EXIT=125         # second run without sudo
+```
+
+The command failing here is the *intended* failure: `hscl lab` runs `--pull=never`, and the image was not
+pulled in this session. That makes it a clean test of the propagation, not of the lab itself.
+
 | Attempt | RAM | Result |
 |---|---|---|
 | `install-luks-final` | 6 GB | **KERNEL PANIC** mid-install: `Attempted to kill init! exitcode=0x0000000b` (SIGSEGV in PID 1), qcow2 stopped at 9.29 GB |
