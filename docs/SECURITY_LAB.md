@@ -21,7 +21,10 @@ $ hscl lab spec --project web1 --phase commit|destroy
 
 ## Rules enforced in code (`cli/hscl/src/lab.rs`, 11 unit tests incl. a seeded fuzz of 20000 workspace strings)
 
-- The image must be pinned by **sha256 digest**; a tag alone is refused; `--pull=never` (pulling is a separate, explicit step).
+- The image must be pinned by **sha256 digest**; a tag alone is refused; `--pull=never` (pulling is a separate, explicit step). **Exception since 2026-11-10:** a
+  **local** image (`localhost/<name>:<tag>`) is accepted, because `hscl lab commit` produces exactly that name and a local image has no digest until it is pushed.
+  Without the exception the documented install → commit → run chain could not be finished; measured in the guest, where `hscl lab run --image
+  localhost/hscl-lab-demo:latest` was the only way to reach the tools the install phase had added. Remote tags stay refused (`docker.io/...:latest`).
 - **Run phase:** `--cap-drop=ALL` (no capability added), `--security-opt=no-new-privileges`, `--read-only` with small noexec tmpfs for `/tmp` and `/run`,
   `--network=none` unless `outbound` (rootless user-mode networking, never the host namespace), memory/CPU/PID limits.
 - **One optional mount:** a folder strictly below `~/SecurityLabs`, mounted at `/work` with `nosuid,nodev`. Refused: `..`, `//`, `:` and `,` (volume-option smuggling),

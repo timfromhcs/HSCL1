@@ -120,11 +120,41 @@ pub fn validate_project(p: &str) -> Result<()> {
     Ok(())
 }
 
-/// `registry/name[:tag]@sha256:<64 hex>`: a tag alone is refused, the digest is what is pinned.
+/// Local images have no digest until they are pushed, and `hscl lab commit` creates exactly one:
+/// `localhost/hscl-lab-<project>:latest`. `run` must therefore accept that form, otherwise the documented
+/// install → commit → run chain cannot be completed (measured in the guest 2026-11-10). Remote registries stay
+/// strict: their tags are mutable, and `--pull=never` would silently use whatever happens to be cached.
+pub fn is_local_image(img: &str) -> bool {
+    let Some(rest) = img.strip_prefix("localhost/") else {
+        return false;
+    };
+    let (name, tag) = match rest.rsplit_once(':') {
+        Some(pair) => pair,
+        None => return false,
+    };
+    !name.is_empty()
+        && name.len() <= 120
+        && name
+            .bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b"./_-".contains(&b))
+        && !name.contains("..")
+        && !tag.is_empty()
+        && tag.len() <= 64
+        && tag
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b"._-".contains(&b))
+}
+
+/// `registry/name[:tag]@sha256:<64 hex>`: a tag alone is refused, the digest is what is pinned. A
+/// `localhost/<name>:<tag>` reference is accepted because it can only name an image that already exists
+/// locally (`run` always passes `--pull=never`).
 pub fn validate_image(img: &str) -> Result<()> {
+    if is_local_image(img) {
+        return Ok(());
+    }
     let Some((name, digest)) = img.rsplit_once("@sha256:") else {
         bail!(
-            "image must be pinned by digest (`...@sha256:<64 hex>`); a tag alone is not accepted"
+            "image must be pinned by digest (`...@sha256:<64 hex>`) or a local image (`localhost/<name>:<tag>`); a remote tag alone is not accepted"
         );
     };
     let hex_ok = digest.len() == 64
@@ -654,6 +684,21 @@ pub fn plan_destroy_vm(name: &str, dry_run: bool) -> Result<serde_json::Value> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_local_committed_image_is_accepted_but_remote_tags_stay_refused() {
+        // `hscl lab commit` creates localhost/hscl-lab-<project>:latest; `run` must accept that name.
+        assert!(validate_image("localhost/hscl-lab-demo:latest").is_ok());
+        assert!(is_local_image("localhost/hscl-lab-demo:latest"));
+        // A remote tag is still mutable and stays refused, as does a local name without a tag.
+        assert!(validate_image("docker.io/kalilinux/kali-rolling:latest").is_err());
+        assert!(validate_image("localhost/hscl-lab-demo").is_err());
+        assert!(validate_image("localhost/:latest").is_err());
+        assert!(validate_image("localhost/hscl-lab-demo:bad tag").is_err());
+        assert!(validate_image("localhost/hscl-lab-../demo:latest").is_err());
+        // The digest form keeps working.
+        assert!(validate_image(IMG).is_ok());
+    }
 
     const IMG: &str = "docker.io/kalilinux/kali-rolling@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
     const FORBIDDEN: &[&str] = &[
