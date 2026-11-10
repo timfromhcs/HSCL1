@@ -3,16 +3,18 @@
 Rule: nothing is stated as working without evidence. "unit-tested" means only the code logic ran in tests;
 it is **not** a claim that the feature works on real hardware or in the image.
 
-**Artifact identity.** The current source is `5a3a157` (2026-11-10); the newest local candidate is
-`HSCL1-rc1-amd64.iso` (`f8ae5c52…`, 5 488 771 072 bytes, commit `fc9ac20`), which carries the installer
-startup fix, the `hscl lab` exit-code fix and the honest status wording, and passes the QA report at 4 GB. The install and LUKS evidence from the same day belongs to
-`HSCL1-earlyoom-fix-amd64.iso` (`e723940b…`) and `HSCL1-qa-green-amd64.iso` (`5d4ea47e…`). The published
-prerelease is still `v0.1.4-alpha.0`: three split parts whose SHA-256 digests match the GitHub release assets
-(`bb47493b…`, `7c9de400…`, `e6effeff…`) and join to `HSCL1-0.1.4-alpha.0-amd64.iso`
-(`a7e055a7…`, 5,488,312,320 bytes). Rows below were recorded against earlier images (`0.1.3-alpha.0`
-`2e30b750…`, built from `a55e023`; and a later local candidate that is no longer on disk). **A row is
-historical evidence for the artifact it names and never proof for the current tree.** The 2026-11-09
-audit and the list of open defect rows are in [QA_FINDINGS_2026-11-09.md](QA_FINDINGS_2026-11-09.md).
+**Artifact identity.** The current source is `406186d` (2026-11-10); the newest VM-verified candidate is
+`HSCL1-rc2-amd64.iso` (`0ed86405...`, commit `ddf3323`), which carries the installer startup fix, the `hscl lab`
+exit-code and local-image fixes, the honest status wording and a green QA report at 4 GB. The install and LUKS
+evidence from the same day belongs to `HSCL1-earlyoom-fix-amd64.iso` (`e723940b...`) and
+`HSCL1-qa-green-amd64.iso` (`5d4ea47e...`). The published prerelease is still `v0.1.4-alpha.0`: three split parts
+whose SHA-256 digests match the GitHub release assets (`bb47493b...`, `7c9de400...`, `e6effeff...`) and join to
+`HSCL1-0.1.4-alpha.0-amd64.iso` (`a7e055a7...`, 5,488,312,320 bytes) - but that image was built from `ea8bbdc`
+and is **118 commits older** than the tree. A `0.1.5-alpha.0` candidate is built from `406186d` in this session;
+its own row is added once the boot test passes. Rows below were recorded against earlier images (`0.1.3-alpha.0`
+`2e30b750...`, built from `a55e023`; and a later local candidate that is no longer on disk). **A row is
+historical evidence for the artifact it names and never proof for the current tree.** The 2026-11-10 audit and
+the list of open defect rows are in [AUDIT_2026-11-10.md](AUDIT_2026-11-10.md).
 
 Current source corrections (2026-11-08): HCSEASYMATH has six API/CLI operations and all six are exposed by the one-page UI at `d9a6f02`; `plot` returns sampled data rendered as SVG, not a verified mathematical plot image. The recorded app gate is 244 passed (`artifacts/forge/20261108-134544/summary.json`); it is not a browser accessibility or OS-image test. `hscl lab` has CLI execution wired (`hscl lab run`, `install`, `commit`, `destroy`) with mandatory `--yes="I am authorized to test this target"` preflight checks; rootless Podman execution and basic tool installation verified on the builder host; in-guest guest integration remains the next verification target.
 
@@ -26,7 +28,7 @@ Current source corrections (2026-11-08): HCSEASYMATH has six API/CLI operations 
 | Respin: squashing the live state | VM-VERIFIED (373 s, first run) | BUILD_LOG |
 | Development loop: push a file and updated tools into a running live VM through the API, respin inside the guest (420 s), extract the ISO (sha256 matches its manifest), boot it (110 s), the daemon answers with the pushed code (`live: true`) and the pushed proof file is present | VM-VERIFIED, with one limit: the proof was matched by its file-name prefix `hscl-respin-proof-` (the uuid of the first phase was not recorded; later runs record it) | `artifacts/e2e2/report.json`, `respun.manifest.json` (not in git), `scripts/workshop/e2e_respin.py` |
 | Wallpaper effects: animation logic, stop when animations are off, parameter clamping | unit-tested (QML tests, 14 pass) | `tests/qml_plugin` |
-| Rain/effects rendering on the real desktop, CPU cost in a VM | **NOT VERIFIED** | needs a VM screenshot series |
+| Rain/effects rendering on the real desktop | partially VM-VERIFIED | `01_desktop_clean.png` (rc-era) and `02_wallpaper_starfield.png`/`02_wallpaper_aurora.png` show real, different effects. The `grid` and `rain` presets could not be distinguished in a 2026-11-10 rc2 capture series (`artifacts/boot-showcase-rc2b`): all three frames were starfields, so preset switching is Q-57, not a claim. CPU cost is unmeasured. |
 | `hscl ai` hardware profile, model catalog, download with sha256 check | unit-tested (49+ tests); download + verify also run against the real file | smoke test |
 | Real local inference: pinned llama.cpp b12130 (CPU build, sha256 verified) with `qwen3.5-2b-abliterated` Q4_K_M, 127.0.0.1 only, chat completion answered | VERIFIED on the WSL builder (CPU, 4 threads) | `scripts/ai-smoke-test.sh`; server reported 21.55 tokens/s for one 2-token reply - a sanity number, **not a benchmark** |
 | Vulkan/GPU inference, MTP, TurboQuant | **NOT VERIFIED**; the profile engine only enables TurboQuant/MTP if the backend's `--help` lists them (the pinned upstream build was not checked to), no speed is claimed | needs a GPU host and a fork/build that advertises them |
