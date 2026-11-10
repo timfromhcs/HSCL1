@@ -1954,6 +1954,22 @@ That is the fix working where it matters: the old text called the installer's ow
 `hscl security status` reports AppArmor and ufw enabled, `LUKS volumes open: 0`, no forbidden apt sources, and
 the guest is in EFI mode with efivars present.
 
+### Control Center accessibility, now pinned (2026-11-10)
+
+The audit found the QML already in good shape, and nothing kept it that way:
+
+- all five page titles (`font2xl` + bold) carry `Accessible.Heading` **and** `Accessible.name`
+- all three interactive controls (Preview/Apply per theme, Refresh on the Miner page) carry a context-rich
+  `Accessible.name` ("Preview HCS Nord"), not just the visible text
+- the Control Center contains **no** `Behavior`/`NumberAnimation`/`PropertyAnimation`/`Transition` at all, so
+  reduced motion is honoured by construction
+- the navigation rail is keyboard-driven and keeps its own QML test
+
+`tests/unit/test_cc_accessibility.py` now pins the first three (with brace-matched control blocks, not
+line-greps) and asserts the keyboard test still exists. Verified as a real gate, not a rubber stamp: a probe
+file with a `Button` lacking `Accessible.name` makes it fail with `_A11yProbe.qml: Button without
+Accessible.name`, and removing the probe makes it pass again.
+
 ### LUKS2 install and unlock: VM-VERIFIED (2026-11-10)
 
 | Item | Value |
