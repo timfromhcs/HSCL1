@@ -89,6 +89,20 @@ $ python scripts/qemu_boot_test.py none artifacts/boot-installed \
 `install-normal-kickoff.json` installs unencrypted; ticking "Encrypt system" is a separate run because it
 adds a passphrase prompt at every boot.
 
+### Checking a run for a crashed guest
+
+A dead guest looks like "no screenshots changed". `scripts/dev/detect_panic.py DIR` reads every PNG and flags
+frames dominated by Ubuntu's panic purple (#772953), then exits 1 so a loop can stop:
+
+```console
+$ python scripts/dev/detect_panic.py artifacts/install-luks-final
+checked 14 screenshot(s)
+PANIC-LIKE: artifacts/install-luks-final/l09-before-finish.png (98% panic purple)
+```
+
+Two install runs died that way on 2026-11-10 (`KERNEL PANIC! Attempted to kill init! exitcode=0x0000000b`).
+The detector is a colour heuristic, not a console read: it finds the symptom, not the cause.
+
 ## Stress and fault gate (disposable VM only)
 
 `scripts/stress_vm.sh [--out DIR]` runs `stress-ng --klog-check --metrics-brief`, `fio` (4k randrw, 1 GiB file,
