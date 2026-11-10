@@ -1,5 +1,31 @@
 # HSCL1 plan reconciliation index
 
+## Live status, 2026-11-10 (source `c74af1b`)
+
+- **Repository state:** `main` is **104 commits ahead of `origin/main`** and has never been pushed
+  in that state; there are **0 open PRs** (61 merged). Every `origin/codex/*` branch was checked
+  file-by-file against `main`: **zero content drift**, so no branch holds unmerged work. See
+  [`AUDIT_2026-11-10.md`](AUDIT_2026-11-10.md) for the method and the per-branch result.
+- **Screenshot audit:** three images were false or mislabelled and were removed/replaced
+  (`02_wallpaper_grid.png`, `02_wallpaper_rain.png`, `15_desktop_icons.png`, and a **black**
+  `boot-unlock.png`); several others predate the current candidate. Full table in the audit.
+  New queue rows **Q-52…Q-56**.
+- **Release artifact is stale relative to the tree:** the published `v0.1.4-alpha.0` ISO was built
+  from `ea8bbdc` (2026-11-08), which is **118 commits behind** `main`. It therefore lacks the
+  installer-crash fix, the `hscl lab` exit-code/local-image fixes and the honest Secure Boot /
+  privacy reporting. `HSCL1-rc2` (`0ed86405…`, source `ddf3323`) is the newest VM-verified
+  candidate. A refreshed public release is Q-56, not an assumption.
+- **Gate numbers on this tree (2026-11-10, Windows):** `cargo test --all` → **275 passed, 0 failed**.
+  The Python/shell tier is `python scripts/forge.py check`; run it before any push.
+- **Secure Boot wording corrected:** the ISO carries Canonical/Microsoft-signed boot components
+  (`artifacts/sb-0.1.3-alpha.0/report.json`), but no positive Secure-Boot boot has been
+  demonstrated — the test firmware ran with Secure Boot off and the guest reports that.
+- **Handbook corrected:** EN/DE/FR no longer say "starts the Kubuntu installer" or "no verified
+  installation guide"; they name the HSCL1 installer, the 4 GB unencrypted path, the 8 GB LUKS2
+  path and the single-passphrase/no-recovery-key boundary.
+- Nothing below loses authority. Where a plan says "NEXT" and the queue disagrees, the queue wins
+  for ordering; the plans keep their acceptance criteria.
+
 ## Live status, 2026-11-09 (source `d817093`)
 
 - **Fast gate is green:** `python scripts/forge.py check` → 6/6 PASS (887 passed, 22 skipped,
@@ -239,5 +265,15 @@ scientific proposal or cited paper in these large documents.
 CLAIMS contains some superseded rows followed by newer evidence (autotune,
 KDE Connect and encrypted install). Preserve the historical runs, but use a
 candidate-specific evidence record to prevent old negative/positive rows from
-being mistaken for the current artifact. README still mixes current and older
-summaries. Reconcile claims when their owning candidate gate is executed.
+being mistaken for the current artifact.
+
+**Updated 2026-11-10:** the README screenshot and release claims were corrected
+(see [`AUDIT_2026-11-10.md`](AUDIT_2026-11-10.md)). Remaining debt:
+
+1. `docs/CLAIMS.md` still carries rows bound to artifacts that are no longer on disk;
+   each row must name its artifact and date (Q-05 was marked done for the header only).
+2. The installer welcome page stretches the Calamares branding logo across the page
+   (Q-54 covers the recapture; the layout fix is separate).
+3. Desktop icon labels are not centred under their icons (Q-52), and Kate renders with a
+   light palette inside the dark shell (Q-53).
+4. The website hero and Control Center image are older than the current candidate (Q-55).

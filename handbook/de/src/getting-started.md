@@ -15,4 +15,15 @@ Auf einem beschleunigten Host erscheint der Live-Desktop nach etwa zwei Minuten.
 
 ## Installation
 
-Der Installer ist Calamares (Kubuntu). Die Installation schreibt auf die gewählte Festplatte: **Verwenden Sie eine virtuelle Wegwerf-Festplatte, bis Sie die Installationsanleitung gelesen haben.** HSCL1 liefert noch keine geprüfte Installationsanleitung.
+Der Installer ist der **HSCL1 Installer**, ein gebrandetes Calamares. Er braucht eine Festplatte, die gelöscht werden darf:
+**verwenden Sie eine virtuelle Wegwerf-Festplatte.**
+
+- **Unverschlüsselte Installation:** geprüft mit **4 GB** Arbeitsspeicher (ESP + ext4-Root, endet mit „All done").
+- **LUKS2-verschlüsselte Installation:** geben Sie der VM **8 GB** Arbeitsspeicher. Ein Versuch mit 6 GB ist einmal
+  abgestürzt; dokumentiert sind 8 GB.
+- Die Systempartition wird mit LUKS2 verschlüsselt; Sie geben die Passphrase bei jedem Start ein. EFI-Partition und
+  ein separates `/boot` bleiben ohne Passphrase lesbar. Es gibt **eine** Passphrase und **keinen Recovery-Key**:
+  Wer sie vergisst, kann die Daten nicht wiederherstellen.
+
+Der Installer schreibt auf die gewählte Festplatte. Ein geprüfter Dual-Boot-Aufbau wird nicht angeboten, und auf
+physischer Hardware wurde nichts getestet.

@@ -55,3 +55,16 @@ def test_look_and_feel_defaults_also_name_the_palette():
 def test_dark_icon_theme_is_selected():
     lnf = ROOT / "packages/debian/hscl-desktop/usr/share/plasma/look-and-feel/org.hcs.hscl1.desktop/contents/defaults"
     assert "Theme=breeze-dark" in lnf.read_text(encoding="utf-8")
+
+
+def test_desktop_icon_font_is_pinned_upright():
+    """Visual audit 2026-11-10: every capture showed oblique (italic) desktop icon labels.
+
+    The desktop font is pinned in /etc/skel so no vendor look-and-feel can leave it oblique, and the
+    image gate rejects an italic value. Horizontal alignment is upstream FolderView behaviour and is
+    still verified by a booted capture (Q-52), not by this test.
+    """
+    assert re.search(r'^ensure_key "\$skel_kdeglobals" Fonts desktopFont "Noto Sans,[\d,-]+"$', HOOK, re.MULTILINE), (
+        "the hook must pin an upright desktop font"
+    )
+    assert "desktopFont=.*Italic" in GATE, "verify-image.sh must reject an oblique desktop font"

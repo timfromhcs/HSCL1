@@ -55,6 +55,11 @@ mkdir -p "$(dirname "$skel_kdeglobals")"
 [ -f "$skel_kdeglobals" ] || : > "$skel_kdeglobals"
 ensure_key "$skel_kdeglobals" General ColorScheme HCSMidnight
 ensure_key "$skel_kdeglobals" KDE widgetStyle Breeze
+# Desktop icon labels (visual audit 2026-11-10): every capture shows oblique (italic) icon labels that
+# overflow their cell. Set an explicit upright desktop font so no vendor look-and-feel can leave it
+# oblique. The horizontal alignment itself is upstream FolderView behaviour and still needs a booted
+# capture to confirm (Q-52); this key is the part that can be made deterministic without a guest.
+ensure_key "$skel_kdeglobals" Fonts desktopFont "Noto Sans,10,-1,5,50,0,0,0,0,0"
 
 # Installer: use the HSCL1 Calamares branding and name the desktop entry after the product
 patch_file "$ROOTFS/etc/calamares/settings.conf" 's/^branding: *kubuntu$/branding: hscl1/'

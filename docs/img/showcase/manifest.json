@@ -23,17 +23,6 @@
     "timestamp": 1794234766.0589306
   },
   {
-    "filename": "02_wallpaper_grid.png",
-    "bytes": 76249,
-    "colors": 8444,
-    "size": [
-      1280,
-      800
-    ],
-    "description": "Dynamic wallpaper shader: grid",
-    "timestamp": 1794234769.8651714
-  },
-  {
     "filename": "02_wallpaper_starfield.png",
     "bytes": 47893,
     "colors": 6206,
@@ -43,17 +32,6 @@
     ],
     "description": "Dynamic wallpaper shader: starfield",
     "timestamp": 1794234773.756328
-  },
-  {
-    "filename": "02_wallpaper_rain.png",
-    "bytes": 47659,
-    "colors": 6145,
-    "size": [
-      1280,
-      800
-    ],
-    "description": "Dynamic wallpaper shader: rain",
-    "timestamp": 1794234777.539658
   },
   {
     "filename": "03_app_launcher_kickoff.png",
@@ -218,17 +196,6 @@
     "description": "Trilingual offline handbook opened from the desktop icon (Firefox, /usr/share/doc/hscl-handbook)",
     "timestamp": 1794243060.2641883,
     "source_iso": "HSCL1-qa-2026-11-09-amd64.iso sha256 118029de"
-  },
-  {
-    "filename": "15_desktop_icons.png",
-    "size": [
-      1280,
-      800
-    ],
-    "description": "Desktop icon labels legible on the dark wallpaper (candidate 2026-11-09)",
-    "bytes": 131781,
-    "timestamp": 1794256691.5252483,
-    "source_iso": "HSCL1-miner-qa-2026-11-09-amd64.iso sha256 e342b3ae"
   },
   {
     "filename": "18_installer_notes_encryption.png",

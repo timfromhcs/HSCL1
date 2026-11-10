@@ -2318,3 +2318,41 @@ Owner instruction in-session: "flash timsminer". Executed through the product pa
 - **Not verified here:** anything requiring a booted artifact (theme result, launcher merge behaviour,
   installer clipping, screenshots). Those rows stay `VM-PENDING` in `docs/AUTONOMOUS_QUEUE.md`.
 
+### Repository, PR and screenshot audit; honest README pass (2026-11-10)
+
+| Field | Value |
+|---|---|
+| Source | `main` at `c74af1b`, `VERSION` = `0.1.4-alpha.0` |
+| Scope | PR/branch review, visual screenshot audit, README + handbook honesty, plan reconciliation |
+| Record | [docs/AUDIT_2026-11-10.md](AUDIT_2026-11-10.md) |
+
+- **PRs:** 61 merged, **0 open**, 0 drafts. Dependabot #1-#4 closed as superseded by #33.
+- **Branches:** all 16 local and 23 `origin/codex/*` branches were compared against `main` by blob hash
+  of every file they touch. **Zero content drift** on all of them; the unique commits are pre-squash
+  originals. `backup/pre-filter` is an untouched old snapshot.
+- **Remote state:** `main` is 104 commits ahead of `origin/main` and 0 behind. Not pushed in this pass.
+- **Screenshot audit:** `boot-unlock.png` was a **pure black frame** and is replaced with the real LUKS
+  unlock capture; `02_wallpaper_grid.png` and `02_wallpaper_rain.png` showed the aurora frame and a
+  starfield instead of their named presets and were removed; `15_desktop_icons.png` was a Konsole
+  window and was removed. Manifest and README tables updated; 20 showcase images remain.
+- **Open visual defects recorded:** Q-52 (icon label alignment/ghost render), Q-53 (Kate light palette
+  in the dark shell), Q-54 (installer/handbook recapture on rc2), Q-55 (website images).
+- **Release staleness proven:** the `v0.1.4-alpha.0` build manifest pins `ea8bbdc` (2026-11-08),
+  **118 commits behind** `main`; the published ISO therefore lacks the installer crash fix, the lab
+  exit-code/local-image fixes and the honest reporting. `rc2` (`0ed86405…`, source `ddf3323`) is the
+  newest VM-verified candidate. Opened as **Q-56**.
+- **Verification run here:** `cargo test --all` -> **275 passed, 0 failed** (Windows, 2026-11-10).
+  README's "259 tests" figure corrected. `cargo fmt --check` / clippy were not re-run in this pass and
+  are not claimed.
+- **README corrections:** pre-alpha block rewritten (rc2 identity, 4 GB/8 GB split, lab chain, Secure
+  Boot = signed components present but no positive SB boot, explicit not-verified list); screenshot
+  provenance per group; `hscl lab install` example given its required `--project`/`--image`; download
+  section warns that the published image predates the tree.
+- **Handbook corrections (EN/DE/FR):** the Kubuntu-installer and "no verified installation guide"
+  statements are gone; the pages now name the HSCL1 installer, the verified 4 GB unencrypted path,
+  the 8 GB LUKS2 path and the single-passphrase/no-recovery-key boundary.
+- **Verified against the published release:** `SHA256SUMS` for `v0.1.4-alpha.0` was downloaded and
+  matches the four checksums in the README byte for byte.
+- **Not done in this pass:** no ISO was rebuilt, no VM was booted, nothing was pushed or released.
+  Those are Q-56 and the queue items that follow.
+

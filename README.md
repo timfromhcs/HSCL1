@@ -38,8 +38,16 @@
 
 > [!IMPORTANT]
 > **Status: Pre-Alpha (`0.1.4-alpha.0`).**
-> HSCL1 is currently verified **in virtual machines only** (UEFI, BIOS, and Secure-Boot firmware via QEMU 9.2.0 with WHPX / KVM acceleration). Verified on 2026-11-10 in QEMU against `HSCL1-rc1-amd64.iso` (`f8ae5c52…`) and the candidates before it (`HSCL1-installer-fix` `3e8ebce1…`, `HSCL1-qa-green` `5d4ea47e…`, `HSCL1-earlyoom-fix` `e723940b…`):
-> a **full installation at the documented 4 GB minimum** (`All done`, then the disk boots, logs in and reports `hscl doctor` 6 passed / 0 failed / 1 skipped), an **LUKS2 installation** (wrong passphrase refused by cryptsetup, correct one unlocks, `LUKS volumes open: 1`), and a **machine-readable guest report** (`scripts/qa_report.py` exits 0 with 9 checks). **Rootless Podman** was verified in the live session (`ROOTLESS_OK`, `Host.Security.Rootless=true`); the digest-pinned Kali toolset image is **not** built or run yet. It has **not** yet been tested on bare-metal physical hardware, and releases are **unsigned** (SHA-256 integrity checksums provided). Known open defect: starting the installer from the desktop icon is sometimes SIGKILLed (exit 137) — start it from a terminal instead, see [Known limitations](docs/KNOWN_LIMITATIONS.md). Read that file and the [evidence ledger](docs/CLAIMS.md) before installing. Do not use HSCL1 on systems requiring security certifications.
+> HSCL1 is verified **in virtual machines only** (UEFI and BIOS firmware under QEMU 9.2.0 with WHPX / KVM acceleration). The current candidate is `HSCL1-rc2-amd64.iso` (`0ed86405…`, built from `ddf3323`); the published release `v0.1.4-alpha.0` is the split form of the 0.1.4 line and the earlier candidates are named in the [build log](docs/BUILD_LOG.md). Verified in QEMU on 2026-11-10:
+>
+> - a **full unencrypted installation at the documented 4 GB minimum** (`All done`, the disk then boots with `iso=none`, logs in, and reports `hscl doctor` 6 passed / 0 failed / 1 skipped);
+> - an **LUKS2 installation** at 8 GB (wrong passphrase refused by cryptsetup, correct one unlocks, `LUKS volumes open: 1`); a 6 GB LUKS run panicked once, so 8 GB is the documented figure;
+> - the **Security Lab chain end to end on rc2** in one live session: digest-pinned Kali pull → `hscl lab install --toolset basic` → `commit` → `run`, last step `Nmap version 7.99`, exit 0;
+> - a **machine-readable guest report** (`scripts/qa_report.py` exits 0 with 9 checks).
+>
+> **Secure Boot:** the ISO carries the signed Canonical/Microsoft boot components (`artifacts/sb-0.1.3-alpha.0/report.json`), but the test firmware ran with **Secure Boot off**, so a positive Secure-Boot boot has *not* been demonstrated. `hscl doctor` reports this honestly instead of claiming success.
+>
+> **Not verified:** bare-metal physical hardware, TPM-backed encryption, a Tor-routed privacy session, signed releases (SHA-256 checksums only), and physical-media (USB) boot. A critical-path installer crash was fixed on 2026-11-10 (the Calamares network probe), but three successful launches do not prove it cannot recur — see [Known limitations](docs/KNOWN_LIMITATIONS.md). Read that file and the [evidence ledger](docs/CLAIMS.md) before installing. Do not use HSCL1 on systems that require security certifications.
 
 > [!NOTE]
 > HSCL1 is **not Tails**, **not an official Kali release**, and is not affiliated with or endorsed by the Tails project, Canonical, the KDE/Kubuntu projects, or Offensive Security. It makes **no anonymity claim**.
@@ -74,19 +82,17 @@ qemu-system-x86_64 -enable-kvm -m 4096 -smp 4 \
 
 ## 📸 Live Application Showcase
 
-*Every screenshot below is an authentic, unedited capture taken live inside the booted QEMU virtual machine session using the hypervisor QMP interface and guest Workshop daemon.*
+*Every screenshot below is a real capture taken inside a booted HSCL1 QEMU guest through the hypervisor QMP interface and the guest Workshop daemon. The artifact is named per screenshot group, because they were taken across several candidates rather than in one session. Terminal sections show the Konsole window; the desktop frame is not part of that crop.*
 
 ### 1. Modern Desktop & Dynamic Shaders
 
-The HCS desktop features a fluid, shader-driven wallpaper engine switchable on the fly via `hscl wallpaper apply <preset>` or the Control Center.
+The HCS desktop uses a shader-driven wallpaper engine, switchable with `hscl wallpaper apply <preset>`. Two of the four shipped presets are captured below; the `grid` and `rain` captures were taken a few seconds apart without the preset actually changing, so they were removed rather than shown mislabelled ([audit](docs/AUDIT_2026-11-10.md)).
 
 | Clean Live Desktop & Floating Dock | Kickoff Application Launcher |
 |:---:|:---:|
 | ![Clean Desktop](docs/img/showcase/01_desktop_clean.png) | ![Kickoff Launcher](docs/img/showcase/03_app_launcher_kickoff.png) |
-| **Aurora Glow Shader** | **Grid Pulse Cyber Lattice** |
-| ![Aurora Wallpaper](docs/img/showcase/02_wallpaper_aurora.png) | ![Grid Pulse Wallpaper](docs/img/showcase/02_wallpaper_grid.png) |
-| **Midnight Rain Shader** | **Starfield Deep Space Drift** |
-| ![Midnight Rain Wallpaper](docs/img/showcase/02_wallpaper_rain.png) | ![Starfield Wallpaper](docs/img/showcase/02_wallpaper_starfield.png) |
+| **Aurora Glow** | **Starfield Deep Space Drift** |
+| ![Aurora Wallpaper](docs/img/showcase/02_wallpaper_aurora.png) | ![Starfield Wallpaper](docs/img/showcase/02_wallpaper_starfield.png) |
 
 ---
 
@@ -135,8 +141,10 @@ Automated full-disk encryption with Argon2id key derivation, unencrypted `/boot`
 | Calamares Welcome & Language Selection | Timezone & Geographic Location |
 |:---:|:---:|
 | ![Calamares Welcome](docs/img/showcase/11_installer_welcome.png) | ![Calamares Location](docs/img/showcase/12_installer_location.png) |
-| **Full-Disk Encryption Selection** | **Argon2id Boot Passphrase Unlock** |
-| ![Calamares Encryption Options](docs/img/install-encrypt.png) | ![Argon2id Disk Unlock Prompt](docs/img/boot-unlock.png) |
+| **Encryption on the partition page (`HSCL1-installer-fix`, 0.1.3 line)** | **LUKS2 unlock prompt at boot (`0.1.2` candidate)** |
+| ![Calamares Encryption Options](docs/img/install-encrypt.png) | ![LUKS2 Unlock Prompt](docs/img/boot-unlock.png) |
+
+These two installer captures predate the current candidate; recapturing them on `rc2` is tracked as Q-54 in the [audit](docs/AUDIT_2026-11-10.md).
 
 ---
 
@@ -245,7 +253,9 @@ $ hscl wallpaper apply rain                                        # Switch desk
 
 # Security Lab container execution
 $ hscl lab run --yes="I am authorized to test this target" -- nmap 127.0.0.1
-$ hscl lab install --yes="I am authorized to test this target" --toolset=web
+$ hscl lab install --project demo \
+    --image kalilinux/kali-rolling@sha256:<digest> \
+    --toolset web --yes="I am authorized to test this target"
 
 # Local AI profiling
 $ hscl ai model recommend                                          # Models fitting the available RAM/VRAM budget
@@ -277,11 +287,11 @@ HSCL1 adheres to a strict evidence-driven development contract: **nothing is cla
 
 | Area | Status | Evidence / Verification Metric |
 |---|:---:|---|
-| **Remastered Live/Installer ISO** | `VM-VERIFIED` | Boots to live desktop in 130 s under UEFI (QEMU+WHPX); Welcome dismissed; [`docs/img/showcase/01_desktop_clean.png`](docs/img/showcase/01_desktop_clean.png) |
-| **Secure Boot Firmware Boot** | `VM-VERIFIED` | Boots under OVMF Secure Boot code + Microsoft-key vars; signed shim/GRUB/kernel bootchain preserved |
-| **LUKS2 Full-Disk Installation** | `VM-VERIFIED` | 40 GB virtual disk; Argon2id key derivation, `/` = `0:0 755`, no passphrase leak in logs; [`docs/img/desktop-installed.png`](docs/img/desktop-installed.png) |
-| **Rust `hscl` CLI Workspace** | `TESTED` | 259 unit tests (Windows, 2026-11-09); 0 failures; `cargo clippy --all-targets -D warnings` and `cargo fmt --check` clean |
-| **Security Lab CLI** | `TESTED` | `run`, `install`, `commit`, `destroy` subcommands with mandatory `--yes` gate; builder probe verified |
+| **Remastered Live/Installer ISO** | `VM-VERIFIED` | `HSCL1-rc2-amd64.iso` (`0ed86405…`, source `ddf3323`): boots to the live desktop at 4 GB under UEFI (QEMU+WHPX), `qa_report.py` exit 0 with 9 checks; [`docs/img/showcase/01_desktop_clean.png`](docs/img/showcase/01_desktop_clean.png) |
+| **Signed boot components present** | `TESTED` | `artifacts/sb-0.1.3-alpha.0/report.json`: Microsoft-signed `bootx64.efi`, Canonical-signed `grubx64.efi`, `vmlinuz`, `mmx64.efi`. A **positive Secure-Boot boot is not demonstrated** — the test firmware ran with Secure Boot off and the guest says so |
+| **LUKS2 Full-Disk Installation** | `VM-VERIFIED` | 40 GB virtual disk at 8 GB RAM: Argon2id, `/` = `0:0 755`, wrong passphrase refused, correct one unlocks, no passphrase in logs; image from the 0.1.3 line: [`docs/img/desktop-installed.png`](docs/img/desktop-installed.png) |
+| **Rust `hscl` CLI Workspace** | `TESTED` | `cargo test --all`: **275 passed, 0 failed** (Windows, 2026-11-10); `cargo clippy --all-targets -D warnings` and `cargo fmt --check` clean |
+| **Security Lab CLI** | `VM-VERIFIED` | rc2 live guest: digest-pinned Kali pull, `install --toolset basic`, `commit`, `run` → `Nmap version 7.99`, exit 0; `run` defaults to `--network=none` and drops capabilities |
 | **MCP Stdio Server Protocol** | `TESTED` | 7/7 protocol tests passed via `scripts/dev/mcp_selftest.py` (JSON-RPC handshake, 14 tools listed) |
 | **Memory Manager Baseline** | `VM-VERIFIED` | `/dev/zram0` (1.9 GB zstd, priority 100), `earlyoom` active, `hscl-ai.slice` memory capped at 60% |
 | **HCSEASYMATH Symbolic Engine** | `TESTED` | 244 math test cases green; differentiate, integrate, evaluate, simplify, solve, plot |
@@ -296,6 +306,9 @@ HSCL1 adheres to a strict evidence-driven development contract: **nothing is cla
 ## 📦 Download & Verification
 
 Pre-release assets are hosted on [GitHub Releases](https://github.com/timfromhcs/HSCL1/releases). Because the ISO exceeds GitHub's 2 GiB per-file limit, it is distributed in numbered split parts with full cryptographic checksums.
+
+> [!WARNING]
+> **The published `v0.1.4-alpha.0` image predates the current tree.** Its build manifest pins commit `ea8bbdc` (2026-11-08); `main` is now 118 commits ahead and contains the installer-crash fix, the `hscl lab` exit-code and local-image fixes, and the honest Secure Boot / privacy reporting that the screenshots in this README show. The newer candidate `HSCL1-rc2` (`0ed86405…`) is built and VM-verified locally; a refreshed public release is tracked as **Q-56** in [the audit](docs/AUDIT_2026-11-10.md). If you need the fixes, build from source or wait for Q-56.
 
 ```console
 # 1. Download release assets (parts + SHA256SUMS)
