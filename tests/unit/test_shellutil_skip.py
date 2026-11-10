@@ -23,6 +23,14 @@ def test_a_launcher_failure_becomes_a_skip():
         shellutil.skip_if_shell_broken(_done(1, err="WslRegisterDistribution failed with error: 0x8007019e"))
 
 
+def test_a_utf16_launcher_message_becomes_a_skip():
+    """WSL writes its own errors as UTF-16 into the pipe; measured 2026-11-10 in a gate run."""
+    german = "Ein Verbindungsversuch ist fehlgeschlagen. Siehe https://github.com/microsoft/WSL/issues"
+    utf16 = german.encode("utf-16-le").decode("latin-1")
+    with pytest.raises(pytest.skip.Exception):
+        shellutil.skip_if_shell_broken(_done(0, out=utf16))
+
+
 @pytest.mark.parametrize("marker", ["Catastrophic failure", "UtilBindVsock", "getaddrinfo", "wsl: "])
 def test_the_known_launcher_markers_all_skip(marker):
     with pytest.raises(pytest.skip.Exception):

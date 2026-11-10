@@ -227,29 +227,45 @@ def run_script(
 
 # A WSL launcher that is starting up (or half-up after a `wsl --shutdown`) prints one of these instead of running
 # the script. Measured 2026-11-10: three handbook-launcher tests failed in a gate run while the same tests skip
-# standalone; the shell was reachable at collection time but broke before the script ran.
+# standalone; the shell was reachable at collection time but broke before the script ran. WSL writes its own
+# launcher errors as **UTF-16** into the pipe ("Ein Verbindungsversuch ... github.com/microsoft/WSL/issues"), so the
+# text is normalised before matching.
 _WSL_BROKEN = (
     "WslRegisterDistribution",
     "Catastrophic failure",
     "UtilBindVsock",
     "getaddrinfo",
     "wsl: ",
+    "WSL/issues",
+    "networkingMode",
+    "Verbindungsversuch",
     "The system cannot find the file",
     "Cannot connect to the WSL",
 )
+
+
+def _normalise_launcher_text(text: str) -> str:
+    if "\x00" in text:
+        try:
+            text = text.encode("latin-1", "ignore").decode("utf-16-le", "ignore")
+        except (UnicodeError, LookupError):
+            pass
+        text = text.replace("\x00", "")
+    return text
 
 
 def skip_if_shell_broken(result: subprocess.CompletedProcess) -> subprocess.CompletedProcess:
     """Skip the caller when the shell itself failed, instead of asserting on its error text.
 
     Only launcher-level failures are turned into skips: a script that ran and returned non-zero keeps failing.
+    The check looks at the output even for returncode 0, because WSL's launcher can report success while printing
+    its own failure text instead of running the script.
     """
-    if result.returncode == 0:
-        return result
-    text = f"{result.stdout or ''}{result.stderr or ''}"
+    text = _normalise_launcher_text(f"{result.stdout or ''}{result.stderr or ''}")
     if any(marker in text for marker in _WSL_BROKEN):
         import pytest
 
-        pytest.skip(f"shell unavailable: {text.strip().splitlines()[0][:140]}")
+        first = text.strip().splitlines()[0][:140] if text.strip() else "no output"
+        pytest.skip(f"shell unavailable: {first}")
     return result
 
