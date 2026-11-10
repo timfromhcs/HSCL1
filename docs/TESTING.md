@@ -120,6 +120,10 @@ kdialog --title lab --msgbox "$(tail -3 /tmp/spec.log; echo ---; tail -6 /tmp/in
 `tests/visual/scenarios/lab-kali-onecmd.json` follows that shape. A `kdialog` at the end is readable in a
 screenshot even when the installer or another window covers the terminal.
 
+The live session has **no apt lists until `apt-get update` runs**: `apt-get install -y podman`
+answers `E: Unable to locate package podman` (measured 2026-11-10). Always update first and log it
+separately (`> /tmp/apt.log`), otherwise the failure only surfaces later as a confusing product error.
+
 ## Stress and fault gate (disposable VM only)
 
 `scripts/stress_vm.sh [--out DIR]` runs `stress-ng --klog-check --metrics-brief`, `fio` (4k randrw, 1 GiB file,
