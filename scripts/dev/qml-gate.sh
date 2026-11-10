@@ -62,7 +62,7 @@ fi
 # Ratchet: the warning count may not grow. It was 153 on 2026-11-09 (MinerPage added; the page itself lints clean) (mostly PlasmaCore
 # singletons in the wallpaper plugin and outer-id access in Repeater delegates). Lower this
 # number whenever warnings are fixed; never raise it to make a red run green.
-budget="${QML_WARN_BUDGET:-153}"
+budget="${QML_WARN_BUDGET:-149}"
 if [ "$warnings" -gt "$budget" ]; then
   echo "qml-gate: $warnings lint warnings exceed the budget of $budget" >&2
   printf '%s\n' "$out" | grep '^Warning:' | sed 's/ \[.*//' | sort | uniq -c | sort -rn | head -20 >&2
