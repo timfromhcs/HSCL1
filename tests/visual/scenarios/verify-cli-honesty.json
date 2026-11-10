@@ -1,0 +1,22 @@
+[
+  { "wait": 15 },
+  { "shot": "z0-desktop" },
+  { "keys": ["meta_l"] },
+  { "wait": 4 },
+  { "type": "Konsole" },
+  { "wait": 3 },
+  { "keys": ["ret"] },
+  { "wait": 14 },
+  { "type": "hscl --version; hscl doctor | tail -12" },
+  { "keys": ["ret"] },
+  { "wait": 8 },
+  { "shot": "z1-doctor" },
+  { "type": "hscl privacy status | head -7" },
+  { "keys": ["ret"] },
+  { "wait": 4 },
+  { "shot": "z2-privacy" },
+  { "type": "[ -d /sys/firmware/efi ] && echo EFI-MODE; ls /sys/firmware/efi/efivars 2>/dev/null | wc -l; ls /sys/firmware/efi/efivars 2>/dev/null | grep -c SecureBoot" },
+  { "keys": ["ret"] },
+  { "wait": 3 },
+  { "shot": "z3-efivars" }
+]
