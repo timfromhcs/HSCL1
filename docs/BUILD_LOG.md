@@ -1765,7 +1765,27 @@ The same artifact also passes the machine-readable report at 4 GB
 (`artifacts/qa/report-installer-fix.txt`, `qa_report.py` exit 0: 9 checks ok, one `info` line about Secure Boot),
 so the installer fix did not regress anything the QA channel covers.
 
-### LUKS2 on the final artifact, and a panic that turned out to be RAM (2026-11-10)
+### rc1 candidate: all fixes in one image (2026-11-10)
+
+| Field | Value |
+|---|---|
+| Artifact | `HSCL1-rc1-amd64.iso` |
+| Bytes | 5 488 771 072 (identical to every previous complete build) |
+| SHA-256 | `f8ae5c5241e195fdba79b13e7d9521bf4be1776af3bc07fc537c6918cff0813b` |
+| Source commit | `fc9ac20` |
+| Gates | `verify-image: all checks passed` (119 checks incl. `installer: no internet requirement`) |
+
+Contents relative to `HSCL1-installer-fix`: the `hscl lab` exit-code fix, the honest `security status`
+Secure Boot wording, the session-aware `privacy status`, and the accessibility/QML changes.
+
+**Honest note on provenance:** the build ran in the foreground and my command timeout killed the *script*
+after it had written the ISO (the last two image checks had printed) but before its own checksum/manifest step.
+The artifact size is byte-identical to all previous complete builds, so the ISO is complete; the SHA-256 was
+then computed with `sha256sum` from that file rather than by the script, and no `build-manifest.json` exists for
+this one. A later build will regenerate both normally.
+
+Booted at 4 GB with `--qa-out`: `python scripts/qa_report.py artifacts/qa/report-rc1.txt` → **exit 0**
+(9 checks ok, one `info` line about Secure Boot), so the rc1 image keeps the properties the QA channel covers.
 
 | Attempt | RAM | Result |
 |---|---|---|
