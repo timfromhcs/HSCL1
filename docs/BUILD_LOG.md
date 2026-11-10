@@ -1765,6 +1765,36 @@ The same artifact also passes the machine-readable report at 4 GB
 (`artifacts/qa/report-installer-fix.txt`, `qa_report.py` exit 0: 9 checks ok, one `info` line about Secure Boot),
 so the installer fix did not regress anything the QA channel covers.
 
+### LUKS2 on the final artifact, and a panic that turned out to be RAM (2026-11-10)
+
+| Attempt | RAM | Result |
+|---|---|---|
+| `install-luks-final` | 6 GB | **KERNEL PANIC** mid-install: `Attempted to kill init! exitcode=0x0000000b` (SIGSEGV in PID 1), qcow2 stopped at 9.29 GB |
+| `install-luks-final2` | 8 GB | **"All done. HSCL1 0.1.4-alpha.0 has been installed"** (`l09`), 1786 s |
+
+The failure left no text trail - only a purple frame - which is why `scripts/dev/detect_panic.py` now exists and why
+the harness reports `panic_suspects` itself. The same scenario completed at 6 GB on the previous candidate, so the
+6 GB panic is intermittent rather than deterministic; with 8 GB it finished, so the encrypted install is documented
+as needing **8 GB** (the unencrypted install is verified at 4 GB).
+
+Boot of that disk (`iso=none`, 6 GB, `--unlock-first-wrong` then the real passphrase):
+
+```
+cryptsetup: ERROR: luks-22dffa3f-6a31-452b-a430-c5fdafc0dab6: cryptsetup failed, bad password or options?
+Please unlock disk luks-22dffa3f-6a31-452b-a430-c5fdafc0dab6          ← prompt returns, nothing destroyed
+```
+
+then the correct passphrase, SDDM login and the desktop (`artifacts/boot-luks-final`). Inside:
+
+```
+[PASS] memory      5913 MiB
+[SKIP] secure-boot not determined: UEFI without a SecureBoot variable (firmware has Secure Boot off)
+AppArmor enabled: yes      UFW enabled: yes      LUKS volumes open: 1
+Secure Boot: unknown (no SecureBoot variable; Secure Boot off)
+```
+
+Both installer and LUKS gates are now recorded against **one** artifact, `3e8ebce1…`.
+
 The scenario also clicks the crash-handler's real close button (0.706, 0.204 - the earlier 0.691 hit
 *maximize*) before opening Kickoff, and `tests/visual/scenarios/install-terminal.json` starts the launcher
 from Konsole.
