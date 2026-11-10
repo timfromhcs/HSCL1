@@ -148,7 +148,7 @@ flowchart LR
         direction TB
         A["💻 Workstation Mode<br>Ubuntu 26.04 + KDE 6.6<br>Daily Driver & Coding"]
         B["🛡️ Security Lab<br>Rootless Podman + Kali OCI<br>Curated Tooling & CTF"]
-        C["🔒 Privacy Mode<br>Tor Routing + Ephemeral RAM<br>Zero Host Persistence"]
+        C["🔒 Privacy Posture<br>Tor visible, not routed<br>Ephemeral only in the live ISO"]
     end
     style HSCL1 fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#fff
     style A fill:#1e293b,stroke:#0ea5e9,color:#fff
@@ -164,17 +164,31 @@ flowchart LR
 
 ### B. Security Lab (Authorized Testing Only)
 - **Isolation by Architecture:** Security and penetration testing tools run strictly in rootless OCI containers (Podman) or disposable VMs—**never** mixed into the host APT repositories.
-- **Official Kali Digest:** Image pinned to official Kali Linux rolling digest with verified SHA-256 digests.
+- **Digest-pinned by construction, not yet exercised:** `hscl lab` refuses any image reference that is not
+  `name@sha256:<64 hex>`; the *pull and toolset build* of an official Kali image has **not** been run in a guest
+  yet (Q-18), so no Kali tool is installed or reported as verified.
 - **Mandatory Authorization:** CLI execution requires explicit attestation:
   ```console
   $ hscl lab run --yes="I am authorized to test this target" -- nmap -sV 127.0.0.1
   ```
 - **Fail-Closed:** Containers mount no host home directories, credentials, or SSH agents by default.
 
-### C. Privacy (Disposable Sessions)- **Ephemeral RAM Overlay:** Read-only root filesystem backed by a RAM overlay; all state discarded on shutdown.
-- **Disk Isolation:** Host internal drives are unmounted and ignored by default.
-- **Tor Integration:** Isolated network routing preventing direct clearnet leaks when privacy mode is engaged.
-- **Honest Limitations:** HSCL1 is not Tails. For life-critical anonymity, launch the official signature-verified Tails ISO.
+### C. Privacy (what is actually there today)
+
+> [!WARNING]
+> **Status: reporting, not routing.** This mode is **not** a Tor-routed environment and does **not** claim
+> "zero host persistence". Verified on 2026-11-10 in the live ISO: `hscl privacy status` reports
+> `session: ephemeral (volatile RAM overlay)`, `zram memory swap: active`, `persistent disk swap: none`,
+> `core dumps: disabled`, and it reports the Tor state honestly (`tor service: inactive`,
+> `tor browser: not installed`) instead of pretending. A Tor-routed privacy *boot target*, a kill switch and a
+> packet-capture proof do not exist yet — [Q-17](docs/AUTONOMOUS_QUEUE.md) tracks them as open.
+
+- **Ephemeral live session only:** the live ISO runs from a read-only squashfs with a volatile overlay; the
+  installed system is persistent by design (`session: installed (persistent root)`).
+- **Reporting instead of promising:** `hscl privacy status` / `hscl security status` show swap, core dumps,
+  automounted disks, Tor service and LUKS state, and name the session type, so the numbers can be checked.
+- **Not Tails:** no anonymity claim, no anti-forensics claim, no modified Tor Browser. Where strong anonymity
+  matters, use the official signature-verified Tails release.
 
 ---
 
@@ -249,7 +263,7 @@ Detailed CLI documentation is available in [`docs/CLI.md`](docs/CLI.md).
 | Issue | Cause | Solution |
 |---|---|---|
 | **Black screen or sluggish boot** | Hardware acceleration disabled in QEMU | Ensure `-accel whpx,kernel-irqchip=off` (Windows) or `-enable-kvm` (Linux) is active. |
-| **Installer closes / "Crash Handler" at 4 GB** | `earlyoom` killed Calamares (exit 137) | Fixed in the image from 2026-11-09 (Calamares and drkonqi are exempt). With an older image give the VM **6 GB**. |
+| **Installer closes / "Crash Handler" appears** | Calamares crashed during the requirement check (the welcome module's network probe); KCrash then SIGKILLed it | Fixed on 2026-11-10: the network probe is removed from `welcome.conf` and `HSCL1-installer-fix-amd64.iso` opened the installer from the desktop icon in three separate 4 GB boots. With an older image, start it from a terminal: `sudo -b /usr/bin/calamares-launch-normal`. |
 | **Out-of-memory / kernel panic** | Allocating < 3 GB RAM to the VM | The live ISO unpacks a zstd squashfs into RAM overlay; allocate at least **3072 MB** (recommended: **4096 MB**). |
 | **Welcome screen doesn't dismiss** | Plasma first-run dialog modal grab | Press `Esc` or click the bottom-left "Skip" button (`(0.288, 0.848)` screen coordinates). |
 | **Secure Boot verification failure** | Unsigned test image on third-party UEFI | Use the signed Ubuntu shim/GRUB bootchain or run with standard OVMF firmware (`--firmware uefi`). |
