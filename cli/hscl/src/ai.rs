@@ -491,7 +491,10 @@ pub fn validate_storage_path(p: &Path) -> Result<PathBuf> {
     // this check the same test passed on Windows only by accident (CI on ubuntu-latest caught it,
     // 2026-11-10). Model files must never land next to `/etc`.
     if p.parent().is_none() {
-        bail!("storage path must not be a filesystem root: {}", p.display());
+        bail!(
+            "storage path must not be a filesystem root: {}",
+            p.display()
+        );
     }
     Ok(p.to_path_buf())
 }
