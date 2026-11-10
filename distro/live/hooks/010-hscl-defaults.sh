@@ -58,6 +58,11 @@ ensure_key "$skel_kdeglobals" KDE widgetStyle Breeze
 
 # Installer: use the HSCL1 Calamares branding and name the desktop entry after the product
 patch_file "$ROOTFS/etc/calamares/settings.conf" 's/^branding: *kubuntu$/branding: hscl1/'
+# The welcome module's network probe runs inside ModuleManager::checkRequirements() at startup and made
+# Calamares crash in a VM (KCrash log 2026-11-10: "Application 'calamares' crashing... crashRecursionCounter = 2"
+# right after initViewSteps/checkRequirements, then KCrash SIGKILLed the process). The image installs offline,
+# so storage/ram/power/root stay as checks and the network probe goes.
+patch_file "$ROOTFS/etc/calamares/modules/welcome.conf" '/^        - internet$/d'
 patch_file "$ROOTFS/usr/share/applications/kubuntu-calamares.desktop" \
   '/^\(Name\|GenericName\)\(\[[^]]*\]\)\?=/ s/Kubuntu 26\.04/HSCL1/; /^\(Name\|GenericName\)\(\[[^]]*\]\)\?=/ s/Kubuntu/HSCL1/'
 

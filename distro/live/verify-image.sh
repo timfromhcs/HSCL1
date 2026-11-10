@@ -57,6 +57,7 @@ check "no Kubuntu installer launcher name" sh -c "! grep -E '^(Name|GenericName)
 check "live desktop: no Kubuntu Focus link" test ! -e "$root/etc/skel/Desktop/org.kfocus.web.howtos.desktop"
 check "live desktop: handbook link"       test -L "$root/etc/skel/Desktop/hscl-handbook.desktop"
 check "root filesystem label is hscl1_root" grep -q '"hscl1_root"' "$root/etc/calamares/modules/partition.conf"
+check "installer: no internet requirement" sh -c "! grep -q '^        - internet\$' '$root/etc/calamares/modules/welcome.conf'"
 check "installer: warns that /boot is not encrypted" grep -q '^showNotEncryptedBootMessage: true$' "$root/etc/calamares/modules/partition.conf"
 check "installer notes page installed"     test -s "$root/etc/calamares/branding/hscl1/notesqml.qml"
 check "installer notes: German and French translations" sh -c "test -s '$root/etc/calamares/branding/hscl1/lang/calamares-hscl1_de.qm' && test -s '$root/etc/calamares/branding/hscl1/lang/calamares-hscl1_fr.qm'"
