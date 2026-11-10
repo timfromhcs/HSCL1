@@ -1805,6 +1805,11 @@ SECOND_EXIT=125         # second run without sudo
 The command failing here is the *intended* failure: `hscl lab` runs `--pull=never`, and the image was not
 pulled in this session. That makes it a clean test of the propagation, not of the lab itself.
 
+**Install gate on the same artifact:** `install-terminal.json` at 4 GB installed to a disposable 40 GB
+qcow2 ("All done", `artifacts/install-rc1/t13`), and that disk then booted with `iso=none` at 4 GB,
+accepted the login and showed the HSCL1 desktop (`artifacts/boot-installed-rc1/w0-desktop`). Both
+install (4 GB, unencrypted) and LUKS2 (8 GB) evidence now exists for candidates built after the fix.
+
 | Attempt | RAM | Result |
 |---|---|---|
 | `install-luks-final` | 6 GB | **KERNEL PANIC** mid-install: `Attempted to kill init! exitcode=0x0000000b` (SIGSEGV in PID 1), qcow2 stopped at 9.29 GB |
