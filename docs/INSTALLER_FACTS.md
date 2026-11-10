@@ -1,5 +1,19 @@
 # Installer facts (measured in a booted live image)
 
+## RAM: 4 GB for the plain install, 8 GB for the encrypted one (2026-11-10)
+
+Measured on `HSCL1-installer-fix` (`3e8ebce1…`), QEMU/WHPX, UEFI, disposable 40 GB qcow2:
+
+| Install | RAM | Result |
+|---|---|---|
+| erase disk, ext4, no encryption | 4 GB | "All done", disk boots, `hscl doctor` 6 passed / 0 failed / 1 skipped |
+| erase disk, LUKS2 | 6 GB | **kernel panic mid-write** (`Attempted to kill init! exitcode=0x0000000b`), one observation |
+| erase disk, LUKS2 | 8 GB | "All done", disk unlocks and boots |
+
+The 6 GB panic was not reproducible at 8 GB, and the same scenario had finished at 6 GB on an earlier candidate, so
+this is documented as a RAM requirement rather than a hard defect. `scripts/dev/detect_panic.py DIR` flags the
+purple crash frame, and the VM harness reports `panic_suspects` for every run.
+
 Source: read-only probes in a QEMU/WHPX VM booting `HSCL1-dev-p2.iso` (sha256 `0eb7acb77f5dfd31ac9246b7a46a4cd7816c80cab214e5df46c535968be263ff`,
 commit 3d89a43), evidence `artifacts/probe-baseline2/probe.json` (not in git). Date 2026-11-06. Nothing here was installed to a disk; these are
 configuration facts, not an installation test.

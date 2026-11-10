@@ -2011,9 +2011,7 @@ line-greps) and asserts the keyboard test still exists. Verified as a real gate,
 file with a `Button` lacking `Accessible.name` makes it fail with `_A11yProbe.qml: Button without
 Accessible.name`, and removing the probe makes it pass again.
 
-### Security Lab: rootless Podman works in the guest (2026-11-10)
-
-`HSCL1-qa-green-amd64.iso` (`5d4ea47e…`), 6 GB, UEFI, no disk attached (`artifacts/boot-lab`):
+### Security Lab: rootless Podman works in the guest (2026-11-10)`HSCL1-qa-green-amd64.iso` (`5d4ea47e…`), 6 GB, UEFI, no disk attached (`artifacts/boot-lab`):
 
 ```
 $ hscl lab status
@@ -2039,6 +2037,23 @@ instead of pretending. Then, inside the live session:
 **Not yet verified:** the two-phase Kali toolset build from a digest-pinned official image, and therefore any
 tool run inside the lab container. The `hscl lab` code path that builds that image was not executed in a
 guest; Q-18 stays open for exactly that remainder.
+
+**Two defects the in-guest lab runs exposed** (both fixed in source on 2026-11-10):
+
+1. **`hscl lab …` always exited 0.** `run_lab` called `lab_execute(...)?` and returned `Ok(exit::OK)`, throwing
+   away the container's exit code. The guest showed the contradiction plainly:
+   `lab action finished: project=demo exit=125` followed by shell `INSTALL_EXIT=0` (podman refused because the
+   image had not been pulled and `--pull=never` is deliberate). Scripts and CI could not detect a failed
+   container. Fixed to return the code; regression test `lab_execute_returns_the_command_exit_code` runs a
+   command that exits 7 and asserts 7 comes back.
+2. **The install phase needs an explicit pull.** `hscl lab install` runs `--pull=never` by design, so the image
+   must be pulled first (`podman pull <name>@sha256:…`). The first run reported
+   `Error: …: image not known` (125). This is documented behaviour, but the docs example did not spell the
+   order out; the scenario now pulls first.
+
+`hscl lab spec` itself verified correctly in the guest and prints the argv the design promises:
+`--pull=never --cap-drop=ALL --cap-add=CHOWN,DAC_OVERRIDE,FOWNER,SETUID,SETGID --security-opt=no-new-privileges
+--memory=2048m --cpus=2 --pids-limit=512 <digest> /bin/sh -c 'apt-get update && … allow-listed packages'`.
 
 ### Showcase refreshed from the current candidate (2026-11-10)
 
