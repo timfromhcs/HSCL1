@@ -1,174 +1,174 @@
 {
- "name": "Deutsch",
- "title": "HSCL1 - ein System, drei Modi",
- "description": "HSCL1 ist eine experimentelle Linux-Workstation auf Basis von Kubuntu 26.04: ein Workstation-Desktop, ein isoliertes Security Lab und ein Datenschutz-Workflow. Vorabversion, nur in virtuellen Maschinen getestet.",
- "nav": {
-  "home": "Start",
-  "download": "Download",
-  "modes": "Modi",
-  "honest": "Stand",
-  "lang": "Sprache",
-  "skip": "Zum Inhalt springen",
-  "security": "Sicherheit",
-  "vm": "In einer VM testen"
- },
- "hero": {
-  "h1": "Ein System. Drei Modi.",
-  "sub": "HSCL1 ist eine Linux-Workstation auf Kubuntu-Basis mit eigenem Desktop-Look, einem Kommandozeilenwerkzeug und einem Installer. Es ist eine frühe Vorabversion, die nur in virtuellen Maschinen getestet wurde.",
-  "cta": "Herunterladen",
-  "cta2": "Was es ist"
- },
- "modes_h": "Drei Modi mit getrennten Grenzen",
- "modes": [
-  {
-   "t": "Workstation",
-   "d": "Der Alltags-Desktop: HCS Hybrid Desktop auf KDE Plasma mit oberer Leiste, schwebendem Dock, Control Center und dem Kommandozeilenwerkzeug hscl."
+  "name": "Deutsch",
+  "title": "HSCL1 - ein System, drei Modi",
+  "description": "HSCL1 ist eine experimentelle Linux-Workstation auf Basis von Kubuntu 26.04: ein Workstation-Desktop, ein isoliertes Security Lab und ein Datenschutz-Workflow. Vorabversion, nur in virtuellen Maschinen getestet.",
+  "nav": {
+    "home": "Start",
+    "download": "Download",
+    "modes": "Modi",
+    "honest": "Stand",
+    "lang": "Sprache",
+    "skip": "Zum Inhalt springen",
+    "security": "Sicherheit",
+    "vm": "In einer VM testen"
   },
-  {
-   "t": "Security Lab",
-   "d": "Geplant: Kali-Werkzeuge in Rootless-Containern oder virtuellen Maschinen, nie aus den Paketquellen des Hosts. Noch nicht umgesetzt."
+  "hero": {
+    "h1": "Ein System. Drei Modi.",
+    "sub": "HSCL1 ist eine Linux-Workstation auf Kubuntu-Basis mit eigenem Desktop-Look, einem Kommandozeilenwerkzeug und einem Installer. Es ist eine frühe Vorabversion, die nur in virtuellen Maschinen getestet wurde.",
+    "cta": "Herunterladen",
+    "cta2": "Was es ist"
   },
-  {
-   "t": "Datenschutz",
-   "d": "Geplant: ein Tor-Workflow und ein Starter für das offizielle Tails-Image. Es wird keine Anonymität versprochen, und ohne Tests wird sie auch nicht versprochen."
-  }
- ],
- "shots_h": "Der echte Desktop",
- "shots": [
-  {
-   "src": "img/desktop-rain.png",
-   "alt": "HSCL1-Live-Desktop mit Regen-Hintergrund, oberer Leiste und Dock"
+  "modes_h": "Drei Modi mit getrennten Grenzen",
+  "modes": [
+    {
+      "t": "Workstation",
+      "d": "Der Alltags-Desktop: HCS Hybrid Desktop auf KDE Plasma mit oberer Leiste, schwebendem Dock, Control Center und dem Kommandozeilenwerkzeug hscl."
+    },
+    {
+      "t": "Security Lab",
+      "d": "Geplant: Kali-Werkzeuge in Rootless-Containern oder virtuellen Maschinen, nie aus den Paketquellen des Hosts. Noch nicht umgesetzt."
+    },
+    {
+      "t": "Datenschutz",
+      "d": "Geplant: ein Tor-Workflow und ein Starter für das offizielle Tails-Image. Es wird keine Anonymität versprochen, und ohne Tests wird sie auch nicht versprochen."
+    }
+  ],
+  "shots_h": "Der echte Desktop",
+  "shots": [
+    {
+      "src": "img/desktop.png",
+      "alt": "HSCL1-Live-Desktop mit Regen-Hintergrund, oberer Leiste und Dock"
+    },
+    {
+      "src": "img/control-center.png",
+      "alt": "HSCL1 Control Center mit Live-Systemwerten"
+    }
+  ],
+  "honest_h": "Was geprüft ist und was nicht",
+  "honest": [
+    "Startet bis zum Live-Desktop und installiert auf eine virtuelle Festplatte in QEMU (UEFI und BIOS). Nur in virtuellen Maschinen getestet.",
+    "Nicht auf echter Hardware getestet. Nicht signiert. Der Secure-Boot-Status im Gast wurde noch nicht ausgelesen.",
+    "Security Lab: Die Container-Kette wurde in einer Live-VM durchgehend verifiziert (rootless Podman, Kali-Image per Digest, Toolset-Installation, Commit, Run). Standardmäßig deaktiviert. Datenschutz-Routing ist weiterhin geplant.",
+    "HSCL1 ist kein offizielles Produkt von Kubuntu, Kali oder Tails und wird von ihnen nicht unterstützt. HSCL1 ist weder mit dem Tails-Projekt verbunden noch von ihm unterstützt. KALI LINUX™ ist eine Marke von OffSec. Fremde Namen gehören ihren Inhabern."
+  ],
+  "dl": {
+    "h1": "Download",
+    "none": "Noch kein Release veröffentlicht. Bauanleitung im Quellcode-Repository.",
+    "pre": "Vorabversion - nicht für den Produktiveinsatz",
+    "version": "Version",
+    "released": "Veröffentlicht",
+    "size": "Gesamtgröße",
+    "sha": "SHA-256 des vollständigen ISO",
+    "parts": "Dateien",
+    "parts_note": "GitHub erlaubt pro Release-Datei höchstens 2 GiB, daher ist das ISO in Teile von etwa 1,5 GB aufgeteilt. Alle Teile und SHA256SUMS laden, dann zusammensetzen und prüfen.",
+    "verify_h": "Zusammensetzen und prüfen",
+    "verify": [
+      "Alle .part-Dateien und SHA256SUMS in einen Ordner laden (zum Beispiel mit: gh release download TAG -R timfromhcs/HSCL1).",
+      "scripts/release-join.sh aus dem Quellcode-Repository ausführen. Es prüft jeden Teil und das fertige Image gegen SHA256SUMS und bricht bei Abweichung ab.",
+      "Die SHA-256 des zusammengesetzten ISO mit dem Wert auf dieser Seite vergleichen."
+    ],
+    "limits_h": "Bekannte Einschränkungen dieses Releases",
+    "limits": [
+      "Nur virtuelle Maschinen; keine echte Hardware getestet.",
+      "Nicht signiert.",
+      "In diesem Image lauscht KDE Connect noch auf Port 1716; die Korrektur steckt im Quellcode, aber nicht in diesem Image."
+    ],
+    "all": "Alle Dateien auf GitHub",
+    "tag": "Release-Seite"
   },
-  {
-   "src": "img/control-center.png",
-   "alt": "HSCL1 Control Center mit Live-Systemwerten"
-  }
- ],
- "honest_h": "Was geprüft ist und was nicht",
- "honest": [
-  "Startet bis zum Live-Desktop und installiert auf eine virtuelle Festplatte in QEMU (UEFI und BIOS). Nur in virtuellen Maschinen getestet.",
-  "Nicht auf echter Hardware getestet. Nicht signiert. Der Secure-Boot-Status im Gast wurde noch nicht ausgelesen.",
-  "Security Lab und Datenschutz sind geplant, nicht ausgeliefert.",
-  "HSCL1 ist kein offizielles Produkt von Kubuntu, Kali oder Tails und wird von ihnen nicht unterstützt. HSCL1 ist weder mit dem Tails-Projekt verbunden noch von ihm unterstützt. KALI LINUX™ ist eine Marke von OffSec. Fremde Namen gehören ihren Inhabern."
- ],
- "dl": {
-  "h1": "Download",
-  "none": "Noch kein Release veröffentlicht. Bauanleitung im Quellcode-Repository.",
-  "pre": "Vorabversion - nicht für den Produktiveinsatz",
-  "version": "Version",
-  "released": "Veröffentlicht",
-  "size": "Gesamtgröße",
-  "sha": "SHA-256 des vollständigen ISO",
-  "parts": "Dateien",
-  "parts_note": "GitHub erlaubt pro Release-Datei höchstens 2 GiB, daher ist das ISO in Teile von etwa 1,5 GB aufgeteilt. Alle Teile und SHA256SUMS laden, dann zusammensetzen und prüfen.",
-  "verify_h": "Zusammensetzen und prüfen",
-  "verify": [
-   "Alle .part-Dateien und SHA256SUMS in einen Ordner laden (zum Beispiel mit: gh release download TAG -R timfromhcs/HSCL1).",
-   "scripts/release-join.sh aus dem Quellcode-Repository ausführen. Es prüft jeden Teil und das fertige Image gegen SHA256SUMS und bricht bei Abweichung ab.",
-   "Die SHA-256 des zusammengesetzten ISO mit dem Wert auf dieser Seite vergleichen."
-  ],
-  "limits_h": "Bekannte Einschränkungen dieses Releases",
-  "limits": [
-   "Nur virtuelle Maschinen; keine echte Hardware getestet.",
-   "Nicht signiert.",
-   "In diesem Image lauscht KDE Connect noch auf Port 1716; die Korrektur steckt im Quellcode, aber nicht in diesem Image."
-  ],
-  "all": "Alle Dateien auf GitHub",
-  "tag": "Release-Seite"
- },
- "footer": {
-  "credit": "Made with love by hcsmedia",
-  "license": "Freie Software unter GPL-3.0-or-later.",
-  "source": "Quellcode",
-  "issues": "Problem melden"
- },
- "sec": {
-  "title": "Sicherheit und Grenzen - HSCL1",
-  "h1": "Sicherheit und Grenzen",
-  "intro": "HSCL1 ist frühe Pre-Alpha-Software. Nicht für Dinge verwenden, die eine Sicherheitsgarantie brauchen. Diese Seite sagt, was wir tun und was wir nicht behaupten.",
-  "report_h": "Sicherheitslücke melden",
-  "report": "Bitte die private Meldefunktion von GitHub im Quellcode-Repository nutzen (Reiter Security, Report a vulnerability). Bitte kein öffentliches Issue für ein Sicherheitsproblem öffnen. Angeben: Version (hscl version), was getan wurde, was passiert ist und was erwartet wurde. Es gibt in diesem Stadium keine Zusage zu Antwortzeiten.",
-  "report_link": "Sicherheitsseite des Repositorys öffnen",
-  "integrity_h": "Integrität der Releases",
-  "integrity": [
-   "Releases erscheinen mit SHA256SUMS; jeden Download damit prüfen.",
-   "Eine Signatur der Releases gibt es noch nicht. Es wurde kein Signaturschlüssel erzeugt, Releases gelten daher als unsigniert."
-  ],
-  "claims_h": "Was wir nicht behaupten",
-  "claims": [
-   "Keine Anonymität: HSCL1 ist nicht Tails, und der Datenschutz-Modus ist geplant, nicht ausgeliefert.",
-   "Keine Garantie gegen Angriffe, keine Zertifizierung, keine Aussage, dass es schwer zu hacken sei.",
-   "Keine Unterstützung für echte Hardware: Es wurde kein Gerät getestet.",
-   "Secure Boot: Das Image startet in einer virtuellen Maschine unter Secure-Boot-Firmware, der Secure-Boot-Status im Gast wurde aber nicht ausgelesen, daher wird keine Secure-Boot-Aussage gemacht."
-  ],
-  "dev_h": "Entwicklerwerkzeug: der Workshop",
-  "dev": "Der Workshop ist ein Entwicklerwerkzeug, das standardmäßig inaktiv ist: kein aktivierter Dienst, kein Socket und kein Netzwerk-Listener. Er startet nur, wenn ein Hypervisor einen eigenen virtuellen Port bereitstellt oder ein Administrator ihn von Hand startet. Wer diesen Port kontrolliert, kontrolliert bereits die virtuelle Maschine, und seine Hooks laufen absichtlich als root. Nicht auf einem Rechner aktivieren, den man nicht selbst kontrolliert.",
-  "docs_h": "Details",
-  "docs": "Die vollständigen, gepflegten Listen liegen im Quellcode-Repository.",
-  "docs_links": [
-   {
-    "t": "Bekannte Einschränkungen",
-    "u": "https://github.com/timfromhcs/HSCL1/blob/main/docs/KNOWN_LIMITATIONS.md"
-   },
-   {
-    "t": "Bedrohungsmodell",
-    "u": "https://github.com/timfromhcs/HSCL1/blob/main/docs/THREAT_MODEL.md"
-   },
-   {
-    "t": "Sicherheitsrichtlinie",
-    "u": "https://github.com/timfromhcs/HSCL1/blob/main/SECURITY.md"
-   }
-  ]
- },
- "vm": {
-  "title": "HSCL1 in einer virtuellen Maschine testen - HSCL1",
-  "h1": "HSCL1 in einer virtuellen Maschine testen",
-  "intro": "HSCL1 wurde bisher ausschließlich in virtuellen Maschinen getestet. Das sind die genauen Einstellungen unserer automatisierten Tests. Diese frühe Vorabversion bitte nicht auf einen USB-Stick für einen echten Rechner schreiben: Sie wurde nicht auf echter Hardware getestet.",
-  "table_h": "Getestete Einstellungen (QEMU)",
-  "rows": [
-   [
-    "Hypervisor",
-    "QEMU 11.1 unter Windows mit WHPX-Beschleunigung; Software-Emulation (TCG), wo keine Beschleunigung verfügbar war (Test mit Secure-Boot-Firmware)"
-   ],
-   [
-    "Firmware",
-    "UEFI (OVMF/edk2) und klassisches BIOS (SeaBIOS) erreichten beide den Live-Desktop"
-   ],
-   [
-    "Speicher und CPUs",
-    "4 GB RAM, 4 virtuelle CPUs"
-   ],
-   [
-    "Anzeige",
-    "Standard-VGA (Software-Rendering); HSCL1 erkennt das und schaltet Animationen und Unschärfe ab"
-   ],
-   [
-    "Festplatte (für einen Installationstest)",
-    "Eine leere virtuelle virtio-Platte mit 40 GB im qcow2-Format, nur für den Test angelegt"
-   ],
-   [
-    "Netzwerk",
-    "QEMU-Benutzermodus-Netzwerk mit virtio-Netzwerkkarte"
-   ],
-   [
-    "Installationsmedium",
-    "Das ISO als schreibgeschütztes CD-ROM-Laufwerk"
-   ]
-  ],
-  "steps_h": "Was zu erwarten ist",
-  "steps": [
-   "Der Live-Desktop erscheint mit Hardware-Beschleunigung nach etwa zwei Minuten; mit Software-Emulation dauert es deutlich länger.",
-   "Der Installer (Calamares) lässt dich die Platte wählen. Nichts ist vorausgewählt, und nichts wird geschrieben, bevor du die Zusammenfassung bestätigst. Eine Wegwerf-Platte verwenden.",
-   "Eine vollständige Testinstallation dauerte in unserem Lauf etwa 23 Minuten und startete danach von der virtuellen Platte."
-  ],
-  "not_h": "Nicht getestet",
-  "not": [
-   "VirtualBox, VMware und Hyper-V: Es werden keine Einstellungen empfohlen, weil keine getestet wurden.",
-   "KVM unter Linux: Dieselben QEMU-Optionen sollten funktionieren, wir haben das aber nicht überprüft.",
-   "Verschlüsselte Installation (LUKS2): noch nicht getestet.",
-   "3D-Beschleunigung, USB-Durchreichen und gemeinsame Ordner: nicht getestet; gemeinsame Ordner ausgeschaltet lassen."
-  ],
-  "script": "Das Programm, das diese Tests ausführt, ist scripts/qemu_boot_test.py im Quellcode-Repository."
- },
- "expansion": "Hypercharged Supreme Computing Layout 1"
+  "footer": {
+    "credit": "Made with love by hcsmedia",
+    "license": "Freie Software unter GPL-3.0-or-later.",
+    "source": "Quellcode",
+    "issues": "Problem melden"
+  },
+  "sec": {
+    "title": "Sicherheit und Grenzen - HSCL1",
+    "h1": "Sicherheit und Grenzen",
+    "intro": "HSCL1 ist frühe Pre-Alpha-Software. Nicht für Dinge verwenden, die eine Sicherheitsgarantie brauchen. Diese Seite sagt, was wir tun und was wir nicht behaupten.",
+    "report_h": "Sicherheitslücke melden",
+    "report": "Bitte die private Meldefunktion von GitHub im Quellcode-Repository nutzen (Reiter Security, Report a vulnerability). Bitte kein öffentliches Issue für ein Sicherheitsproblem öffnen. Angeben: Version (hscl version), was getan wurde, was passiert ist und was erwartet wurde. Es gibt in diesem Stadium keine Zusage zu Antwortzeiten.",
+    "report_link": "Sicherheitsseite des Repositorys öffnen",
+    "integrity_h": "Integrität der Releases",
+    "integrity": [
+      "Releases erscheinen mit SHA256SUMS; jeden Download damit prüfen.",
+      "Eine Signatur der Releases gibt es noch nicht. Es wurde kein Signaturschlüssel erzeugt, Releases gelten daher als unsigniert."
+    ],
+    "claims_h": "Was wir nicht behaupten",
+    "claims": [
+      "Keine Anonymität: HSCL1 ist nicht Tails, und der Datenschutz-Modus ist geplant, nicht ausgeliefert.",
+      "Keine Garantie gegen Angriffe, keine Zertifizierung, keine Aussage, dass es schwer zu hacken sei.",
+      "Keine Unterstützung für echte Hardware: Es wurde kein Gerät getestet.",
+      "Secure Boot: Das Image startet in einer virtuellen Maschine unter Secure-Boot-Firmware, der Secure-Boot-Status im Gast wurde aber nicht ausgelesen, daher wird keine Secure-Boot-Aussage gemacht."
+    ],
+    "dev_h": "Entwicklerwerkzeug: der Workshop",
+    "dev": "Der Workshop ist ein Entwicklerwerkzeug, das standardmäßig inaktiv ist: kein aktivierter Dienst, kein Socket und kein Netzwerk-Listener. Er startet nur, wenn ein Hypervisor einen eigenen virtuellen Port bereitstellt oder ein Administrator ihn von Hand startet. Wer diesen Port kontrolliert, kontrolliert bereits die virtuelle Maschine, und seine Hooks laufen absichtlich als root. Nicht auf einem Rechner aktivieren, den man nicht selbst kontrolliert.",
+    "docs_h": "Details",
+    "docs": "Die vollständigen, gepflegten Listen liegen im Quellcode-Repository.",
+    "docs_links": [
+      {
+        "t": "Bekannte Einschränkungen",
+        "u": "https://github.com/timfromhcs/HSCL1/blob/main/docs/KNOWN_LIMITATIONS.md"
+      },
+      {
+        "t": "Bedrohungsmodell",
+        "u": "https://github.com/timfromhcs/HSCL1/blob/main/docs/THREAT_MODEL.md"
+      },
+      {
+        "t": "Sicherheitsrichtlinie",
+        "u": "https://github.com/timfromhcs/HSCL1/blob/main/SECURITY.md"
+      }
+    ]
+  },
+  "vm": {
+    "title": "HSCL1 in einer virtuellen Maschine testen - HSCL1",
+    "h1": "HSCL1 in einer virtuellen Maschine testen",
+    "intro": "HSCL1 wurde bisher ausschließlich in virtuellen Maschinen getestet. Das sind die genauen Einstellungen unserer automatisierten Tests. Diese frühe Vorabversion bitte nicht auf einen USB-Stick für einen echten Rechner schreiben: Sie wurde nicht auf echter Hardware getestet.",
+    "table_h": "Getestete Einstellungen (QEMU)",
+    "rows": [
+      [
+        "Hypervisor",
+        "QEMU 11.1 unter Windows mit WHPX-Beschleunigung; Software-Emulation (TCG), wo keine Beschleunigung verfügbar war (Test mit Secure-Boot-Firmware)"
+      ],
+      [
+        "Firmware",
+        "UEFI (OVMF/edk2) und klassisches BIOS (SeaBIOS) erreichten beide den Live-Desktop"
+      ],
+      [
+        "Speicher und CPUs",
+        "4 GB RAM, 4 virtuelle CPUs"
+      ],
+      [
+        "Anzeige",
+        "Standard-VGA (Software-Rendering); HSCL1 erkennt das und schaltet Animationen und Unschärfe ab"
+      ],
+      [
+        "Festplatte (für einen Installationstest)",
+        "Eine leere virtuelle virtio-Platte mit 40 GB im qcow2-Format, nur für den Test angelegt"
+      ],
+      [
+        "Netzwerk",
+        "QEMU-Benutzermodus-Netzwerk mit virtio-Netzwerkkarte"
+      ],
+      [
+        "Installationsmedium",
+        "Das ISO als schreibgeschütztes CD-ROM-Laufwerk"
+      ]
+    ],
+    "steps_h": "Was zu erwarten ist",
+    "steps": [
+      "Der Live-Desktop erscheint mit Hardware-Beschleunigung nach etwa zwei Minuten; mit Software-Emulation dauert es deutlich länger.",
+      "Der Installer (Calamares) lässt dich die Platte wählen. Nichts ist vorausgewählt, und nichts wird geschrieben, bevor du die Zusammenfassung bestätigst. Eine Wegwerf-Platte verwenden.",
+      "Eine vollständige Testinstallation dauerte in unserem Lauf etwa 23 Minuten und startete danach von der virtuellen Platte."
+    ],
+    "not_h": "Nicht getestet",
+    "not": [
+      "VirtualBox, VMware und Hyper-V: Es werden keine Einstellungen empfohlen, weil keine getestet wurden.",
+      "KVM unter Linux: Dieselben QEMU-Optionen sollten funktionieren, wir haben das aber nicht überprüft.",
+      "Verschlüsselte Installation (LUKS2): noch nicht getestet.",
+      "3D-Beschleunigung, USB-Durchreichen und gemeinsame Ordner: nicht getestet; gemeinsame Ordner ausgeschaltet lassen."
+    ],
+    "script": "Das Programm, das diese Tests ausführt, ist scripts/qemu_boot_test.py im Quellcode-Repository."
+  },
+  "expansion": "Hypercharged Supreme Computing Layout 1"
 }

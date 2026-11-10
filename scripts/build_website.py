@@ -194,8 +194,9 @@ def build(out: Path, site: str | None) -> list[str]:
         shutil.rmtree(out)
     (out / "img").mkdir(parents=True)
     (out / "style.css").write_text(css(tokens), encoding="utf-8")
-    for s in ["desktop-rain.png", "control-center.png"]:
-        shutil.copy2(ROOT / "docs/img" / s, out / "img" / s)
+    for src, dst in [("showcase/01_desktop_clean.png", "desktop.png"),
+                     ("showcase/04_control_center_overview.png", "control-center.png")]:
+        shutil.copy2(ROOT / "docs/img" / src, out / "img" / dst)
     import subprocess
     import tempfile
     with tempfile.TemporaryDirectory() as tmp:  # brand assets are generated, not committed
