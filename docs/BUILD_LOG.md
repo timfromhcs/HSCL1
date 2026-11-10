@@ -2431,3 +2431,9 @@ therefore reports `git_commit: 406186d` and the release notes say so instead of 
 QMP port 4444; QEMU exited with "Failed to find an available port" while the client hung. `--qmp-port` now
 defaults to 0 (OS-assigned), committed as `11019ef`.
 
+**Release (2026-11-10):** the artifact was split into three parts, the parts were re-hashed as a
+concatenation (`c3ae31a6…`, `REJOIN_OK`), the release set was assembled with three evidence files, tag
+`v0.1.5-alpha.0` was created on `406186d` and the prerelease was published with 8 assets. The uploaded
+`SHA256SUMS` was downloaded again and compares identical to the local file. `scripts/release_split.py`
+replaces the bash splitter on Windows: the `/mnt/e` path managed ~4 MB/s, the native path a few seconds.
+
