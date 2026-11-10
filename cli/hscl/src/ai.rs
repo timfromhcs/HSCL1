@@ -487,6 +487,12 @@ pub fn validate_storage_path(p: &Path) -> Result<PathBuf> {
     if s.contains(';') || s.contains('&') || s.contains('|') || s.contains('`') || s.contains('$') {
         bail!("storage path contains disallowed characters");
     }
+    // Refuse a filesystem root. `Path::new("/")` is absolute on Linux but not on Windows, so before
+    // this check the same test passed on Windows only by accident (CI on ubuntu-latest caught it,
+    // 2026-11-10). Model files must never land next to `/etc`.
+    if p.parent().is_none() {
+        bail!("storage path must not be a filesystem root: {}", p.display());
+    }
     Ok(p.to_path_buf())
 }
 
@@ -709,6 +715,8 @@ mod ai_subcommand_tests {
         assert!(validate_storage_path(Path::new("/tmp/hscl_ai_models")).is_ok());
         assert!(validate_storage_path(Path::new("relative/path")).is_err());
         assert!(validate_storage_path(Path::new("/var/ai;rm -rf /")).is_err());
+        // A filesystem root is refused on every platform. This assertion used to pass on Windows
+        // only because "/" is not absolute there; CI on ubuntu-latest failed it (2026-11-10).
         assert!(validate_storage_path(Path::new("/")).is_err());
         #[cfg(windows)]
         {

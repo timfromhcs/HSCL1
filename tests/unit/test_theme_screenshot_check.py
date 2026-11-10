@@ -10,7 +10,13 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from PIL import Image
+import pytest
+
+# Pillow is needed to synthesise the probe images. CI installs python3-pil; a developer machine
+# without it skips this gate instead of failing collection (the 2026-11-10 CI run errored here).
+pytest.importorskip("PIL", reason="Pillow is required for the screenshot luminance gate")
+
+from PIL import Image  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts" / "dev"))

@@ -79,8 +79,8 @@ jobs:
             return 1
           }
           for i in 1 2 3; do sudo timeout 120 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 update && break; done
-          fetch shellcheck python3-pytest python3-yaml
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends shellcheck python3-pytest python3-yaml
+          fetch shellcheck python3-pytest python3-yaml python3-pil
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends shellcheck python3-pytest python3-yaml python3-pil
       - name: Design tokens (contrast) and generated QML theme in sync
         run: |
           python3 scripts/check-tokens.py
