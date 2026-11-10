@@ -1898,6 +1898,36 @@ Boot support, which is a different statement from the doctor's "UEFI without a S
 **Honest status:** the harness fix is committed and unit-tested, but `evidence.sh` ships inside the image, so
 the next rebuilt ISO is needed before this report turns green in a guest.
 
+### QA report green (2026-11-10, `HSCL1-qa-green-amd64.iso`)
+
+| Field | Value |
+|---|---|
+| Artifact | `HSCL1-qa-green-amd64.iso` |
+| Bytes | 5 488 771 072 |
+| SHA-256 | `5d4ea47e926e877423d8d21f7cf86f9f203f78f58ec4e3facf49b1dddee6e2bd` |
+| Source commit | `28b8221` |
+| Gates | `verify-image: all checks passed` |
+
+Booted at 4 GB (desktop in 192 s) with `--qa-out artifacts/qa/hscl1-report-green.txt`
+(2 916 bytes). `python scripts/qa_report.py` → **exit 0**:
+
+```
+ok   os-release NAME is HSCL1
+ok   os-release keeps ID=ubuntu
+ok   desktop session running
+ok   hscl status emits valid JSON
+ok   hscl doctor emits valid JSON
+ok   kernel.kptr_restrict = 2
+ok   firewall baseline active
+ok   no failed hscl units
+ok   default look-and-feel is HCS
+info secure-boot: This system doesn't support Secure Boot
+```
+
+The look-and-feel check now reads the three real sources and finds `org.hcs.hscl1.desktop` in the system default,
+which is exactly what the earlier run misreported as "missing". The remaining `info` line is correct for this
+firmware (no Secure Boot support); the Secure-Boot-enabled OVMF path is still untested.
+
 ### LUKS2 install and unlock: VM-VERIFIED (2026-11-10)
 
 | Item | Value |
