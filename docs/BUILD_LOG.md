@@ -1761,6 +1761,17 @@ the installer window opened every time (`boot-icon-3x/a1`, `boot-icon-once-1/i1`
 KCrash line and no crash-handler dialog. Three successes do not prove the crash is impossible, but the phase
 that crashed is gone from this image.
 
+**Correction, later on 2026-11-10:** the probe removal was necessary but **not sufficient**. A later run on
+`HSCL1-rc2` crashed again, and this time the terminal showed Calamares' own debug output (the launcher runs
+`calamares -D8`): the requirements block printed `enoughRam: true … isRoot: true`, then `Got 4 requirements`,
+then `KCrash: Application 'calamares' crashing` while the first Qt Quick view was being built
+(`qrc:/ui/MainPage.qml`), then the SIGKILL. So the crash is a **graphics-stack race in Qt Quick**, not the network
+check. The fix is a wrapper that runs the installer with software rendering:
+`/usr/bin/hscl-calamares` exports `QT_QUICK_BACKEND=software` and `LIBGL_ALWAYS_SOFTWARE=1`, then execs the
+upstream launcher; the desktop entry now points at it, the image gate checks both, and
+`tests/unit/test_installer_software_render.py` pins it. rc3 carries this and is being re-tested with repeated
+installs.
+
 The same artifact also passes the machine-readable report at 4 GB
 (`artifacts/qa/report-installer-fix.txt`, `qa_report.py` exit 0: 9 checks ok, one `info` line about Secure Boot),
 so the installer fix did not regress anything the QA channel covers.
