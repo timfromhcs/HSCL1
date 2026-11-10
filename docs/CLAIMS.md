@@ -3,7 +3,9 @@
 Rule: nothing is stated as working without evidence. "unit-tested" means only the code logic ran in tests;
 it is **not** a claim that the feature works on real hardware or in the image.
 
-**Artifact identity.** The current source is `d817093` (2026-11-09). The published prerelease is
+**Artifact identity.** The current source is `189760f` (2026-11-10); the newest local candidate is
+`HSCL1-qa-green-amd64.iso` (`5d4ea47e…`, 5 488 771 072 bytes, commit `28b8221`), and the install evidence from
+the same day belongs to `HSCL1-earlyoom-fix-amd64.iso` (`e723940b…`). The published prerelease is still
 `v0.1.4-alpha.0`: three split parts whose SHA-256 digests match the GitHub release assets
 (`bb47493b…`, `7c9de400…`, `e6effeff…`) and join to `HSCL1-0.1.4-alpha.0-amd64.iso`
 (`a7e055a7…`, 5,488,312,320 bytes). Rows below were recorded against earlier images (`0.1.3-alpha.0`
@@ -16,7 +18,9 @@ Current source corrections (2026-11-08): HCSEASYMATH has six API/CLI operations 
 | Feature | Status | Evidence / what is missing |
 |---|---|---|
 | Main ISO boots to the HCS desktop (UEFI/BIOS, QEMU+WHPX) | VM-VERIFIED | screenshots in `artifacts/` (not in git), BUILD_LOG |
-| Installer installs to a 40 GiB virtual disk and the installed system boots and logs in | VM-VERIFIED (QA build of an earlier image) | BUILD_LOG "Install verification" |
+| Installer installs to a 40 GiB virtual disk and the installed system boots and logs in | VM-VERIFIED (2026-11-10, `e723940b…`, 6 GB VM) | `artifacts/install-term-6g` (installer pages, "All done", 9.69 GB written) and `artifacts/boot-installed-term` (SDDM login, desktop, `hscl doctor` 6 passed / 0 failed / 1 skipped); BUILD_LOG "First complete installation" |
+| LUKS2 install + unlock, wrong passphrase refused | VM-VERIFIED (2026-11-10, `e723940b…`, 6 GB VM) | `artifacts/install-luks` (plan: ESP + `hscl1_boot` 4 GiB + `hscl1_root` 35.71 GiB LUKS2) and `artifacts/boot-luks` (unlock prompt, `cryptsetup: ERROR … bad password`, correct passphrase, desktop, `LUKS volumes open: 1`); BUILD_LOG "LUKS2 install and unlock" |
+| Machine-readable in-guest report (`hscl.qa` port → `qa_report.py`) | VM-VERIFIED (2026-11-10, `5d4ea47e…`, 4 GB VM) | `artifacts/qa/hscl1-report-green.txt`, `qa_report.py` exit 0 (9 ok, 1 info); BUILD_LOG "QA report green" |
 | Workshop daemon starts through udev when the hypervisor provides the `hscl.api` port, answers `status`, accepts hook-pushed files | VM-VERIFIED | `artifacts/e2e1/report.json`, `artifacts/e2e2` run log in BUILD_LOG |
 | Respin: squashing the live state | VM-VERIFIED (373 s, first run) | BUILD_LOG |
 | Development loop: push a file and updated tools into a running live VM through the API, respin inside the guest (420 s), extract the ISO (sha256 matches its manifest), boot it (110 s), the daemon answers with the pushed code (`live: true`) and the pushed proof file is present | VM-VERIFIED, with one limit: the proof was matched by its file-name prefix `hscl-respin-proof-` (the uuid of the first phase was not recorded; later runs record it) | `artifacts/e2e2/report.json`, `respun.manifest.json` (not in git), `scripts/workshop/e2e_respin.py` |
