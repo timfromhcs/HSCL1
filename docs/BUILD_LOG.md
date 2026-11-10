@@ -1805,6 +1805,30 @@ Running the real system found two wrong sentences that no unit test could see:
 
 Both fixes need a rebuilt image to be seen in a guest; the source and tests are green here.
 
+### LUKS2 install and unlock: VM-VERIFIED (2026-11-10)
+
+| Item | Value |
+|---|---|
+| ISO | `HSCL1-earlyoom-fix-amd64.iso`, SHA-256 `e723940b…` |
+| VM | UEFI + WHPX, 6 GB RAM, 4 vCPU, disposable 40 GB qcow2 (`artifacts/vdisks/luks-install.qcow2`) |
+| Scenario | `tests/visual/scenarios/install-luks.json` |
+| Partition plan | ESP 300 MiB FAT32 + `hscl1_boot` 4.00 GiB ext4 + `hscl1_root` 35.71 GiB **LUKS2** |
+| Passphrase | set in the installer, 20 characters, validated in both fields (green tick) |
+| Install | "All done", 10.23 GB written |
+| Boot | `iso=none`, `--unlock-first-wrong`, `--unlock-passphrase` |
+
+Evidence chain in `artifacts/boot-luks`:
+
+1. `unlock-prompt.png` - `Please unlock disk luks-c241f4c8-1089-4eae-b3db-2f76923d8b0b`
+2. `unlock-after-wrong.png` - the wrong passphrase is refused: `cryptsetup: ERROR: luks-…: cryptsetup failed, bad password or options?`, prompt returns, nothing is destroyed
+3. the correct passphrase continues the boot; `unlock-after-correct.png`
+4. SDDM login, then the HSCL1 desktop (`v0-desktop.png`)
+5. in the encrypted system: `hscl doctor` → 6 passed / 0 failed / 1 skipped, and
+   `hscl security status` → `AppArmor enabled: yes`, `UFW enabled: yes`, **`LUKS volumes open: 1`**
+
+The 4 GB separate `/boot` is deliberate and documented: the installer warns that `/boot` is not encrypted.
+`/boot` lives in clear text so GRUB can read the kernel; the root filesystem is inside LUKS2.
+
 ### V1-Z Candidate boot, palette and launcher verification (2026-11-09)
 
 Artifact: `HSCL1-qa-2026-11-09-amd64.iso` (`118029de…`, source `c8a433a`), QEMU 9.x + WHPX, UEFI
