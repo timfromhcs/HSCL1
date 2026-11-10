@@ -7,11 +7,12 @@ it is **not** a claim that the feature works on real hardware or in the image.
 `HSCL1-rc2-amd64.iso` (`0ed86405...`, commit `ddf3323`), which carries the installer startup fix, the `hscl lab`
 exit-code and local-image fixes, the honest status wording and a green QA report at 4 GB. The install and LUKS
 evidence from the same day belongs to `HSCL1-earlyoom-fix-amd64.iso` (`e723940b...`) and
-`HSCL1-qa-green-amd64.iso` (`5d4ea47e...`). The published prerelease is still `v0.1.4-alpha.0`: three split parts
-whose SHA-256 digests match the GitHub release assets (`bb47493b...`, `7c9de400...`, `e6effeff...`) and join to
-`HSCL1-0.1.4-alpha.0-amd64.iso` (`a7e055a7...`, 5,488,312,320 bytes) - but that image was built from `ea8bbdc`
-and is **118 commits older** than the tree. A `0.1.5-alpha.0` candidate is built from `406186d` in this session;
-its own row is added once the boot test passes. Rows below were recorded against earlier images (`0.1.3-alpha.0`
+`HSCL1-qa-green-amd64.iso` (`5d4ea47e...`). The current published prerelease is `v0.1.5-alpha.0` (`c3ae31a6...`, 5,027,135,488 bytes, built from
+`406186d`); it booted UEFI at 4 GB in 242 s with `qa_report.py` exit 0, and its three parts rejoin to the
+same digest. The previous `v0.1.4-alpha.0` (`a7e055a7...`) was built from `ea8bbdc` and is **118 commits
+older**; it is superseded and remains downloadable for comparison only.
+
+Rows below were recorded against earlier images (`0.1.3-alpha.0`
 `2e30b750...`, built from `a55e023`; and a later local candidate that is no longer on disk). **A row is
 historical evidence for the artifact it names and never proof for the current tree.** The 2026-11-10 audit and
 the list of open defect rows are in [AUDIT_2026-11-10.md](AUDIT_2026-11-10.md).
