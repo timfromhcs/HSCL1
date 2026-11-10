@@ -429,8 +429,30 @@ def main():
         result["elapsed_s"] = round(time.time() - t0)
         result.pop("_disk", None)
         (out / "result.json").write_text(json.dumps(result, indent=2))
+        # A dead guest is easy to miss: screenshots simply stop changing. Check for the panic colour so a
+        # crashed run is called a crash in the summary, not a quiet success.
+        suspects = panic_suspects(out)
+        if suspects:
+            result["panic_suspects"] = suspects
+            (out / "result.json").write_text(json.dumps(result, indent=2))
+            print(f"WARNING: {len(suspects)} screenshot(s) look like a kernel panic: {suspects}", flush=True)
     print(json.dumps({k: v for k, v in result.items() if k != "shots"}))
     return 0 if result["reached_desktop"] else 1
+
+
+def panic_suspects(out: Path) -> list[str]:
+    """Run the standalone detector on `out`; returns [] when it is missing or finds nothing."""
+    detector = Path(__file__).resolve().parent / "dev" / "detect_panic.py"
+    if not detector.is_file():
+        return []
+    try:
+        r = subprocess.run(
+            [sys.executable, str(detector), str(out)],
+            capture_output=True, text=True, encoding="utf-8", errors="replace", check=False,
+        )
+    except OSError:
+        return []
+    return [line.split("PANIC-LIKE:", 1)[1].strip() for line in r.stdout.splitlines() if line.startswith("PANIC-LIKE:")]
 
 
 if __name__ == "__main__":
