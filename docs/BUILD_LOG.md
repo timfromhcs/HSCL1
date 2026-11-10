@@ -1828,6 +1828,21 @@ Running the real system found two wrong sentences that no unit test could see:
 
 Both fixes need a rebuilt image to be seen in a guest; the source and tests are green here.
 
+### Honesty-fixes candidate (2026-11-10)
+
+| Field | Value |
+|---|---|
+| Artifact | `HSCL1-honesty-fixes-amd64.iso` |
+| Bytes | 5 488 771 072 |
+| SHA-256 | `aa6ad7c4d410af5d1ad69a5b98bb41e5269706a496887f5802405e36fba6ee59` |
+| Source commit | `d88160dba1f99be679d16fffe7d4a7484a218205`, `git_dirty: false` |
+| Built | 2026-11-10T01:15:00Z, `--fast`, warm pristine cache |
+| Gates | `verify-image: all checks passed`, incl. "earlyoom drop-in spares the installer" |
+
+Purpose: carry the two CLI corrections (`doctor` Secure Boot reason, session-aware `privacy status`) into an
+image, so they stop being source-only claims. Boot verification at 4 GB with
+`tests/visual/scenarios/verify-cli-honesty.json`.
+
 ### LUKS2 install and unlock: VM-VERIFIED (2026-11-10)
 
 | Item | Value |
