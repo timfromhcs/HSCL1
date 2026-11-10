@@ -1970,6 +1970,35 @@ line-greps) and asserts the keyboard test still exists. Verified as a real gate,
 file with a `Button` lacking `Accessible.name` makes it fail with `_A11yProbe.qml: Button without
 Accessible.name`, and removing the probe makes it pass again.
 
+### Security Lab: rootless Podman works in the guest (2026-11-10)
+
+`HSCL1-qa-green-amd64.iso` (`5d4ea47e…`), 6 GB, UEFI, no disk attached (`artifacts/boot-lab`):
+
+```
+$ hscl lab status
+podman: NOT installed
+lab folder: /home/hscl1/SecurityLabs (missing – run `hscl lab setup`)
+toolsets: basic, web, forensics, crypto, reversing
+
+$ hscl dev status
+readiness: partial        git: ready      python: ready
+compilers: missing        rust: missing   containers (podman): missing
+```
+
+That is the intended state: the image ships no container runtime and no Kali packages, and the CLI says so
+instead of pretending. Then, inside the live session:
+
+| Step | Result (`l2`…`l5`) |
+|---|---|
+| `sudo apt-get install -y podman` | `podman version 5.7.0`, installed in the live overlay |
+| subuid/subgid | one entry each; user `hscl1` |
+| `podman run --rm docker.io/library/busybox:latest echo ROOTLESS_OK` | **`ROOTLESS_OK`**; the log shows the pull and the manifest write |
+| `podman info` `.Host.Security.Rootless` | `true` (the second field of my Go template was wrong for 5.7, so that line errored - cosmetic) |
+
+**Not yet verified:** the two-phase Kali toolset build from a digest-pinned official image, and therefore any
+tool run inside the lab container. The `hscl lab` code path that builds that image was not executed in a guest;
+Q-18 stays open for exactly that remainder.
+
 ### LUKS2 install and unlock: VM-VERIFIED (2026-11-10)
 
 | Item | Value |
