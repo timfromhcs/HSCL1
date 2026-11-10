@@ -69,15 +69,15 @@
   },
   {
     "filename": "08_terminal_hscl_status_doctor.png",
-    "bytes": 120773,
+    "bytes": 122320,
     "colors": 2832,
     "size": [
       1280,
       800
     ],
-    "description": "hscl doctor in the guest: PASS theme HCSMidnight (from /etc/skel), Secure Boot honestly skipped (candidate 2026-11-09)",
-    "timestamp": 1794256675.432694,
-    "source_iso": "HSCL1-miner-qa-2026-11-09-amd64.iso sha256 e342b3ae"
+    "description": "hscl doctor in a 4 GB guest: six passes and the honest Secure Boot line 'UEFI without a SecureBoot variable (firmware has Secure Boot off)' (candidate 2026-11-10)",
+    "timestamp": 1794273773.8143973,
+    "source_iso": "HSCL1-honesty-fixes-amd64.iso sha256 aa6ad7c4"
   },
   {
     "filename": "09_terminal_hscl_lab.png",
