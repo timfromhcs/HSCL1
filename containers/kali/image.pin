@@ -1,17 +1,11 @@
 # Pinned official Kali image for the HSCL1 Security Lab (one reference per line, first non-comment line is used).
-# Source: Docker Hub registry API (token + HEAD on /v2/kalilinux/kali-rolling/manifests/latest →
-#   Docker-Content-Digest), read 2026-11-10. Index digest below; amd64 child inside it:
-#   sha256:5cc5e418c51098ae3c48f9a1d5b3bc74a508588900765a3964259da783652b03
-# Earlier entries, kept for the record:
-#   2026-11-06 registry API only: index sha256:6ec743d9… did not exist yet; amd64 was sha256:73915d5d5483…
-#   2026-11-08 pulled and inspect-verified on Ubuntu 26.04.1 WSL builder with rootless Podman 5.7.0
-#     (index sha256:7997e0581c4f5c185cfe6773d5cae8fcc7c6b79798726ccaabf843af4bcd2013).
-# kali-rolling is refreshed weekly upstream; bumping this pin is a deliberate change (new date and source above),
-# never automatic.
-# 2026-11-10: re-resolved through the registry API because the weekly refresh moved the digest. Rootless Podman
-#   5.7.0 itself is verified in the HSCL1 live guest (ROOTLESS_OK, Host.Security.Rootless=true); the pull of this
-#   exact digest from the guest is the run recorded in tests/visual/scenarios/lab-kali-onecmd.json, and until that
-#   reports success this line is registry-resolved, not pull-verified.
-# Reverify with: podman pull docker.io/kalilinux/kali-rolling@sha256:... then
-#   podman image inspect --format '{{.Digest}}' ...
-docker.io/kalilinux/kali-rolling@sha256:6ec743d9fc5cd397451eeddeff3869bcfab5de9bd5dec5b1f34cbfbd80313073
+# Source: Docker Hub API https://hub.docker.com/v2/repositories/kalilinux/kali-rolling/tags/latest, read 2026-11-06,
+#   tag last pushed 2026-11-01T04:16:25Z, media type manifest.list.v2 (multi-arch; podman selects the architecture).
+#   amd64 manifest inside it: sha256:73915d5d54833d498f52fd200960126be4a2dbdcc110d75d70839c4ef155ed03
+# Original 2026-11-06 status: registry API only; 2026-11-08 pull verification is recorded below. Reverify with:
+#   podman pull docker.io/kalilinux/kali-rolling@sha256:...   then   podman image inspect --format '{{.Digest}}' ...
+# kali-rolling is refreshed weekly upstream; bumping this pin is a deliberate change (new date and source above), never automatic.
+# 2026-11-08: pulled and inspect-verified on Ubuntu 26.04.1 WSL builder with rootless Podman 5.7.0.
+# Digest and amd64 child match the values above. Restricted run and basic-toolset install tested
+# on the builder only; not HSCL1 guest/ISO proof. Evidence: docs/research/2026-11-08-security-lab-builder-probe.md.
+docker.io/kalilinux/kali-rolling@sha256:7997e0581c4f5c185cfe6773d5cae8fcc7c6b79798726ccaabf843af4bcd2013

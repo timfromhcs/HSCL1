@@ -33,8 +33,10 @@ $ hscl lab spec --project web1 --phase commit|destroy
 
 ## Not done / open
 
-- Podman and its dependencies are not in the image (measured 2026-11-06); plan P4.0.
-- `containers/kali/image.pin` records a digest; pull/inspect now agree on the WSL builder (2026-11-08). The example above remains notation, not a literal image reference.
+- Podman and its dependencies are not in the image (measured 2026-11-06); plan P4.0. **Update 2026-11-10:**
+  rootless Podman 5.7.0 works in the live guest once installed by hand (`ROOTLESS_OK`,
+  `Host.Security.Rootless=true`, `/etc/subuid`+`/etc/subgid` present); shipping it stays opt-in.
+- `containers/kali/image.pin` records a digest; pull/inspect now agree on the WSL builder (2026-11-08). The example above remains notation, not a literal image reference. **Upstream drift 2026-11-10:** re-resolving `kalilinux/kali-rolling:latest` through the registry API returned a newer index, `sha256:6ec743d9fc5cd397451eeddeff3869bcfab5de9bd5dec5b1f34cbfbd80313073` (amd64 child `sha256:5cc5e418c51098ae3c48f9a1d5b3bc74a508588900765a3964259da783652b03`). The pin deliberately stays at the **pull-verified** digest; `tests/unit/test_lab_pin.py` fails if the pinned digest has no matching pull evidence, so a bump cannot silently ship an untested image.
 - The generated restricted run and basic-toolset install were exercised rootlessly on the builder, not inside an HSCL1 guest. See [builder probe](research/2026-11-08-security-lab-builder-probe.md). In-guest image integration and VM evidence remain open (HSCL1 guest/runtime still open).
 - The Ubuntu Podman package installed without recommendations needs a user-mode network helper: default networking failed until `passt` supplied `pasta`. Include that dependency in the eventual lab package; never work around this by selecting host networking or rootful Podman.
 - Disposable VM profiles, GUI tools, wireless/USB work: not implemented.
