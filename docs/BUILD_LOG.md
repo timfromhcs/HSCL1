@@ -1782,6 +1782,9 @@ documented install → commit → run chain could not be finished. `validate_ima
 rejected with the new message). `run` already passes `--pull=never`, so a local reference can only name an image
 that exists on the machine. Unit test `a_local_committed_image_is_accepted_but_remote_tags_stay_refused`.
 
+Booted at 4 GB with `--qa-out`: `scripts/qa_report.py` → **exit 0** (9 checks ok, one `info` line), so rc2 keeps
+the properties the QA channel covers.
+
 ### rc1 candidate: all fixes in one image (2026-11-10)
 
 > **Disk hygiene note (2026-11-10):** the older local ISOs on `E:` were deleted to make room for rebuilds
