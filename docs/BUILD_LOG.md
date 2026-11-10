@@ -1785,6 +1785,20 @@ that exists on the machine. Unit test `a_local_committed_image_is_accepted_but_r
 Booted at 4 GB with `--qa-out`: `scripts/qa_report.py` → **exit 0** (9 checks ok, one `info` line), so rc2 keeps
 the properties the QA channel covers.
 
+**Showcase refreshed from rc2 as well:** the four dynamic wallpaper effects (aurora, starfield, grid pulse,
+number rain) captured on a clean desktop after `hscl appearance wallpaper set <effect>`, plus Kate in the HCS
+palette. Each entry in `docs/img/showcase/manifest.json` carries `source_iso: HSCL1-rc2 … 0ed86405`. The aurora
+effect still looks like large overlapping ellipses rather than ribbons - recorded before, still true.
+`13_offline_handbook.png` was **not** re-captured: `hscl-handbook` opened Firefox on a blank tab within the wait
+window, so the older capture stays and this is noted instead of pretending it is current.
+
+> **Audit correction (2026-11-10, `docs/AUDIT_2026-11-10.md`):** the rc2 showcase refresh was inspected
+> frame by frame. `wc1-aurora.png` does show the aurora bands, but `wc2-starfield.png`,
+> `wc3-grid.png` and `wc4-rain.png` are **all starfields**, and `kc1-kate-osrelease.png` still shows the
+> Konsole command line with no Kate window. The four-effect claim and the Kate replacement were therefore
+> not kept in the committed screenshot set; they are tracked as **Q-57** (preset switching) and **Q-58**
+> (Kate launch) in `docs/AUTONOMOUS_QUEUE.md` until a capture shows the difference.
+
 ### rc1 candidate: all fixes in one image (2026-11-10)
 
 > **Disk hygiene note (2026-11-10):** the older local ISOs on `E:` were deleted to make room for rebuilds
