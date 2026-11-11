@@ -95,3 +95,24 @@ and now green: `forge check` 6/6 (887 passed, 22 skipped), Rust 245 passed, clip
   identity drift in `CLAIMS.md`.
 - Carried forward unchanged: V1-C (clean candidate), V1-D (exact-image VM/install matrix), V1-E
   (integrity/review/publication). No stable claim is made by this section.
+
+### V1 status, 2026-11-11 (measured; stable v1 **not** reached)
+
+This section records where the batches above actually stand. It does not change their acceptance
+criteria, and nothing here is a stable-release claim.
+
+| Batch | Status | Evidence | What is still missing |
+|---|---|---|---|
+| V1-A | **TESTED** | `forge check` green, full CI matrix green on `5bb61ab` (8/8 jobs, including QML), `make_release` regression tests | `verify` MCP still cannot discover this suite; the tool result stays `ok:false` and is recorded as such |
+| V1-B | **PARTIAL** | `hscl lab` builds a typed rootless Podman command (digest pinning, `--cap-drop=ALL`, `no-new-privileges`, read-only root, `--network=none` by default, one lab folder); `tests/unit` + guest run cover it. Tor launch refuses a substitute browser. `kglobalshortcutsrc` binds Meta shortcuts. Calamares en/de/fr notes and Control Center `.qm` files are image gates. | No recovery key: the installer sets exactly one passphrase and says so (a documented v1 gap, not an accident). No typed erase confirmation — the summary page is the only confirmation step. No fail-closed **network** policy for Tor, only a refused browser substitute. Accessibility gate is partial (Control Center pinned, installer not). |
+| V1-C | **IMPLEMENTED + TESTED for candidates** | `HSCL1-rc11-amd64.iso` on disk; `v0.1.6-alpha.0` built from `13c3215` in a private work dir with `git_dirty: false` | The published image predates later fixes: the installer language pin, the live `LANG`, and the removal of the dead `desktopFont` key. A stable artifact must be built after them. |
+| V1-D | **VM-VERIFIED in parts** | UEFI live boots (4 GB, 197 s on 0.1.6), unencrypted and LUKS2 installs with installed-system reboot on rc6-rc11, `qa_report.py` exit 0, 12/12 in-guest tracks on 0.1.6 | No legacy-BIOS profile in the recent runs, VirtualBox is **BLOCKED** (not installed), and Secure Boot is not demonstrated: the ISO carries signed components but no positive Secure-Boot boot exists. |
+| V1-E | **PARTIAL** | `v0.1.6-alpha.0` prerelease with 8 assets, LF `SHA256SUMS`, SBOM, manifests and notes; `verify_release_consistency.py` 24 checks incl. GitHub asset digests; `release_publish.py` encodes the draft→upload→publish order | No signing key, so the release is unsigned and says so. No stable v1 tag. The Vercel site was not redeployed for this prerelease. |
+
+Two defects still block a stable claim and are tracked in `docs/AUTONOMOUS_QUEUE.md`:
+
+- **Q-46/Q-61** — the installer is SIGKILLed 2-3 s after a desktop-icon start in roughly one start in
+  6-12, with no core and no OOM line; `/usr/bin/hscl-calamares` restarts it inside the first minute so an
+  install stays possible. Reproducing it needs 12-24 starts in one boot.
+- **Q-66** — two rc10 installs reported "All done" with an empty ESP and an unbootable target. The guard
+  (`hscl-verify-esp` as a `shellprocess` after `bootloader`) now fails such an install; the cause is open.
