@@ -182,7 +182,10 @@ rm -f "$ROOTFS/etc/skel/Desktop/org.kfocus.web.howtos.desktop" "$ROOTFS/etc/skel
 # so the two HSCL1 entries are installed as real copies rather than links. Same launcher, upright label.
 rm -f "$ROOTFS/etc/skel/Desktop/hscl-handbook.desktop" "$ROOTFS/etc/skel/Desktop/hscl-control-center.desktop"
 for entry in hscl-handbook hscl-control-center; do
-  install -m 0644 "$ROOTFS/usr/share/applications/$entry.desktop" "$ROOTFS/etc/skel/Desktop/$entry.desktop"
+  # 0755, not 0644: Plasma (FolderView) treats a desktop entry without the executable bit as
+  # *untrusted* and draws the orange "!" emblem on it (Q-63, first seen on rc8 after the symlinks
+  # became copies). An executable .desktop on the desktop is exactly what KDE expects.
+  install -m 0755 "$ROOTFS/usr/share/applications/$entry.desktop" "$ROOTFS/etc/skel/Desktop/$entry.desktop"
 done
 
 echo "010-hscl-defaults: patched $patched files"

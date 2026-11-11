@@ -1,9 +1,13 @@
 """Desktop entry labels must not be symlinks, because Plasma italicises link labels.
 
 Measured 2026-11-10/11: every capture shows "HSCL1 Control Center" and "HSCL1 Handbook" in italics. It is not
-the font (`Fonts desktopFont` is pinned to Noto Sans, which the image ships 314 files of): Plasma's
-`FolderItemDelegate.qml` line 380 is `font.italic: (main.model?.isLink ?? false)`, and both desktop entries were
-installed as symlinks. The hook now installs real copies; this test keeps a symlink from creeping back in.
+the font: Plasma's `FolderItemDelegate.qml` line 380 is `font.italic: (main.model?.isLink ?? false)`, and both
+desktop entries were installed as symlinks. The hook now installs real copies; this test keeps a symlink from
+creeping back in.
+
+Second finding (Q-63, 2026-11-11): once the entries became real files they carried the orange "!" emblem that
+Plasma draws for an *untrusted* desktop entry, i.e. one without the executable bit. The hook therefore installs
+them with mode 0755, and both the image gate and this test require the executable bit.
 """
 
 from pathlib import Path
@@ -15,7 +19,7 @@ GATE = ROOT / "distro/live/verify-image.sh"
 
 def test_the_hook_installs_real_desktop_files():
     text = HOOK.read_text(encoding="utf-8")
-    assert 'install -m 0644 "$ROOTFS/usr/share/applications/$entry.desktop"' in text
+    assert 'install -m 0755 "$ROOTFS/usr/share/applications/$entry.desktop"' in text
     for line in text.splitlines():
         if line.strip().startswith("ln -s"):
             assert "skel/Desktop" not in line, f"desktop entry symlinked again: {line.strip()}"
@@ -36,6 +40,14 @@ def test_the_image_gate_rejects_symlinked_entries():
     assert "! test -L" in text
 
 
+def test_the_gate_requires_the_executable_bit():
+    """Without +x Plasma treats the launcher as untrusted and draws the orange "!" (Q-63)."""
+    text = GATE.read_text(encoding="utf-8")
+    assert "test -x '$root/etc/skel/Desktop/hscl-handbook.desktop'" in text
+    assert "test -x '$root/etc/skel/Desktop/hscl-control-center.desktop'" in text
+
+
 def test_the_hook_names_the_reason():
     text = HOOK.read_text(encoding="utf-8")
     assert "font.italic: model.isLink" in text, "the measured cause must stay documented next to the fix"
+    assert "untrusted" in text and "0755" in text, "the emblem fix must carry its reason"
