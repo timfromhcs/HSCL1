@@ -3121,3 +3121,8 @@ published set with `--github timfromhcs/HSCL1`: **22 checks, 0 failed** — ISO 
 manifest, all three part hashes, the rejoin hash, notes without placeholders, SBOM (99 packages), README
 quoting the ISO and every part hash, website tag/hash/parts, and GitHub's own recorded asset digests.
 
+**Disk (2026-11-11, later):** `E:` fell to 19.5 GB because the other work stream keeps installed-system
+qcow2 disks (`rc6`-`rc11`, about 47 GB). Those are its evidence and were left alone; the only file removed
+was my own duplicate - the full ISO inside `artifacts/release-0.1.6-set`, which the three published parts
+rejoin to and which also exists as the release workflow artifact. The local set is parts-only now;
+`scripts/release-join.sh artifacts/release-0.1.6-set` rebuilds the ISO. Freed 5.1 GB.
