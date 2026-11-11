@@ -2141,6 +2141,29 @@ otherwise), so the same class of mistake fails the gate in future.
 Not claimed yet: no booted capture shows the fixed page - rc7 predates the allowlist fix, so the showcase image
 `20_control_center_miner.png` was **not** replaced. Q-62 stays open until rc8 has been captured.
 
+### rc8: the Miner page works, and so does the gate (2026-11-11)
+
+| Field | Value |
+|---|---|
+| Artifact | `HSCL1-rc8-amd64.iso` |
+| Bytes | 5 488 771 072 |
+| SHA-256 | `0ea3290c775f162f2ada1a093e9190228487ac041958c640b7dae36477336fb6` (build dir and the E: copy agree) |
+| Source commit | `d2f0e37` |
+| Version | `0.1.5-alpha.0` |
+| Gates | `verify-image: all checks passed` |
+
+Booted at 4 GB, Control Center opened through the launcher (`artifacts/boot-cc-rc8`):
+
+- `co1-overview.png` - live values: HSCL1 0.1.5-alpha.0 (Ubuntu 26.04 LTS base), x86_64, kernel 7.0.0-30-generic,
+  3903 MiB, Secure Boot unknown, AppArmor/UFW yes, health check 6 passed / 0 warned / 0 failed / 1 skipped.
+- `co2-miner.png` - **"No miner configured. Nothing is contacted until you add one."** and no red banner. The
+  allowlist fix works; the page now reaches the CLI.
+
+Both became the showcase images `04_control_center_overview.png` and `20_control_center_miner.png` with
+`source_iso: HSCL1-rc8 … 0ea3290c`. Q-62 closed. rc8 carries the same installer wrapper as rc6, so the install and
+LUKS2 evidence recorded for rc6 still applies to the code in this image; no install was re-run for this delta
+(QML, i18n, allowlist, docs).
+
 ### Version state (2026-11-10)
 
 `VERSION` in the tree is **0.1.5-alpha.0** (commit `014b71e`, authored 2026-11-10 22:29, touching VERSION,

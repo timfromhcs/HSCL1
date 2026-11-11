@@ -95,15 +95,15 @@
  },
  {
   "filename": "04_control_center_overview.png",
-  "bytes": 121334,
-  "colors": 14894,
+  "bytes": 117655,
+  "colors": 18703,
   "size": [
    1280,
    800
   ],
-  "description": "Control Center: live overview - HSCL1 0.1.4-alpha.0, kernel 7.0.0-30, health 6 passed / 0 failed / 1 skipped (candidate 2026-11-10)",
-  "timestamp": 1794305913.636564,
-  "source_iso": "HSCL1-qa-green-amd64.iso sha256 5d4ea47e"
+  "description": "Control Center Overview with live values: HSCL1 0.1.5-alpha.0, kernel 7.0.0-30, AppArmor/UFW yes and the health check counters (candidate rc8, 2026-11-11)",
+  "timestamp": 1794381371.269509,
+  "source_iso": "HSCL1-rc8-amd64.iso sha256 0ea3290c"
  },
  {
   "filename": "05_control_center_appearance.png",
@@ -230,10 +230,11 @@
    1280,
    800
   ],
-  "description": "Control Center: the Miner page with no device configured - it says so instead of showing values (candidate 2026-11-10)",
-  "bytes": 110066,
-  "timestamp": 1794305923.6789474,
-  "source_iso": "HSCL1-qa-green-amd64.iso sha256 5d4ea47e"
+  "description": "Control Center Miner page on a system without a miner: neutral 'No miner configured' line, no error banner (candidate rc8, 2026-11-11)",
+  "bytes": 116545,
+  "timestamp": 1794381383.2393565,
+  "source_iso": "HSCL1-rc8-amd64.iso sha256 0ea3290c",
+  "colors": 19296
  },
  {
   "filename": "02_wallpaper_grid.png",

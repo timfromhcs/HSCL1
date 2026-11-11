@@ -3,9 +3,10 @@
 Rule: nothing is stated as working without evidence. "unit-tested" means only the code logic ran in tests;
 it is **not** a claim that the feature works on real hardware or in the image.
 
-**Artifact identity.** The current source is `be37e05` (2026-11-11); the newest VM-verified candidate is
-`HSCL1-rc6-amd64.iso` (`4a0d48a3...`, commit `fa911e1`, version `0.1.5-alpha.0`), the first artifact that carries
-**every** VM gate: `verify-image` all checks passed, a LUKS2 install at 8 GB through `/usr/bin/hscl-calamares`
+**Artifact identity.** The current source is `d2f0e37` (2026-11-11); the newest candidate is
+`HSCL1-rc8-amd64.iso` (`0ea3290c...`, commit `d2f0e37`, version `0.1.5-alpha.0`), which adds the Control Center
+allowlist fix and gate (Miner page) to `HSCL1-rc6-amd64.iso` (`4a0d48a3...`, commit `fa911e1`), the first
+artifact that carries **every** VM gate: `verify-image` all checks passed, a LUKS2 install at 8 GB through `/usr/bin/hscl-calamares`
 with unlock (`LUKS volumes open: 1`), `qa_report.py` exit 0, and the Security Lab chain
 (`INSTALL=0`/`COMMIT=0`/`RUN=0`, Nmap 7.991). rc6 also has upright desktop labels, dark Kate and the wallpaper
 preset hint. Two plain 4 GB installs ran on `f1202eb0...` (rc3, upstream launcher) before the wrapper existed; the
