@@ -6,10 +6,11 @@ it is **not** a claim that the feature works on real hardware or in the image.
 **Artifact identity.** The current source is `95f5f85` (2026-11-11); the newest VM-verified candidate is
 `HSCL1-rc3-amd64.iso` (`f1202eb0...`, commit `39f7c78`, version `0.1.5-alpha.0`), which adds the
 software-rendering installer wrapper to the `hscl lab` exit-code/local-image fixes and the honest status wording.
-A full 4 GB UEFI install from rc3 completed ("All done. HSCL1 0.1.5-alpha.0") and the installed disk boots and
-logs in (`artifacts/install-rc3`, `artifacts/boot-installed-rc3`); a second install from the same ISO runs as the
-crash counter-check. `rc2` (`0ed86405...`) remains the artifact behind the Security Lab chain, the QA report and
-the showcase captures. The LUKS evidence from the same day belongs to `HSCL1-earlyoom-fix-amd64.iso`
+Two complete 4 GB UEFI installs from rc3 both ended on "All done. HSCL1 0.1.5-alpha.0"
+(`artifacts/install-rc3` in 3545 s, `artifacts/install-rc3b` in 1988 s; ~9.5 GB written each), the first disk
+boots and logs in (`artifacts/boot-installed-rc3`), and neither run showed the KCrash that killed rc2 while its
+first Qt Quick view was built. `rc2` (`0ed86405...`) remains the artifact behind the Security Lab chain, the QA
+report and the showcase captures. The LUKS evidence from the same day belongs to `HSCL1-earlyoom-fix-amd64.iso`
 (`e723940b...`) and `HSCL1-qa-green-amd64.iso` (`5d4ea47e...`). The current published prerelease is `v0.1.5-alpha.0` (`c3ae31a6...`, 5,027,135,488 bytes, built from
 `406186d`); it booted UEFI at 4 GB in 242 s with `qa_report.py` exit 0, and its three parts rejoin to the
 same digest. The previous `v0.1.4-alpha.0` (`a7e055a7...`) was built from `ea8bbdc` and is **118 commits
@@ -25,6 +26,7 @@ Current source corrections (2026-11-08): HCSEASYMATH has six API/CLI operations 
 | Feature | Status | Evidence / what is missing |
 |---|---|---|
 | Main ISO boots to the HCS desktop (UEFI/BIOS, QEMU+WHPX) | VM-VERIFIED | screenshots in `artifacts/` (not in git), BUILD_LOG |
+| Installer with software rendering completes a full install twice in a row | **VM-VERIFIED 2026-11-11** (`HSCL1-rc3`, `f1202eb0…`, 4 GB, UEFI): both runs reached "All done. HSCL1 0.1.5-alpha.0" and wrote ~9.5 GB; no KCrash in either. Two clean runs are evidence, not proof of impossibility. | `artifacts/install-rc3/t13-before-finish.png`, `artifacts/install-rc3b/t13-before-finish.png` |
 | Installer installs to a 40 GiB virtual disk and the installed system boots and logs in | VM-VERIFIED on the current artifact 2026-11-11 (`HSCL1-rc3`, `f1202eb0…`, **4 GB**: "All done. HSCL1 0.1.5-alpha.0", then the disk boots and logs in to the HSCL1 desktop; a second install from the same ISO is the crash counter-check); earlier candidates `f8ae5c52…` (4 GB), `e723940b…` (6 GB) and `5d4ea47e…` (4 GB) behaved the same | `artifacts/install-rc3/t13-before-finish.png`, `artifacts/boot-installed-rc3/w3-security-status.png`; earlier `artifacts/install-term-6g` ("All done", 9.69 GB written) and `artifacts/boot-installed-term` (SDDM login, desktop, `hscl doctor` 6 passed / 0 failed / 1 skipped); BUILD_LOG "First complete installation" |
 | LUKS2 install + unlock, wrong passphrase refused | VM-VERIFIED (2026-11-10, `e723940b…`, 6 GB VM) | `artifacts/install-luks` (plan: ESP + `hscl1_boot` 4 GiB + `hscl1_root` 35.71 GiB LUKS2) and `artifacts/boot-luks` (unlock prompt, `cryptsetup: ERROR … bad password`, correct passphrase, desktop, `LUKS volumes open: 1`); BUILD_LOG "LUKS2 install and unlock" |
 | Machine-readable in-guest report (`hscl.qa` port → `qa_report.py`) | VM-VERIFIED (2026-11-10, `5d4ea47e…`, 4 GB VM) | `artifacts/qa/hscl1-report-green.txt`, `qa_report.py` exit 0 (9 ok, 1 info); BUILD_LOG "QA report green" |

@@ -1776,6 +1776,29 @@ The same artifact also passes the machine-readable report at 4 GB
 (`artifacts/qa/report-installer-fix.txt`, `qa_report.py` exit 0: 9 checks ok, one `info` line about Secure Boot),
 so the installer fix did not regress anything the QA channel covers.
 
+### rc3: two installs, no startup crash (2026-11-11)
+
+| Field | Value |
+|---|---|
+| Artifact | `HSCL1-rc3-amd64.iso` |
+| Bytes | 5 488 771 072 |
+| SHA-256 | `f1202eb0f3bcc0ba29b9238d5fdf968c2c3dae951309c5cb58cd2601ae95ff90` |
+| Source commit | `39f7c78` (software-rendering installer wrapper) |
+| Version | `0.1.5-alpha.0` |
+| Gates | `verify-image: all checks passed`, including `installer runs the software-render wrapper` and `installer wrapper exists` |
+
+Two complete installs from the same ISO at **4 GB / UEFI / WHPX**, both ending on "All done. HSCL1
+0.1.5-alpha.0", both writing ~9.5 GB to a 40 GB disk:
+
+| Run | Artifact dir | Disk | Wall clock | Result |
+|---|---|---|---|---|
+| 1 | `artifacts/install-rc3` | `install-rc3.qcow2` 9.51 GB | 3545 s | `t13-before-finish.png` = All done; the disk boots and logs in (`artifacts/boot-installed-rc3`, `w0`-`w4`) |
+| 2 | `artifacts/install-rc3b` | `install-rc3b.qcow2` 9.52 GB | 1988 s | `t13-before-finish.png` = All done, `vm_exited: true` |
+
+The crash that killed rc2 while the first Qt Quick view was built did not recur in either run: the wizard stayed
+up from Welcome to Finish. Software rendering is why the runs took ~59 and ~33 minutes (`disk_idle_after_s` 136
+and 184) - the accepted trade, and the row in KNOWN_LIMITATIONS keeps the "evidence, not proof" wording.
+
 ### Version state (2026-11-10)
 
 `VERSION` in the tree is **0.1.5-alpha.0** (commit `014b71e`, authored 2026-11-10 22:29, touching VERSION,
