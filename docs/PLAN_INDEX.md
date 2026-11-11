@@ -1,16 +1,31 @@
 # HSCL1 plan reconciliation index
 
-## Live status, 2026-11-11 evening (queue down to two open items)
+## Live status, 2026-11-11 late evening (three actionable rows, one is a single fault)
 
-- **The execution queue is nearly empty.** `docs/AUTONOMOUS_QUEUE.md` has 66 rows; only **two** are still
-  actionable: **Q-46/Q-61** (the installer is SIGKILLed in roughly one start in 6-12) and **Q-13** (the
-  offline-handbook showcase capture). Everything else is DONE/CLOSED with artifact-bound evidence.
+- **The queue is stable and machine-checked.** `docs/AUTONOMOUS_QUEUE.md` has **66 rows, ids 1..66 with
+  no duplicates and four cells each**; `tests/unit/test_queue_integrity.py` now fails the build if an id is
+  reused or a row grows a fifth cell. That test exists because commit `c936438` updated "every row starting
+  with `| Q-63 `" and merged the desktop-emblem row into the ESP row, while three other rows broke the
+  table with extra cells or an unescaped pipe (`6001e49` repairs both).
+- **Actionable rows: Q-46/Q-61 and Q-66.**
+  - **Q-46/Q-61** are one fault: the installer is SIGKILLed 2-3 s after a desktop-icon start in roughly
+    one start in 6-12. Measured on rc11 with a `setsid` watcher and `pgrep -f`: **six starts, six alive for
+    13 s, zero deaths** (`artifacts/q61-watcher3/`); six trials are simply fewer than the rate needs, so
+    this is a valid negative, not a fix. Reproducing it needs ~12-24 starts in one boot, which
+    `tests/visual/scenarios/q61-stress.json` now does.
+  - **Q-66 (new id, was mis-numbered Q-63):** two rc10 installs reported "All done" with an empty ESP and
+    an unbootable target. `/usr/bin/hscl-verify-esp` now fails such an install, so the symptom is guarded
+    but the cause is still unknown.
+- **Q-13 is closed.** The offline handbook is captured on rc11 and installed as
+  `docs/img/showcase/13_offline_handbook.png` with `source_iso` in the manifest; the capture also proves
+  the corrected text ("branded HSCL1 Installer") is in the image. Firefox needed 50 s on first start, not
+  the 40 s the first attempt waited.
 - **0.1.6 is published and independently verified.** `v0.1.6-alpha.0` (`a916540c…`, source `13c3215`):
   4 GB UEFI boot in 197 s, `qa_report.py` exit 0, 12/12 in-guest tracks green, and the GitHub release
   workflow verified all three parts plus the streamed join on a Linux runner.
-- **CI is green on `5bb61ab`** (all eight jobs). The red runs before it were infrastructure: the Python
-  job could not apt-install pytest (now pip) and the QML job could not reach the Ubuntu archive over HTTP
-  (now HTTPS with a restore-and-retry fallback, 18-minute step budget).
+- **CI is green on `5bb61ab`** (all eight jobs). The red runs before it were infrastructure: the Python job
+  could not apt-install pytest (now pip) and the QML job could not reach the Ubuntu archive over HTTP (now
+  HTTPS with a restore-and-retry fallback and an 18-minute step budget).
 - **Honesty fixes landed today:** the privacy text no longer claims a fail-closed *network* policy (only the
   launcher refuses a substitute browser), `ARCHITECTURE.md` no longer claims a Polkit helper that does not
   exist, the installer is pinned to English and the live session gets `LANG=en_US.UTF-8` (rc11 opened in
@@ -18,10 +33,6 @@
 - **Release machinery is tooled and gated:** `verify_release_consistency.py` (24 checks incl. GitHub asset
   digests and the notes body), `release_publish.py` (draft → one upload per asset → explicit publish),
   `release_split.py` (LF checksums), `test_release_metadata_sync.py` (README ↔ website).
-- **Q-46/Q-61 remains the v1 blocker** and needs an exclusive host: five VM attempts died on QMP resets
-  while a second QEMU ran, and the hook-based probe showed the installer cannot be started from a
-  non-interactive hook at all (both contexts `launched=0`). The next design is watcher + icon clicks, which
-  is what `tests/visual/scenarios/q61-watcher.json` now does.
 
 ## Live status, 2026-11-11 (source `349af12`, 71 commits after the 2026-11-10 audit)
 
@@ -330,6 +341,10 @@ being mistaken for the current artifact.
    each row must name its artifact and date (Q-05 was marked done for the header only).
 2. The installer welcome page stretches the Calamares branding logo across the page
    (Q-54 covers the recapture; the layout fix is separate).
-3. Desktop icon labels are not centred under their icons (Q-52), and Kate renders with a
-   light palette inside the dark shell (Q-53).
-4. The website hero and Control Center image are older than the current candidate (Q-55).
+3. ~~Icon labels not centred (Q-52), Kate light inside the dark shell (Q-53)~~ — both **CLOSED** with
+   pixel measurements on the 0.1.6 artifact; the label offset is -0.9 px and Kate's editor mean luma is
+   43.1/255. Do not list them as debt again without a fresh capture that contradicts those numbers.
+4. ~~Website hero and Control Center image older than the candidate~~ — **Q-55 DONE**; the generator now
+   copies `showcase/01_desktop_clean.png` and `showcase/04_*` at build time.
+5. The queue itself is now machine-checked (`tests/unit/test_queue_integrity.py`) because a bulk row edit
+   merged two findings into one id. Any script that edits queue rows must match a single row, not a prefix.
