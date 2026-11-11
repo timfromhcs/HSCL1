@@ -40,13 +40,29 @@ def take_shot(vm, path: Path) -> Path:
 
 
 def main() -> int:
-    iso = Path(r"\\wsl.localhost\Ubuntu\home\tim\hscl1-build\out\HSCL1-candidate-amd64.iso")
-    out_dir = ROOT / "artifacts" / "in_guest_verification"
+    import argparse
+
+    ap = argparse.ArgumentParser(description="Run the 12 in-guest HSCL1 tracks against an ISO.")
+    ap.add_argument(
+        "--iso",
+        default=r"\\wsl.localhost\Ubuntu\home\tim\hscl1-build\out\HSCL1-candidate-amd64.iso",
+        help="candidate ISO (default keeps the historical WSL path)",
+    )
+    ap.add_argument("--mem", type=int, default=3072, help="VM memory in MB (3 GB was enough for the live session)")
+    ap.add_argument("--out", default=str(ROOT / "artifacts" / "in_guest_verification"), help="output directory")
+    ap.add_argument("--firmware", choices=["uefi", "bios"], default="uefi")
+    a = ap.parse_args()
+
+    iso = Path(a.iso)
+    if not iso.is_file():
+        print(f"iso not found: {iso}", file=sys.stderr)
+        return 2
+    out_dir = Path(a.out)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     print("=== Starting In-Guest Verification of HSCL1 Candidate ===", flush=True)
     mgr = vmmod.VmManager(out_dir / "vm_work", mem_guard=False)
-    vm = mgr.start("candidate_diag", str(iso), None, memory_mb=3072, firmware="uefi")
+    vm = mgr.start("candidate_diag", str(iso), None, memory_mb=a.mem, firmware=a.firmware)
     report = {
         "iso": iso.name,
         "timestamp": time.time(),
