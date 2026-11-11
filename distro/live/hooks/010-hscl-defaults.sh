@@ -55,11 +55,11 @@ mkdir -p "$(dirname "$skel_kdeglobals")"
 [ -f "$skel_kdeglobals" ] || : > "$skel_kdeglobals"
 ensure_key "$skel_kdeglobals" General ColorScheme HCSMidnight
 ensure_key "$skel_kdeglobals" KDE widgetStyle Breeze
-# Desktop icon labels (visual audit 2026-11-10): every capture shows oblique (italic) icon labels. The cause is
-# not the font: Plasma's FolderItemDelegate sets `font.italic: model.isLink`, so a desktop entry that is a
-# **symlink** is always drawn in italics. The image has 314 Noto font files and no Lato, so "Noto Sans" is the
-# correct family to pin; the icon entries themselves are installed as real files below instead of symlinks.
-ensure_key "$skel_kdeglobals" Fonts desktopFont "Noto Sans,10,-1,5,50,0,0,0,0,0"
+# Desktop icon labels (visual audit 2026-11-10/11): every capture showed oblique (italic) icon labels. The cause
+# is not the font: Plasma's FolderItemDelegate sets `font.italic: model.isLink`, so a desktop entry that is a
+# **symlink** is always drawn in italics. The entries are installed as real files below instead of symlinks.
+# (An earlier attempt pinned `[Fonts] desktopFont`; two guest probes showed no effect from either that key or
+# `[General] desktopFont`/`font`, so the pin was removed rather than left as config that pretends to matter.)
 
 # Kate does not inherit the Plasma palette on its own: the application chrome follows its own "ColorScheme" and
 # the editor area follows the KSyntaxHighlighting theme, and the live session opened with a light window inside
