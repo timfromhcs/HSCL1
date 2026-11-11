@@ -3229,3 +3229,8 @@ produce repeated starts, and the correct experiment is **sequential** starts (st
 repeat), not simultaneous ones. No death was observed in either run; the earlier conclusion "not reproduced"
 survives, but its denominator was one start, not six.
 
+**Local full unit suite (2026-11-11, `81ad65b`):** `python -m pytest tests/unit -q` -> **992 passed,
+16 skipped** in 386.78 s on this Windows host, including the new `test_queue_integrity.py` and
+`test_installer_language.py` (5 tests). CI on `231f2cb` is green in all eight jobs; `81ad65b` is docs
+only and was still running when this line was written.
+
