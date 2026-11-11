@@ -193,14 +193,14 @@
   },
   {
     "filename": "13_offline_handbook.png",
-    "bytes": 128660,
+    "bytes": 131032,
     "size": [
       1280,
       800
     ],
-    "description": "Trilingual offline handbook opened from the desktop icon: mdBook sidebar and the honest pre-alpha status block (candidate rc6, 2026-11-11)",
-    "timestamp": 1794375753.6292932,
-    "source_iso": "HSCL1-rc6-amd64.iso sha256 4a0d48a3",
+    "description": "Trilingual offline handbook opened from the desktop icon on rc11: the introduction states the branded HSCL1 Installer (Calamares), not the old 'Kubuntu installer' text",
+    "timestamp": 1794418905.944103,
+    "source_iso": "HSCL1-rc11-amd64.iso",
     "colors": 17974
   },
   {
