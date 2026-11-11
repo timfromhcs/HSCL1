@@ -166,15 +166,15 @@
  },
  {
   "filename": "11_installer_welcome.png",
-  "bytes": 121766,
-  "colors": 9198,
+  "bytes": 127392,
+  "colors": 17632,
   "size": [
    1280,
    800
   ],
-  "description": "Calamares Installer: welcome page in the centred window (candidate 2026-11-09)",
-  "timestamp": 1794262556.1915188,
-  "source_iso": "HSCL1-earlyoom-fix-amd64.iso sha256 e723940b"
+  "description": "Calamares welcome page in the HSCL1 branding (candidate rc3, 2026-11-11)",
+  "timestamp": 1794358100.2845795,
+  "source_iso": "HSCL1-rc3-amd64.iso sha256 f1202eb0"
  },
  {
   "filename": "12_installer_location.png",
@@ -216,10 +216,11 @@
    1280,
    800
   ],
-  "description": "Calamares Installer: partition page with the real 40 GB disposable disk, erase and manual only (candidate 2026-11-09)",
-  "bytes": 116741,
-  "timestamp": 1794262603.9972832,
-  "source_iso": "HSCL1-earlyoom-fix-amd64.iso sha256 e723940b"
+  "description": "Partitioning page: erase disk is offered explicitly, nothing is preselected (candidate rc3, 2026-11-11)",
+  "bytes": 111922,
+  "timestamp": 1794358147.883473,
+  "source_iso": "HSCL1-rc3-amd64.iso sha256 f1202eb0",
+  "colors": 16823
  },
  {
   "filename": "20_control_center_miner.png",
@@ -254,6 +255,18 @@
   ],
   "description": "Dynamic wallpaper shader: number rain (preset `midnight-rain`)",
   "timestamp": 1794357767.4103394,
+  "source_iso": "HSCL1-rc3-amd64.iso sha256 f1202eb0"
+ },
+ {
+  "filename": "21_installer_encryption_luks.png",
+  "bytes": 129613,
+  "colors": 19198,
+  "size": [
+   1280,
+   800
+  ],
+  "description": "Erase disk plus 'Encrypt system' with the resulting plan: ESP 300 MiB, /boot 4 GiB, 35.71 GiB LUKS2 (candidate rc3, 2026-11-11)",
+  "timestamp": 1794358170.0516167,
   "source_iso": "HSCL1-rc3-amd64.iso sha256 f1202eb0"
  }
 ]

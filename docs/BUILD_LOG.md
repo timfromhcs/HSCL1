@@ -1827,6 +1827,34 @@ wording.
 `wd6-preset-list.png` is the preset listing. The showcase entries `02_wallpaper_*.png` were replaced from these
 frames and carry `source_iso: HSCL1-rc3 … f1202eb0`.
 
+### LUKS2 on rc3 through the software-rendering wrapper (2026-11-11)
+
+| Item | Value |
+|---|---|
+| ISO | `HSCL1-rc3-amd64.iso`, SHA-256 `f1202eb0…` |
+| VM | UEFI + WHPX, **8 GB**, 4 vCPU, disposable 40 GB qcow2 (`artifacts/vdisks/luks-rc3.qcow2`) |
+| Launcher | `/usr/bin/hscl-calamares` (`QT_QUICK_BACKEND=software`) - the first full install through the wrapper |
+| Scenario | `tests/visual/scenarios/install-luks.json` |
+| Partition plan | ESP 300 MiB FAT32 + `hscl1_boot` 4.00 GiB ext4 + `hscl1_root` 35.71 GiB **LUKS2** (`l03`) |
+| Install | "All done. HSCL1 0.1.5-alpha.0" after 2006 s, `disk_idle_after_s` 184, 9.93 GB written |
+| Boot | `iso=none`, 8 GB, `--unlock-first-wrong definitely-not-it-2026`, then the real passphrase |
+
+Boot chain in `artifacts/boot-luks-rc3`:
+
+1. `unlock-prompt.png` - `Please unlock disk luks-ceb2a28b-10a5-4a06-b1be-dd1ea6b6d848`
+2. `unlock-after-wrong.png` - the wrong passphrase is refused:
+   `cryptsetup: ERROR: luks-ceb2a28b-…: cryptsetup failed, bad password or options?`, prompt returns, nothing is
+   destroyed
+3. `unlock-after-correct.png` - the real passphrase continues the boot
+4. `login-screen.png`, then the HSCL1 desktop (`w0-desktop.png`)
+5. In the encrypted installed system (`w3-security-status.png`): `AppArmor enabled: yes`, `UFW enabled: yes`,
+   `Secure Boot: unknown (no SecureBoot variable; Secure Boot off)`, **`LUKS volumes open: 1`**,
+   `Forbidden APT repos: none`, `root filesystem: ext4`, zram swap active, core dumps disabled
+
+The 4 GB `/boot` stays in clear text on purpose: the installer warns about it in the Notes page, and GRUB has to
+read the kernel without the passphrase. The install took ~33 minutes because the installer renders in software;
+the previous native-GPU LUKS install on `e723940b…` needed 1786 s for the same plan.
+
 ### Version state (2026-11-10)
 
 `VERSION` in the tree is **0.1.5-alpha.0** (commit `014b71e`, authored 2026-11-10 22:29, touching VERSION,
