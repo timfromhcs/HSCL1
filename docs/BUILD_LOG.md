@@ -2959,6 +2959,46 @@ hashes byte for byte, so the uploaded bytes - not just the local file - are the 
 `scripts/release_split.py` replaces the bash splitter on Windows: the `/mnt/e` path managed ~4 MB/s, the
 native path a few seconds.
 
+### 0.1.6-alpha.0: the release that carries the label and emblem fixes (2026-11-11)
+
+| Field | Value |
+|---|---|
+| Artifact | `HSCL1-0.1.6-alpha.0-amd64.iso` |
+| Bytes | 5 488 771 072 |
+| SHA-256 | `a916540c44d27529107c599ff58dbad95fb3292270814b7832d06ef5ebe5e94d` |
+| Source commit | `13c3215` (`git_dirty: false`), branch `release/0.1.6` |
+| Compression | zstd (`--fast`) — two builds shared the host, so the quicker path was chosen deliberately |
+| Volume id | `HSCL1 0.1.6-alpha.0 amd64` |
+| Image gates | `verify-image: all checks passed` (including the new `test -x` assertions on both desktop entries) |
+
+Built in a **private work dir** (`~/hscl1.6-work`) from a separate checkout (`~/hscl1-release-src`) because the
+other work stream was building `rc10` from the shared `~/hscl1-src`. Two earlier attempts died without output
+while both builds shared the 5.9 GB WSL VM; this one ran alone and logged to `~/hscl1.6-build.log`.
+
+Boot evidence (Windows QEMU 9.2.0, WHPX, UEFI/OVMF, 4 GB, `--try-live --dismiss-welcome --qa-out`):
+
+```
+{"firmware": "uefi", "reached_desktop": true, "desktop_final_wallpaper_match": 0.13, "elapsed_s": 197}
+qa_report.py artifacts/boot-0.1.6-uefi/hscl1-report.txt -> exit 0
+  ok os-release NAME is HSCL1 / ID=ubuntu / desktop session / hscl status+doctor JSON /
+     kptr_restrict=2 / firewall baseline / no failed hscl units / default look-and-feel is HCS
+  info secure-boot: This system doesn't support Secure Boot
+```
+
+**Three visual rows closed by that one capture** (`artifacts/boot-0.1.6-uefi/desktop-final.png`):
+
+| Row | Result |
+|---|---|
+| Q-52 (italic labels) | upright — the entries are real `.desktop` files, not symlinks |
+| Q-63 (orange "!" badge) | gone — both entries are installed `0755` |
+| Q-60 (label off-centre) | **not reproducible**: icon pixels centre at x = 57.3, label pixels at x = 56.4, offset **−0.9 px** |
+
+Provenance nuance: the tag `v0.1.6-alpha.0` names `13c3215` (what the manifest records). The next commit
+`506cfd9` only flips the executable bit of a repository script, which is not part of the image.
+
+Not in this artifact (landed later, next build): the removal of the dead `[Fonts] desktopFont` pin (Q-64) and
+every commit after `13c3215` that touches tests, docs or that file mode.
+
 ### Disk hygiene (2026-11-11)
 
 `E:` was at 92 % and the WSL build directory held nine ISOs. Deleted, with the hashes still in this log and
