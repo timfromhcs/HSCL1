@@ -2211,6 +2211,25 @@ rather than the guest). rc9 carries this.
 system comes from a path that is not in the live rootfs (no autostart file there names plasma-welcome), so that
 path is **not** verified; it is recorded as the remaining part of Q-45.
 
+### rc9: the Welcome Center opens on the HSCL1 page (2026-11-11)
+
+| Field | Value |
+|---|---|
+| Artifact | `HSCL1-rc9-amd64.iso` |
+| Bytes | 5 488 771 072 |
+| SHA-256 | `0a3c23415010a7deae3d04667976b4c007bbb3114120e833aeccd92eceb32c26` (build dir and the E: copy agree) |
+| Source commit | `349af12` |
+| Version | `0.1.5-alpha.0` |
+| Gates | `verify-image: all checks passed`, including the new `Welcome Center opens on the HSCL1 page` |
+
+Delta to rc8: the Welcome Center desktop entry passes `--pages 01-HSCL1` (see the section above). Booted at 4 GB and
+opened through the launcher: `artifacts/boot-welcome-rc9/wc1-welcome-page.png` shows **"Welcome to HSCL1"** as the
+first and only page (one navigation dot, Skip/Finish) - the Konqi page is no longer the first thing a user sees.
+The capture is the showcase image `24_welcome_center_hscl1.png`.
+
+rc9 carries the identical installer, LUKS and Control Center bits as rc8, so the install/LUKS/QA/lab evidence
+recorded for rc6/rc8 still describes this image; only the Welcome Center entry changed.
+
 ### Version state (2026-11-10)
 
 `VERSION` in the tree is **0.1.5-alpha.0** (commit `014b71e`, authored 2026-11-10 22:29, touching VERSION,

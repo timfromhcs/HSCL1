@@ -1,0 +1,13 @@
+[
+  { "wait": 12 },
+  { "keys": ["meta_l"] },
+  { "wait": 4 },
+  { "type": "Welcome Center" },
+  { "wait": 4 },
+  { "keys": ["ret"] },
+  { "wait": 22 },
+  { "shot": "wc1-welcome-page" },
+  { "keys": ["alt", "f4"] },
+  { "wait": 4 },
+  { "shot": "wc2-desktop" }
+]
