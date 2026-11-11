@@ -136,7 +136,11 @@ patch_file "$ROOTFS/usr/share/applications/org.kde.plasma-welcome.desktop" 's/^E
 # menu click away - as the only page. The version is derived from the package, not hardcoded.
 plasma_ver="$(awk '/^Package: plasma-workspace$/{p=1} p && /^Version:/{print $2; exit}' "$ROOTFS/var/lib/dpkg/status" | sed 's/^[0-9]*://; s/-.*//')"
 if [ -n "$plasma_ver" ]; then
+  mkdir -p "$(dirname "$ROOTFS/etc/skel/.config/plasma-welcomerc")"
+  [ -f "$ROOTFS/etc/skel/.config/plasma-welcomerc" ] || : > "$ROOTFS/etc/skel/.config/plasma-welcomerc"
   ensure_key "$ROOTFS/etc/skel/.config/plasma-welcomerc" General LastSeenVersion "$plasma_ver"
+else
+  echo "010-hscl-defaults: could not read the plasma-workspace version; the first-login tour stays enabled" >&2
 fi
 rm -rf "$ROOTFS/etc/calamares/branding/kubuntu"
 rm -f "$ROOTFS/usr/share/kubuntu-default-settings/kubuntu_donate.svg" "$ROOTFS/usr/share/kubuntu-default-settings/kubuntu_tour.svg"       "$ROOTFS/usr/share/plasma/avatars/kubuntu-bug.png"
