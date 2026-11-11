@@ -2021,6 +2021,22 @@ This is the first full LUKS2 install on the wrapper that also retries a single-i
 one at 8 GB that reached "All done" without a visible crash. One install is one draw: the underlying ~20 % start
 fault is unchanged and documented in KNOWN_LIMITATIONS/Q-61.
 
+### Security Lab chain on rc6 (2026-11-11)
+
+`tests/visual/scenarios/lab-kali-final.json` on rc6 (`4a0d48a3…`, 4 GB live guest), 1358 s,
+`artifacts/lab-rc6`:
+
+| Step | Evidence | Result |
+|---|---|---|
+| podman 5.7.0 from the archive | `f1-podman.png` | `podman version 5.7.0` |
+| digest-pinned Kali pull | `f2-pull.png` | `5cc5e418…` pulled, manifest `badd89f08fe8…` |
+| `hscl lab install --toolset basic` | `f3-install.png` | `lab action finished: project=demo exit=0`, `INSTALL=0` |
+| `hscl lab commit` | `f4-commit.png` | `exit=0`, `COMMIT=0`, image `localhost/hscl-lab-demo:latest` |
+| `hscl lab run -- nmap --version` | `f5-nmap.png` | `Nmap version 7.991 …`, `RUN=0` |
+
+That completes the VM gates on one artifact: two 4 GB installs (rc3, upstream launcher), LUKS2 install + unlock
+(rc6, wrapper with retry), the QA report (rc6, exit 0) and the Security Lab chain (rc6).
+
 ### Version state (2026-11-10)
 
 `VERSION` in the tree is **0.1.5-alpha.0** (commit `014b71e`, authored 2026-11-10 22:29, touching VERSION,
