@@ -65,7 +65,10 @@ def main(argv: list[str]) -> int:
 
     lines = [f"{sha256_of(p)}  {p.name}" for p in parts]
     lines.append(f"{sha256_of(image)}  {image.name}")
-    (outdir / "SHA256SUMS").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    # newline="\n" is not cosmetic: on Windows the default would write CRLF, and `sha256sum -c` on Linux
+    # then treats the "\r" as part of the file name and fails every line. The 0.1.5 and 0.1.6 releases
+    # shipped that way until a cloud verifier step caught it (2026-11-11).
+    (outdir / "SHA256SUMS").write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
     print(f"wrote {len(parts)} part(s) and {outdir / 'SHA256SUMS'}")
     return 0
 

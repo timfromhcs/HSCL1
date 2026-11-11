@@ -163,7 +163,7 @@ def build_release(version: str, iso: Path, prebuilt: Path | None, out: Path,
     if prebuilt is not None:
         shutil.copy2(prebuilt, out / pre_name)
         sums += f"{sha256(out / pre_name)}  {pre_name}\n"
-    (out / "SHA256SUMS").write_text(sums, encoding="utf-8")
+    (out / "SHA256SUMS").write_text(sums, encoding="utf-8", newline="\n")
     manifest = {
         "product": "HSCL1", "version": version, "architecture": "amd64",
         "iso": {"file": iso_name, **{k: iso_m[k] for k in ("iso_bytes", "iso_sha256", "git_commit", "built_utc", "base_iso_sha256")}},
