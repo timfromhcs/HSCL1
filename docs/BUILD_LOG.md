@@ -1891,6 +1891,15 @@ the label's left edge) although `FolderItemDelegate.qml` sets `Text.AlignHCenter
 fixed. And `hscl appearance wallpaper set grid-pulse` was not repeated in this run; the four effects were verified
 on rc3 (`artifacts/boot-wallpapers-rc3`).
 
+**The LUKS2 attempt on rc4 crashed before it wrote anything (2026-11-11):** `install-luks.json` started
+`/usr/bin/hscl-calamares` at 8 GB, and the installer died in the same phase as rc2 - `Got 4 requirement results
+from *welcome*`, then `KCrash: appFilePath points to nullptr!`, `KCrash: Application 'unknown' crashing ... pid =
+2873`, drkonqi failed to start (`org.freedesktop.systemd1 exited with status 1`), and `/usr/bin/calamares-launch-normal:
+line 16: 2729 Killed  calamares -D8`. The crash-handler dialog covered the screen
+(`artifacts/install-luks-rc4/l01-welcome.png`), the scenario clicked into empty space and typed the passphrase into
+the terminal (`l08-installing.png`, qcow2 stayed at 197 632 bytes). So `QT_QUICK_BACKEND=software` is **not** a
+complete mitigation, and the rc3 LUKS success was one draw of an intermittent fault. A repeat probe follows.
+
 ### Version state (2026-11-10)
 
 `VERSION` in the tree is **0.1.5-alpha.0** (commit `014b71e`, authored 2026-11-10 22:29, touching VERSION,
