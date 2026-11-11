@@ -1874,6 +1874,23 @@ Booted at 4 GB with `--qa-out`: `scripts/qa_report.py` → **exit 0** (9 checks 
 Boot), `hscl doctor` 6 passed / 0 failed / 1 skipped, `hscl status` valid JSON with `luks_mapped_devices: 0` on
 the live medium.
 
+### rc4 visual check: upright labels, dark Kate, the hint in the image (2026-11-11)
+
+`tests/visual/scenarios/verify-visual-fixes.json` on rc4 (`2277a09c…`, 4 GB, UEFI), 326 s, captures in
+`artifacts/boot-visual-rc4`:
+
+| Claim | Capture | Result |
+|---|---|---|
+| Desktop labels are upright | `v1-desktop-labels.png`, `v4-desktop-clean.png` | **yes** - "HSCL1 Control Center", "HSCL1 Handbook" and "Install HSCL1" are upright; the entries are real `.desktop` files, and Plasma italicises only links |
+| Kate matches the dark shell | `v2-kate.png` | **yes** - window chrome, menu bar and editor area are dark (`katerc` pins Breeze Dark); `/etc/os-release` is open in the editor |
+| Preset list shows the effect | `v5-preset-list-with-effects.png` | **yes** - `id`, `effect`, name, plus "Use the preset id with `hscl appearance wallpaper set <id>`" |
+| An effect name gets a useful error | `v6-effect-name-hint.png` | **yes** - `hscl: error: "grid" is an effect, not a preset id; run one of "grid-pulse" …` |
+
+Two honest limits: the two-line label under the first icon still wraps left ("HSCL1 Control" / "Center" starts at
+the label's left edge) although `FolderItemDelegate.qml` sets `Text.AlignHCenter` - that is tracked as Q-60, not
+fixed. And `hscl appearance wallpaper set grid-pulse` was not repeated in this run; the four effects were verified
+on rc3 (`artifacts/boot-wallpapers-rc3`).
+
 ### Version state (2026-11-10)
 
 `VERSION` in the tree is **0.1.5-alpha.0** (commit `014b71e`, authored 2026-11-10 22:29, touching VERSION,

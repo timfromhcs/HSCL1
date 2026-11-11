@@ -1,15 +1,15 @@
 [
  {
   "filename": "01_desktop_clean.png",
-  "bytes": 113201,
-  "colors": 16491,
+  "bytes": 131734,
+  "colors": 19224,
   "size": [
    1280,
    800
   ],
-  "description": "Clean HSCL1 live desktop after the Welcome Center (candidate 2026-11-09)",
-  "timestamp": 1794256626.366424,
-  "source_iso": "HSCL1-miner-qa-2026-11-09-amd64.iso sha256 e342b3ae"
+  "description": "Clean HSCL1 live desktop: upright icon labels, centred HCS dock and the number-rain wallpaper (candidate rc4, 2026-11-11)",
+  "timestamp": 1794362078.0198827,
+  "source_iso": "HSCL1-rc4-amd64.iso sha256 2277a09c"
  },
  {
   "filename": "02_wallpaper_aurora.png",
@@ -155,14 +155,15 @@
  },
  {
   "filename": "14_app_kate.png",
-  "bytes": 112179,
-  "colors": 15484,
+  "bytes": 162283,
+  "colors": 23529,
   "size": [
    1280,
    800
   ],
-  "description": "Kate Text Editor showing /etc/os-release",
-  "timestamp": 1794234904.1133027
+  "description": "Kate with /etc/os-release in the dark Breeze scheme, so the editor matches the HCS shell (candidate rc4, 2026-11-11)",
+  "timestamp": 1794362065.30503,
+  "source_iso": "HSCL1-rc4-amd64.iso sha256 2277a09c"
  },
  {
   "filename": "11_installer_welcome.png",
