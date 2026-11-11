@@ -79,8 +79,15 @@ jobs:
             return 1
           }
           for i in 1 2 3; do sudo timeout 120 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 update && break; done
-          fetch shellcheck python3-pytest python3-yaml python3-pil
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends shellcheck python3-pytest python3-yaml python3-pil
+          fetch shellcheck
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends shellcheck
+          # The Python test deps come from pip, not apt: the apt mirror on the runners failed repeatedly
+          # ("Tools" went red before a single test ran on 2026-11-11). pip is a CDN with its own cache.
+          if ! python3 -m pip install --break-system-packages --user --quiet pytest pyyaml pillow; then
+            python3 -m ensurepip --user >/dev/null 2>&1 || true
+            python3 -m pip install --break-system-packages --user --quiet pytest pyyaml pillow
+          fi
+          python3 -c "import pytest, yaml, PIL; print('deps ok:', pytest.__version__)"
       - name: Design tokens (contrast) and generated QML theme in sync
         run: |
           python3 scripts/check-tokens.py
@@ -119,6 +126,10 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Free disk space (Qt 6 needs about 2 GB on a runner that ships several SDKs)
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/share/boost || true
+          df -h /
       - name: Qt 6
         timeout-minutes: 10
         run: |
