@@ -1960,6 +1960,22 @@ The probe design is also wrong for a wrapper that retries: killing the app start
 kills the wrapper first (`pkill -f hscl-calamares`) and counts crash lines (`exit 137/139`) in
 `/tmp/hscl-calamares.log`, which is what the variants probe does.
 
+### The variants probe was abandoned - a testimony to the one-command rule (2026-11-11)
+
+`tests/visual/scenarios/installer-probe-variants.json` (5 starts each: wrapper, wrapper with earlyoom/systemd-oomd
+stopped, desktop-entry launch) was typed as three long shell loops with 230 s waits between them. Each series
+needs about 44 s per start plus the kills, so a series can take longer than its wait; the next typed line then
+lands in a terminal that is still running the previous loop, which is exactly the failure mode `TESTING.md`
+warns about. The run never reached its `r1-variants` screenshot and was killed after ~25 minutes;
+`artifacts/boot-probe-variants` holds only the boot shots.
+
+No result is claimed from it. If the variant question (memory killer versus launch path) is picked up again, it
+must be a **single** typed command that writes to `/tmp` and a sentinel file, with the result read from the log -
+not three sequential loops with fixed waits.
+
+What does stand from the rc5 probe: the fault is real (~20 % of starts, SIGKILL early), the wrapper survives it,
+and exit 87 after an early restart had to be made retryable.
+
 ### Version state (2026-11-10)
 
 `VERSION` in the tree is **0.1.5-alpha.0** (commit `014b71e`, authored 2026-11-10 22:29, touching VERSION,
