@@ -37,14 +37,24 @@ def series(kind: str, runs: int) -> str:
 set -u
 for i in $(seq 1 {runs}); do
   {start}
-  sleep 10
+  sleep 2
+  launched=$(pgrep -c -x calamares || true)
+  sleep 8
   alive=$(pgrep -c -x calamares || true)
-  echo "{kind} $i alive=$alive"
+  echo "{kind} $i launched=$launched alive10=$alive"
   sudo pkill -f calamares-launch-normal >/dev/null 2>&1 || true
   sudo pkill -x calamares >/dev/null 2>&1 || true
   sleep 4
 done
 """
+
+
+def env_note() -> str:
+    """A GUI process needs the session env; sudo keeps DISPLAY but not the Wayland variables by default."""
+    return (
+        'export DISPLAY="${DISPLAY:-:0}"\n'
+        "export XDG_RUNTIME_DIR=\"${XDG_RUNTIME_DIR:-/run/user/$(id -u)}\"\n"
+    )
 
 
 def main() -> int:
@@ -70,7 +80,7 @@ def main() -> int:
         report["desktop_s"] = respin.wait_desktop(vm, timeout=420)
         for kind in ("detached", "direct"):
             print(f"--- {kind} ---", flush=True)
-            res = respin.hook(vm, f"{kind}.sh", series(kind, a.runs), timeout=60 + 20 * a.runs)
+            res = respin.hook(vm, f"{kind}.sh", env_note() + series(kind, a.runs), timeout=60 + 20 * a.runs)
             print(res.get("stdout", ""), flush=True)
             report["series"][kind] = {
                 "exit": res.get("exit"),
