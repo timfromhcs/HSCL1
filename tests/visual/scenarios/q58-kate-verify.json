@@ -1,0 +1,14 @@
+[
+  { "wait": 22 },
+  { "keys": ["ctrl", "alt", "t"] },
+  { "wait": 14 },
+  { "type": "kate /etc/os-release >/dev/null 2>&1 &" },
+  { "keys": ["ret"] },
+  { "wait": 35 },
+  { "shot": "q58-kate-open" },
+  { "wait": 5 },
+  { "type": "hscl appearance theme show HCSMidnight | head -3" },
+  { "keys": ["ret"] },
+  { "wait": 8 },
+  { "shot": "q58-kate-palette" }
+]
