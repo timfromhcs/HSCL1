@@ -130,8 +130,14 @@ jobs:
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/share/boost || true
           df -h /
+      - name: Use archive.ubuntu.com (the Azure mirror stalls per package)
+        run: |
+          sudo sed -i 's#http://azure.archive.ubuntu.com/ubuntu/#http://archive.ubuntu.com/ubuntu/#; s#mirror+file:/etc/apt/apt-mirrors.txt#http://archive.ubuntu.com/ubuntu/#' \
+            /etc/apt/sources.list /etc/apt/sources.list.d/*.sources /etc/apt/sources.list.d/*.list 2>/dev/null || true
+          grep -rhs '^URIs\|^deb ' /etc/apt/sources.list /etc/apt/sources.list.d/ 2>/dev/null | head -5
+          for i in 1 2 3; do sudo timeout 120 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 update && break; done
       - name: Qt 6
-        timeout-minutes: 10
+        timeout-minutes: 18
         run: |
           fetch() { # download with a hard per-attempt limit; the last attempt leaves the Azure mirror (it stalled on the same package 3 times)
             for i in 1 2 3; do
