@@ -1989,8 +1989,11 @@ and exit 87 after an early restart had to be made retryable.
 | Gates | `verify-image: all checks passed`, including the wrapper grep for `KCRASH_DUMP_ONLY=1` and the restart loop |
 
 Only delta to rc5: exit 87 (Calamares' single-instance lock) is retried after 5 s, because the rc5 probe showed a
-restart being thrown away with `attempt 1 exited with 87 after 1s (not a crash), giving up`. The LUKS2 install at
-8 GB runs on this image.
+restart being thrown away with `attempt 1 exited with 87 after 1s (not a crash), giving up`.
+
+Booted at 4 GB with `--qa-out`: `scripts/qa_report.py` on `artifacts/qa/report-rc6.txt` → **exit 0** (9 checks ok,
+one `info` about Secure Boot). The LUKS2 install at 8 GB then completed through the same wrapper - see the
+"LUKS2 on rc6" section.
 
 ### LUKS2 on rc6 through the wrapper with the retry (2026-11-11)
 
