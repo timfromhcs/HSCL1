@@ -111,6 +111,15 @@ Measured 2026-11-10: one install run typed the whole `sudo -b /usr/bin/calamares
 `{"keys": ["ctrl", "alt", "t"]}`, which the image binds (`org.kde.konsole.desktop _launch=Meta+Return\tCtrl+Alt+T`)
 and which needs no search.
 
+### Start the installer through the same wrapper the desktop icon uses
+
+The desktop entry runs `/usr/bin/hscl-calamares`, which sets `QT_QUICK_BACKEND=software` and
+`LIBGL_ALWAYS_SOFTWARE=1` before exec'ing the upstream launcher (the Qt Quick startup race, see
+`KNOWN_LIMITATIONS`). Scenarios that started `calamares-launch-normal` directly therefore tested a different
+code path than a user clicking the icon. `install-terminal.json`, `install-luks.json` and `luks-probe.json` now
+type `sudo -b /usr/bin/hscl-calamares`, so a VM run covers the wrapper. The two rc3 installs recorded on
+2026-11-11 predate this change and used the upstream launcher; BUILD_LOG says so.
+
 ### One command per checkpoint
 
 Typing the next step while a long command still runs corrupts both: on 2026-11-10 a scenario typed
