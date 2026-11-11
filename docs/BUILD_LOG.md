@@ -3184,3 +3184,20 @@ in `artifacts/vdisks`, `artifacts/install-test` and `artifacts/rel-luks-*`) accu
 superseded files were removed: the 0.1.2-era `artifacts/rel-luks-0.1.2-alpha.0/disk.qcow2` (10.5 GB) and the
 full `artifacts/release-0.1.5-set/HSCL1-0.1.5-alpha.0-amd64.iso` (4.7 GB, its three published parts remain).
 Freed 15.2 GB; the disks from today's rc6-rc11 runs belong to the other work stream and were left untouched.
+
+### CI is green again, and the reason it was red was infrastructure (2026-11-11)
+
+After a day of red runs whose tests never executed, the whole matrix is green on `5bb61ab` (all eight jobs:
+Rust, Python+shell+tokens, HCSUDA on both OSes, HCSEASYMATH, QML, cargo deny, cargo audit).
+
+What was actually wrong, in the order it was found:
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Python job red before any test | apt could not install `python3-pytest/pyyaml/pil` ("Tools" step) | those deps now come from pip with an `ensurepip` fallback and an import check; `shellcheck` still comes from apt |
+| QML job red at "Qt 6" | the step hit its own 10-minute limit: apt retried `azure.archive.ubuntu.com` package by package | step budget raised to 18 min |
+| QML still red | rewriting to `http://archive.ubuntu.com` made it worse: plain HTTP is unreachable from the runner (`Ign:` for every suite, exit 124) | rewrite to **https://**archive.ubuntu.com, with a backup of `sources.list`/`sources.list.d` and a restore-and-retry fallback |
+
+Lesson: a red CI that never reaches the test step is not evidence about the code. Both failures were
+invisible in the summary line ("Python tests, shell checks, design tokens — failure") and only the
+per-step view showed that no test had run.
