@@ -1992,6 +1992,32 @@ Only delta to rc5: exit 87 (Calamares' single-instance lock) is retried after 5 
 restart being thrown away with `attempt 1 exited with 87 after 1s (not a crash), giving up`. The LUKS2 install at
 8 GB runs on this image.
 
+### LUKS2 on rc6 through the wrapper with the retry (2026-11-11)
+
+| Item | Value |
+|---|---|
+| ISO | `HSCL1-rc6-amd64.iso`, SHA-256 `4a0d48a3…` |
+| VM | UEFI + WHPX, **8 GB**, 4 vCPU, disposable 40 GB qcow2 (`artifacts/vdisks/luks-rc6.qcow2`) |
+| Launcher | `/usr/bin/hscl-calamares` - software rendering, `KCRASH_DUMP_ONLY=1`, restart on an early signal death, retry on exit 87 |
+| Scenario | `tests/visual/scenarios/install-luks.json` (first click after 80 s, so a restart still lands on Welcome) |
+| Partition plan | ESP 300 MiB FAT32 + `hscl1_boot` 4.00 GiB ext4 + `hscl1_root` 35.71 GiB **LUKS2** (`l03`) |
+| Install | "All done. HSCL1 0.1.5-alpha.0", 1992 s, `disk_idle_after_s` 184, 9.87 GB written, `vm_exited: true` |
+| Boot | `iso=none`, 8 GB, wrong passphrase first, then the real one; 579 s to the checks |
+
+`artifacts/install-luks-rc6` (l01 Welcome without a crash dialog, l03 encryption plan, l09 All done) and
+`artifacts/boot-luks-rc6`:
+
+1. `unlock-prompt.png` - `Please unlock disk luks-…`
+2. `unlock-after-wrong.png` - refused, prompt returns, nothing destroyed
+3. `unlock-after-correct.png`, `login-screen.png`, `w0-desktop.png`
+4. `w3-security-status.png` - `AppArmor enabled: yes`, `UFW enabled: yes`, `Secure Boot: unknown (no SecureBoot
+   variable; Secure Boot off)`, **`LUKS volumes open: 1`**, `Forbidden APT repos: none`, `root filesystem: ext4`,
+   zram swap active, core dumps disabled
+
+This is the first full LUKS2 install on the wrapper that also retries a single-instance collision, and the first
+one at 8 GB that reached "All done" without a visible crash. One install is one draw: the underlying ~20 % start
+fault is unchanged and documented in KNOWN_LIMITATIONS/Q-61.
+
 ### Version state (2026-11-10)
 
 `VERSION` in the tree is **0.1.5-alpha.0** (commit `014b71e`, authored 2026-11-10 22:29, touching VERSION,
