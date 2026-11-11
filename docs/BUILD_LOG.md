@@ -3217,3 +3217,15 @@ at all.
 Six starts without a death does not contradict the earlier 1-in-6-12 figure; it is simply fewer trials than
 the rate needs. Reproducing the fault needs ~12-24 starts in one boot, which is the next step, and a
 reproduction still would not name the killer without a core file or an audit rule.
+
+**Correction to the Q-46/Q-61 measurement (2026-11-11, later):** the note above that read "six starts, six
+alive" was a misinterpretation. `pgrep -c -f calamares` was counting the *process tree of one installer*
+(plus the watcher shell itself, whose command line contains the pattern). A second run used a bracket-trick
+watcher (`pgrep -cf "[c]alamares"`, which does not match its own command line) and logged PID lists every
+two seconds: exactly **five PIDs - 1038, 2668, 2672, 2678, 2679 - stayed identical** across the whole run,
+including four additional icon double-clicks (`artifacts/q61-count/q61-count-log.png`). Calamares enforces a
+single-instance lock and exits 87; the wrapper explicitly retries that exit code. So repeated clicks cannot
+produce repeated starts, and the correct experiment is **sequential** starts (start, observe 20 s, stop,
+repeat), not simultaneous ones. No death was observed in either run; the earlier conclusion "not reproduced"
+survives, but its denominator was one start, not six.
+

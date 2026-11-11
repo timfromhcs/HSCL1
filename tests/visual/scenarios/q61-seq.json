@@ -1,0 +1,11 @@
+[
+  { "wait": 15 },
+  { "keys": ["ctrl", "alt", "t"] },
+  { "wait": 12 },
+  { "type": "sudo sh -c 'rm -f /tmp/probe.log /tmp/hscl-calamares.log; for i in $(seq 1 12); do echo \"== start $i $(date +%T)\" >> /tmp/probe.log; setsid /usr/bin/hscl-calamares >/dev/null 2>&1 & sleep 20; echo \"start $i alive=$(pgrep -cf \"[c]alamares\")\" >> /tmp/probe.log; pkill -f \"[c]alamares-launch-normal\"; pkill -x calamares; sleep 6; done; cat /tmp/probe.log; echo --wrapper--; cat /tmp/hscl-calamares.log 2>/dev/null'" },
+  { "keys": ["ret"] },
+  { "wait": 40 },
+  { "shot": "q61-seq-early" },
+  { "wait": 330 },
+  { "shot": "q61-seq-log" }
+]
