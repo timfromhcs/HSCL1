@@ -35,7 +35,7 @@ Do this on a **spare** stick. Every tool below erases the selected device withou
    line is faster and more dangerous:
    ```console
    $ lsblk -o NAME,SIZE,MODEL,TRAN     # find the stick: it must NOT be your system disk
-   $ sudo dd if=HSCL1-0.1.5-alpha.0-amd64.iso of=/dev/sdX bs=8M status=progress oflag=sync
+   $ sudo dd if=HSCL1-<version>-amd64.iso of=/dev/sdX bs=8M status=progress oflag=sync
    $ sync
    ```
    Replace `/dev/sdX` with the **whole device**, never a partition such as `/dev/sdX1`. A wrong letter

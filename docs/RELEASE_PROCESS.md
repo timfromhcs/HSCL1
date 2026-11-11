@@ -47,8 +47,8 @@ read from the scripts in `scripts/` on 2026-11-07; if a script changes, this pag
    again after the upload — a mismatch is exactly the documentation drift this repository has shipped before.
 
    ```console
-   $ python scripts/verify_release_consistency.py --version 0.1.5-alpha.0 \
-       --release-dir artifacts/release-0.1.5-set --github timfromhcs/HSCL1
+   $ python scripts/verify_release_consistency.py --version <version> \
+       --release-dir artifacts/release-<version>-set --github timfromhcs/HSCL1
    ```
 
 ## Honest labels

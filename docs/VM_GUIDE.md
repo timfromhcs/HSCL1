@@ -22,7 +22,7 @@ The repository ships a harness that boots the ISO, clicks through the live promp
 Welcome Center and writes evidence (screenshots, a result JSON and optionally an in-guest report):
 
 ```console
-$ python scripts/qemu_boot_test.py HSCL1-0.1.5-alpha.0-amd64.iso artifacts/boot-try \
+$ python scripts/qemu_boot_test.py HSCL1-<version>-amd64.iso artifacts/boot-try \
     --firmware uefi --try-live --dismiss-welcome --mem 4096
 ```
 
@@ -45,7 +45,7 @@ Linux with KVM:
 ```console
 $ qemu-system-x86_64 -enable-kvm -m 4096 -smp 4 \
     -bios /usr/share/ovmf/OVMF.fd \
-    -cdrom HSCL1-0.1.5-alpha.0-amd64.iso \
+    -cdrom HSCL1-<version>-amd64.iso \
     -vga std -device virtio-net-pci,netdev=net0 -netdev user,id=net0
 ```
 
@@ -55,14 +55,14 @@ UEFI variables):
 ```powershell
 & "C:\Program Files\qemu\qemu-system-x86_64.exe" -machine q35 -accel whpx,kernel-irqchip=off `
   -m 4096 -smp 4 -vga std `
-  -drive file=HSCL1-0.1.5-alpha.0-amd64.iso,media=cdrom,readonly=on `
+  -drive file=HSCL1-<version>-amd64.iso,media=cdrom,readonly=on `
   -device virtio-net-pci,netdev=net0 -netdev user,id=net0
 ```
 
 ## Install test on a disposable disk
 
 ```console
-$ python scripts/qemu_boot_test.py HSCL1-0.1.5-alpha.0-amd64.iso artifacts/install-test \
+$ python scripts/qemu_boot_test.py HSCL1-<version>-amd64.iso artifacts/install-test \
     --firmware uefi --try-live --dismiss-welcome --disk artifacts/vdisks/t.qcow2 --disk-size 40G \
     --steps tests/visual/scenarios/install-normal.json
 ```
