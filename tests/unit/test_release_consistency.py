@@ -32,7 +32,7 @@ def build_set(tmp: Path) -> dict[str, Path]:
     part.write_bytes(iso.read_bytes())
 
     (rel / "SHA256SUMS").write_text(
-        f"{digest}  {ISO}\n{digest}  {part.name}\n", encoding="utf-8")
+        f"{digest}  {ISO}\n{digest}  {part.name}\n", encoding="utf-8", newline="\n")
     (rel / f"{ISO}.manifest.json").write_text(json.dumps({
         "version": VERSION, "iso_sha256": digest, "iso_bytes": iso.stat().st_size,
         "git_commit": "a" * 40, "git_dirty": False, "workshop_default": "disabled",
@@ -98,3 +98,13 @@ def test_a_dirty_tree_manifest_fails(tmp_path, capsys):
     manifest.write_text(json.dumps(data), encoding="utf-8")
     assert run(paths) == 1
     assert "manifest clean tree" in capsys.readouterr().out
+
+
+def test_crlf_checksums_fail(tmp_path, capsys):
+    """The published 0.1.5/0.1.6 SHA256SUMS were CRLF and unverifiable on Linux (2026-11-11)."""
+    paths = build_set(tmp_path)
+    sums = paths["rel"] / "SHA256SUMS"
+    sums.write_bytes(sums.read_bytes().replace(b"\n", b"\r\n"))
+    assert run(paths) == 1
+    out = capsys.readouterr().out
+    assert "checksum line endings" in out and "CR bytes" in out

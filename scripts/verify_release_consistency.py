@@ -100,6 +100,16 @@ def main(argv: list[str] | None = None) -> int:
     iso_hash = sha256(iso)
     sums = read_sums(sums_file)
 
+    # LF-only: `sha256sum -c` on Linux reads a trailing \r as part of the file name and rejects every
+    # line. The 0.1.5 and 0.1.6 releases shipped CRLF while a lenient parser saw nothing wrong
+    # (2026-11-11), so this check exists before anything is parsed.
+    sums_raw = sums_file.read_bytes()
+    cr = sums_raw.count(b"\r")
+    if cr:
+        r.fail("checksum line endings", f"{cr} CR bytes: SHA256SUMS must be LF-only")
+    else:
+        r.ok("checksum line endings", "LF only")
+
     # --- the ISO itself -----------------------------------------------------
     r.ok("iso hash", f"{iso.name} {iso_hash[:12]}…") if sums.get(iso.name) == iso_hash else r.fail(
         "iso hash", f"SHA256SUMS says {sums.get(iso.name)}, file is {iso_hash}")
