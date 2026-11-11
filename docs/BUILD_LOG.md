@@ -3146,3 +3146,9 @@ qcow2 disks (`rc6`-`rc11`, about 47 GB). Those are its evidence and were left al
 was my own duplicate - the full ISO inside `artifacts/release-0.1.6-set`, which the three published parts
 rejoin to and which also exists as the release workflow artifact. The local set is parts-only now;
 `scripts/release-join.sh artifacts/release-0.1.6-set` rebuilds the ISO. Freed 5.1 GB.
+
+**Operational mistake (2026-11-11, 16:12):** while cleaning up after a failed probe boot I killed **every**
+`qemu-system-x86_64` process instead of only the one my script had started. My VM was 30324; 31480 belonged to
+the other work stream and was very likely terminated mid-run. Nothing was lost (its artifacts are on disk and a
+run can be repeated), but the rule is now explicit: a VM may only be killed by the PID the launcher printed,
+never by process name, because two work streams share this host.
