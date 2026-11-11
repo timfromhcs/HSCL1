@@ -1817,6 +1817,14 @@ window, so the older capture stays and this is noted instead of pretending it is
 > Konsole command line with no Kate window. The four-effect claim and the Kate replacement were therefore
 > not kept in the committed screenshot set; they are tracked as **Q-57** (preset switching) and **Q-58**
 > (Kate launch) in `docs/AUTONOMOUS_QUEUE.md` until a capture shows the difference.
+>
+> **Root cause of Q-57 (2026-11-11):** neither the plugin nor the CLI was broken. The capture typed **effect**
+> names (`hscl appearance wallpaper set grid`, `… set rain`), but the command resolves **preset ids**, and the
+> shipped presets are `aurora`, `starfield`, `grid-pulse`, `midnight-rain` and `sparse-rain`. `aurora` and
+> `starfield` are both an effect and a preset id, which is exactly why those two switched while `grid` and `rain`
+> printed "unknown wallpaper preset" and left the starfield in place. `wallpaper::find` now answers an effect
+> name with the presets that carry it (unit test `an_effect_name_points_at_the_presets_that_carry_it`), and a
+> capture with the real ids is queued as `tests/visual/scenarios/showcase-wallpapers3.json`.
 
 ### rc1 candidate: all fixes in one image (2026-11-10)
 

@@ -179,7 +179,7 @@ System information, package updates, power actions, and services management (AGE
 | `hscl system lock` | Lock the active desktop session |
 | `hscl system services` | List system services and their enablement status |
 | `hscl appearance wallpaper list` | Available wallpaper shader presets |
-| `hscl appearance wallpaper set` | Apply a wallpaper preset by name |
+| `hscl appearance wallpaper set` | Apply a wallpaper preset **by preset id** (`aurora`, `starfield`, `grid-pulse`, `midnight-rain`, `sparse-rain`). Effect names that are not also preset ids (`grid`, `rain`) are rejected with a hint naming the presets that carry the effect |
 | `hscl appearance mode` | Show or set desktop color mode. `dark`/`light` also apply the matching HCS colour scheme; `auto` records the preference and leaves the scheme alone |
 | `hscl appearance dock position` | Move the HCS dock to another screen edge (bottom, left, right) by scripting the running Plasma panel; the top bar is never moved |
 | `hscl miner status` | Local miner configuration and esptool availability. Contacts no device |

@@ -133,9 +133,26 @@ pub fn load_all(system: &Path, user: &Path) -> Vec<Preset> {
 }
 
 pub fn find<'a>(all: &'a [Preset], id: &str) -> Result<&'a Preset> {
-    all.iter()
-        .find(|p| p.id == id)
-        .with_context(|| format!("unknown wallpaper preset {id:?}; run `hscl wallpaper list`"))
+    if let Some(p) = all.iter().find(|p| p.id == id) {
+        return Ok(p);
+    }
+    // `rain` and `grid` name effects, not presets. Measured 2026-11-10: `hscl appearance wallpaper set grid`
+    // (typed from the effect list) only printed "unknown wallpaper preset", so the wallpaper kept the previous
+    // effect and the capture series looked like a bug. Point at the preset ids that carry the effect instead.
+    if EFFECTS.contains(&id) {
+        let ids: Vec<String> = all
+            .iter()
+            .filter(|p| p.effect == id)
+            .map(|p| format!("{:?}", p.id))
+            .collect();
+        if !ids.is_empty() {
+            bail!(
+                "{id:?} is an effect, not a preset id; run one of {} (`hscl wallpaper list` shows the effect of each preset)",
+                ids.join(", ")
+            );
+        }
+    }
+    bail!("unknown wallpaper preset {id:?}; run `hscl wallpaper list`")
 }
 
 /// Save a user preset; refuses to overwrite unless `overwrite`.
@@ -312,6 +329,30 @@ mod tests {
         assert_eq!(all.len(), 1);
         assert_eq!(all[0].name, "Mine");
         assert!(find(&all, "nope").is_err());
+    }
+
+    #[test]
+    fn an_effect_name_points_at_the_presets_that_carry_it() {
+        // Measured 2026-11-10: `set grid` failed silently from the user's point of view because "grid" is an
+        // effect, not a preset id, and the wallpaper kept the previous effect.
+        let all = vec![
+            Preset {
+                id: "grid-pulse".into(),
+                effect: "grid".into(),
+                ..p("x")
+            },
+            Preset {
+                id: "midnight-rain".into(),
+                effect: "rain".into(),
+                ..p("x")
+            },
+        ];
+        let err = find(&all, "grid").unwrap_err().to_string();
+        assert!(err.contains("is an effect, not a preset id"), "{err}");
+        assert!(err.contains("\"grid-pulse\""), "{err}");
+        assert!(find(&all, "grid-pulse").is_ok());
+        let unknown = find(&all, "nope").unwrap_err().to_string();
+        assert!(unknown.contains("unknown wallpaper preset"), "{unknown}");
     }
 
     #[test]
