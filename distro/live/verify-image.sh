@@ -55,7 +55,7 @@ check "Calamares slideshow"               test -s "$root/etc/calamares/branding/
 check "Calamares uses hscl1 branding"     grep -q '^branding: *hscl1$' "$root/etc/calamares/settings.conf"
 check "installer launcher renamed"        grep -q '^Name=Install HSCL1' "$root/usr/share/applications/kubuntu-calamares.desktop"
 check "installer runs the software-render wrapper" grep -q '^Exec=sudo /usr/bin/hscl-calamares$' "$root/usr/share/applications/kubuntu-calamares.desktop"
-check "installer wrapper exists" sh -c "test -x '$root/usr/bin/hscl-calamares' && grep -q 'QT_QUICK_BACKEND=software' '$root/usr/bin/hscl-calamares'"
+check "installer wrapper exists" sh -c "test -x '$root/usr/bin/hscl-calamares' && grep -q 'QT_QUICK_BACKEND=software' '$root/usr/bin/hscl-calamares' && grep -q 'KCRASH_DUMP_ONLY=1' '$root/usr/bin/hscl-calamares' && grep -q 'while \[ \"\$attempt\" -le 3 \]' '$root/usr/bin/hscl-calamares'"
 check "no Kubuntu installer launcher name" sh -c "! grep -E '^(Name|GenericName)(\\[[^]]*\\])?=.*Kubuntu' '$root/usr/share/applications/kubuntu-calamares.desktop'"
 check "live desktop: no Kubuntu Focus link" test ! -e "$root/etc/skel/Desktop/org.kfocus.web.howtos.desktop"
 check "live desktop: handbook entry"      sh -c "test -f '$root/etc/skel/Desktop/hscl-handbook.desktop' && ! test -L '$root/etc/skel/Desktop/hscl-handbook.desktop'"

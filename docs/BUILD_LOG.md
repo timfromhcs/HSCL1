@@ -1900,6 +1900,30 @@ line 16: 2729 Killed  calamares -D8`. The crash-handler dialog covered the scree
 the terminal (`l08-installing.png`, qcow2 stayed at 197 632 bytes). So `QT_QUICK_BACKEND=software` is **not** a
 complete mitigation, and the rc3 LUKS success was one draw of an intermittent fault. A repeat probe follows.
 
+### Installer start probe: one death in five, platform-independent (2026-11-11)
+
+`tests/visual/scenarios/installer-repeat-probe.json` on rc4 (`2277a09c…`, 4 GB, no disk attached, so the wizard
+stops at the storage requirement instead of installing), 894 s, `artifacts/boot-installer-probe`:
+
+| Series | Starts | Up | Dead |
+|---|---|---|---|
+| Current wrapper (`QT_QUICK_BACKEND=software`) | 5 | 4 | 1 (`A3`) |
+| Wrapper + `QT_QPA_PLATFORM=xcb` | 5 | 4 | 1 (`B2`) |
+
+`p3-summary.png` prints `A_UP=4 A_DEAD=1 B_UP=4 B_DEAD=1`. Two conclusions: the failure is **intermittent at
+about 20 % per start**, and the **Qt platform plugin is not the cause** - XWayland is neither better nor worse.
+`p1-default-5x.png` also shows that a start which survives reaches the requirement summary (`enoughStorage:
+false`, as expected without a disk), so the deaths happen while the first page is built, exactly as the rc2
+journal said.
+
+**Mitigation in the wrapper** (`/usr/bin/hscl-calamares`): keep software rendering, add `KCRASH_DUMP_ONLY=1` so
+drkonqi cannot put its broken crash handler over the wizard, and restart the installer when it dies from a signal
+**within the first 60 s** (the measured window, before anything is written). A normal exit is passed through, a
+late crash is not restarted over a half-written disk, and three early deaths end the loop. Unit tests in
+`tests/unit/test_installer_software_render.py` pin the exit-code handling and the bounded restart; the image gate
+greps for `KCRASH_DUMP_ONLY=1` and the loop. rc5 carries this and is measured with the same probe plus a full
+LUKS2 install.
+
 ### Version state (2026-11-10)
 
 `VERSION` in the tree is **0.1.5-alpha.0** (commit `014b71e`, authored 2026-11-10 22:29, touching VERSION,

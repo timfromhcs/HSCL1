@@ -1,14 +1,55 @@
 #!/bin/sh
 # HSCL1 installer launcher.
 #
-# Calamares' Qt Quick UI crashes intermittently on QEMU's std VGA: the journal shows `KCrash: Application
-# 'calamares' crashing` immediately after `Got 4 requirements` while the first view is built
-# (`qrc:/ui/MainPage.qml`), and KCrash then SIGKILLs the process so the installer disappears (measured
-# 2026-11-10 on `HSCL1-rc2`, 4 GB, UEFI). The same image installs fine on the next attempt, so it is a race in
-# the graphics stack, not in the installer logic.
+# Two independent problems were measured on QEMU/WHPX:
 #
-# Software rendering removes that class of failure. The installer shows a handful of simple pages, so the speed
-# difference does not matter, and it works on every GPU and in every VM.
+# 1. The welcome module's `internet` check made an HTTPS request inside the requirement phase and crashed
+#    Calamares there; it is removed from `welcome.conf` by the image hook.
+# 2. Even without that, the installer dies in roughly one start in five while it builds its first page, whoever
+#    starts it. Measured 2026-11-11 on `HSCL1-rc4`, 10 starts in one boot: 4 up / 1 dead, 4 up / 1 dead - the
+#    second series with `QT_QPA_PLATFORM=xcb`, so the platform plugin is not the cause (see BUILD_LOG). The
+#    journal always looks the same: `KCrash: appFilePath points to nullptr!`,
+#    `KCrash: Application 'unknown' crashing`, drkonqi fails to start, then
+#    `line 16: <pid> Killed calamares -D8`. The crash-handler dialog then covers the screen and the user is
+#    left with a dead wizard.
+#
+# Software rendering removes the GPU timing from the picture but does not remove the fault, so this wrapper
+# restarts the installer when it dies from a signal **within the first minute** - that is the measured failure
+# window (it dies while building the first page, before it writes anything). A crash later than that is passed
+# through, because restarting over a half-written disk would be worse than stopping. A normal exit - installed,
+# cancelled, window closed - is passed through untouched, and after three early deaths the wrapper gives up
+# instead of looping forever.
+#
+# `KCRASH_DUMP_ONLY=1` stops KCrash from spawning drkonqi, which cannot work in this environment anyway
+# (`org.freedesktop.systemd1 exited with status 1`) and only puts an extra dialog over the wizard.
 export QT_QUICK_BACKEND=software
 export LIBGL_ALWAYS_SOFTWARE=1
-exec /usr/bin/calamares-launch-normal "$@"
+export KCRASH_DUMP_ONLY=1
+
+LOG=/tmp/hscl-calamares.log
+attempt=1
+while [ "$attempt" -le 3 ]; do
+  started=$(date +%s)
+  /usr/bin/calamares-launch-normal "$@"
+  rc=$?
+  if [ "$rc" -eq 0 ]; then
+    exit 0
+  fi
+  elapsed=$(( $(date +%s) - started ))
+  case "$rc" in
+    134|135|136|137|139|143)
+      if [ "$elapsed" -le 60 ]; then
+        echo "hscl-calamares: attempt $attempt died from a signal after ${elapsed}s (exit $rc), restarting" >>"$LOG" 2>&1
+        attempt=$((attempt + 1))
+        sleep 2
+        continue
+      fi
+      echo "hscl-calamares: died from a signal after ${elapsed}s (exit $rc); not restarting an install in progress" >>"$LOG" 2>&1
+      exit "$rc"
+      ;;
+  esac
+  echo "hscl-calamares: attempt $attempt exited with $rc after ${elapsed}s (not a crash), giving up" >>"$LOG" 2>&1
+  exit "$rc"
+done
+echo "hscl-calamares: the installer died three times early; see $LOG" >>"$LOG" 2>&1
+exit 1
