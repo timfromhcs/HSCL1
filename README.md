@@ -142,10 +142,12 @@ Automated full-disk encryption with Argon2id key derivation, unencrypted `/boot`
 | Calamares Welcome & Language Selection | Timezone & Geographic Location |
 |:---:|:---:|
 | ![Calamares Welcome](docs/img/showcase/11_installer_welcome.png) | ![Calamares Location](docs/img/showcase/12_installer_location.png) |
-| **Encryption on the partition page (`HSCL1-installer-fix`, 0.1.3 line)** | **LUKS2 unlock prompt at boot (`0.1.2` candidate)** |
-| ![Calamares Encryption Options](docs/img/install-encrypt.png) | ![LUKS2 Unlock Prompt](docs/img/boot-unlock.png) |
+| **Encryption on the partition page (candidate rc3)** | **LUKS2 unlock prompt at boot (candidate rc6)** |
+| ![Calamares Encryption Options](docs/img/showcase/21_installer_encryption_luks.png) | ![LUKS2 Unlock Prompt](docs/img/showcase/22_luks_unlock_prompt.png) |
 
-These two installer captures predate the current candidate; recapturing them on `rc2` is tracked as Q-54 in the [audit](docs/AUDIT_2026-11-10.md).
+All four captures come from booted candidates (`11`/`19`/`21` from `HSCL1-rc3`, `22`/`23` from `HSCL1-rc6`);
+`docs/img/showcase/manifest.json` records the ISO and SHA-256 prefix per file. `23_luks_unlock_wrong.png` shows the
+same prompt after a wrong passphrase, which cryptsetup refuses without touching the disk.
 
 ---
 
@@ -274,7 +276,7 @@ Detailed CLI documentation is available in [`docs/CLI.md`](docs/CLI.md).
 | Issue | Cause | Solution |
 |---|---|---|
 | **Black screen or sluggish boot** | Hardware acceleration disabled in QEMU | Ensure `-accel whpx,kernel-irqchip=off` (Windows) or `-enable-kvm` (Linux) is active. |
-| **Installer closes / "Crash Handler" appears** | Calamares crashed during the requirement check (the welcome module's network probe); KCrash then SIGKILLed it | Fixed on 2026-11-10: the network probe is removed from `welcome.conf` and `HSCL1-installer-fix-amd64.iso` opened the installer from the desktop icon in three separate 4 GB boots. With an older image, start it from a terminal: `sudo -b /usr/bin/calamares-launch-normal`. |
+| **Installer closes / "Crash Handler" appears** | The wizard is SIGKILLed 2-3 s after it starts in roughly one start in six to twelve (no core dump, no OOM; see [known limitations](docs/KNOWN_LIMITATIONS.md)) | **Open, mitigated in the next candidate.** `/usr/bin/hscl-calamares` restarts the wizard when it dies inside its first minute, and `HSCL1-rc6` does that. The published `v0.1.5-alpha.0` predates the wrapper: if the window disappears, **start it again** - the next attempt succeeds. An earlier cause (the welcome module's network probe) is fixed and removed from `welcome.conf`. |
 | **Out-of-memory / kernel panic** | Allocating < 3 GB RAM to the VM | The live ISO unpacks a zstd squashfs into RAM overlay; allocate at least **3072 MB** (recommended: **4096 MB**). |
 | **Welcome screen doesn't dismiss** | Plasma first-run dialog modal grab | Press `Esc` or click the bottom-left "Skip" button (`(0.288, 0.848)` screen coordinates). |
 | **Secure Boot verification failure** | Unsigned test image on third-party UEFI | Use the signed Ubuntu shim/GRUB bootchain or run with standard OVMF firmware (`--firmware uefi`). |
