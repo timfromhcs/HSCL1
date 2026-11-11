@@ -46,7 +46,7 @@
 >
 > **Secure Boot:** the ISO carries the signed Canonical/Microsoft boot components (`artifacts/sb-0.1.3-alpha.0/report.json`), but the test firmware ran with **Secure Boot off**, so a positive Secure-Boot boot has *not* been demonstrated. `hscl doctor` reports this honestly instead of claiming success.
 >
-> **Not verified:** bare-metal physical hardware, USB-media boot, TPM-backed encryption, a Tor-routed privacy session, signed releases (SHA-256 checksums only). Known visual defects on this artifact: desktop icon labels render oblique (Q-52) and the `grid`/`rain` wallpaper presets could not be distinguished in captures (Q-57). Read [Known limitations](docs/KNOWN_LIMITATIONS.md) and the [evidence ledger](docs/CLAIMS.md) before installing. Do not use HSCL1 on systems that require security certifications.
+> **Not verified:** bare-metal physical hardware, USB-media boot, TPM-backed encryption, a Tor-routed privacy session, signed releases (SHA-256 checksums only). Known visual defects on the **0.1.5 artifact**: desktop icon labels render oblique — fixed in the tree by installing the entries as files instead of symlinks (Plasma italicises link items) and shipping in the next build — and Kate renders with a light palette inside the dark shell (Q-53). Read [Known limitations](docs/KNOWN_LIMITATIONS.md) and the [evidence ledger](docs/CLAIMS.md) before installing. Do not use HSCL1 on systems that require security certifications.
 
 > [!NOTE]
 > HSCL1 is **not Tails**, **not an official Kali release**, and is not affiliated with or endorsed by the Tails project, Canonical, the KDE/Kubuntu projects, or Offensive Security. It makes **no anonymity claim**.
