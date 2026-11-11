@@ -197,7 +197,7 @@ def build_release(version: str, iso: Path, prebuilt: Path | None, out: Path,
         + image_line
         + "- Evidence recorded for this set: " + (", ".join(sorted(evidence)) or "none") + "\n\n"
         + ("## Not verified in this set\n\n" + "".join(f"- {g}\n" for g in gaps) + "\n" if gaps else "")
-        + "Not signed, not tagged, not uploaded. See `docs/KNOWN_LIMITATIONS.md` for what is not verified.\n"
+        + "Not signed. Tagging and upload are separate, owner-run steps; this set was assembled locally. See `docs/KNOWN_LIMITATIONS.md` for what is not verified.\n"
     )
     check_no_placeholders(notes, "release-notes.md")
     (out / "release-notes.md").write_text(notes, encoding="utf-8")
