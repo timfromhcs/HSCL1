@@ -2310,6 +2310,34 @@ Not claimed: the cause. The discriminating step is a **fresh reinstall that is a
 (`artifacts/install-rc10b`); if that boots, the earlier failure was a one-off from the interrupted finish, and if it
 lands in the `grub>` prompt again the ESP/`grub.cfg` chain is the next thing to inspect - not to guess about.
 
+### rc10 boot failure: the ESP is empty and the installer still said "All done" (2026-11-11)
+
+The follow-up measurements on the rc10 disk (mounted from a live rc10 session) are unambiguous:
+
+| Inspection | Evidence | Result |
+|---|---|---|
+| Partitions | `artifacts/boot-inspect2-rc10/i1-lsblk.png` | `vda1` vfat FAT32 (ESP), `vda2` ext4 `hscl1_root` |
+| Kernel on the target | `i3-boot.png` | `vmlinuz-7.0.0-30-generic`, `initrd.img-7.0.0-30-generic`, `grub/` present |
+| ESP content | `artifacts/boot-esp-live/e1`-`e3` | **empty** (`/mnt/e` shows nothing, no `EFI` directory) |
+| `/boot/efi` inside the new root | `artifacts/boot-efi-check/x1`-`x2` | **empty** too - the EFI tree is not there either |
+| Firmware view | `artifacts/boot-first-login-rc10d/shot-004.png` | UEFI shell `Shell>` with `FS0:` = the ESP, no loader |
+
+So the installer wrote the kernel and `/boot/grub`, reported "All done", and left **no EFI loader anywhere**; with a
+fresh `OVMF_VARS` (the harness copies pristine firmware variables per run) the machine has nothing to start. The
+rc9 disk boots under identical conditions, so this is an **install-time failure that hides itself**, not a test
+artifact.
+
+Product fix in the tree: `/usr/bin/hscl-verify-esp` plus `/etc/calamares/modules/hscl_verify_esp.conf` as a
+`shellprocess` instance wired **right after** `bootloader` in `settings.conf` (patch in the live hook). It checks
+`/boot/efi/EFI/BOOT/BOOTX64.EFI` or `/boot/efi/EFI/*/grubx64.efi` inside the target and exits non-zero otherwise,
+which makes Calamares stop on its error page instead of claiming success. Image gate checks both the script and the
+ordering; `tests/unit/test_installer_esp_check.py` pins them.
+
+Still open: **why** the bootloader module produced nothing on these two runs. The rc10 target's
+`/var/log/calamares.log` could not be read (two attempts had their typed command mangled in the guest terminal, so
+there is no evidence either way - not a result). rc11 carries the check; its install run will either populate the
+ESP or fail loudly with the module's own message.
+
 ### Version state (2026-11-10)
 
 `VERSION` in the tree is **0.1.5-alpha.0** (commit `014b71e`, authored 2026-11-10 22:29, touching VERSION,
