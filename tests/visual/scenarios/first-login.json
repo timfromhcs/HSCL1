@@ -2,5 +2,11 @@
   { "wait": 25 },
   { "shot": "fl1-first-login" },
   { "wait": 12 },
-  { "shot": "fl2-first-login-later" }
+  { "shot": "fl2-first-login-later" },
+  { "keys": ["ctrl", "alt", "t"] },
+  { "wait": 13 },
+  { "type": "grep -rl plasma-welcome /etc/xdg/autostart /usr/share/applications /home/*/.config 2>/dev/null | head -10; echo '--- autostart dir ---'; ls /etc/xdg/autostart | grep -i welcome; echo '--- user autostart ---'; ls ~/.config/autostart 2>/dev/null | head" },
+  { "keys": ["ret"] },
+  { "wait": 8 },
+  { "shot": "fl3-welcome-sources" }
 ]

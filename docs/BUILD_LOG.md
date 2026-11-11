@@ -2230,6 +2230,43 @@ The capture is the showcase image `24_welcome_center_hscl1.png`.
 rc9 carries the identical installer, LUKS and Control Center bits as rc8, so the install/LUKS/QA/lab evidence
 recorded for rc6/rc8 still describes this image; only the Welcome Center entry changed.
 
+### First login on an installed rc9 disk: still the KDE page (2026-11-11)
+
+The plain 4 GB install from rc9 finished ("All done. HSCL1 0.1.5-alpha.0", 2149 s, 9.53 GB) and the installed
+disk booted and logged in (`artifacts/install-rc9`, `artifacts/boot-first-login-rc9`).
+
+What the first login shows: the Welcome Center on **Plasma's built-in page** ("Welcome to the HSCL1 operating
+system running KDE Plasma!", Konqi, 8 navigation dots) - `fl1-first-login.png`, unchanged 12 s later in
+`fl2-first-login-later.png`. So the desktop-entry patch does **not** reach this path.
+
+The diagnostic in `fl3-welcome-sources.png` answers why: there is **no autostart file** for the Welcome Center on
+the installed system -
+
+```text
+$ grep -rl plasma-welcome /etc/xdg/autostart /usr/share/applications /home/*/.config
+/usr/share/applications/org.kde.plasma-welcome.desktop.upstream
+/usr/share/applications/org.kde.plasma-welcome.desktop
+$ ls /etc/xdg/autostart | grep -i welcome      # nothing
+$ ls ~/.config/autostart                        # nothing
+```
+
+Plasma therefore starts `plasma-welcome` itself, without arguments, so `--pages 01-HSCL1` from the desktop entry
+never applies.
+
+Two candidate fixes, neither implemented because both carry risk that a booted check must cover:
+
+1. **Pre-seed the "already seen" state.** The binary exposes `lastSeenVersion` /
+   `isLastSeenVersionImmutable` (KConfigSkeleton). Writing the current Plasma version into that config would stop
+   the first-login launch altogether; the HSCL1 page stays reachable from the menu (which now shows only our
+   page). The exact file and group name are not verified, and a wrong value silently does nothing.
+2. **Wrap the binary.** `/usr/bin/plasma-welcome` becomes a script that adds `--pages 01-HSCL1` when the caller
+   passes no `--pages`, with the real binary diverted to `plasma-welcome.real`. That hits AppArmor: the profile
+   `usr.bin.plasma-welcome` attaches to the current path and would leave the `.real` binary unconfined (or block
+   the `sh` exec), so the profile would have to be extended and re-tested - shipping that unchecked could break
+   the Welcome Center completely, which is worse than the KDE page.
+
+Q-45 keeps the first-login half open with this evidence rather than a claim.
+
 ### Version state (2026-11-10)
 
 `VERSION` in the tree is **0.1.5-alpha.0** (commit `014b71e`, authored 2026-11-10 22:29, touching VERSION,
