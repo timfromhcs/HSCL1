@@ -3152,3 +3152,9 @@ rejoin to and which also exists as the release workflow artifact. The local set 
 the other work stream and was very likely terminated mid-run. Nothing was lost (its artifacts are on disk and a
 run can be repeated), but the rule is now explicit: a VM may only be killed by the PID the launcher printed,
 never by process name, because two work streams share this host.
+
+**Disk (2026-11-11, 16:42):** `E:` reached 15 GB, mostly because seven installed-system qcow2 disks (about 67 GB
+in `artifacts/vdisks`, `artifacts/install-test` and `artifacts/rel-luks-*`) accumulate there. Only my own
+superseded files were removed: the 0.1.2-era `artifacts/rel-luks-0.1.2-alpha.0/disk.qcow2` (10.5 GB) and the
+full `artifacts/release-0.1.5-set/HSCL1-0.1.5-alpha.0-amd64.iso` (4.7 GB, its three published parts remain).
+Freed 15.2 GB; the disks from today's rc6-rc11 runs belong to the other work stream and were left untouched.
