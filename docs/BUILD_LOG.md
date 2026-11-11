@@ -1969,9 +1969,10 @@ lands in a terminal that is still running the previous loop, which is exactly th
 warns about. The run never reached its `r1-variants` screenshot and was killed after ~25 minutes;
 `artifacts/boot-probe-variants` holds only the boot shots.
 
-No result is claimed from it. If the variant question (memory killer versus launch path) is picked up again, it
-must be a **single** typed command that writes to `/tmp` and a sentinel file, with the result read from the log -
-not three sequential loops with fixed waits.
+No result is claimed from it. The scenario file was removed afterwards so it cannot be mistaken for a working
+probe. If the variant question (memory killer versus launch path) is picked up again, it must be a **single**
+typed command that writes to `/tmp` and a sentinel file, with the result read from the log - not three sequential
+loops with fixed waits.
 
 What does stand from the rc5 probe: the fault is real (~20 % of starts, SIGKILL early), the wrapper survives it,
 and exit 87 after an early restart had to be made retryable.
