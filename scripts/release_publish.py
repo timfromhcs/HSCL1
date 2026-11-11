@@ -65,6 +65,11 @@ def main() -> int:
     notes = Path(a.notes) if a.notes else d / "release-notes.md"
     title = a.title or f"HSCL1 {a.version}"
 
+    if not d.is_dir():
+        raise SystemExit(f"release dir missing: {d}")
+    if not notes.is_file():
+        raise SystemExit(f"notes file missing: {notes} (a release without notes is not worth publishing)")
+
     assets = sorted(d.glob(f"HSCL1-{a.version}-amd64.iso.part*")) + sorted(
         p for p in d.iterdir()
         if p.is_file() and (p.suffix in {".json", ".md"} or p.name == "SHA256SUMS")
