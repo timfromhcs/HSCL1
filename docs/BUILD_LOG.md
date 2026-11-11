@@ -3201,3 +3201,19 @@ What was actually wrong, in the order it was found:
 Lesson: a red CI that never reaches the test step is not evidence about the code. Both failures were
 invisible in the summary line ("Python tests, shell checks, design tokens — failure") and only the
 per-step view showed that no test had run.
+
+**Q-46/Q-61 measurement (2026-11-11, rc11):** a watcher-based attempt finally produced usable data. Six
+double-clicks on the Install icon, a 40 GB disposable disk attached, and a `setsid`-detached watcher writing
+`date` + `pgrep -c -f calamares` every second to `/tmp/w.log`. The count stayed at **6 for 13 consecutive
+seconds** - six live installer instances, zero deaths - and the final log is
+`artifacts/q61-watcher3/q61-watcher-log.png`.
+
+Two method errors were fixed on the way and are worth remembering: the first watcher died three seconds in
+because closing Konsole SIGHUPs its children (`setsid` fixes that), and `pgrep -x calamares` reported zero
+while a live installer window was on screen, so the pattern must match the command line (`-f`). The previous
+hook-based probe was useless for the same reason: the installer cannot be started from a non-interactive hook
+at all.
+
+Six starts without a death does not contradict the earlier 1-in-6-12 figure; it is simply fewer trials than
+the rate needs. Reproducing the fault needs ~12-24 starts in one boot, which is the next step, and a
+reproduction still would not name the killer without a core file or an audit rule.
