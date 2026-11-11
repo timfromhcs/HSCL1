@@ -61,6 +61,20 @@ ensure_key "$skel_kdeglobals" KDE widgetStyle Breeze
 # correct family to pin; the icon entries themselves are installed as real files below instead of symlinks.
 ensure_key "$skel_kdeglobals" Fonts desktopFont "Noto Sans,10,-1,5,50,0,0,0,0,0"
 
+# Kate does not inherit the Plasma palette on its own: the application chrome follows its own "ColorScheme" and
+# the editor area follows the KSyntaxHighlighting theme, and the live session opened with a light window inside
+# the dark shell (Q-53, `docs/img/showcase/14_app_kate.png`). Give new and live users an explicit dark default
+# instead of documenting the exception. Breeze Dark ships with the image.
+cat > "$ROOTFS/etc/skel/.config/katerc" <<'KATERCR'
+[UiSettings]
+ColorScheme=Breeze Dark
+
+[KTextEditor Renderer]
+Color Theme=Breeze Dark
+Auto Color Theme Selection=false
+KATERCR
+chmod 0644 "$ROOTFS/etc/skel/.config/katerc"
+
 # Installer: use the HSCL1 Calamares branding and name the desktop entry after the product
 patch_file "$ROOTFS/etc/calamares/settings.conf" 's/^branding: *kubuntu$/branding: hscl1/'
 # The welcome module's network probe runs inside ModuleManager::checkRequirements() at startup and made
