@@ -191,14 +191,15 @@
  },
  {
   "filename": "13_offline_handbook.png",
-  "bytes": 120241,
+  "bytes": 128660,
   "size": [
    1280,
    800
   ],
-  "description": "Trilingual offline handbook opened from the desktop icon (Firefox, /usr/share/doc/hscl-handbook)",
-  "timestamp": 1794243060.2641883,
-  "source_iso": "HSCL1-qa-2026-11-09-amd64.iso sha256 118029de"
+  "description": "Trilingual offline handbook opened from the desktop icon: mdBook sidebar and the honest pre-alpha status block (candidate rc6, 2026-11-11)",
+  "timestamp": 1794375753.6292932,
+  "source_iso": "HSCL1-rc6-amd64.iso sha256 4a0d48a3",
+  "colors": 17974
  },
  {
   "filename": "18_installer_notes_encryption.png",
