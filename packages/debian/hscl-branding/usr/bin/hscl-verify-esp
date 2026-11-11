@@ -1,0 +1,33 @@
+#!/bin/sh
+# Fail the Calamares install when the EFI system partition carries no boot loader.
+#
+# Measured 2026-11-11 on an rc10 install: the installer reported "All done" and wrote the kernel plus /boot/grub,
+# but the ESP (`vda1`, FAT32) and `/boot/efi` inside the new root were both **empty**. The firmware then fell back
+# to its UEFI shell (`Shell>`) and the system never booted - nothing in the summary said so. AppArmor, firewall,
+# LUKS and every other check looked fine; only the boot chain was missing.
+#
+# This script runs right after Calamares' `bootloader` module (shellprocess, inside the target chroot) and turns
+# that silent failure into a visible one: a non-zero exit makes Calamares stop with an error page instead of
+# telling the user the installation succeeded.
+set -eu
+efi="${HSCL_ESP:-/boot/efi}"
+
+if [ ! -d "$efi/EFI" ]; then
+  echo "hscl-verify-esp: $efi/EFI is missing - the installer did not populate the EFI system partition" >&2
+  exit 1
+fi
+
+if [ -f "$efi/EFI/BOOT/BOOTX64.EFI" ]; then
+  echo "hscl-verify-esp: removable loader EFI/BOOT/BOOTX64.EFI present"
+  exit 0
+fi
+
+for loader in "$efi"/EFI/*/grubx64.efi; do
+  if [ -f "$loader" ]; then
+    echo "hscl-verify-esp: loader $loader present"
+    exit 0
+  fi
+done
+
+echo "hscl-verify-esp: no BOOTX64.EFI and no grubx64.efi under $efi/EFI - the installed system would not boot" >&2
+exit 1

@@ -55,6 +55,8 @@ check "Calamares uses hscl1 branding"     grep -q '^branding: *hscl1$' "$root/et
 check "installer launcher renamed"        grep -q '^Name=Install HSCL1' "$root/usr/share/applications/kubuntu-calamares.desktop"
 check "installer runs the software-render wrapper" grep -q '^Exec=sudo /usr/bin/hscl-calamares$' "$root/usr/share/applications/kubuntu-calamares.desktop"
 check "installer wrapper exists" sh -c "test -x '$root/usr/bin/hscl-calamares' && grep -q 'QT_QUICK_BACKEND=software' '$root/usr/bin/hscl-calamares' && grep -q 'KCRASH_DUMP_ONLY=1' '$root/usr/bin/hscl-calamares' && grep -q 'while \[ \"\$attempt\" -le 3 \]' '$root/usr/bin/hscl-calamares'"
+check "installer verifies the ESP after the bootloader" sh -c "test -x '$root/usr/bin/hscl-verify-esp' && grep -q 'shellprocess@hscl_verify_esp' '$root/etc/calamares/settings.conf' && grep -q 'hscl_verify_esp.conf' '$root/etc/calamares/settings.conf' && test -f '$root/etc/calamares/modules/hscl_verify_esp.conf'"
+check "ESP check follows the bootloader module" sh -c "grep -A1 '^  - bootloader$' '$root/etc/calamares/settings.conf' | grep -q 'shellprocess@hscl_verify_esp'"
 check "no Kubuntu installer launcher name" sh -c "! grep -E '^(Name|GenericName)(\\[[^]]*\\])?=.*Kubuntu' '$root/usr/share/applications/kubuntu-calamares.desktop'"
 check "live desktop: no Kubuntu Focus link" test ! -e "$root/etc/skel/Desktop/org.kfocus.web.howtos.desktop"
 check "live desktop: handbook entry"      sh -c "test -f '$root/etc/skel/Desktop/hscl-handbook.desktop' && ! test -L '$root/etc/skel/Desktop/hscl-handbook.desktop' && test -x '$root/etc/skel/Desktop/hscl-handbook.desktop'"

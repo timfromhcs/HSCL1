@@ -77,6 +77,11 @@ chmod 0644 "$ROOTFS/etc/skel/.config/katerc"
 
 # Installer: use the HSCL1 Calamares branding and name the desktop entry after the product
 patch_file "$ROOTFS/etc/calamares/settings.conf" 's/^branding: *kubuntu$/branding: hscl1/'
+# An install can report "All done" while the ESP stays empty (measured 2026-11-11 on rc10: both `vda1` and
+# `/boot/efi` empty, firmware fell back to its UEFI shell, system unbootable). Register a shellprocess right after
+# the `bootloader` module that fails the install when no EFI loader exists.
+patch_file "$ROOTFS/etc/calamares/settings.conf" 's|^- id: logs$|- id: hscl_verify_esp\n  module: shellprocess\n  config: hscl_verify_esp.conf\n- id: logs|'
+patch_file "$ROOTFS/etc/calamares/settings.conf" 's|^  - bootloader$|  - bootloader\n  - shellprocess@hscl_verify_esp|'
 # The welcome module's network probe runs inside ModuleManager::checkRequirements() at startup and made
 # Calamares crash in a VM (KCrash log 2026-11-10: "Application 'calamares' crashing... crashRecursionCounter = 2"
 # right after initViewSteps/checkRequirements, then KCrash SIGKILLed the process). The image installs offline,

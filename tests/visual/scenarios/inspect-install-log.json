@@ -1,0 +1,16 @@
+[
+  { "wait": 12 },
+  { "keys": ["ctrl", "alt", "t"] },
+  { "wait": 15 },
+  { "type": "sudo mount /dev/vda2 /mnt" },
+  { "keys": ["ret"] },
+  { "wait": 4 },
+  { "type": "sudo ls /mnt/var/log" },
+  { "keys": ["ret"] },
+  { "wait": 4 },
+  { "shot": "l1-var-log" },
+  { "type": "sudo tail -25 /mnt/var/log/calamares.log" },
+  { "keys": ["ret"] },
+  { "wait": 5 },
+  { "shot": "l2-calamares-tail" }
+]

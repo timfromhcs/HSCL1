@@ -1,0 +1,21 @@
+[
+  { "wait": 25 },
+  { "keys": ["ret"] },
+  { "wait": 3 },
+  { "type": "fs0:" },
+  { "keys": ["ret"] },
+  { "wait": 4 },
+  { "shot": "u1-fs0" },
+  { "type": "ls" },
+  { "keys": ["ret"] },
+  { "wait": 4 },
+  { "shot": "u2-root" },
+  { "type": "ls efi" },
+  { "keys": ["ret"] },
+  { "wait": 4 },
+  { "shot": "u3-efi" },
+  { "type": "ls efi\\boot" },
+  { "keys": ["ret"] },
+  { "wait": 4 },
+  { "shot": "u4-efi-boot" }
+]

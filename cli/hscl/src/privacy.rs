@@ -567,7 +567,10 @@ Filename				Type		Size		Used		Priority
             assert!(res.is_err());
             let err_msg = format!("{:#}", res.unwrap_err());
             assert!(err_msg.contains("refuses to start a different browser"));
-            assert!(err_msg.contains("does not block direct browsing"), "the error must not imply egress filtering");
+            assert!(
+                err_msg.contains("does not block direct browsing"),
+                "the error must not imply egress filtering"
+            );
         }
     }
 }

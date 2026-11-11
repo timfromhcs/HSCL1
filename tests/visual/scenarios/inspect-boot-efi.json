@@ -1,0 +1,19 @@
+[
+  { "wait": 12 },
+  { "keys": ["ctrl", "alt", "t"] },
+  { "wait": 15 },
+  { "type": "sudo mount /dev/vda2 /mnt" },
+  { "keys": ["ret"] },
+  { "wait": 4 },
+  { "type": "sudo ls -la /mnt/boot/efi" },
+  { "keys": ["ret"] },
+  { "wait": 4 },
+  { "shot": "x1-boot-efi" },
+  { "type": "sudo ls /mnt/boot/efi/EFI" },
+  { "keys": ["ret"] },
+  { "wait": 4 },
+  { "type": "sudo ls /mnt/boot/efi/EFI/ubuntu" },
+  { "keys": ["ret"] },
+  { "wait": 4 },
+  { "shot": "x2-boot-efi-ubuntu" }
+]
