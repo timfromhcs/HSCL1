@@ -57,12 +57,32 @@ def env_note() -> str:
     )
 
 
+def diagnose() -> str:
+    """Why does the launcher not start from a non-interactive hook at all?"""
+    return """
+set -u
+echo "== who =="; id
+echo "== sudo =="; sudo -n true; echo "sudo_noninteractive_rc=$?"
+echo "== launcher =="; ls -l /usr/bin/calamares-launch-normal /usr/bin/calamares 2>&1 | head -4
+echo "== session env =="; echo "DISPLAY=${DISPLAY:-unset} WAYLAND=${WAYLAND_DISPLAY:-unset} XDG=${XDG_RUNTIME_DIR:-unset}"
+echo "== direct call (stderr captured) =="
+sudo -n /usr/bin/calamares-launch-normal > /tmp/launch.out 2>&1 &
+sleep 8
+echo "alive=$(pgrep -c -x calamares || true)"
+echo "--- output ---"; head -20 /tmp/launch.out 2>/dev/null || echo "(no output file)"
+echo "--- wrapper log ---"; tail -10 /tmp/hscl-calamares.log 2>/dev/null || echo "(no wrapper log)"
+sudo pkill -f calamares-launch-normal >/dev/null 2>&1 || true
+sudo pkill -x calamares >/dev/null 2>&1 || true
+"""
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--iso", required=True)
     ap.add_argument("--mem", type=int, default=3072)
     ap.add_argument("--runs", type=int, default=5)
     ap.add_argument("--out", default=str(ROOT / "artifacts" / "probe-installer-kill"))
+    ap.add_argument("--diagnose", action="store_true", help="only print why the launcher does not start")
     a = ap.parse_args()
 
     iso = Path(a.iso)
@@ -78,6 +98,12 @@ def main() -> int:
     try:
         print("waiting for desktop...", flush=True)
         report["desktop_s"] = respin.wait_desktop(vm, timeout=420)
+        if a.diagnose:
+            res = respin.hook(vm, "diagnose.sh", diagnose(), timeout=120)
+            print(res.get("stdout", ""), flush=True)
+            report["diagnose"] = {"exit": res.get("exit"), "stdout": res.get("stdout", ""), "stderr": res.get("stderr", "")}
+            (out / "probe.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+            return 0
         for kind in ("detached", "direct"):
             print(f"--- {kind} ---", flush=True)
             res = respin.hook(vm, f"{kind}.sh", env_note() + series(kind, a.runs), timeout=60 + 20 * a.runs)

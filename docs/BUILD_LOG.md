@@ -2358,6 +2358,23 @@ image's `bootloader` step did populate the ESP in this run. Correlation worth no
 the two runs that left the ESP empty (rc10) both ended with `vm_exited: false`, while the runs with a completed
 restart produced a populated ESP and a bootable disk.
 
+### LUKS2 on rc11: the ESP check passes with encryption too (2026-11-11)
+
+| Item | Value |
+|---|---|
+| ISO | `HSCL1-rc11-amd64.iso`, SHA-256 `0b11dee8…` |
+| VM | UEFI + WHPX, 8 GB, 40 GB qcow2 (`artifacts/vdisks/luks-rc11.qcow2`) |
+| Install | "All done. HSCL1 0.1.5-alpha.0", 2316 s, 9.68 GB - **no `hscl-verify-esp` abort**, so the bootloader step populated the ESP in the encrypted layout as well |
+| Boot | `iso=none`, 8 GB, wrong passphrase first, then the real one; 500 s to the checks |
+
+`artifacts/boot-luks-rc11/w3-security-status.png`: `AppArmor enabled: yes`, `UFW enabled: yes`,
+`Secure Boot: unknown (no SecureBoot variable; Secure Boot off)`, **`LUKS volumes open: 1`**,
+`Forbidden APT repos: none`, `root filesystem: ext4`, zram active, core dumps disabled. `unlock-after-wrong.png`
+shows the refusal before that.
+
+rc11 therefore carries `verify-image`, a plain install + boot + first login, and the LUKS2 install + unlock. Still
+missing on this artifact: the QA report (a first attempt died before writing anything) and the Security Lab chain.
+
 ### Version state (2026-11-10)
 
 `VERSION` in the tree is **0.1.5-alpha.0** (commit `014b71e`, authored 2026-11-10 22:29, touching VERSION,
