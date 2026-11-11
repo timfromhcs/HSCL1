@@ -2338,6 +2338,26 @@ Still open: **why** the bootloader module produced nothing on these two runs. Th
 there is no evidence either way - not a result). rc11 carries the check; its install run will either populate the
 ESP or fail loudly with the module's own message.
 
+### rc11: install boots, first login is the HSCL1 desktop (2026-11-11)
+
+| Field | Value |
+|---|---|
+| Artifact | `HSCL1-rc11-amd64.iso` |
+| Bytes | 5 488 771 072 |
+| SHA-256 | `0b11dee8b5c0e713987deccfcfeaf9763f0837cd79a17e573d4b0f8be3b9ea84` (build dir and the E: copy agree) |
+| Source commit | `9310a7c` |
+| Gates | `verify-image: all checks passed`, including `installer verifies the ESP after the bootloader` and `ESP check follows the bootloader module` |
+
+Install at 4 GB: "All done. HSCL1 0.1.5-alpha.0", 1941 s, 9.44 GB, and this time **`vm_exited: true`** - the wizard's
+restart fired. The installed disk then booted and logged in
+(`artifacts/boot-first-login-rc11/fl1-first-login.png`): a plain HSCL1 desktop with the Control Center and Handbook
+icons, the dock and the number-rain wallpaper - **no Welcome Center, no KDE page**.
+
+That closes the first-login half of Q-45 on a fresh install and shows the ESP verification did not fire, i.e. the
+image's `bootloader` step did populate the ESP in this run. Correlation worth noting (a hypothesis, not a claim):
+the two runs that left the ESP empty (rc10) both ended with `vm_exited: false`, while the runs with a completed
+restart produced a populated ESP and a bootable disk.
+
 ### Version state (2026-11-10)
 
 `VERSION` in the tree is **0.1.5-alpha.0** (commit `014b71e`, authored 2026-11-10 22:29, touching VERSION,
