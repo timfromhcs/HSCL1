@@ -42,6 +42,14 @@ The decision is final only after the PoC ISO boots (see `docs/BUILD_LOG.md`).
 
 ## Privilege model
 
-UI and CLI run unprivileged. Privileged actions go through a finite, typed Polkit-authorised helper; the helper never
-accepts command strings. Read-only inspection (`hscl doctor`) never needs root and reports `skip`/`unknown`
-for values it cannot read rather than guessing.
+UI and CLI run unprivileged and **never escalate**. A command that would need root produces the exact
+command instead of running it: `hscl security firewall profile set` prints the `ufw` lines,
+`hscl system updates --install` prints `sudo apt-get dist-upgrade -y`, and `hscl lab` prints the
+`podman` invocation. The user copies it into a terminal, so the privileged step is visible and typed
+by a person, not by the UI.
+
+A finite, typed, Polkit-authorised helper (`services/hscl-privileged-helper` in the AGENTS.md layout)
+does **not** exist yet; there is no `services/` directory and no Polkit action in this repository.
+Until it does, nothing in the product performs a privileged action on the user's behalf. Read-only
+inspection (`hscl doctor`) never needs root and reports `skip`/`unknown` for values it cannot read
+rather than guessing.
