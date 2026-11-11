@@ -38,8 +38,19 @@ jobs:
       - name: Download parts and checksums
         run: |
           mkdir -p dl
-          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir dl --pattern '*.part*' --pattern 'SHA256SUMS'
+          # Two patterns in one call: gh versions disagree about repeated --pattern flags and stopped after
+          # the first asset on the 0.1.6 tag (only part000 arrived, then the verifier failed for the wrong
+          # reason). Download separately, then assert the count against SHA256SUMS.
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir dl --pattern '*.part*' --clobber
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir dl --pattern 'SHA256SUMS' --clobber
           ls -la dl
+          expected=$(grep -cE '\.part[0-9]{3}$' dl/SHA256SUMS)
+          actual=$(ls dl/*.part* 2>/dev/null | wc -l)
+          echo "parts listed in SHA256SUMS: $expected, downloaded: $actual"
+          if [ "$expected" -ne "$actual" ]; then
+            echo "::error::expected $expected parts but downloaded $actual"
+            exit 1
+          fi
       - name: Verify parts and the joined image (stream, no second copy)
         run: bash scripts/release-join.sh dl --verify-only
       - name: Summary
