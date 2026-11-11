@@ -1,0 +1,11 @@
+[
+  { "wait": 25 },
+  { "keys": ["ctrl", "alt", "t"] },
+  { "wait": 14 },
+  { "type": "kwriteconfig6 --file kdeglobals --group General --key desktopFont \"Ubuntu,10,-1,5,50,0,0,0,0,0\"; kquitapp6 plasmashell; sleep 2; plasmashell >/dev/null 2>&1 &" },
+  { "keys": ["ret"] },
+  { "wait": 35 },
+  { "keys": ["alt", "f4"] },
+  { "wait": 10 },
+  { "shot": "q52-e-general-desktopfont-ubuntu" }
+]

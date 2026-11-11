@@ -1,0 +1,16 @@
+[
+  { "wait": 12 },
+  { "keys": ["ctrl", "alt", "t"] },
+  { "wait": 13 },
+  { "type": "hscl lab status; echo '--- toolsets ---'; hscl lab toolsets list 2>&1 | head -12" },
+  { "keys": ["ret"] },
+  { "wait": 10 },
+  { "shot": "tl1-lab-status" },
+  { "type": "clear; hscl doctor; echo '--- logs ---'; hscl logs show 2>&1 | head -10" },
+  { "keys": ["ret"] },
+  { "wait": 12 },
+  { "shot": "tl2-doctor-logs" },
+  { "keys": ["alt", "f4"] },
+  { "wait": 4 },
+  { "shot": "tl3-desktop" }
+]

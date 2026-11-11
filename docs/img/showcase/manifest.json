@@ -61,15 +61,15 @@
  },
  {
   "filename": "09_terminal_hscl_lab.png",
-  "bytes": 59677,
-  "colors": 2681,
+  "bytes": 127863,
+  "colors": 17408,
   "size": [
    1280,
    800
   ],
-  "description": "Konsole: hscl lab security suite & hardware diagnostics; provenance not recorded - do not cite it as evidence for a specific candidate",
-  "timestamp": 1794234826.701219,
-  "source_iso": "unrecorded (capture predates the per-file provenance field)"
+  "description": "hscl lab status and the curated toolsets on a fresh live session: podman missing and the lab folder absent, reported as such (candidate rc8, 2026-11-11)",
+  "timestamp": 1794385292.7099583,
+  "source_iso": "HSCL1-rc8-amd64.iso sha256 0ea3290c"
  },
  {
   "filename": "16_terminal_privacy_security.png",
@@ -85,15 +85,15 @@
  },
  {
   "filename": "17_terminal_logs_and_diag.png",
-  "bytes": 87571,
-  "colors": 2777,
+  "bytes": 189559,
+  "colors": 16125,
   "size": [
    1280,
    800
   ],
-  "description": "Konsole: hscl logs redaction & language switching; provenance not recorded - do not cite it as evidence for a specific candidate",
-  "timestamp": 1794234866.6167622,
-  "source_iso": "unrecorded (capture predates the per-file provenance field)"
+  "description": "hscl doctor (6 passed, 0 failed, 1 skipped) and hscl logs show with redacted log lines (candidate rc8, 2026-11-11)",
+  "timestamp": 1794385326.918813,
+  "source_iso": "HSCL1-rc8-amd64.iso sha256 0ea3290c"
  },
  {
   "filename": "04_control_center_overview.png",
