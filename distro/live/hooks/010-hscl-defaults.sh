@@ -55,10 +55,10 @@ mkdir -p "$(dirname "$skel_kdeglobals")"
 [ -f "$skel_kdeglobals" ] || : > "$skel_kdeglobals"
 ensure_key "$skel_kdeglobals" General ColorScheme HCSMidnight
 ensure_key "$skel_kdeglobals" KDE widgetStyle Breeze
-# Desktop icon labels (visual audit 2026-11-10): every capture shows oblique (italic) icon labels that
-# overflow their cell. Set an explicit upright desktop font so no vendor look-and-feel can leave it
-# oblique. The horizontal alignment itself is upstream FolderView behaviour and still needs a booted
-# capture to confirm (Q-52); this key is the part that can be made deterministic without a guest.
+# Desktop icon labels (visual audit 2026-11-10): every capture shows oblique (italic) icon labels. The cause is
+# not the font: Plasma's FolderItemDelegate sets `font.italic: model.isLink`, so a desktop entry that is a
+# **symlink** is always drawn in italics. The image has 314 Noto font files and no Lato, so "Noto Sans" is the
+# correct family to pin; the icon entries themselves are installed as real files below instead of symlinks.
 ensure_key "$skel_kdeglobals" Fonts desktopFont "Noto Sans,10,-1,5,50,0,0,0,0,0"
 
 # Installer: use the HSCL1 Calamares branding and name the desktop entry after the product
@@ -159,8 +159,12 @@ patch_file "$ROOTFS/etc/calamares/modules/partition.conf" 's/^showNotEncryptedBo
 
 # Replace upstream marketing shortcuts on the live desktop with HSCL1 entries
 rm -f "$ROOTFS/etc/skel/Desktop/org.kfocus.web.howtos.desktop" "$ROOTFS/etc/skel/Desktop/org.kubuntu.web.home.desktop"
-ln -sf /usr/share/applications/hscl-handbook.desktop "$ROOTFS/etc/skel/Desktop/hscl-handbook.desktop"
-ln -sf /usr/share/applications/hscl-control-center.desktop "$ROOTFS/etc/skel/Desktop/hscl-control-center.desktop"
+# Plasma draws a desktop entry that is a symlink in italics (`FolderItemDelegate.qml: font.italic: model.isLink`),
+# so the two HSCL1 entries are installed as real copies rather than links. Same launcher, upright label.
+rm -f "$ROOTFS/etc/skel/Desktop/hscl-handbook.desktop" "$ROOTFS/etc/skel/Desktop/hscl-control-center.desktop"
+for entry in hscl-handbook hscl-control-center; do
+  install -m 0644 "$ROOTFS/usr/share/applications/$entry.desktop" "$ROOTFS/etc/skel/Desktop/$entry.desktop"
+done
 
 echo "010-hscl-defaults: patched $patched files"
 [ "$patched" -ge 13 ] || { echo "expected to patch at least 13 files" >&2; exit 1; }
