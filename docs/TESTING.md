@@ -182,6 +182,29 @@ therefore passes `-p no:randomly`: the gate is reproducible, and a real failure 
 one time in three. The underlying order dependence is still unexplained and tracked in
 [AUTONOMOUS_QUEUE](AUTONOMOUS_QUEUE.md).
 
+## Release and audit tooling (no VM)
+
+These were written after real mistakes and are the cheapest way to catch the same class again:
+
+| Tool | What it proves | Cost |
+|---|---|---|
+| `scripts/verify_release_consistency.py --version V --release-dir DIR [--github owner/repo]` | ISO hash vs `SHA256SUMS` and its manifest, every part hash, that the parts rejoin to the ISO, LF-only checksums, notes without placeholders, SBOM present, README and website quote the same digests, GitHub's recorded asset digests and the published notes body | hashes the set (minutes for 5 GB) |
+| `scripts/release_publish.py --version V --release-dir DIR [--dry-run]` | the upload order that survives a stall: draft first, one `gh release upload --clobber` per asset, then an explicit `--draft=false --prerelease`, then a check that it is really published | `--dry-run` prints the plan, no network |
+| `scripts/release_split.py IMAGE OUTDIR [PART_MIB]` | parts plus an LF `SHA256SUMS` (the CRLF bug of 2026-11-11 made every published checksum line fail on Linux) | seconds, no 9p |
+| `python -m pytest tests/unit/test_release_metadata_sync.py` | README checksums and `website/data/release.json` describe the same release | instant |
+| `scripts/dev/verify_in_guest_tracks.py --iso ISO --mem 4096 --out DIR` | the twelve in-guest tracks in one boot | ~15 min and an exclusive host |
+| `scripts/dev/probe_installer_kill.py --iso ISO` | the Q-61 discriminator: detached vs direct installer starts, with a 2 s control sample | ~10 min and an **exclusive** host |
+| `scripts/dev/tick.ps1 -Seconds 90` | a bounded background heartbeat that prints the next actionable queue row; it completes so the agent is woken | free |
+
+Two rules that came out of these:
+
+1. **A hash file that was never consumed on the target platform is not verified.** A local parser with
+   `str.strip()` accepted the CRLF checksums that made `sha256sum -c` fail on Linux; the cloud runner
+   caught it. The checker now rejects any CR byte before parsing.
+2. **A draft is not a release.** `gh release create` publishes only at the end; an interrupted upload
+   leaves an `untagged-...` URL that `gh release view` still reports with assets. Always finish with
+   `--draft=false` and assert `isDraft == false`.
+
 ## Evidence rules
 
 Status words (`TESTED`, `VM-VERIFIED`, …) follow AGENTS.md §0.4 and are recorded in `docs/BUILD_LOG.md` with the
