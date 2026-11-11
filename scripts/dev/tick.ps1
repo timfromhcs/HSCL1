@@ -23,10 +23,17 @@ function Get-NextOpenItem {
     param([string]$Path)
     try {
         if (-not (Test-Path $Path)) { return "queue missing" }
-        $line = Select-String -Path $Path -Pattern '^\|\s*(Q-\d+)\s*\|' |
-            Where-Object { $_.Line -match '\|\s*\*{0,2}OPEN' } |
-            Select-Object -First 1
-        if (-not $line) { return "no OPEN row" }
+        # Actionable = the status cell starts with OPEN, NARROWED, PARTIAL or BLOCKED. Matching only the
+        # literal word "OPEN" hid real work (Q-61 is NARROWED, Q-46 PARTIAL) and made the tick claim
+        # "no OPEN row" while a critical item was still open.
+        $line = Select-String -Path $Path -Pattern '^\|\s*(Q-\d+)\s*\|' | Where-Object {
+            $cells = $_.Line.Split('|')
+            if ($cells.Count -lt 5) { return $false }
+            # columns: '' | ID | item | gate | status | '' - the status is the second-to-last cell
+            $status = ($cells[$cells.Count - 2] -replace '^\s*\*+', '').Trim()
+            $status -match '^(OPEN|NARROWED|PARTIAL|BLOCKED|FIX IN THE TREE)'
+        } | Select-Object -First 1
+        if (-not $line) { return "no actionable row" }
         $cells = $line.Line.Split('|')
         return "$($cells[1].Trim()) - $($cells[2].Trim())"
     } catch { return "queue unreadable" }
