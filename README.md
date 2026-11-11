@@ -379,7 +379,10 @@ $ scripts/dev/wsl-cycle.sh iso --fast
 
 ## 📚 Project Documentation
 
-- [Claims & Evidence Ledger](docs/CLAIMS.md) — Exact status and proof targets for every feature.
+- [Claims & Evidence Ledger](docs/CLAIMS.md) - Exact status and proof targets for every feature.
+- [Installation guide](docs/INSTALLATION.md) - USB writing, the installer pages, encryption and recovery, with the untested parts named.
+- [VM guide](docs/VM_GUIDE.md) - The exact QEMU settings the tests use, install/LUKS boot commands and troubleshooting.
+- [Hardware compatibility](docs/HARDWARE_COMPATIBILITY.md) - What is verified (virtual machines) and what is not (everything physical).
 - [Known Limitations](docs/KNOWN_LIMITATIONS.md) — Honest disclosure of pre-alpha boundaries and gaps.
 - [Architecture Overview](docs/ARCHITECTURE.md) — System layers, packaging, and interaction model.
 - [Threat Model & Security](docs/THREAT_MODEL.md) — Security assumptions and container isolation rules.
