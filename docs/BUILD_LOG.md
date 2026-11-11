@@ -2372,8 +2372,12 @@ restart produced a populated ESP and a bootable disk.
 `Forbidden APT repos: none`, `root filesystem: ext4`, zram active, core dumps disabled. `unlock-after-wrong.png`
 shows the refusal before that.
 
-rc11 therefore carries `verify-image`, a plain install + boot + first login, and the LUKS2 install + unlock. Still
-missing on this artifact: the QA report (a first attempt died before writing anything) and the Security Lab chain.
+rc11 therefore carries `verify-image`, a plain install + boot + first login, and the LUKS2 install + unlock.
+
+The QA report also passed on rc11 on the second attempt: `scripts/qa_report.py artifacts/qa/report-rc11.txt` ->
+**exit 0** (9 checks ok, one `info` about Secure Boot), 2916 bytes. The first attempt had died with a 0-byte report
+and was recorded as a failure, not as "inconclusive": a harness/VM death is not a green result. Still missing on
+this artifact: the Security Lab chain.
 
 ### Version state (2026-11-10)
 
