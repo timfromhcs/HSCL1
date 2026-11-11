@@ -1,0 +1,21 @@
+[
+  { "wait": 12 },
+  { "keys": ["ctrl", "alt", "t"] },
+  { "wait": 13 },
+  { "type": "hscl-control-center > /dev/null 2>&1 &" },
+  { "keys": ["ret"] },
+  { "wait": 18 },
+  { "keys": ["alt", "f4"] },
+  { "wait": 5 },
+  { "shot": "cn1-overview" },
+  { "keys": ["down"] },
+  { "wait": 3 },
+  { "keys": ["down"] },
+  { "wait": 3 },
+  { "keys": ["down"] },
+  { "wait": 5 },
+  { "shot": "cn2-miner" },
+  { "keys": ["alt", "f4"] },
+  { "wait": 4 },
+  { "shot": "cn3-desktop" }
+]

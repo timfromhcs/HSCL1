@@ -2082,6 +2082,31 @@ The probe cannot say whether those two deaths happened in A or B, because the wr
 probe must use two log files or a marker. Not claimed: the killer is identified - it is not earlyoom and not a
 kernel OOM, and a SIGKILLed process leaves no core, so gdb is not the next tool.
 
+### Status wording in the guest, on rc6 (2026-11-11)
+
+One boot (`artifacts/boot-cc-miner`), Konsole, three commands:
+
+```text
+hscl privacy status | head -12
+hscl miner status | head -14
+hscl security status | head -8
+```
+
+`cm3-cli-status.png` shows, verbatim:
+
+- `privacy status`: `ephemeral (volatile RAM overlay)`, `ephemeral overlay: active`, `root filesystem: overlay`,
+  `zram memory swap: active`, `persistent disk swap: none`, `core dumps: disabled (fs.suid_dumpable = 0)`,
+  `internal disk mounts: none (host disks unmounted)`, `tor service: inactive`, `tor browser: not installed`,
+  followed by the notice that the Privacy Mode is **not** Tails and claims no absolute anonymity or forensic
+  invisibility.
+- `miner status`: config dir `~/.config/hscl`, receiver port 8765, `last device: none`,
+  `esptool: python3 -m esptool (found)`, and the exact authorization phrase that a write requires.
+- `security status`: AppArmor yes, UFW yes, Secure Boot unknown (off), `LUKS volumes open: 0` on the live medium,
+  no forbidden APT repos.
+
+The same run tried to open the Control Center through `alt+f2`, which did not bring up KRunner, so `cm1`/`cm2` are
+empty desktop frames - that capture is redone with a Konsole launch (`showcase-cc-pages.json`).
+
 ### Version state (2026-11-10)
 
 `VERSION` in the tree is **0.1.5-alpha.0** (commit `014b71e`, authored 2026-11-10 22:29, touching VERSION,
