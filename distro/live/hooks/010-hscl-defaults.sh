@@ -165,6 +165,17 @@ fi
 
 # Installer welcome page: no upstream donation link (HSCL1 has no donation page)
 patch_file "$ROOTFS/etc/calamares/modules/welcome.conf" 's#^showDonateUrl:.*#showDonateUrl: false#'
+# Installer language (visual QA 2026-11-11, rc11): the live session runs with LANG=C.UTF-8, Calamares then has no
+# usable system locale and greys in the first available translation alphabetically - the installer opened in
+# Azerbaijani ("Xoş Gəldiniz"). HSCL1 ships en/de/fr, so the initial language is pinned to English; the user can
+# still switch on the welcome page and the target locale is set by the locale module.
+patch_file "$ROOTFS/etc/calamares/modules/welcome.conf" 's/^\(\s*\)language:.*/\1language: "en"/'
+# ...and give the live session a real locale so other Qt/KDE tools do not have to guess either.
+locale_file="$ROOTFS/etc/default/locale"
+mkdir -p "$(dirname "$locale_file")"
+if ! grep -q '^LANG=' "$locale_file" 2>/dev/null; then
+  printf 'LANG="en_US.UTF-8"\n' >> "$locale_file"
+fi
 # Upstream website launchers must not appear in the application menu
 rm -f "$ROOTFS/usr/share/applications/org.kubuntu.web.home.desktop" "$ROOTFS/usr/share/applications/org.kfocus.web.howtos.desktop"
 patch_file "$ROOTFS/usr/share/applications/org.kubuntu.restore-desktop-links.desktop" 's/Re-create Kubuntu.s default desktop links/Re-create the default desktop links/'

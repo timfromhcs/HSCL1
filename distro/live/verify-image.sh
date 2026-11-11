@@ -153,6 +153,8 @@ check "live starter keeps the OEM branch"     grep -q 'calamares-launch-oem' "$r
 check "original live starter diverted"        test -f "$root/usr/libexec/start-kubuntu-live-env.kubuntu"
 # Visible upstream links and names found by the content scan (W24.6)
 check "installer: no upstream donate link"      grep -q '^showDonateUrl: false$' "$root/etc/calamares/modules/welcome.conf"
+check "installer language is pinned to English" grep -q 'language: "en"' "$root/etc/calamares/modules/welcome.conf"
+check "live locale is set"                      grep -q '^LANG="en_US.UTF-8"' "$root/etc/default/locale"
 check "no upstream website launcher (menu)"     test ! -e "$root/usr/share/applications/org.kubuntu.web.home.desktop"
 check "no Kubuntu Focus launcher (menu)"        test ! -e "$root/usr/share/applications/org.kfocus.web.howtos.desktop"
 check "SDDM theme id is hscl1"                  grep -q '^Theme-Id=hscl1$' "$root/usr/share/sddm/themes/hscl1/metadata.desktop"
