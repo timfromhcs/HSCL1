@@ -113,12 +113,26 @@ and which needs no search.
 
 ### Start the installer through the same wrapper the desktop icon uses
 
-The desktop entry runs `/usr/bin/hscl-calamares`, which sets `QT_QUICK_BACKEND=software` and
-`LIBGL_ALWAYS_SOFTWARE=1` before exec'ing the upstream launcher (the Qt Quick startup race, see
-`KNOWN_LIMITATIONS`). Scenarios that started `calamares-launch-normal` directly therefore tested a different
-code path than a user clicking the icon. `install-terminal.json`, `install-luks.json` and `luks-probe.json` now
-type `sudo -b /usr/bin/hscl-calamares`, so a VM run covers the wrapper. The two rc3 installs recorded on
+The desktop entry runs `/usr/bin/hscl-calamares`, which sets `QT_QUICK_BACKEND=software`, `LIBGL_ALWAYS_SOFTWARE=1`
+and `KCRASH_DUMP_ONLY=1`, then watches the exit code: a signal death within the first 60 s is restarted (up to
+three times), a normal exit or a late crash is passed through. Scenarios that started `calamares-launch-normal`
+directly therefore tested a different code path than a user clicking the icon. `install-terminal.json`,
+`install-luks.json` and `luks-probe.json` type `sudo -b /usr/bin/hscl-calamares`. The two rc3 installs recorded on
 2026-11-11 predate this change and used the upstream launcher; BUILD_LOG says so.
+
+### Probing the installer: kill the wrapper, not just Calamares
+
+The wrapper restarts the wizard, so `pkill -f 'calamares -D8'` between probe starts looks like a crash (SIGTERM,
+exit 143) and inflates every restart count - measured 2026-11-11 on rc5, where 9 of 9 restarts were the probe's
+own kills. Kill the wrapper first, then the app:
+
+```text
+sudo pkill -f hscl-calamares; sudo pkill -f 'calamares -D8'; sudo pkill -f drkonqi
+```
+
+and count real faults from the wrapper's own log, not from a screenshot of the wizard:
+`grep -c 'exit 137' /tmp/hscl-calamares.log` (SIGKILL). A restart that arrives too early gets Calamares' exit 87
+("another instance"), which the wrapper retries after 5 s.
 
 ### One command per checkpoint
 
