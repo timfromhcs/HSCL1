@@ -8,6 +8,8 @@ whose writes stay in RAM, no swap on disk, no core dumps, no automatic mounting 
 fail-closed Tor launcher - and it says so instead of claiming anonymity. If your safety depends on strong
 anonymity, use the official Tails release, which is a separate project with its own threat model.
 
+HSCL1 is not affiliated with or endorsed by the Tails project.
+
 ## What the live medium actually does (measured)
 
 `hscl privacy status` in the rc6 live guest (`artifacts/boot-cc-miner/cm3-cli-status.png`):
