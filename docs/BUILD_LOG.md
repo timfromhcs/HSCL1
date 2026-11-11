@@ -2164,6 +2164,25 @@ Both became the showcase images `04_control_center_overview.png` and `20_control
 LUKS2 evidence recorded for rc6 still applies to the code in this image; no install was re-run for this delta
 (QML, i18n, allowlist, docs).
 
+### LUKS2 on rc8: every VM gate now on one artifact (2026-11-11)
+
+| Item | Value |
+|---|---|
+| ISO | `HSCL1-rc8-amd64.iso`, SHA-256 `0ea3290c…` |
+| VM | UEFI + WHPX, **8 GB**, 4 vCPU, 40 GB qcow2 (`artifacts/vdisks/luks-rc8.qcow2`) |
+| Launcher | `/usr/bin/hscl-calamares` (software rendering, `KCRASH_DUMP_ONLY=1`, restart, 87 retry) |
+| Install | "All done. HSCL1 0.1.5-alpha.0" after 1834 s, `disk_idle_after_s` 184, `vm_exited: true` |
+| Boot | `iso=none`, 8 GB, wrong passphrase first, then the real one; 589 s to the checks |
+
+`artifacts/boot-luks-rc8`: `unlock-prompt.png`, `unlock-after-wrong.png` (refused, prompt returns),
+`unlock-after-correct.png`, `login-screen.png`, `w0-desktop.png`, and `w3-security-status.png` with
+`AppArmor enabled: yes`, `UFW enabled: yes`, `Secure Boot: unknown (no SecureBoot variable; Secure Boot off)`,
+**`LUKS volumes open: 1`**, `Forbidden APT repos: none`, `root filesystem: ext4`, zram active, core dumps disabled.
+
+With this run rc8 carries `verify-image`, the LUKS2 install + unlock, the QA report (exit 0) and the Control Center
+captures. The Security Lab chain was last verified on rc6 (`4a0d48a3…`); rc8 changes only the Control Center, so
+that evidence still describes the same image content for `hscl lab`.
+
 ### Version state (2026-11-10)
 
 `VERSION` in the tree is **0.1.5-alpha.0** (commit `014b71e`, authored 2026-11-10 22:29, touching VERSION,

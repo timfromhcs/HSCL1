@@ -1,0 +1,19 @@
+[
+  { "wait": 20 },
+  { "keys": ["ctrl", "alt", "t"] },
+  { "wait": 12 },
+  { "type": "kwriteconfig6 --file kdeglobals --group General --key font \"Ubuntu,10,-1,5,50,0,0,0,0,0\"; kquitapp6 plasmashell; plasmashell >/dev/null 2>&1 &" },
+  { "keys": ["ret"] },
+  { "wait": 30 },
+  { "shot": "q52-a-general-font-ubuntu" },
+  { "wait": 6 },
+  { "type": "kwriteconfig6 --file kdeglobals --group Fonts --key desktopFont \"Ubuntu,10,-1,5,50,0,0,0,0,0\"; kquitapp6 plasmashell; plasmashell >/dev/null 2>&1 &" },
+  { "keys": ["ret"] },
+  { "wait": 30 },
+  { "shot": "q52-b-plus-desktopfont" },
+  { "wait": 6 },
+  { "type": "kwriteconfig6 --file kdeglobals --group General --key font \"Noto Sans,10,-1,5,50,0,0,0,0,0\"; kquitapp6 plasmashell; plasmashell >/dev/null 2>&1 &" },
+  { "keys": ["ret"] },
+  { "wait": 30 },
+  { "shot": "q52-c-back-to-noto" }
+]

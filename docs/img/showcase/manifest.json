@@ -276,26 +276,26 @@
  },
  {
   "filename": "22_luks_unlock_prompt.png",
-  "bytes": 18395,
-  "colors": 406,
+  "bytes": 18430,
+  "colors": 408,
   "size": [
    1280,
    800
   ],
-  "description": "Boot of the encrypted install: the LUKS2 passphrase prompt before the system unlocks (candidate rc6, 2026-11-11)",
-  "timestamp": 1794370464.1771672,
-  "source_iso": "HSCL1-rc6-amd64.iso sha256 4a0d48a3"
+  "description": "Boot of the encrypted install: the LUKS2 passphrase prompt before the system unlocks (candidate rc8, 2026-11-11)",
+  "timestamp": 1794383848.4848824,
+  "source_iso": "HSCL1-rc8-amd64.iso sha256 0ea3290c"
  },
  {
   "filename": "23_luks_unlock_wrong.png",
-  "bytes": 24551,
+  "bytes": 24561,
   "colors": 416,
   "size": [
    1280,
    800
   ],
-  "description": "The same prompt after a wrong passphrase: cryptsetup refuses it, the prompt returns, nothing is destroyed (candidate rc6, 2026-11-11)",
-  "timestamp": 1794370483.5875554,
-  "source_iso": "HSCL1-rc6-amd64.iso sha256 4a0d48a3"
+  "description": "The same prompt after a wrong passphrase: cryptsetup refuses it, the prompt returns, nothing is destroyed (candidate rc8, 2026-11-11)",
+  "timestamp": 1794383867.510216,
+  "source_iso": "HSCL1-rc8-amd64.iso sha256 0ea3290c"
  }
 ]
