@@ -866,7 +866,7 @@ enum AppearanceWallpaperCmd {
     List,
     /// Apply a wallpaper preset by name.
     Set {
-        /// Preset name.
+        /// Preset id, not the effect name (see `hscl appearance wallpaper list`).
         name: String,
         /// Preview command without applying.
         #[arg(long)]
@@ -2991,9 +2991,12 @@ fn run_appearance(j: bool, cmd: AppearanceCmd) -> anyhow::Result<u8> {
             let v = serde_json::to_value(&presets)?;
             print_value(j, &v, || {
                 let mut s = format!("Available wallpaper preset(s) ({}):\n", presets.len());
+                // The effect matters as much as the name: `set grid` failed because "grid" is an effect, and a
+                // preset id like "grid-pulse" carries it. Print both, so the difference is visible.
                 for p in &presets {
-                    s.push_str(&format!("  - {:<16} ({})\n", p.id, p.name));
+                    s.push_str(&format!("  - {:<16} {:<12} ({})\n", p.id, p.effect, p.name));
                 }
+                s.push_str("\nUse the preset id with `hscl appearance wallpaper set <id>`.\n");
                 s
             });
             Ok(exit::OK)
