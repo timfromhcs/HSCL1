@@ -1796,8 +1796,15 @@ Two complete installs from the same ISO at **4 GB / UEFI / WHPX**, both ending o
 | 2 | `artifacts/install-rc3b` | `install-rc3b.qcow2` 9.52 GB | 1988 s | `t13-before-finish.png` = All done, `vm_exited: true` |
 
 The crash that killed rc2 while the first Qt Quick view was built did not recur in either run: the wizard stayed
-up from Welcome to Finish. Software rendering is why the runs took ~59 and ~33 minutes (`disk_idle_after_s` 136
-and 184) - the accepted trade, and the row in KNOWN_LIMITATIONS keeps the "evidence, not proof" wording.
+up from Welcome to Finish, and the second run exited cleanly (`vm_exited: true`).
+
+**Correction (same day):** these two runs were started **from a terminal with `sudo -b
+/usr/bin/calamares-launch-normal`**, which is what `install-terminal.json` typed at the time - so they did not go
+through the `/usr/bin/hscl-calamares` software-rendering wrapper at all, and the ~59/~33 minute durations are the
+plain-GPU path on QEMU std VGA, not the software-rendering cost. They prove the wizard can finish twice in a row;
+they do **not** prove the wrapper. Every install scenario now launches `/usr/bin/hscl-calamares`, and the LUKS2
+run is the first full install through the wrapper. The row in KNOWN_LIMITATIONS keeps the "evidence, not proof"
+wording.
 
 ### Version state (2026-11-10)
 

@@ -10,7 +10,7 @@
   "wait": 14
  },
  {
-  "type": "sudo -b /usr/bin/calamares-launch-normal"
+  "type": "sudo -b /usr/bin/hscl-calamares"
  },
  {
   "keys": [
