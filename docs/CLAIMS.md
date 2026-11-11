@@ -3,15 +3,13 @@
 Rule: nothing is stated as working without evidence. "unit-tested" means only the code logic ran in tests;
 it is **not** a claim that the feature works on real hardware or in the image.
 
-**Artifact identity.** The current source is `95f5f85` (2026-11-11); the newest VM-verified candidate is
-`HSCL1-rc3-amd64.iso` (`f1202eb0...`, commit `39f7c78`, version `0.1.5-alpha.0`), which adds the
-software-rendering installer wrapper to the `hscl lab` exit-code/local-image fixes and the honest status wording.
-Two complete 4 GB UEFI installs from rc3 both ended on "All done. HSCL1 0.1.5-alpha.0"
-(`artifacts/install-rc3` in 3545 s, `artifacts/install-rc3b` in 1988 s; ~9.5 GB written each), the first disk
-boots and logs in (`artifacts/boot-installed-rc3`), and neither run showed the KCrash that killed rc2 while its
-first Qt Quick view was built. `rc2` (`0ed86405...`) remains the artifact behind the Security Lab chain, the QA
-report and the showcase captures. The LUKS evidence from the same day belongs to `HSCL1-earlyoom-fix-amd64.iso`
-(`e723940b...`) and `HSCL1-qa-green-amd64.iso` (`5d4ea47e...`). The current published prerelease is `v0.1.5-alpha.0` (`c3ae31a6...`, 5,027,135,488 bytes, built from
+**Artifact identity.** The current source is `be37e05` (2026-11-11); the newest VM-verified candidate is
+`HSCL1-rc6-amd64.iso` (`4a0d48a3...`, commit `fa911e1`, version `0.1.5-alpha.0`), the first artifact that carries
+**every** VM gate: `verify-image` all checks passed, a LUKS2 install at 8 GB through `/usr/bin/hscl-calamares`
+with unlock (`LUKS volumes open: 1`), `qa_report.py` exit 0, and the Security Lab chain
+(`INSTALL=0`/`COMMIT=0`/`RUN=0`, Nmap 7.991). rc6 also has upright desktop labels, dark Kate and the wallpaper
+preset hint. Two plain 4 GB installs ran on `f1202eb0...` (rc3, upstream launcher) before the wrapper existed; the
+installer still dies in about one start in five and the wrapper restarts it (Q-61). The current published prerelease is `v0.1.5-alpha.0` (`c3ae31a6...`, 5,027,135,488 bytes, built from
 `406186d`); it booted UEFI at 4 GB in 242 s with `qa_report.py` exit 0, and its three parts rejoin to the
 same digest. The previous `v0.1.4-alpha.0` (`a7e055a7...`) was built from `ea8bbdc` and is **118 commits
 older**; it is superseded and remains downloadable for comparison only.
