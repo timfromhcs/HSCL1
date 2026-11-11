@@ -67,10 +67,22 @@ Item {
                 }
             }
             Text {
-                visible: statusFetch.error !== "" || probeFetch.error !== ""
+                visible: statusFetch.error !== ""
                 text: qsTr("Could not read miner data")
                 color: Theme.danger
                 font.pixelSize: Theme.fontMd
+            }
+            Text {
+                // A fresh system has no miner, and that is not an error: say what to do instead of painting the
+                // page red. Measured 2026-11-11 in the rc6 guest: with no device configured the page showed
+                // "Could not read miner data" in red, although `hscl miner status --json` answers fine with
+                // `last_device: null`.
+                visible: statusFetch.error === "" && page.device === ""
+                text: qsTr("No miner configured. Nothing is contacted until you add one.")
+                color: Theme.textSecondary
+                font.pixelSize: Theme.fontMd
+                wrapMode: Text.Wrap
+                Layout.fillWidth: true
             }
             Button {
                 text: qsTr("Refresh")

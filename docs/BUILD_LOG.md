@@ -2107,6 +2107,26 @@ hscl security status | head -8
 The same run tried to open the Control Center through `alt+f2`, which did not bring up KRunner, so `cm1`/`cm2` are
 empty desktop frames - that capture is redone with a Konsole launch (`showcase-cc-pages.json`).
 
+### Control Center: the Miner page painted a fresh system red (2026-11-11)
+
+`artifacts/boot-cc-pages2/co2-miner.png` on rc6 (`4a0d48a3…`, opened through the launcher):
+
+- Header, device and mining cards render correctly; `Address: No device configured`, every metric `—`.
+- Below them, **`Could not read miner data` in red** - although `hscl miner status --json` answers with exit 0 and
+  `last_device: null` on a fresh system (verified on the host with an empty `HOME`). A system without a miner is
+  not an error, and the page's own subtitle says "Nothing is configured here".
+
+Fix in `apps/control-center/qml/pages/MinerPage.qml`: the red banner is now bound to `statusFetch.error !== ""`
+only, and a neutral line appears when the CLI answered but no device is configured
+("No miner configured. Nothing is contacted until you add one."), with German and French translations in
+`i18n/hscl-cc_*.ts`. The new QML test
+`test_miner_page_without_a_device_is_not_an_error` uses a second mock (`last_device: null`) and a
+`visibleTexts()` helper, because a hidden `Text` still carries its string - the first version of the test failed on
+exactly that.
+
+Not claimed: the rc6 capture predates the fix, so the showcase image `20_control_center_miner.png` was **not**
+replaced; it needs a booted capture of the fixed page. Q-62 tracks that.
+
 ### Version state (2026-11-10)
 
 `VERSION` in the tree is **0.1.5-alpha.0** (commit `014b71e`, authored 2026-11-10 22:29, touching VERSION,

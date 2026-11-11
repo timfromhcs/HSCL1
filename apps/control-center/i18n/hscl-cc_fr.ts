@@ -277,6 +277,10 @@
 <context>
     <name>MinerPage</name>
     <message>
+        <source>No miner configured. Nothing is contacted until you add one.</source>
+        <translation>Aucun mineur configuré. Rien n'est contacté tant qu'aucun n'est enregistré.</translation>
+    </message>
+    <message>
         <source>Miner</source>
         <translation>Mineur</translation>
     </message>

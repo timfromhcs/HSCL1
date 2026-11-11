@@ -277,6 +277,10 @@
 <context>
     <name>MinerPage</name>
     <message>
+        <source>No miner configured. Nothing is contacted until you add one.</source>
+        <translation>Kein Miner eingerichtet. Es wird nichts kontaktiert, solange keiner hinterlegt ist.</translation>
+    </message>
+    <message>
         <source>Miner</source>
         <translation>Miner</translation>
     </message>

@@ -28,12 +28,33 @@ Item {
         }
     }
 
+    // A second mock for the "fresh system" case: the CLI answers fine, but no device was ever configured.
+    QtObject {
+        id: emptyMock
+        signal finished(string id, bool ok, var data, string error)
+        function request(id, args) {
+            var data = null
+            if (args.join(" ") === "miner status") data = { last_device: null, esptool_available: true, receiver_port: 8765 }
+            Qt.callLater(function () { finished(id, data !== null, data, data !== null ? "" : "no mock") })
+        }
+    }
+
     function texts(item) {
         var out = []
         if (item.text !== undefined && typeof item.text === "string") out.push(item.text)
         for (var i = 0; i < item.children.length; i++) out = out.concat(texts(item.children[i]))
         return out
     }
+    // Only what the user can actually see: a hidden Text still carries its `text`, so a plain text search would
+    // find the error banner even when the page shows the neutral "nothing configured" line instead.
+    function visibleTexts(item) {
+        var out = []
+        if (item.visible !== undefined && item.visible === false) return out
+        if (item.text !== undefined && typeof item.text === "string") out.push(item.text)
+        for (var i = 0; i < item.children.length; i++) out = out.concat(visibleTexts(item.children[i]))
+        return out
+    }
+    function joinedVisible(item) { return visibleTexts(item).join("|") }
     function joined(item) { return texts(item).join("|") }
 
     Component { id: overviewC; OverviewPage { width: 900; height: 600 } }
@@ -95,6 +116,14 @@ Item {
         function test_miner_page_survives_missing_backend_data() {
             var failing = createTemporaryObject(minerC, root, { backend: null })
             verify(failing !== null)
+        }
+
+        function test_miner_page_without_a_device_is_not_an_error() {
+            // Measured in the rc6 guest: with `last_device: null` the page showed "Could not read miner data"
+            // in red, although the CLI answered fine. It must say that nothing is configured instead.
+            var empty = createTemporaryObject(minerC, root, { backend: emptyMock })
+            tryVerify(function () { return joinedVisible(empty).indexOf("No miner configured") >= 0 })
+            verify(joinedVisible(empty).indexOf("Could not read miner data") < 0)
         }
 
         function test_pages_survive_missing_backend_data() {            var failing = createTemporaryObject(overviewC, root, { backend: null })
