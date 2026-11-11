@@ -10,7 +10,12 @@ private slots:
         for (const auto &c : QList<QStringList>{{"status"}, {"doctor"}, {"system", "info"}, {"security", "status"},
                                                 {"appearance", "theme", "list"}, {"appearance", "theme", "set", "hcs-nord"},
                                                 {"appearance", "theme", "set", "hcs-nord", "--dry-run"},
-                                                {"appearance", "theme", "show", "hcs-midnight"}})
+                                                {"appearance", "theme", "show", "hcs-midnight"},
+                                                // The Miner page needs these two; without them every request ended in
+                                                // "command not allowed" and the page showed the red error banner even
+                                                // with a healthy CLI (measured 2026-11-11 on rc6/rc7).
+                                                {"miner", "status"}, {"miner", "probe", "192.168.178.61"},
+                                                {"miner", "probe", "timsminer.local"}})
             QVERIFY2(CliBackend::isAllowed(c), qPrintable(c.join(' ')));
     }
     void rejectsEverythingElse() {
@@ -18,7 +23,9 @@ private slots:
                                                 {"appearance", "theme", "set", "../x"}, {"appearance", "theme", "set", "hcs-a;id"},
                                                 {"appearance", "theme", "set", "hcs-nord", "--yes"},
                                                 {"appearance", "theme", "show", "hcs-nord", "extra"},
-                                                {"appearance", "theme", "set", "HCS-Nord"}, {"doctor", "--full"}})
+                                                {"appearance", "theme", "set", "HCS-Nord"}, {"doctor", "--full"},
+                                                {"miner", "probe"}, {"miner", "probe", "-oProxyCommand=x"},
+                                                {"miner", "probe", "../../etc"}, {"miner", "ota", "1.2.3.4"}})
             QVERIFY2(!CliBackend::isAllowed(c), qPrintable(c.join(' ')));
     }
     void disallowedRequestFailsWithoutStartingAProcess() {

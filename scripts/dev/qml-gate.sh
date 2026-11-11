@@ -43,6 +43,25 @@ run_suite() {
 run_suite tests/qml_plugin
 run_suite apps/control-center/tests/qml
 
+# The C++ side of the Control Center (the CLI allowlist) had no gate at all until 2026-11-11: the Miner page was
+# silently refused by `CliBackend::isAllowed` and only ever showed its error banner. Build and run the backend test
+# when cmake and the Qt6 development files are present; skip with a reason otherwise (the gate must not depend on
+# packages the host may not have).
+if command -v cmake >/dev/null && [ -f /usr/lib/x86_64-linux-gnu/cmake/Qt6Quick/Qt6QuickConfig.cmake ]; then
+  cc_build="${TMPDIR:-/tmp}/hscl-cc-build"
+  rm -rf "$cc_build"
+  if cmake -S apps/control-center -B "$cc_build" -DCMAKE_BUILD_TYPE=Release >/dev/null 2>&1 \
+     && cmake --build "$cc_build" --target tst_backend -j"$(nproc)" >/dev/null 2>&1; then
+    echo "== tst_backend (Control Center CLI allowlist)"
+    ( cd "$cc_build" && QT_QPA_PLATFORM=offscreen ./tst_backend ) || exit 1
+  else
+    echo "qml-gate: could not build tst_backend (Qt6 dev files incomplete?)" >&2
+    exit 1
+  fi
+else
+  echo "qml-gate: tst_backend skipped (cmake or Qt6 dev files missing)"
+fi
+
 mapfile -t files < <(find apps/control-center/qml \
   packages/debian/hscl-desktop/usr/share/plasma/wallpapers/org.hcs.hscl1.rain \
   -name '*.qml' -type f | sort)

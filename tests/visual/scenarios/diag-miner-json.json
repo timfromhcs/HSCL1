@@ -1,0 +1,13 @@
+[
+  { "wait": 12 },
+  { "keys": ["ctrl", "alt", "t"] },
+  { "wait": 13 },
+  { "type": "command -v hscl; hscl miner status --json > /tmp/o 2>/tmp/e; echo EXIT=$?; echo STDOUT_BYTES=$(wc -c </tmp/o); head -3 /tmp/o; echo STDERR; cat /tmp/e" },
+  { "keys": ["ret"] },
+  { "wait": 8 },
+  { "shot": "d1-cli-json" },
+  { "type": "env | grep -E 'PATH|HOME|XDG' | head -6; ls -l /usr/bin/hscl /usr/bin/hscl1 2>&1" },
+  { "keys": ["ret"] },
+  { "wait": 6 },
+  { "shot": "d2-env" }
+]

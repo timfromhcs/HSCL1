@@ -2116,16 +2116,30 @@ empty desktop frames - that capture is redone with a Konsole launch (`showcase-c
   `last_device: null` on a fresh system (verified on the host with an empty `HOME`). A system without a miner is
   not an error, and the page's own subtitle says "Nothing is configured here".
 
-Fix in `apps/control-center/qml/pages/MinerPage.qml`: the red banner is now bound to `statusFetch.error !== ""`
-only, and a neutral line appears when the CLI answered but no device is configured
-("No miner configured. Nothing is contacted until you add one."), with German and French translations in
-`i18n/hscl-cc_*.ts`. The new QML test
+First fix attempt (`MinerPage.qml`): the red banner was bound to `statusFetch.error !== ""` only, and a neutral
+line appears when the CLI answered but no device is configured, with German and French translations. The QML test
 `test_miner_page_without_a_device_is_not_an_error` uses a second mock (`last_device: null`) and a
-`visibleTexts()` helper, because a hidden `Text` still carries its string - the first version of the test failed on
-exactly that.
+`visibleTexts()` helper, because a hidden `Text` still carries its string.
 
-Not claimed: the rc6 capture predates the fix, so the showcase image `20_control_center_miner.png` was **not**
-replaced; it needs a booted capture of the fixed page. Q-62 tracks that.
+**That was not the cause.** rc7 (`948116c3…`, which contains the change) still showed the red banner, and a
+follow-up boot proved the CLI is fine in the guest: `hscl miner status --json` returns exit 0, 324 bytes of valid
+JSON, empty stderr, `/usr/bin/hscl` resolves (`artifacts/boot-diag-miner/d1-cli-json.png`). The real cause is in
+the Control Center's own allowlist: `CliBackend::isAllowed()` accepted `status`, `doctor`, `security status` and
+the appearance commands but **not** `miner status` or `miner probe`, so every request ended in
+`finished(id, false, …, "command not allowed")` - the page could never leave its error state, with or without a
+miner.
+
+Fix: `{"miner","status"}` is in the allowlist and `miner probe <device>` is allowed when the device matches
+`^[A-Za-z0-9][A-Za-z0-9.-]{0,63}$` (no spaces, no slashes, no leading dash, so it cannot become an option or a
+path). `MinerPage` no longer appends `--json` itself (the backend does that). The C++ test `tst_backend` now covers
+both the allowed and the rejected forms (`-oProxyCommand=x`, `../../etc`, `miner ota …`).
+
+The backend test had **no gate at all** until now, which is why this could happen: `scripts/dev/qml-gate.sh`
+builds `tst_backend` with cmake and runs it when the Qt6 development files are present (skips with a reason
+otherwise), so the same class of mistake fails the gate in future.
+
+Not claimed yet: no booted capture shows the fixed page - rc7 predates the allowlist fix, so the showcase image
+`20_control_center_miner.png` was **not** replaced. Q-62 stays open until rc8 has been captured.
 
 ### Version state (2026-11-10)
 

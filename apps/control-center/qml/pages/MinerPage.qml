@@ -17,7 +17,7 @@ Item {
         function onResultChanged() {
             if (statusFetch.result && statusFetch.result.last_device) {
                 page.device = statusFetch.result.last_device
-                probeFetch.args = ["miner", "probe", page.device, "--json"]
+                probeFetch.args = ["miner", "probe", page.device]
                 probeFetch.reload()
             }
         }
