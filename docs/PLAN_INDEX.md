@@ -1,5 +1,28 @@
 # HSCL1 plan reconciliation index
 
+## Live status, 2026-11-11 evening (queue down to two open items)
+
+- **The execution queue is nearly empty.** `docs/AUTONOMOUS_QUEUE.md` has 66 rows; only **two** are still
+  actionable: **Q-46/Q-61** (the installer is SIGKILLed in roughly one start in 6-12) and **Q-13** (the
+  offline-handbook showcase capture). Everything else is DONE/CLOSED with artifact-bound evidence.
+- **0.1.6 is published and independently verified.** `v0.1.6-alpha.0` (`a916540c…`, source `13c3215`):
+  4 GB UEFI boot in 197 s, `qa_report.py` exit 0, 12/12 in-guest tracks green, and the GitHub release
+  workflow verified all three parts plus the streamed join on a Linux runner.
+- **CI is green on `5bb61ab`** (all eight jobs). The red runs before it were infrastructure: the Python
+  job could not apt-install pytest (now pip) and the QML job could not reach the Ubuntu archive over HTTP
+  (now HTTPS with a restore-and-retry fallback, 18-minute step budget).
+- **Honesty fixes landed today:** the privacy text no longer claims a fail-closed *network* policy (only the
+  launcher refuses a substitute browser), `ARCHITECTURE.md` no longer claims a Polkit helper that does not
+  exist, the installer is pinned to English and the live session gets `LANG=en_US.UTF-8` (rc11 opened in
+  Azerbaijani because Calamares had no system locale).
+- **Release machinery is tooled and gated:** `verify_release_consistency.py` (24 checks incl. GitHub asset
+  digests and the notes body), `release_publish.py` (draft → one upload per asset → explicit publish),
+  `release_split.py` (LF checksums), `test_release_metadata_sync.py` (README ↔ website).
+- **Q-46/Q-61 remains the v1 blocker** and needs an exclusive host: five VM attempts died on QMP resets
+  while a second QEMU ran, and the hook-based probe showed the installer cannot be started from a
+  non-interactive hook at all (both contexts `launched=0`). The next design is watcher + icon clicks, which
+  is what `tests/visual/scenarios/q61-watcher.json` now does.
+
 ## Live status, 2026-11-11 (source `349af12`, 71 commits after the 2026-11-10 audit)
 
 - **Two work streams share this repository.** The 2026-11-10 pass produced the audit, the honest

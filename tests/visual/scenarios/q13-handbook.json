@@ -1,0 +1,8 @@
+[
+  { "wait": 15 },
+  { "dclick": [0.14, 0.0975] },
+  { "wait": 50 },
+  { "shot": "handbook-1" },
+  { "wait": 20 },
+  { "shot": "handbook-2" }
+]
