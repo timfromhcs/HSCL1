@@ -211,6 +211,17 @@ def main(argv: list[str] | None = None) -> int:
             (r.ok("github part digests", f"{len(parts)} match") if not bad
              else r.fail("github part digests", f"mismatch: {', '.join(bad)}"))
             (r.ok("github sums asset") if remote.get("SHA256SUMS") else r.fail("github sums asset", "SHA256SUMS not uploaded"))
+            # The published notes are what users read. They drifted once (the generator still claimed
+            # "not tagged, not uploaded" after publishing), so compare them with the local file.
+            body = subprocess.run(
+                ["gh", "api", f"repos/{args.github}/releases/tags/v{args.version}", "--jq", ".body"],
+                capture_output=True, text=True, check=True, timeout=120,
+            ).stdout
+            local_notes = notes.read_text(encoding="utf-8")
+            if " ".join(body.split()) == " ".join(local_notes.split()):
+                r.ok("github release notes", "identical to release-notes.md")
+            else:
+                r.fail("github release notes", "the published body differs from release-notes.md")
         except (subprocess.SubprocessError, FileNotFoundError) as e:
             r.skip("github checks", f"gh unavailable: {e}")
 
