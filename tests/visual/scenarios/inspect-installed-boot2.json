@@ -1,0 +1,20 @@
+[
+  { "wait": 12 },
+  { "keys": ["ctrl", "alt", "t"] },
+  { "wait": 15 },
+  { "type": "sudo lsblk -f" },
+  { "keys": ["ret"] },
+  { "wait": 5 },
+  { "shot": "i1-lsblk" },
+  { "type": "sudo mount /dev/vda2 /mnt" },
+  { "keys": ["ret"] },
+  { "wait": 4 },
+  { "type": "ls /mnt" },
+  { "keys": ["ret"] },
+  { "wait": 4 },
+  { "shot": "i2-mnt" },
+  { "type": "sudo ls /mnt/boot" },
+  { "keys": ["ret"] },
+  { "wait": 4 },
+  { "shot": "i3-boot" }
+]

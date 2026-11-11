@@ -1,0 +1,9 @@
+[
+  { "wait": 12 },
+  { "keys": ["ctrl", "alt", "t"] },
+  { "wait": 13 },
+  { "type": "lsblk -o NAME,SIZE,FSTYPE,LABEL | head -12; echo '--- boot ---'; sudo mkdir -p /mnt/b; sudo mount /dev/vda2 /mnt/b 2>&1 | head -3; ls /mnt/b 2>/dev/null | head -8; echo '--- grub.cfg ---'; sudo head -12 /mnt/b/grub/grub.cfg 2>/dev/null" },
+  { "keys": ["ret"] },
+  { "wait": 10 },
+  { "shot": "g1-boot-inspect" }
+]

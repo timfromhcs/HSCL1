@@ -2287,6 +2287,29 @@ and is the only page there (`--pages 01-HSCL1`), which is more useful than Plasm
 avoids the state where the first window of a fresh install advertises KDE instead of HSCL1. rc10 carries this and
 is verified on a fresh install.
 
+### rc10: the first install boots into a GRUB shell (2026-11-11) - under investigation
+
+After the rc10 build passed every gate (including the two new Welcome Center checks), the plain 4 GB install
+finished ("All done", 2182 s, 9.52 GB) but the installed disk **did not boot the system**: the VM stopped at a
+`grub>` prompt and the harness typed the login password into it
+(`artifacts/boot-first-login-rc10b/shot-006.png`).
+
+What is measured so far:
+
+| Check | Evidence | Result |
+|---|---|---|
+| rc9 disk still boots | `artifacts/boot-rc9-disk-check` | yes, desktop (`wallpaper_match` 0.90 -> 1.00) |
+| rc10 disk layout | `artifacts/boot-inspect2-rc10/i1-lsblk.png` | `vda1` vfat FAT32 (ESP), `vda2` ext4 `hscl1_root` |
+| rc10 `/boot` content | `i3-boot.png` | `vmlinuz-7.0.0-30-generic`, `initrd.img-7.0.0-30-generic`, `grub/`, `efi/`, `System.map`, `config` - all present |
+
+So the installed tree is structurally complete, yet GRUB ends in its shell. Differences to the working rc9 run: the
+rc10 install reported `vm_exited: false` (the wizard's "Restart now" did not fire) and the VM was killed after
+"All done", i.e. the install was never followed by a normal shutdown.
+
+Not claimed: the cause. The discriminating step is a **fresh reinstall that is allowed to reboot on its own**
+(`artifacts/install-rc10b`); if that boots, the earlier failure was a one-off from the interrupted finish, and if it
+lands in the `grub>` prompt again the ESP/`grub.cfg` chain is the next thing to inspect - not to guess about.
+
 ### Version state (2026-11-10)
 
 `VERSION` in the tree is **0.1.5-alpha.0** (commit `014b71e`, authored 2026-11-10 22:29, touching VERSION,
