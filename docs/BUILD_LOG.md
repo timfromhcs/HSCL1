@@ -2376,8 +2376,13 @@ rc11 therefore carries `verify-image`, a plain install + boot + first login, and
 
 The QA report also passed on rc11 on the second attempt: `scripts/qa_report.py artifacts/qa/report-rc11.txt` ->
 **exit 0** (9 checks ok, one `info` about Secure Boot), 2916 bytes. The first attempt had died with a 0-byte report
-and was recorded as a failure, not as "inconclusive": a harness/VM death is not a green result. Still missing on
-this artifact: the Security Lab chain.
+and was recorded as a failure, not as "inconclusive": a harness/VM death is not a green result.
+
+The Security Lab chain passed on rc11 as well (`artifacts/lab-rc11`, 1361 s):
+`INSTALL=0` (podman 5.7.0, digest-pinned Kali pull `5cc5e418…`, toolset basic), `COMMIT=0`
+(`localhost/hscl-lab-demo:latest`), and `RUN=0` with **`Nmap version 7.991`**. With that, rc11 carries every gate
+the project has: `verify-image`, plain install + boot + first login without the KDE tour, LUKS2 install + unlock,
+the QA report, and the lab chain.
 
 ### Version state (2026-11-10)
 
