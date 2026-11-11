@@ -130,12 +130,20 @@ jobs:
         run: |
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/share/boost || true
           df -h /
-      - name: Use archive.ubuntu.com (the Azure mirror stalls per package)
+      - name: Use the HTTPS Ubuntu archive (plain HTTP is unreachable from the runner)
         run: |
-          sudo sed -i 's#http://azure.archive.ubuntu.com/ubuntu/#http://archive.ubuntu.com/ubuntu/#; s#mirror+file:/etc/apt/apt-mirrors.txt#http://archive.ubuntu.com/ubuntu/#' \
+          sudo cp -a /etc/apt/sources.list /tmp/sources.list.bak 2>/dev/null || true
+          sudo cp -a /etc/apt/sources.list.d /tmp/sources.list.d.bak 2>/dev/null || true
+          sudo sed -i 's#http://azure.archive.ubuntu.com/ubuntu/#https://archive.ubuntu.com/ubuntu/#; s#mirror+file:/etc/apt/apt-mirrors.txt#https://archive.ubuntu.com/ubuntu/#; s#http://archive.ubuntu.com/ubuntu/#https://archive.ubuntu.com/ubuntu/#' \
             /etc/apt/sources.list /etc/apt/sources.list.d/*.sources /etc/apt/sources.list.d/*.list 2>/dev/null || true
-          grep -rhs '^URIs\|^deb ' /etc/apt/sources.list /etc/apt/sources.list.d/ 2>/dev/null | head -5
-          for i in 1 2 3; do sudo timeout 120 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 update && break; done
+          if sudo timeout 180 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 update; then
+            echo "https archive reachable"
+          else
+            echo "https archive failed - restoring the image's own sources and letting the Qt step retry"
+            sudo cp -a /tmp/sources.list.bak /etc/apt/sources.list 2>/dev/null || true
+            sudo rm -rf /etc/apt/sources.list.d && sudo cp -a /tmp/sources.list.d.bak /etc/apt/sources.list.d 2>/dev/null || true
+            sudo timeout 180 apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 update || true
+          fi
       - name: Qt 6
         timeout-minutes: 18
         run: |
