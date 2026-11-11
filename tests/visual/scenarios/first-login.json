@@ -1,0 +1,6 @@
+[
+  { "wait": 25 },
+  { "shot": "fl1-first-login" },
+  { "wait": 12 },
+  { "shot": "fl2-first-login-later" }
+]
