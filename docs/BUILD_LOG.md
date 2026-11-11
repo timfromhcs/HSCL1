@@ -1977,6 +1977,21 @@ loops with fixed waits.
 What does stand from the rc5 probe: the fault is real (~20 % of starts, SIGKILL early), the wrapper survives it,
 and exit 87 after an early restart had to be made retryable.
 
+### rc6 candidate: the wrapper retries the single-instance lock too (2026-11-11)
+
+| Field | Value |
+|---|---|
+| Artifact | `HSCL1-rc6-amd64.iso` |
+| Bytes | 5 488 771 072 |
+| SHA-256 | `4a0d48a3f26f69a03b177c0a6681d9588d7299cf5b6b7c76d398b5b0bf6010a7` (build dir and the E: copy agree) |
+| Source commit | `fa911e1` |
+| Version | `0.1.5-alpha.0` |
+| Gates | `verify-image: all checks passed`, including the wrapper grep for `KCRASH_DUMP_ONLY=1` and the restart loop |
+
+Only delta to rc5: exit 87 (Calamares' single-instance lock) is retried after 5 s, because the rc5 probe showed a
+restart being thrown away with `attempt 1 exited with 87 after 1s (not a crash), giving up`. The LUKS2 install at
+8 GB runs on this image.
+
 ### Version state (2026-11-10)
 
 `VERSION` in the tree is **0.1.5-alpha.0** (commit `014b71e`, authored 2026-11-10 22:29, touching VERSION,
