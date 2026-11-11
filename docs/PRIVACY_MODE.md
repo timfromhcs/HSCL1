@@ -5,7 +5,7 @@ Everything below is either measured in that guest or explicitly marked as untest
 
 **HSCL1's Privacy Mode is not Tails.** It borrows properties that are cheap to provide honestly - a live session
 whose writes stay in RAM, no swap on disk, no core dumps, no automatic mounting of internal disks, and a
-fail-closed Tor launcher - and it says so instead of claiming anonymity. If your safety depends on strong
+Tor-Browser-only launcher - and it says so instead of claiming anonymity. If your safety depends on strong
 anonymity, use the official Tails release, which is a separate project with its own threat model.
 
 HSCL1 is not affiliated with or endorsed by the Tails project.
@@ -36,8 +36,9 @@ tor browser:           not installed
 
 - `hscl privacy tor status` reports whether a local SOCKS proxy answers and whether a Tor Browser launcher is
   available.
-- `hscl privacy tor launch` is **fail-closed**: if Tor Browser is not installed or the proxy does not answer, it
-  refuses to start anything instead of falling back to a direct connection.
+- `hscl privacy tor launch` starts **only** Tor Browser: if it is not installed, the command refuses instead of
+  launching another browser. This is a launcher rule. There is **no** egress filter and **no** killswitch, so
+  nothing stops a browser you start yourself from going online directly - do not read it as a Tor guarantee.
 - `hscl privacy session explain` prints the architecture of the ephemeral session.
 
 Installing Tor Browser is a user action from the upstream distribution channel; HSCL1 does not bundle it.
@@ -58,7 +59,7 @@ Installing Tor Browser is a user action from the upstream distribution channel; 
 ```bash
 hscl privacy status                 # the table above
 hscl privacy tor status             # SOCKS + launcher availability
-hscl privacy tor launch             # refuses without Tor Browser (fail-closed)
+hscl privacy tor launch             # starts Tor Browser only; refuses a substitute
 hscl privacy session explain        # architecture, in plain language
 hscl security status                # AppArmor, UFW, Secure Boot, LUKS
 ```

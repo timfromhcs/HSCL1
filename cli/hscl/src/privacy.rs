@@ -45,11 +45,13 @@ pub const SESSION_EXPLANATION: &str = r#"HSCL1 Privacy Mode: Architecture, Sessi
    mounted in the ephemeral privacy session. Host storage remains isolated unless the user
    explicitly chooses to mount a specific filesystem.
 
-5. Tor Network & Browser Fail-Closed Policy
+5. Tor Launcher, and What Is NOT Enforced
    Privacy web workflows use Tor Browser with upstream safe defaults.
-   If the Tor service is unavailable or Tor Browser is not installed, HSCL1 strictly FAILS
-   CLOSED: it refuses to launch standard desktop browsers (such as Firefox or Chromium) or
-   fall back to unencrypted direct internet egress.
+   `hscl privacy tor launch` starts Tor Browser and nothing else: if Tor Browser is not
+   installed it refuses with an error instead of substituting Firefox or Chromium. That is a
+   launcher rule, not a network rule - HSCL1 does NOT filter egress, does NOT block a browser
+   the user starts normally, and does NOT verify that traffic reached Tor. There is no
+   killswitch and no packet-capture evidence for a Tor-routed session.
 
 6. Clear Boundaries vs Authentic Tails
    HSCL1 is a unified multi-mode Linux workstation, NOT Tails:
@@ -91,7 +93,9 @@ pub struct TorStatus {
     pub service_active: bool,
     pub browser_installed: bool,
     pub browser_path: Option<String>,
-    pub fail_closed_policy: bool,
+    /// True because `tor_launch` refuses to start anything but Tor Browser. It is NOT a network policy:
+    /// nothing filters egress. The old name (`fail_closed_policy`) claimed more than the code does.
+    pub tor_launch_requires_browser: bool,
     pub notice: String,
 }
 
@@ -294,7 +298,7 @@ pub fn get_tor_status() -> TorStatus {
     let browser_installed = tor_browser_path.is_some();
 
     let notice = if !browser_installed {
-        "Tor Browser is not installed. Direct browser egress is prohibited by fail-closed policy (AGENTS.md section 6.5)."
+        "Tor Browser is not installed. `hscl privacy tor launch` will refuse to start anything else; HSCL1 does NOT block direct browsing or filter egress."
     } else if !service_active {
         "Tor service/proxy is not detected on ports 9050/9150. Tor Browser will start its own embedded tor process upon launch."
     } else {
@@ -305,16 +309,17 @@ pub fn get_tor_status() -> TorStatus {
         service_active,
         browser_installed,
         browser_path: tor_browser_path,
-        fail_closed_policy: true,
+        tor_launch_requires_browser: true,
         notice: notice.to_string(),
     }
 }
 
-/// Launch Tor Browser with strict fail-closed policy (refuses to fall back to normal browsers).
+/// Launch Tor Browser only. Without Tor Browser this refuses instead of substituting another browser; it does
+/// not and cannot stop the user from browsing directly, because no egress filtering exists.
 pub fn tor_launch(dry_run: bool) -> Result<String> {
     let browser_bin = find_tor_browser(None).ok_or_else(|| {
         anyhow::anyhow!(
-            "Tor Browser is not installed. HSCL1 strictly enforces a fail-closed policy: direct browser fallback (e.g. Firefox or Chromium) is prohibited in privacy workflows. Install torbrowser-launcher or configure Tor Browser."
+            "Tor Browser is not installed. `hscl privacy tor launch` refuses to start a different browser; this is a launcher rule, not a network policy - HSCL1 does not block direct browsing or filter egress. Install torbrowser-launcher or configure Tor Browser."
         )
     })?;
 
@@ -555,14 +560,14 @@ Filename				Type		Size		Used		Priority
     }
 
     #[test]
-    fn test_tor_launch_fails_closed_without_browser() {
+    fn test_tor_launch_refuses_without_a_browser() {
         let res = tor_launch(true);
-        // In test environments where torbrowser-launcher is not installed, it must fail closed
+        // Without torbrowser-launcher the launcher must refuse rather than substitute another browser
         if find_tor_browser(None).is_none() {
             assert!(res.is_err());
             let err_msg = format!("{:#}", res.unwrap_err());
-            assert!(err_msg.contains("fail-closed"));
-            assert!(err_msg.contains("prohibited"));
+            assert!(err_msg.contains("refuses to start a different browser"));
+            assert!(err_msg.contains("does not block direct browsing"), "the error must not imply egress filtering");
         }
     }
 }

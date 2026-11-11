@@ -17,7 +17,7 @@ media -> release infrastructure (GitHub, Vercel).
 |---|---|---|
 | Workstation | AppArmor, deny-incoming firewall, LUKS2, signed updates, no unneeded listeners | none yet (CLI can *report* AppArmor/UFW state) |
 | Security Lab | rootless Podman, no host mounts/sockets/devices by default, pinned image digests | none yet |
-| Privacy | Tor-only egress for the privacy workflow, fail-closed, no persistence by default | none yet |
+| Privacy | Tor Browser launcher only (no substitute browser); **no egress filtering, no killswitch** - nothing forces traffic through Tor; ephemeral live session, no persistence by default | egress enforcement and a packet-capture proof do not exist yet |
 
 ## Not provided
 Anonymity guarantees, protection from a compromised firmware/hypervisor, forensic invisibility, Tails-equivalent

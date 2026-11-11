@@ -81,25 +81,26 @@ def test_privacy_tor_status_text_and_json(hscl_bin: Path):
     assert res.returncode == 0
     assert "tor service:" in res.stdout
     assert "tor browser:" in res.stdout
-    assert "fail-closed:    enforced (no direct browser fallback)" in res.stdout
+    assert "tor launch:     requires Tor Browser (no substitute; egress is NOT filtered)" in res.stdout
 
     res_j = subprocess.run([str(hscl_bin), "--json", "privacy", "tor", "status"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     assert res_j.returncode == 0
     data = json.loads(res_j.stdout)
     assert "service_active" in data
     assert "browser_installed" in data
-    assert data["fail_closed_policy"] is True
+    assert data["tor_launch_requires_browser"] is True
+    assert "fail_closed_policy" not in data, "the old field claimed a network policy that does not exist"
     assert "notice" in data
 
 
-def test_privacy_tor_launch_fail_closed_without_browser(hscl_bin: Path):
-    # In test environments without torbrowser-launcher, must fail closed
+def test_privacy_tor_launch_refuses_without_a_browser(hscl_bin: Path):
+    # Without torbrowser-launcher the launcher must refuse, and must not pretend to filter egress
     res = subprocess.run([str(hscl_bin), "privacy", "tor", "launch", "--dry-run"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
     if shutil.which("torbrowser-launcher") is None and shutil.which("tor-browser") is None:
         assert res.returncode != 0
         output = res.stdout + res.stderr
-        assert "fail-closed" in output
-        assert "prohibited" in output
+        assert "refuses to start a different browser" in output
+        assert "does not block direct browsing" in output
     else:
         assert res.returncode == 0
         assert "[dry-run]" in res.stdout
@@ -112,7 +113,8 @@ def test_privacy_session_explain_text_and_json(hscl_bin: Path):
     assert "Volatile Memory & Swap Security" in res.stdout
     assert "fs.suid_dumpable = 0" in res.stdout
     assert "Host Storage Isolation" in res.stdout
-    assert "Tor Network & Browser Fail-Closed Policy" in res.stdout
+    assert "Tor Launcher, and What Is NOT Enforced" in res.stdout
+    assert "does NOT filter egress" in res.stdout
     assert "Clear Boundaries vs Authentic Tails" in res.stdout
 
     res_j = subprocess.run([str(hscl_bin), "--json", "privacy", "session", "explain"], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))

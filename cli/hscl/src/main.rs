@@ -949,7 +949,7 @@ enum PrivacyCmd {
 enum TorCmd {
     /// Check Tor daemon status and Tor Browser availability.
     Status,
-    /// Launch Tor Browser with fail-closed protection (no direct-browser fallback).
+    /// Launch Tor Browser only (no substitute). This is a launcher rule, not egress filtering.
     Launch {
         /// Print the launch command without executing.
         #[arg(long)]
@@ -3464,7 +3464,7 @@ fn run_privacy(j: bool, cmd: PrivacyCmd) -> anyhow::Result<u8> {
                 format!(
                     "tor service:    {s_str}\n\
                      tor browser:    {b_str}\n\
-                     fail-closed:    enforced (no direct browser fallback)\n\
+                     tor launch:     requires Tor Browser (no substitute; egress is NOT filtered)\n\
                      notice:         {}",
                     st.notice
                 )
