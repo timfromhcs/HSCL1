@@ -2061,6 +2061,27 @@ The next probe therefore runs six starts with the two memory killers active, pri
 `dmesg` OOM line, then stops `earlyoom` and `systemd-oomd` and runs six more starts
 (`installer-killer-probe.json`, captures `t1-killer-journal` / `t2-no-killers`).
 
+### Killer probe: no OOM involvement, the fault still shows up (2026-11-11)
+
+`tests/visual/scenarios/installer-killer-probe.json` on rc6 (`4a0d48a3…`, 4 GB), 1239 s,
+`artifacts/boot-killer-probe`:
+
+| Series | Starts | All up? | Crash lines in the wrapper log |
+|---|---|---|---|
+| A: `earlyoom` + `systemd-oomd` active | 6 | yes, `A1`-`A6` | not separated from B (the log was cleared once for A) |
+| B: both stopped | 6 | yes, `B1`-`B6` | 2 in total across A+B: `exit 137` after 9 s and after 2 s |
+
+`t1-killer-journal.png` prints earlyoom's own log: it started, its avoid regex names `calamares` and `drkonqi`
+explicitly, `mem avail: 3423 of 3468 MiB (98.70%)`, and `dmesg` shows **no** `Out of memory` or
+`Killed process` lines. So the machine was not under memory pressure and earlyoom did not take the installer.
+
+What it does show: the fault is still there, roughly **1 in 6 to 1 in 12 starts**, and the wrapper caught both
+deaths and kept the wizard up (`A1`-`A6`, `B1`-`B6` all presented a running installer 40 s after the start).
+
+The probe cannot say whether those two deaths happened in A or B, because the wrapper log is shared; a future
+probe must use two log files or a marker. Not claimed: the killer is identified - it is not earlyoom and not a
+kernel OOM, and a SIGKILLed process leaves no core, so gdb is not the next tool.
+
 ### Version state (2026-11-10)
 
 `VERSION` in the tree is **0.1.5-alpha.0** (commit `014b71e`, authored 2026-11-10 22:29, touching VERSION,
