@@ -24,6 +24,12 @@ def test_the_hook_gives_the_live_session_a_locale():
     assert "etc/default/locale" in HOOK
 
 
+def test_the_hook_appends_the_key_when_upstream_does_not_carry_it():
+    """`patch_file` is a no-op for a missing file and sed only replaces an existing key."""
+    assert 'if [ -f "$welcome_conf" ] && ! grep -q' in HOOK
+    assert "printf 'language: \"en\"\\n' >> \"$welcome_conf\"" in HOOK
+
+
 def test_the_image_gate_checks_both():
     assert 'installer language is pinned to English' in GATE
     assert 'live locale is set' in GATE

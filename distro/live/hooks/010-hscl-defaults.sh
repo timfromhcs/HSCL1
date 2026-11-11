@@ -170,6 +170,13 @@ patch_file "$ROOTFS/etc/calamares/modules/welcome.conf" 's#^showDonateUrl:.*#sho
 # Azerbaijani ("Xoş Gəldiniz"). HSCL1 ships en/de/fr, so the initial language is pinned to English; the user can
 # still switch on the welcome page and the target locale is set by the locale module.
 patch_file "$ROOTFS/etc/calamares/modules/welcome.conf" 's/^\(\s*\)language:.*/\1language: "en"/'
+# `patch_file` is a no-op when the file is absent, and the sed above only replaces an existing key. The upstream
+# welcome.conf has carried `language:` for years, but a build must not depend on that: append the key when the
+# file exists without it, at column 0 so a preceding YAML list is closed cleanly.
+welcome_conf="$ROOTFS/etc/calamares/modules/welcome.conf"
+if [ -f "$welcome_conf" ] && ! grep -q '^[[:space:]]*language:' "$welcome_conf"; then
+  printf 'language: "en"\n' >> "$welcome_conf"
+fi
 # ...and give the live session a real locale so other Qt/KDE tools do not have to guess either.
 locale_file="$ROOTFS/etc/default/locale"
 mkdir -p "$(dirname "$locale_file")"
