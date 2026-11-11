@@ -1,6 +1,6 @@
 # Known limitations (truthful list)
 
-Status of this document: maintained with every phase. Last reconciliation: **2026-11-11, source `b919c68`** (queue and audit: [`AUTONOMOUS_QUEUE.md`](AUTONOMOUS_QUEUE.md), [`AUDIT_2026-11-10.md`](AUDIT_2026-11-10.md)). The newest VM-verified candidate is `HSCL1-rc9-amd64.iso` (`0a3c2341…`, source `349af12`); the published prerelease is `v0.1.5-alpha.0` (`c3ae31a6…`, built from `406186d`), which **predates** the rc3–rc9 fixes (upright desktop labels, the installer restart wrapper, the Control Center Miner page) and is therefore not the current state of the tree. Neither is a v1 release candidate.
+Status of this document: maintained with every phase. Last reconciliation: **2026-11-11** (queue and audit: [`AUTONOMOUS_QUEUE.md`](AUTONOMOUS_QUEUE.md), [`AUDIT_2026-11-10.md`](AUDIT_2026-11-10.md)). The published prerelease is `v0.1.6-alpha.0` (`a916540c…`, 5 488 771 072 B, built from `13c3215`): 4 GB UEFI boot in 197 s, `qa_report.py` exit 0, upright desktop labels without the untrusted emblem. It is **not** a v1 release candidate: physical hardware, USB boot, TPM unlocking, a Tor-routed privacy session and release signing remain unverified, and the installer's intermittent startup kill (Q-61) is still open.
 
 HSCL1 is **pre-alpha**. Nothing below has been tested on physical hardware. Rows are corrected whenever an earlier status turns out to
 be stale - a limitation list that lags behind reality is a false claim in the other direction.

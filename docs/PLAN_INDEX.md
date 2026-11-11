@@ -28,7 +28,8 @@
   from a preview.
 - **CI:** the 2026-11-10 fixes (filesystem-root storage path, Pillow for the screenshot gate, rustfmt)
   turned the Rust and Python jobs green; the last full run before this entry was **all 8 jobs success**.
-- **0.1.6 is prepared, not built.** Branch `release/0.1.6` (commit `506cfd9`, in a separate worktree `E:\hscl1-release` and a separate WSL checkout `~/hscl1-release-src`) carries only the version bump plus the `0755` desktop-entry fix. Two attempts to build it in parallel with the other stream's `rc10` died because the WSL VM has 5.9 GB of RAM and the remaster needs the whole machine; the next attempt runs with a `tee` log as soon as that build finishes. Nothing about 0.1.6 is published, and no evidence row refers to it.
+- **0.1.6 is published (prerelease).** `v0.1.6-alpha.0` (`a916540c…`, 5 488 771 072 B, built from `13c3215` in a separate worktree and WSL checkout) booted UEFI at 4 GB in 197 s with `qa_report.py` exit 0. One capture closed three rows: upright labels (Q-52), no untrusted emblem (Q-63), label centre within 1 px of the icon centre (Q-60). Parts, checksums, manifest, SBOM and notes are on the release; README and website carry the same digests, enforced by `test_release_metadata_sync.py`.
+
 - **Release staleness rule stays binding:** an artifact proves only the commit it names. `0.1.5` names
   `406186d`; `rc9` names `349af12`; neither is `HEAD`.
 
