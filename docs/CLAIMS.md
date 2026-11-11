@@ -3,18 +3,7 @@
 Rule: nothing is stated as working without evidence. "unit-tested" means only the code logic ran in tests;
 it is **not** a claim that the feature works on real hardware or in the image.
 
-**Artifact identity.** The current source is `349af12` (2026-11-11); the newest candidate is
-`HSCL1-rc9-amd64.iso` (`0a3c2341...`, commit `349af12`, version `0.1.5-alpha.0`), which opens the Welcome
-Center on the HSCL1 page, on top of `HSCL1-rc8-amd64.iso` (`0ea3290c...`, Control Center allowlist fix) and
-`HSCL1-rc6-amd64.iso` (`4a0d48a3...`), the first
-artifact that carries **every** VM gate: `verify-image` all checks passed, a LUKS2 install at 8 GB through `/usr/bin/hscl-calamares`
-with unlock (`LUKS volumes open: 1`), `qa_report.py` exit 0, and the Security Lab chain
-(`INSTALL=0`/`COMMIT=0`/`RUN=0`, Nmap 7.991). rc6 also has upright desktop labels, dark Kate and the wallpaper
-preset hint. Two plain 4 GB installs ran on `f1202eb0...` (rc3, upstream launcher) before the wrapper existed; the
-installer still dies in about one start in five and the wrapper restarts it (Q-61). The current published prerelease is `v0.1.5-alpha.0` (`c3ae31a6...`, 5,027,135,488 bytes, built from
-`406186d`); it booted UEFI at 4 GB in 242 s with `qa_report.py` exit 0, and its three parts rejoin to the
-same digest. The previous `v0.1.4-alpha.0` (`a7e055a7...`) was built from `ea8bbdc` and is **118 commits
-older**; it is superseded and remains downloadable for comparison only.
+**Artifact identity.** The tree is at `224ce26` (2026-11-11) and moves quickly: a second work stream is building `rc3`…`rc10` from its own commits. The newest **VM-verified** candidate is `HSCL1-rc9-amd64.iso` (`0a3c2341...`, 5 488 771 072 B, source `349af12`, `git_dirty: false`). The published prerelease is `v0.1.5-alpha.0` (`c3ae31a6...`, 5 027 135 488 B, built from `406186d`, xz) — it **predates** the rc3+ fixes (upright desktop labels, the installer restart wrapper, the Control Center Miner page), so it is not the state of the tree. A `0.1.6-alpha.0` release branch (`release/0.1.6`, commit `506cfd9`) is prepared with the version bump only; it is **not built or published**, and no row below refers to it. Rows are historical evidence for the artifact they name, never proof for the current tree. The 2026-11-10 audit and the open rows are in [AUDIT_2026-11-10.md](AUDIT_2026-11-10.md) and [AUTONOMOUS_QUEUE.md](AUTONOMOUS_QUEUE.md).
 
 Rows below were recorded against earlier images (`0.1.3-alpha.0`
 `2e30b750...`, built from `a55e023`; and a later local candidate that is no longer on disk). **A row is
