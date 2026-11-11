@@ -1,0 +1,9 @@
+[
+  { "wait": 12 },
+  { "keys": ["ctrl", "alt", "t"] },
+  { "wait": 13 },
+  { "type": "plasma-welcome --pages 01-HSCL1 > /tmp/w3.txt 2>&1 & sleep 16; head -5 /tmp/w3.txt" },
+  { "keys": ["ret"] },
+  { "wait": 22 },
+  { "shot": "wh3-pages-01-HSCL1" }
+]

@@ -2183,6 +2183,34 @@ With this run rc8 carries `verify-image`, the LUKS2 install + unlock, the QA rep
 captures. The Security Lab chain was last verified on rc6 (`4a0d48a3…`); rc8 changes only the Control Center, so
 that evidence still describes the same image content for `hscl lab`.
 
+### Welcome Center: the first page is now the HSCL1 page (2026-11-11)
+
+Measured on rc8: the Welcome Center opens on Plasma's built-in "Welcome to the HSCL1 operating system running KDE
+Plasma!" page with the green Konqi mascot (`artifacts/boot-luks-rc8/w0-desktop.png`). `plasma-welcome` shows its
+compiled-in pages first and appends `/usr/share/plasma/plasma-welcome/extra-pages/*.qml` afterwards, so our renamed
+page was always last, and the binary exposes no priority key (Q-45).
+
+`plasma-welcome --help` (captured in `artifacts/boot-welcome-probe/wh1-help.png`) documents two relevant options:
+
+```text
+--live-environment      Display the live page intended for distro live environments.
+--pages <pages>         Specify comma-delimited list of page(s) (by internal name) to be displayed.
+```
+
+The internal name is the **file stem** in `extra-pages`: `--pages HSCL1` tried `extra-pages/HSCL1.qml` and showed
+"Error loading page … No such file or directory" (`wh2-pages-hscl1.png`), while `--pages 01-HSCL1` opened our page
+as the **only** page - "Welcome to HSCL1", one dot in the navigation, Skip/Finish
+(`artifacts/boot-welcome-name/wh3-pages-01-HSCL1.png`).
+
+The hook now patches the desktop entry:
+`Exec=plasma-welcome` → `Exec=plasma-welcome --pages 01-HSCL1`, the image gate asserts that line, and
+`tests/unit/test_welcome_page_first.py` pins the flag together with the page file stem (a rename fails the test
+rather than the guest). rc9 carries this.
+
+**Honest limit:** this covers launches through the desktop entry. The first-login Welcome Center on an *installed*
+system comes from a path that is not in the live rootfs (no autostart file there names plasma-welcome), so that
+path is **not** verified; it is recorded as the remaining part of Q-45.
+
 ### Version state (2026-11-10)
 
 `VERSION` in the tree is **0.1.5-alpha.0** (commit `014b71e`, authored 2026-11-10 22:29, touching VERSION,

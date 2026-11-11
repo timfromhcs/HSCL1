@@ -1,0 +1,13 @@
+[
+  { "wait": 12 },
+  { "keys": ["ctrl", "alt", "t"] },
+  { "wait": 13 },
+  { "type": "plasma-welcome --help > /tmp/w.txt 2>&1; cat /tmp/w.txt" },
+  { "keys": ["ret"] },
+  { "wait": 8 },
+  { "shot": "wh1-help" },
+  { "type": "plasma-welcome --pages HSCL1 > /tmp/w2.txt 2>&1 & sleep 14; head -5 /tmp/w2.txt" },
+  { "keys": ["ret"] },
+  { "wait": 20 },
+  { "shot": "wh2-pages-hscl1" }
+]

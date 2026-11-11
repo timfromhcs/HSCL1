@@ -123,6 +123,11 @@ patch_file "$ROOTFS/etc/default/grub" 's/^GRUB_DISTRIBUTOR=.*/GRUB_DISTRIBUTOR=H
 # Upstream flavour marketing and artwork that must not stay visible (Welcome Center page with a donation call, installer slideshow of the
 # old branding directory, tour/donate graphics, bug avatar). The HSCL1 welcome page comes from the hscl-branding package.
 rm -f "$ROOTFS/usr/share/plasma/plasma-welcome/extra-pages/01-Kubuntu.qml"
+# Open the Welcome Center on the HSCL1 page. Measured 2026-11-11 on rc8: `plasma-welcome --help` documents
+# `--pages <pages>` ("comma-delimited list of page(s) by internal name"), and the internal name is the file stem in
+# extra-pages, so `--pages 01-HSCL1` opened the HSCL1 page as the only page (artifacts/boot-welcome-name). Without
+# it the first thing a new user sees is Plasma's built-in "Welcome to KDE" page with the Konqi mascot.
+patch_file "$ROOTFS/usr/share/applications/org.kde.plasma-welcome.desktop" 's/^Exec=plasma-welcome$/Exec=plasma-welcome --pages 01-HSCL1/'
 rm -rf "$ROOTFS/etc/calamares/branding/kubuntu"
 rm -f "$ROOTFS/usr/share/kubuntu-default-settings/kubuntu_donate.svg" "$ROOTFS/usr/share/kubuntu-default-settings/kubuntu_tour.svg"       "$ROOTFS/usr/share/plasma/avatars/kubuntu-bug.png"
 # Global-theme, desktop-theme and panel-layout entries still list the upstream flavour by name in System Settings: rename the visible
