@@ -1855,6 +1855,25 @@ The 4 GB `/boot` stays in clear text on purpose: the installer warns about it in
 read the kernel without the passphrase. The install took ~33 minutes because the installer renders in software;
 the previous native-GPU LUKS install on `e723940b…` needed 1786 s for the same plan.
 
+### rc4 candidate: the visual fixes reach the image (2026-11-11)
+
+| Field | Value |
+|---|---|
+| Artifact | `HSCL1-rc4-amd64.iso` |
+| Bytes | 5 488 771 072 |
+| SHA-256 | `2277a09c465f93b265f7b1090ca235c9adaa873faa0f4f2ba1da6b57f4704bd8` (build dir and the E: copy agree) |
+| Source commit | `7c17822` |
+| Version | `0.1.5-alpha.0` |
+| Gates | `verify-image: all checks passed`, including the new `live desktop: handbook entry` and `live desktop: control-center entry` (real files, not symlinks) |
+
+Carries the three fixes that rc3 still lacked: the wallpaper CLI names the presets that carry an effect
+(`wallpaper::find`), the two desktop entries are installed as real `.desktop` files so Plasma stops italicising
+them, and `/etc/skel/.config/katerc` pins Breeze Dark for Kate.
+
+Booted at 4 GB with `--qa-out`: `scripts/qa_report.py` → **exit 0** (9 checks ok, one `info` line about Secure
+Boot), `hscl doctor` 6 passed / 0 failed / 1 skipped, `hscl status` valid JSON with `luks_mapped_devices: 0` on
+the live medium.
+
 ### Version state (2026-11-10)
 
 `VERSION` in the tree is **0.1.5-alpha.0** (commit `014b71e`, authored 2026-11-10 22:29, touching VERSION,
