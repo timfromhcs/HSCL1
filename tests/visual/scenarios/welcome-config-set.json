@@ -1,0 +1,12 @@
+[
+  { "wait": 8 },
+  { "keys": ["ctrl", "alt", "t"] },
+  { "wait": 12 },
+  { "type": "kwriteconfig6 --file plasma-welcomerc --group General --key LastSeenVersion 6.6.6; kreadconfig6 --file plasma-welcomerc --group General --key LastSeenVersion; ls -l ~/.config/plasma-welcomerc" },
+  { "keys": ["ret"] },
+  { "wait": 5 },
+  { "shot": "x1-set-666" },
+  { "type": "systemctl poweroff" },
+  { "keys": ["ret"] },
+  { "wait": 15 }
+]

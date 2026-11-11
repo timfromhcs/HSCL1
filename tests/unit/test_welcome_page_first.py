@@ -34,3 +34,25 @@ def test_the_image_gate_checks_the_desktop_entry():
     text = GATE.read_text(encoding="utf-8")
     assert "Welcome Center opens on the HSCL1 page" in text
     assert "Exec=plasma-welcome --pages 01-HSCL1" in text
+
+
+def test_the_tour_is_marked_as_seen_for_new_users():
+    """Plasma starts the tour itself at the first login, without arguments and without an autostart file.
+
+    Measured 2026-11-11 on an installed rc9 disk: `grep -rl plasma-welcome /etc/xdg/autostart
+    /usr/share/applications /home/*/.config` finds only the two desktop files, and the first login showed the KDE
+    page with eight dots. Writing `LastSeenVersion` = installed Plasma version into
+    `~/.config/plasma-welcomerc` suppressed it (`artifacts/boot-first-login-rc9b/fl1-first-login.png` shows the
+    bare desktop). The hook must derive that version from the package, never hardcode it.
+    """
+    text = HOOK.read_text(encoding="utf-8")
+    assert "plasma-welcomerc" in text
+    assert "LastSeenVersion" in text
+    assert "Package: plasma-workspace" in text, "the version must come from the package, not a literal"
+    assert "6.6." not in text.split("plasma_ver=")[1].split("ensure_key")[0], "no hardcoded version"
+
+
+def test_the_image_gate_checks_the_suppression():
+    text = GATE.read_text(encoding="utf-8")
+    assert "Welcome Center tour suppressed for new users" in text
+    assert "LastSeenVersion=[0-9]+" in text

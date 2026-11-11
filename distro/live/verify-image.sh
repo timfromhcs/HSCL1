@@ -140,6 +140,7 @@ check "GRUB distributor is HSCL1"              grep -q '^GRUB_DISTRIBUTOR=HSCL1$
 check "no Kubuntu Welcome Center page"         test ! -e "$root/usr/share/plasma/plasma-welcome/extra-pages/01-Kubuntu.qml"
 check "HSCL1 Welcome Center page"               grep -q 'Welcome to HSCL1' "$root/usr/share/plasma/plasma-welcome/extra-pages/01-HSCL1.qml"
 check "Welcome Center opens on the HSCL1 page" grep -q '^Exec=plasma-welcome --pages 01-HSCL1$' "$root/usr/share/applications/org.kde.plasma-welcome.desktop"
+check "Welcome Center tour suppressed for new users" grep -qE '^LastSeenVersion=[0-9]+\.[0-9]+\.[0-9]+$' "$root/etc/skel/.config/plasma-welcomerc"
 check "old Calamares flavour branding removed"  test ! -e "$root/etc/calamares/branding/kubuntu"
 check "no flavour donate/tour artwork"          sh -c "! ls '$root'/usr/share/kubuntu-default-settings/ | grep -E 'kubuntu_(donate|tour)'"
 check "global themes renamed (no Kubuntu Name)" sh -c "! grep -E '\"Name\": *\"[^\"]*Kubuntu' '$root'/usr/share/plasma/look-and-feel/org.kubuntu*.desktop/metadata.json"

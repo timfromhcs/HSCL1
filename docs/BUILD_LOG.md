@@ -2267,6 +2267,26 @@ Two candidate fixes, neither implemented because both carry risk that a booted c
 
 Q-45 keeps the first-login half open with this evidence rather than a claim.
 
+### The first-login tour is suppressed, not just re-ordered (2026-11-11)
+
+The follow-up experiment on the installed rc9 disk found the mechanism and a working fix:
+
+| Step | Evidence | Result |
+|---|---|---|
+| Read the state file | `artifacts/boot-welcome-config/w1-config-before.png` | `~/.config/plasma-welcomerc`, `[General] LastSeenVersion=6.6.5`, while `plasmashell --version` is **6.6.6** - the tour reopens because the version differs |
+| Write the installed version | `boot-welcome-set/x1-set-666.png` | `kwriteconfig6 … LastSeenVersion 6.6.6`, read back as 6.6.6 |
+| Log in again | `artifacts/boot-first-login-rc9b/fl1-first-login.png` | **no Welcome Center at all** - the bare HSCL1 desktop |
+
+So the first-login path is solved without touching AppArmor: the image now pre-seeds `LastSeenVersion` in
+`/etc/skel/.config/plasma-welcomerc`, derived from the `plasma-workspace` package version in
+`var/lib/dpkg/status` (no hardcoded number), the image gate asserts the key has a `x.y.z` value, and
+`tests/unit/test_welcome_page_first.py` pins that the version comes from the package.
+
+Trade-off, stated plainly: new users no longer get an automatic tour at all. The HSCL1 page is one menu click away
+and is the only page there (`--pages 01-HSCL1`), which is more useful than Plasma's built-in marketing page and
+avoids the state where the first window of a fresh install advertises KDE instead of HSCL1. rc10 carries this and
+is verified on a fresh install.
+
 ### Version state (2026-11-10)
 
 `VERSION` in the tree is **0.1.5-alpha.0** (commit `014b71e`, authored 2026-11-10 22:29, touching VERSION,

@@ -128,6 +128,16 @@ rm -f "$ROOTFS/usr/share/plasma/plasma-welcome/extra-pages/01-Kubuntu.qml"
 # extra-pages, so `--pages 01-HSCL1` opened the HSCL1 page as the only page (artifacts/boot-welcome-name). Without
 # it the first thing a new user sees is Plasma's built-in "Welcome to KDE" page with the Konqi mascot.
 patch_file "$ROOTFS/usr/share/applications/org.kde.plasma-welcome.desktop" 's/^Exec=plasma-welcome$/Exec=plasma-welcome --pages 01-HSCL1/'
+# At the *first login* Plasma launches the Welcome Center itself, without arguments and without any autostart file
+# (measured 2026-11-11 on an installed rc9 disk: Konqi page with eight dots, `artifacts/boot-first-login-rc9`), so
+# the desktop entry cannot reach that path. Mark the tour as already seen for new users instead: with
+# `LastSeenVersion` equal to the installed Plasma version it does not open at all
+# (`artifacts/boot-first-login-rc9b` shows the bare desktop after the key was set), and the HSCL1 page stays one
+# menu click away - as the only page. The version is derived from the package, not hardcoded.
+plasma_ver="$(awk '/^Package: plasma-workspace$/{p=1} p && /^Version:/{print $2; exit}' "$ROOTFS/var/lib/dpkg/status" | sed 's/^[0-9]*://; s/-.*//')"
+if [ -n "$plasma_ver" ]; then
+  ensure_key "$ROOTFS/etc/skel/.config/plasma-welcomerc" General LastSeenVersion "$plasma_ver"
+fi
 rm -rf "$ROOTFS/etc/calamares/branding/kubuntu"
 rm -f "$ROOTFS/usr/share/kubuntu-default-settings/kubuntu_donate.svg" "$ROOTFS/usr/share/kubuntu-default-settings/kubuntu_tour.svg"       "$ROOTFS/usr/share/plasma/avatars/kubuntu-bug.png"
 # Global-theme, desktop-theme and panel-layout entries still list the upstream flavour by name in System Settings: rename the visible

@@ -1,0 +1,16 @@
+[
+  { "wait": 8 },
+  { "keys": ["ctrl", "alt", "t"] },
+  { "wait": 12 },
+  { "type": "ls ~/.config | grep -i welc; echo '--- value ---'; kreadconfig6 --file plasma-welcomerc --group General --key LastSeenVersion; echo rc=$?; echo '--- plasma ---'; plasmashell --version" },
+  { "keys": ["ret"] },
+  { "wait": 6 },
+  { "shot": "w1-config-before" },
+  { "type": "kwriteconfig6 --file plasma-welcomerc --group General --key LastSeenVersion 6.6; echo '--- after ---'; kreadconfig6 --file plasma-welcomerc --group General --key LastSeenVersion; cat ~/.config/plasma-welcomerc 2>/dev/null" },
+  { "keys": ["ret"] },
+  { "wait": 5 },
+  { "shot": "w2-config-after" },
+  { "type": "systemctl poweroff" },
+  { "keys": ["ret"] },
+  { "wait": 15 }
+]
