@@ -384,6 +384,7 @@ $ scripts/dev/wsl-cycle.sh iso --fast
 - [VM guide](docs/VM_GUIDE.md) - The exact QEMU settings the tests use, install/LUKS boot commands and troubleshooting.
 - [Hardware compatibility](docs/HARDWARE_COMPATIBILITY.md) - What is verified (virtual machines) and what is not (everything physical).
 - [Troubleshooting](docs/TROUBLESHOOTING.md) - Boot, installer, desktop, network and lab symptoms with the commands that diagnose them.
+- [Local AI](docs/LOCAL_AI.md) - Detection, backends, the model catalogue, storage, and the loopback server, with the unverified parts named.
 - [Known Limitations](docs/KNOWN_LIMITATIONS.md) — Honest disclosure of pre-alpha boundaries and gaps.
 - [Architecture Overview](docs/ARCHITECTURE.md) — System layers, packaging, and interaction model.
 - [Threat Model & Security](docs/THREAT_MODEL.md) — Security assumptions and container isolation rules.
