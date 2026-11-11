@@ -85,13 +85,15 @@ qemu-system-x86_64 -enable-kvm -m 4096 -smp 4 \
 
 ### 1. Modern Desktop & Dynamic Shaders
 
-The HCS desktop uses a shader-driven wallpaper engine, switchable with `hscl wallpaper apply <preset>`. Two of the four shipped presets are captured below; the `grid` and `rain` captures were taken a few seconds apart without the preset actually changing, so they were removed rather than shown mislabelled ([audit](docs/AUDIT_2026-11-10.md)).
+The HCS desktop uses a shader-driven wallpaper engine, switchable with `hscl appearance wallpaper set <preset id>` (presets: `aurora`, `starfield`, `grid-pulse`, `midnight-rain`, `sparse-rain`). All four effects are captured below, each switched on a clean desktop on the same boot ([rc3 evidence](docs/BUILD_LOG.md)); the earlier audit note about `grid`/`rain` was a capture that typed effect names instead of preset ids.
 
 | Clean Live Desktop & Floating Dock | Kickoff Application Launcher |
 |:---:|:---:|
 | ![Clean Desktop](docs/img/showcase/01_desktop_clean.png) | ![Kickoff Launcher](docs/img/showcase/03_app_launcher_kickoff.png) |
 | **Aurora Glow** | **Starfield Deep Space Drift** |
 | ![Aurora Wallpaper](docs/img/showcase/02_wallpaper_aurora.png) | ![Starfield Wallpaper](docs/img/showcase/02_wallpaper_starfield.png) |
+| **Grid Pulse** | **Midnight Number Rain** |
+| ![Grid Pulse Wallpaper](docs/img/showcase/02_wallpaper_grid.png) | ![Midnight Rain Wallpaper](docs/img/showcase/02_wallpaper_rain.png) |
 
 ---
 

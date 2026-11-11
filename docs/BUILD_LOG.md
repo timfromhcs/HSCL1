@@ -1806,6 +1806,27 @@ they do **not** prove the wrapper. Every install scenario now launches `/usr/bin
 run is the first full install through the wrapper. The row in KNOWN_LIMITATIONS keeps the "evidence, not proof"
 wording.
 
+### Wallpaper presets: four effects, one boot (2026-11-11)
+
+| Field | Value |
+|---|---|
+| ISO | `HSCL1-rc3-amd64.iso`, SHA-256 `f1202eb0…` |
+| VM | UEFI + WHPX, 4 GB, 4 vCPU, 1280x800 |
+| Scenario | `tests/visual/scenarios/showcase-wallpapers3.json` (425 s) |
+| Command | `hscl appearance wallpaper set <preset id>` in Konsole (Ctrl+Alt+T), terminal closed, then one shot |
+
+| Preset | Effect | Capture | Bytes | RGB colours |
+|---|---|---|---|---|
+| `aurora` | aurora bands | `wd1-aurora.png` | 70 293 | 7 168 |
+| `starfield` | starfield | `wd2-starfield.png` | 47 377 | 6 064 |
+| `grid-pulse` | grid pulse (green wave at the bottom) | `wd3-grid-pulse.png` | 53 912 | 6 114 |
+| `midnight-rain` | number rain | `wd4-midnight-rain.png` | 182 660 | 23 821 |
+
+`wd5-effect-name-error.png` records the failure mode that caused the 2026-11-10 confusion:
+`hscl: error: unknown wallpaper preset "grid"; run `hscl wallpaper list`` while the rain effect stayed on screen.
+`wd6-preset-list.png` is the preset listing. The showcase entries `02_wallpaper_*.png` were replaced from these
+frames and carry `source_iso: HSCL1-rc3 … f1202eb0`.
+
 ### Version state (2026-11-10)
 
 `VERSION` in the tree is **0.1.5-alpha.0** (commit `014b71e`, authored 2026-11-10 22:29, touching VERSION,

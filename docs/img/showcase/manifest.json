@@ -1,233 +1,259 @@
 [
-  {
-    "filename": "01_desktop_clean.png",
-    "bytes": 113201,
-    "colors": 16491,
-    "size": [
-      1280,
-      800
-    ],
-    "description": "Clean HSCL1 live desktop after the Welcome Center (candidate 2026-11-09)",
-    "timestamp": 1794256626.366424,
-    "source_iso": "HSCL1-miner-qa-2026-11-09-amd64.iso sha256 e342b3ae"
-  },
-  {
-    "filename": "02_wallpaper_aurora.png",
-    "bytes": 74715,
-    "colors": 7965,
-    "size": [
-      1280,
-      800
-    ],
-    "description": "Dynamic wallpaper shader: aurora",
-    "timestamp": 1794234766.0589306
-  },
-  {
-    "filename": "02_wallpaper_starfield.png",
-    "bytes": 47893,
-    "colors": 6206,
-    "size": [
-      1280,
-      800
-    ],
-    "description": "Dynamic wallpaper shader: starfield",
-    "timestamp": 1794234773.756328
-  },
-  {
-    "filename": "03_app_launcher_kickoff.png",
-    "bytes": 159272,
-    "colors": 11207,
-    "size": [
-      1280,
-      800
-    ],
-    "description": "Kickoff launcher with the merged HSCL1 sections (candidate 2026-11-09)",
-    "timestamp": 1794256629.7587008,
-    "source_iso": "HSCL1-miner-qa-2026-11-09-amd64.iso sha256 e342b3ae"
-  },
-  {
-    "filename": "08_terminal_hscl_status_doctor.png",
-    "bytes": 122320,
-    "colors": 2832,
-    "size": [
-      1280,
-      800
-    ],
-    "description": "hscl doctor in a 4 GB guest: six passes and the honest Secure Boot line 'UEFI without a SecureBoot variable (firmware has Secure Boot off)' (candidate 2026-11-10)",
-    "timestamp": 1794273773.8143973,
-    "source_iso": "HSCL1-honesty-fixes-amd64.iso sha256 aa6ad7c4"
-  },
-  {
-    "filename": "09_terminal_hscl_lab.png",
-    "bytes": 59677,
-    "colors": 2681,
-    "size": [
-      1280,
-      800
-    ],
-    "description": "Konsole: hscl lab security suite & hardware diagnostics",
-    "timestamp": 1794234826.701219
-  },
-  {
-    "filename": "16_terminal_privacy_security.png",
-    "bytes": 124748,
-    "colors": 2488,
-    "size": [
-      1280,
-      800
-    ],
-    "description": "Konsole: hscl privacy status with the session line, hscl security status and the honest lab state 'podman: NOT installed' (candidate 2026-11-10)",
-    "timestamp": 1794305992.316073,
-    "source_iso": "HSCL1-qa-green-amd64.iso sha256 5d4ea47e"
-  },
-  {
-    "filename": "17_terminal_logs_and_diag.png",
-    "bytes": 87571,
-    "colors": 2777,
-    "size": [
-      1280,
-      800
-    ],
-    "description": "Konsole: hscl logs redaction & language switching",
-    "timestamp": 1794234866.6167622
-  },
-  {
-    "filename": "04_control_center_overview.png",
-    "bytes": 121334,
-    "colors": 14894,
-    "size": [
-      1280,
-      800
-    ],
-    "description": "Control Center: live overview - HSCL1 0.1.4-alpha.0, kernel 7.0.0-30, health 6 passed / 0 failed / 1 skipped (candidate 2026-11-10)",
-    "timestamp": 1794305913.636564,
-    "source_iso": "HSCL1-qa-green-amd64.iso sha256 5d4ea47e"
-  },
-  {
-    "filename": "05_control_center_appearance.png",
-    "bytes": 98448,
-    "colors": 10175,
-    "size": [
-      1280,
-      800
-    ],
-    "description": "Control Center: appearance with the four HCS themes, each with Preview and Apply (candidate 2026-11-10)",
-    "timestamp": 1794305916.9840486,
-    "source_iso": "HSCL1-qa-green-amd64.iso sha256 5d4ea47e"
-  },
-  {
-    "filename": "06_control_center_security.png",
-    "bytes": 135898,
-    "colors": 16398,
-    "size": [
-      1280,
-      800
-    ],
-    "description": "Control Center: security page with the honest Secure Boot line 'UEFI without a SecureBoot variable (firmware has Secure Boot off)' (candidate 2026-11-10)",
-    "timestamp": 1794305920.3303485,
-    "source_iso": "HSCL1-qa-green-amd64.iso sha256 5d4ea47e"
-  },
-  {
-    "filename": "07_control_center_about.png",
-    "bytes": 119791,
-    "colors": 14745,
-    "size": [
-      1280,
-      800
-    ],
-    "description": "Control Center: About page (candidate 2026-11-10)",
-    "timestamp": 1794305927.0279353,
-    "source_iso": "HSCL1-qa-green-amd64.iso sha256 5d4ea47e"
-  },
-  {
-    "filename": "10_app_dolphin.png",
-    "bytes": 122554,
-    "colors": 11165,
-    "size": [
-      1280,
-      800
-    ],
-    "description": "Dolphin in the HCS dark palette (candidate 2026-11-09)",
-    "timestamp": 1794256647.6279922,
-    "source_iso": "HSCL1-miner-qa-2026-11-09-amd64.iso sha256 e342b3ae"
-  },
-  {
-    "filename": "14_app_kate.png",
-    "bytes": 112179,
-    "colors": 15484,
-    "size": [
-      1280,
-      800
-    ],
-    "description": "Kate Text Editor showing /etc/os-release",
-    "timestamp": 1794234904.1133027
-  },
-  {
-    "filename": "11_installer_welcome.png",
-    "bytes": 121766,
-    "colors": 9198,
-    "size": [
-      1280,
-      800
-    ],
-    "description": "Calamares Installer: welcome page in the centred window (candidate 2026-11-09)",
-    "timestamp": 1794262556.1915188,
-    "source_iso": "HSCL1-earlyoom-fix-amd64.iso sha256 e723940b"
-  },
-  {
-    "filename": "12_installer_location.png",
-    "bytes": 298083,
-    "colors": 11965,
-    "size": [
-      1280,
-      800
-    ],
-    "description": "Calamares Installer: location and timezone (candidate 2026-11-09)",
-    "timestamp": 1794262564.9578364,
-    "source_iso": "HSCL1-earlyoom-fix-amd64.iso sha256 e723940b"
-  },
-  {
-    "filename": "13_offline_handbook.png",
-    "bytes": 120241,
-    "size": [
-      1280,
-      800
-    ],
-    "description": "Trilingual offline handbook opened from the desktop icon (Firefox, /usr/share/doc/hscl-handbook)",
-    "timestamp": 1794243060.2641883,
-    "source_iso": "HSCL1-qa-2026-11-09-amd64.iso sha256 118029de"
-  },
-  {
-    "filename": "18_installer_notes_encryption.png",
-    "size": [
-      1280,
-      800
-    ],
-    "description": "Calamares Installer: the HSCL1 encryption notes page, shown before partitioning (candidate 2026-11-09)",
-    "bytes": 177263,
-    "timestamp": 1794262591.2373447,
-    "source_iso": "HSCL1-earlyoom-fix-amd64.iso sha256 e723940b"
-  },
-  {
-    "filename": "19_installer_partitions.png",
-    "size": [
-      1280,
-      800
-    ],
-    "description": "Calamares Installer: partition page with the real 40 GB disposable disk, erase and manual only (candidate 2026-11-09)",
-    "bytes": 116741,
-    "timestamp": 1794262603.9972832,
-    "source_iso": "HSCL1-earlyoom-fix-amd64.iso sha256 e723940b"
-  },
-  {
-    "filename": "20_control_center_miner.png",
-    "size": [
-      1280,
-      800
-    ],
-    "description": "Control Center: the Miner page with no device configured - it says so instead of showing values (candidate 2026-11-10)",
-    "bytes": 110066,
-    "timestamp": 1794305923.6789474,
-    "source_iso": "HSCL1-qa-green-amd64.iso sha256 5d4ea47e"
-  }
+ {
+  "filename": "01_desktop_clean.png",
+  "bytes": 113201,
+  "colors": 16491,
+  "size": [
+   1280,
+   800
+  ],
+  "description": "Clean HSCL1 live desktop after the Welcome Center (candidate 2026-11-09)",
+  "timestamp": 1794256626.366424,
+  "source_iso": "HSCL1-miner-qa-2026-11-09-amd64.iso sha256 e342b3ae"
+ },
+ {
+  "filename": "02_wallpaper_aurora.png",
+  "bytes": 70293,
+  "colors": 7168,
+  "size": [
+   1280,
+   800
+  ],
+  "description": "Dynamic wallpaper shader: aurora (preset `aurora`)",
+  "timestamp": 1794357636.8584456,
+  "source_iso": "HSCL1-rc3-amd64.iso sha256 f1202eb0"
+ },
+ {
+  "filename": "02_wallpaper_starfield.png",
+  "bytes": 47377,
+  "colors": 6064,
+  "size": [
+   1280,
+   800
+  ],
+  "description": "Dynamic wallpaper shader: starfield (preset `starfield`)",
+  "timestamp": 1794357679.5985851,
+  "source_iso": "HSCL1-rc3-amd64.iso sha256 f1202eb0"
+ },
+ {
+  "filename": "03_app_launcher_kickoff.png",
+  "bytes": 159272,
+  "colors": 11207,
+  "size": [
+   1280,
+   800
+  ],
+  "description": "Kickoff launcher with the merged HSCL1 sections (candidate 2026-11-09)",
+  "timestamp": 1794256629.7587008,
+  "source_iso": "HSCL1-miner-qa-2026-11-09-amd64.iso sha256 e342b3ae"
+ },
+ {
+  "filename": "08_terminal_hscl_status_doctor.png",
+  "bytes": 122320,
+  "colors": 2832,
+  "size": [
+   1280,
+   800
+  ],
+  "description": "hscl doctor in a 4 GB guest: six passes and the honest Secure Boot line 'UEFI without a SecureBoot variable (firmware has Secure Boot off)' (candidate 2026-11-10)",
+  "timestamp": 1794273773.8143973,
+  "source_iso": "HSCL1-honesty-fixes-amd64.iso sha256 aa6ad7c4"
+ },
+ {
+  "filename": "09_terminal_hscl_lab.png",
+  "bytes": 59677,
+  "colors": 2681,
+  "size": [
+   1280,
+   800
+  ],
+  "description": "Konsole: hscl lab security suite & hardware diagnostics",
+  "timestamp": 1794234826.701219
+ },
+ {
+  "filename": "16_terminal_privacy_security.png",
+  "bytes": 124748,
+  "colors": 2488,
+  "size": [
+   1280,
+   800
+  ],
+  "description": "Konsole: hscl privacy status with the session line, hscl security status and the honest lab state 'podman: NOT installed' (candidate 2026-11-10)",
+  "timestamp": 1794305992.316073,
+  "source_iso": "HSCL1-qa-green-amd64.iso sha256 5d4ea47e"
+ },
+ {
+  "filename": "17_terminal_logs_and_diag.png",
+  "bytes": 87571,
+  "colors": 2777,
+  "size": [
+   1280,
+   800
+  ],
+  "description": "Konsole: hscl logs redaction & language switching",
+  "timestamp": 1794234866.6167622
+ },
+ {
+  "filename": "04_control_center_overview.png",
+  "bytes": 121334,
+  "colors": 14894,
+  "size": [
+   1280,
+   800
+  ],
+  "description": "Control Center: live overview - HSCL1 0.1.4-alpha.0, kernel 7.0.0-30, health 6 passed / 0 failed / 1 skipped (candidate 2026-11-10)",
+  "timestamp": 1794305913.636564,
+  "source_iso": "HSCL1-qa-green-amd64.iso sha256 5d4ea47e"
+ },
+ {
+  "filename": "05_control_center_appearance.png",
+  "bytes": 98448,
+  "colors": 10175,
+  "size": [
+   1280,
+   800
+  ],
+  "description": "Control Center: appearance with the four HCS themes, each with Preview and Apply (candidate 2026-11-10)",
+  "timestamp": 1794305916.9840486,
+  "source_iso": "HSCL1-qa-green-amd64.iso sha256 5d4ea47e"
+ },
+ {
+  "filename": "06_control_center_security.png",
+  "bytes": 135898,
+  "colors": 16398,
+  "size": [
+   1280,
+   800
+  ],
+  "description": "Control Center: security page with the honest Secure Boot line 'UEFI without a SecureBoot variable (firmware has Secure Boot off)' (candidate 2026-11-10)",
+  "timestamp": 1794305920.3303485,
+  "source_iso": "HSCL1-qa-green-amd64.iso sha256 5d4ea47e"
+ },
+ {
+  "filename": "07_control_center_about.png",
+  "bytes": 119791,
+  "colors": 14745,
+  "size": [
+   1280,
+   800
+  ],
+  "description": "Control Center: About page (candidate 2026-11-10)",
+  "timestamp": 1794305927.0279353,
+  "source_iso": "HSCL1-qa-green-amd64.iso sha256 5d4ea47e"
+ },
+ {
+  "filename": "10_app_dolphin.png",
+  "bytes": 122554,
+  "colors": 11165,
+  "size": [
+   1280,
+   800
+  ],
+  "description": "Dolphin in the HCS dark palette (candidate 2026-11-09)",
+  "timestamp": 1794256647.6279922,
+  "source_iso": "HSCL1-miner-qa-2026-11-09-amd64.iso sha256 e342b3ae"
+ },
+ {
+  "filename": "14_app_kate.png",
+  "bytes": 112179,
+  "colors": 15484,
+  "size": [
+   1280,
+   800
+  ],
+  "description": "Kate Text Editor showing /etc/os-release",
+  "timestamp": 1794234904.1133027
+ },
+ {
+  "filename": "11_installer_welcome.png",
+  "bytes": 121766,
+  "colors": 9198,
+  "size": [
+   1280,
+   800
+  ],
+  "description": "Calamares Installer: welcome page in the centred window (candidate 2026-11-09)",
+  "timestamp": 1794262556.1915188,
+  "source_iso": "HSCL1-earlyoom-fix-amd64.iso sha256 e723940b"
+ },
+ {
+  "filename": "12_installer_location.png",
+  "bytes": 298083,
+  "colors": 11965,
+  "size": [
+   1280,
+   800
+  ],
+  "description": "Calamares Installer: location and timezone (candidate 2026-11-09)",
+  "timestamp": 1794262564.9578364,
+  "source_iso": "HSCL1-earlyoom-fix-amd64.iso sha256 e723940b"
+ },
+ {
+  "filename": "13_offline_handbook.png",
+  "bytes": 120241,
+  "size": [
+   1280,
+   800
+  ],
+  "description": "Trilingual offline handbook opened from the desktop icon (Firefox, /usr/share/doc/hscl-handbook)",
+  "timestamp": 1794243060.2641883,
+  "source_iso": "HSCL1-qa-2026-11-09-amd64.iso sha256 118029de"
+ },
+ {
+  "filename": "18_installer_notes_encryption.png",
+  "size": [
+   1280,
+   800
+  ],
+  "description": "Calamares Installer: the HSCL1 encryption notes page, shown before partitioning (candidate 2026-11-09)",
+  "bytes": 177263,
+  "timestamp": 1794262591.2373447,
+  "source_iso": "HSCL1-earlyoom-fix-amd64.iso sha256 e723940b"
+ },
+ {
+  "filename": "19_installer_partitions.png",
+  "size": [
+   1280,
+   800
+  ],
+  "description": "Calamares Installer: partition page with the real 40 GB disposable disk, erase and manual only (candidate 2026-11-09)",
+  "bytes": 116741,
+  "timestamp": 1794262603.9972832,
+  "source_iso": "HSCL1-earlyoom-fix-amd64.iso sha256 e723940b"
+ },
+ {
+  "filename": "20_control_center_miner.png",
+  "size": [
+   1280,
+   800
+  ],
+  "description": "Control Center: the Miner page with no device configured - it says so instead of showing values (candidate 2026-11-10)",
+  "bytes": 110066,
+  "timestamp": 1794305923.6789474,
+  "source_iso": "HSCL1-qa-green-amd64.iso sha256 5d4ea47e"
+ },
+ {
+  "filename": "02_wallpaper_grid.png",
+  "bytes": 53912,
+  "colors": 6114,
+  "size": [
+   1280,
+   800
+  ],
+  "description": "Dynamic wallpaper shader: grid pulse (preset `grid-pulse`)",
+  "timestamp": 1794357723.0650475,
+  "source_iso": "HSCL1-rc3-amd64.iso sha256 f1202eb0"
+ },
+ {
+  "filename": "02_wallpaper_rain.png",
+  "bytes": 182660,
+  "colors": 23821,
+  "size": [
+   1280,
+   800
+  ],
+  "description": "Dynamic wallpaper shader: number rain (preset `midnight-rain`)",
+  "timestamp": 1794357767.4103394,
+  "source_iso": "HSCL1-rc3-amd64.iso sha256 f1202eb0"
+ }
 ]
