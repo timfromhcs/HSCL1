@@ -2902,3 +2902,26 @@ hashes byte for byte, so the uploaded bytes - not just the local file - are the 
 `scripts/release_split.py` replaces the bash splitter on Windows: the `/mnt/e` path managed ~4 MB/s, the
 native path a few seconds.
 
+### Disk hygiene (2026-11-11)
+
+`E:` was at 92 % and the WSL build directory held nine ISOs. Deleted, with the hashes still in this log and
+in `CLAIMS.md`:
+
+| Removed | Why |
+|---|---|
+| `artifacts/e2e2/respun.iso` | 2026-11-05 respin experiment, superseded |
+| `artifacts/release-0.1.3-alpha.0/*.iso` | superseded release line |
+| `artifacts/iso/HSCL1-0.1.5-alpha.0-amd64.iso` | duplicate of the copy inside `release-0.1.5-set` |
+| `~/hscl1-build/out/HSCL1-rc2…rc6`, `HSCL1-0.1.5` | superseded candidates |
+
+Kept: `artifacts/iso/HSCL1-rc9-amd64.iso` (newest candidate), the complete `release-0.1.5-set` (parts +
+`SHA256SUMS` + notes + SBOM, from which the ISO can be rejoined) and `~/hscl1-build/out/HSCL1-rc7/rc8/rc9`.
+Effect: **+14.5 GB free on `E:`**, WSL `out/` from 61 GB to 31 GB.
+
+### Release consistency checker (2026-11-11)
+
+`scripts/verify_release_consistency.py` + `tests/unit/test_release_consistency.py` (5 tests). Run against the
+published set with `--github timfromhcs/HSCL1`: **22 checks, 0 failed** — ISO hash vs `SHA256SUMS` and
+manifest, all three part hashes, the rejoin hash, notes without placeholders, SBOM (99 packages), README
+quoting the ISO and every part hash, website tag/hash/parts, and GitHub's own recorded asset digests.
+

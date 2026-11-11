@@ -39,6 +39,18 @@ read from the scripts in `scripts/` on 2026-11-07; if a script changes, this pag
    GitHub release (prerelease until AGENTS.md §20 is complete), upload the assets, run the cloud verify and
    merge workflow, then update the website download metadata and deploy.
 
+6. **Consistency check** (`scripts/verify_release_consistency.py`): compares the release set, the README,
+   `website/data/release.json` and, with `--github owner/repo`, the uploaded asset digests. It verifies the
+   ISO hash against `SHA256SUMS` and its manifest, every part hash, that the parts rejoin to the ISO, that the
+   notes name the artifact and contain no placeholder, that an SBOM is present, and that README and website
+   quote the same hashes. Exit code 0 means they agree; 1 names the drifted item. Run it before publishing and
+   again after the upload — a mismatch is exactly the documentation drift this repository has shipped before.
+
+   ```console
+   $ python scripts/verify_release_consistency.py --version 0.1.5-alpha.0 \
+       --release-dir artifacts/release-0.1.5-set --github timfromhcs/HSCL1
+   ```
+
 ## Honest labels
 
 The version's suffix decides what may be claimed: `alpha` for a working preview with a documented "not
