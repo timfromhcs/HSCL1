@@ -2,16 +2,12 @@
   { "wait": 10 },
   { "keys": ["ctrl", "alt", "t"] },
   { "wait": 14 },
-  { "type": "rm -f /tmp/probe.log; for i in 1 2 3 4 5; do sudo -b /usr/bin/hscl-calamares; sleep 30; if pgrep -f 'calamares -D8' >/dev/null; then echo \"A$i=UP\" >> /tmp/probe.log; else echo \"A$i=DEAD\" >> /tmp/probe.log; fi; sudo pkill -f 'calamares -D8'; sudo pkill -f drkonqi; sleep 3; done; echo DONE-A" },
+  { "type": "rm -f /tmp/probe.log /tmp/hscl-calamares.log; for i in 1 2 3 4 5 6 7 8; do sudo -b /usr/bin/hscl-calamares; sleep 30; if pgrep -f 'calamares -D8' >/dev/null; then echo \"A$i=UP\" >> /tmp/probe.log; else echo \"A$i=DEAD\" >> /tmp/probe.log; fi; sudo pkill -f 'calamares -D8'; sudo pkill -f drkonqi; sleep 3; done; echo DONE-A" },
   { "keys": ["ret"] },
-  { "wait": 215 },
-  { "shot": "p1-default-5x" },
-  { "type": "for i in 1 2 3 4 5; do sudo -b env QT_QPA_PLATFORM=xcb /usr/bin/hscl-calamares; sleep 30; if pgrep -f 'calamares -D8' >/dev/null; then echo \"B$i=UP\" >> /tmp/probe.log; else echo \"B$i=DEAD\" >> /tmp/probe.log; fi; sudo pkill -f 'calamares -D8'; sudo pkill -f drkonqi; sleep 3; done; echo DONE-B" },
-  { "keys": ["ret"] },
-  { "wait": 215 },
-  { "shot": "p2-xcb-5x" },
-  { "type": "clear; echo 'A_UP='$(grep -c '^A.*UP' /tmp/probe.log) 'A_DEAD='$(grep -c '^A.*DEAD' /tmp/probe.log) 'B_UP='$(grep -c '^B.*UP' /tmp/probe.log) 'B_DEAD='$(grep -c '^B.*DEAD' /tmp/probe.log); cat /tmp/probe.log" },
+  { "wait": 340 },
+  { "shot": "q1-eight-starts" },
+  { "type": "clear; echo 'UP='$(grep -c 'UP' /tmp/probe.log) 'DEAD='$(grep -c 'DEAD' /tmp/probe.log) 'RESTARTS='$(grep -c 'restarting' /tmp/hscl-calamares.log 2>/dev/null || echo 0); cat /tmp/hscl-calamares.log 2>/dev/null; cat /tmp/probe.log" },
   { "keys": ["ret"] },
   { "wait": 5 },
-  { "shot": "p3-summary" }
+  { "shot": "q2-summary" }
 ]

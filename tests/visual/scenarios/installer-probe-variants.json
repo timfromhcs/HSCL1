@@ -1,0 +1,18 @@
+[
+  { "wait": 10 },
+  { "keys": ["ctrl", "alt", "t"] },
+  { "wait": 14 },
+  { "type": "rm -f /tmp/probe2.log /tmp/hscl-calamares.log; for i in 1 2 3; do sudo -b /usr/bin/hscl-calamares; sleep 30; if pgrep -f 'calamares -D8' >/dev/null; then echo \"A$i=UP\" >> /tmp/probe2.log; else echo \"A$i=DEAD\" >> /tmp/probe2.log; fi; sudo pkill -f 'calamares -D8'; sudo pkill -f drkonqi; sleep 3; done; echo DONE-A" },
+  { "keys": ["ret"] },
+  { "wait": 130 },
+  { "type": "sudo systemctl stop earlyoom systemd-oomd 2>/dev/null; for i in 1 2 3; do sudo -b /usr/bin/hscl-calamares; sleep 30; if pgrep -f 'calamares -D8' >/dev/null; then echo \"B$i=UP\" >> /tmp/probe2.log; else echo \"B$i=DEAD\" >> /tmp/probe2.log; fi; sudo pkill -f 'calamares -D8'; sudo pkill -f drkonqi; sleep 3; done; echo DONE-B" },
+  { "keys": ["ret"] },
+  { "wait": 130 },
+  { "type": "for i in 1 2 3; do kioclient6 exec /usr/share/applications/kubuntu-calamares.desktop >/dev/null 2>&1; sleep 30; if pgrep -f 'hscl-calamares' >/dev/null; then echo \"C$i=UP\" >> /tmp/probe2.log; else echo \"C$i=DEAD\" >> /tmp/probe2.log; fi; sudo pkill -f 'calamares -D8'; pkill -f 'hscl-calamares'; sleep 3; done; echo DONE-C" },
+  { "keys": ["ret"] },
+  { "wait": 130 },
+  { "type": "clear; echo 'A_UP='$(grep -c '^A.*UP' /tmp/probe2.log) 'B_UP='$(grep -c '^B.*UP' /tmp/probe2.log) 'C_UP='$(grep -c '^C.*UP' /tmp/probe2.log); cat /tmp/probe2.log; echo '--- wrapper log ---'; cat /tmp/hscl-calamares.log 2>/dev/null" },
+  { "keys": ["ret"] },
+  { "wait": 5 },
+  { "shot": "r1-variants" }
+]

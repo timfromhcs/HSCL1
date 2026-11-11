@@ -1924,6 +1924,21 @@ late crash is not restarted over a half-written disk, and three early deaths end
 greps for `KCRASH_DUMP_ONLY=1` and the loop. rc5 carries this and is measured with the same probe plus a full
 LUKS2 install.
 
+### rc5 candidate: the installer restart wrapper (2026-11-11)
+
+| Field | Value |
+|---|---|
+| Artifact | `HSCL1-rc5-amd64.iso` |
+| Bytes | 5 488 771 072 |
+| SHA-256 | `59801827b76bbd5a7514dc1d752d9c5e97ee953b55f5394895e8ed1c3abc90ac` (build dir and the E: copy agree) |
+| Source commit | `725dda6` |
+| Version | `0.1.5-alpha.0` |
+| Gates | `verify-image: all checks passed` |
+
+Adds `/usr/bin/hscl-calamares` with `KCRASH_DUMP_ONLY=1` and a bounded restart when the wizard dies from a signal
+within its first 60 s (see the probe above). Also carries rc4's content: upright desktop labels, dark Kate, the
+wallpaper preset hint.
+
 ### Version state (2026-11-10)
 
 `VERSION` in the tree is **0.1.5-alpha.0** (commit `014b71e`, authored 2026-11-10 22:29, touching VERSION,
