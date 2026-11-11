@@ -37,6 +37,14 @@ while [ "$attempt" -le 3 ]; do
   fi
   elapsed=$(( $(date +%s) - started ))
   case "$rc" in
+    87)
+      # Calamares refuses to run a second instance with exit 87. After a crash the previous process can still
+      # hold that lock for a moment, so a restart that arrives too early would otherwise be thrown away.
+      echo "hscl-calamares: attempt $attempt hit the single-instance lock (87) after ${elapsed}s, retrying" >>"$LOG" 2>&1
+      attempt=$((attempt + 1))
+      sleep 5
+      continue
+      ;;
     134|135|136|137|139|143)
       if [ "$elapsed" -le 60 ]; then
         echo "hscl-calamares: attempt $attempt died from a signal after ${elapsed}s (exit $rc), restarting" >>"$LOG" 2>&1

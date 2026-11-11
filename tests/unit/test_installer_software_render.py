@@ -47,6 +47,14 @@ def test_a_normal_exit_is_passed_through_and_the_retries_are_bounded():
     assert "while [ \"$attempt\" -le 3 ]" in text, "the restart must be bounded"
 
 
+def test_the_single_instance_lock_is_retried():
+    """rc5's probe: a restart that arrived too early got exit 87 ('another instance running') and gave up."""
+    text = WRAPPER.read_text(encoding="utf-8")
+    assert "    87)" in text
+    assert "single-instance lock" in text
+    assert "sleep 5" in text
+
+
 def test_only_an_early_crash_is_restarted():
     """A crash after the first minute may have written to the disk; restarting over that would be worse."""
     text = WRAPPER.read_text(encoding="utf-8")

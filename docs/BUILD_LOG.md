@@ -1939,6 +1939,27 @@ Adds `/usr/bin/hscl-calamares` with `KCRASH_DUMP_ONLY=1` and a bounded restart w
 within its first 60 s (see the probe above). Also carries rc4's content: upright desktop labels, dark Kate, the
 wallpaper preset hint.
 
+### rc5 probe: the restart works, and it exposed a second failure (2026-11-11)
+
+Eight starts of `/usr/bin/hscl-calamares` on rc5 (`59801827…`, 4 GB), `artifacts/boot-installer-probe-rc5`,
+733 s, `q2-summary.png`: **UP=6 DEAD=2 RESTARTS=9**.
+
+The counts need reading carefully, and this is the honest version:
+
+- The probe kills the installer with `sudo pkill -f 'calamares -D8'` between starts. That is SIGTERM (exit 143),
+  which the wrapper cannot tell apart from a crash, so it restarted every time - **most of the 9 restarts are the
+  probe's own kills, not faults**.
+- Real crashes are still visible in the log as early SIGKILL deaths: `died from a signal after 6s (exit 137)` and
+  `died from a signal after 2s (exit 137)`. So the ~20 % fault is still there in rc5; the wrapper survives it.
+- A **new failure mode** appeared: `attempt 1 exited with 87 after 1s (not a crash), giving up`. Exit 87 is
+  Calamares refusing a **second instance** - after a crash the dying process can still hold that lock, so a
+  restart that arrives immediately is thrown away. The wrapper now treats 87 as retryable with a 5 s pause
+  (`test_the_single_instance_lock_is_retried`); rc6 carries that.
+
+The probe design is also wrong for a wrapper that retries: killing the app starts a new attempt. The next probe
+kills the wrapper first (`pkill -f hscl-calamares`) and counts crash lines (`exit 137/139`) in
+`/tmp/hscl-calamares.log`, which is what the variants probe does.
+
 ### Version state (2026-11-10)
 
 `VERSION` in the tree is **0.1.5-alpha.0** (commit `014b71e`, authored 2026-11-10 22:29, touching VERSION,
