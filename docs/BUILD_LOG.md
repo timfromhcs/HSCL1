@@ -3027,6 +3027,36 @@ every commit after `13c3215` that touches tests, docs or that file mode.
 `verify_release_consistency.py --version 0.1.6-alpha.0 --github timfromhcs/HSCL1` → **22 checks, 0 failed**,
 including GitHub's own recorded digests for all three parts.
 
+### The published checksums were unverifiable (2026-11-11)
+
+The cloud verifier failed three times on `v0.1.6-alpha.0`. The first two runs were explained by timing
+(the tag fired before the parts existed) and by a partial download (only `part000` arrived); the third
+exposed a defect in the artifact itself.
+
+`SHA256SUMS` was written by `make_release.py` and `release_split.py` with the Windows default newline, so
+**both** published releases carried CRLF. On Linux, `sha256sum -c` treats the trailing `\r` as part of the
+file name and rejects every line. Anyone following the README (`release-join.sh --verify-only`, or the
+`sha256sum -c SHA256SUMS --ignore-missing` line in `docs/INSTALLATION.md`) would have seen "FAILED" on all
+four lines and had no way to distinguish a bad download from a broken release.
+
+Fixed:
+
+| Change | Detail |
+|---|---|
+| generators | `make_release.py` and `release_split.py` write with `newline="\n"` |
+| 0.1.6 asset | regenerated, `gh release upload --clobber`, remote check: 0 CRLF, 4 lines |
+| 0.1.5 asset | same fix, same check (it was published with the same defect) |
+| regression test | `tests/unit/test_release_split_lf.py`: no `\r` bytes, one line per part plus the whole image, rejoin hash equals the source |
+| CI | the download step now downloads parts and `SHA256SUMS` separately and fails with an explicit `::error::` when the count on disk differs from the count in `SHA256SUMS` |
+
+After the fix, `workflow_dispatch` on `main` for tag `v0.1.6-alpha.0`: **Verify split ISO — success**, i.e.
+all three parts match and the streamed join reproduces `a916540c…` on a Linux runner. The `bundle` job then
+assembles the single-file ISO as a workflow artifact.
+
+Lesson for the release checklist: a hash file that has never been *consumed on the target platform* is not
+verified. The local `verify_release_consistency.py` parses these files with `str.strip()`, which happily ate
+the CR — the cloud run is what caught it.
+
 Two release-mechanics findings, both now documented in `docs/RELEASE_PROCESS.md`:
 
 1. **An interrupted `gh release create` leaves a draft.** The combined create-and-upload stalled twice on a
