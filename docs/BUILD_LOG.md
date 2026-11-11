@@ -2037,6 +2037,30 @@ fault is unchanged and documented in KNOWN_LIMITATIONS/Q-61.
 That completes the VM gates on one artifact: two 4 GB installs (rc3, upstream launcher), LUKS2 install + unlock
 (rc6, wrapper with retry), the QA report (rc6, exit 0) and the Security Lab chain (rc6).
 
+### Core probe: the installer is SIGKILLed, it does not segfault (2026-11-11)
+
+`tests/visual/scenarios/installer-core-probe.json` on rc6 (`4a0d48a3…`, 4 GB), 753 s, `artifacts/boot-core-probe`:
+six starts with `kernel.core_pattern=/tmp/cores/core.%e.%p` and `ulimit -c unlimited`.
+
+| Observation | Value |
+|---|---|
+| Starts | `A1`-`A5` up, `A6` dead, `DONE` |
+| Core files in `/tmp/cores` | **0** (`total 0`) |
+| Wrapper log | `died from a signal after 2s (exit 137)`, `after 3s (137)`, `after 2s (137)`, `after 2s (137)`, `after 3s (137)`, then `the installer died three times early` |
+
+Two facts follow, and they change the diagnosis: the process dies in **2-3 seconds**, and it dies with
+**SIGKILL (137)** - SIGKILL never produces a core dump, which is why the directory stayed empty. A segfault or an
+abort (139/134) would have left one. So the wizard is **not crashing in Qt Quick**; something **kills** it shortly
+after it starts.
+
+KCrash's message in the earlier journals fits that: KCrash is what reports the death, and its own handler then
+fails (`drkonqi`, `systemd1 exited with status 1`). The open question is who sends the SIGKILL: the kernel OOM
+killer, `earlyoom`, `systemd-oomd`, or KCrash's own recursion path.
+
+The next probe therefore runs six starts with the two memory killers active, prints their journal and any
+`dmesg` OOM line, then stops `earlyoom` and `systemd-oomd` and runs six more starts
+(`installer-killer-probe.json`, captures `t1-killer-journal` / `t2-no-killers`).
+
 ### Version state (2026-11-10)
 
 `VERSION` in the tree is **0.1.5-alpha.0** (commit `014b71e`, authored 2026-11-10 22:29, touching VERSION,

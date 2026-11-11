@@ -1,0 +1,17 @@
+[
+  { "wait": 12 },
+  { "keys": ["ctrl", "alt", "t"] },
+  { "wait": 14 },
+  { "type": "hscl-handbook >/dev/null 2>&1 &" },
+  { "keys": ["ret"] },
+  { "wait": 45 },
+  { "shot": "hb1-after-45s" },
+  { "click": [0.5, 0.5] },
+  { "wait": 25 },
+  { "shot": "hb2-after-click" },
+  { "wait": 30 },
+  { "shot": "hb3-after-100s" },
+  { "keys": ["alt", "f4"] },
+  { "wait": 6 },
+  { "shot": "hb4-desktop" }
+]

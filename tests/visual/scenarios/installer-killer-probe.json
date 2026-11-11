@@ -1,0 +1,19 @@
+[
+  { "wait": 10 },
+  { "keys": ["ctrl", "alt", "t"] },
+  { "wait": 14 },
+  { "type": "rm -f /tmp/p5.log /tmp/hscl-calamares.log; for i in 1 2 3 4 5 6; do sudo -b /usr/bin/hscl-calamares; sleep 40; if pgrep -f 'calamares -D8' >/dev/null; then echo \"A$i=UP\" >>/tmp/p5.log; else echo \"A$i=DEAD\" >>/tmp/p5.log; fi; sudo pkill -f hscl-calamares; sudo pkill -f 'calamares -D8'; sleep 4; done; echo DONE-A >>/tmp/p5.log" },
+  { "keys": ["ret"] },
+  { "wait": 300 },
+  { "type": "clear; cat /tmp/p5.log; echo '=== earlyoom/oomd journal ==='; journalctl -b -u earlyoom -u systemd-oomd --no-pager 2>/dev/null | tail -20; echo '=== oom kills in dmesg ==='; sudo dmesg 2>/dev/null | grep -iE 'killed process|out of memory' | tail -10; echo '=== mem ==='; free -m | head -2" },
+  { "keys": ["ret"] },
+  { "wait": 8 },
+  { "shot": "t1-killer-journal" },
+  { "type": "sudo systemctl stop earlyoom systemd-oomd 2>/dev/null; rm -f /tmp/p6.log; for i in 1 2 3 4 5 6; do sudo -b /usr/bin/hscl-calamares; sleep 40; if pgrep -f 'calamares -D8' >/dev/null; then echo \"B$i=UP\" >>/tmp/p6.log; else echo \"B$i=DEAD\" >>/tmp/p6.log; fi; sudo pkill -f hscl-calamares; sudo pkill -f 'calamares -D8'; sleep 4; done; echo DONE-B >>/tmp/p6.log" },
+  { "keys": ["ret"] },
+  { "wait": 300 },
+  { "type": "clear; cat /tmp/p6.log; echo '=== crashes without killers ==='; grep -c 'exit 137' /tmp/hscl-calamares.log 2>/dev/null; tail -6 /tmp/hscl-calamares.log 2>/dev/null" },
+  { "keys": ["ret"] },
+  { "wait": 8 },
+  { "shot": "t2-no-killers" }
+]
