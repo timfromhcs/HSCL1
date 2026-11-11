@@ -51,6 +51,13 @@ read from the scripts in `scripts/` on 2026-11-07; if a script changes, this pag
        --release-dir artifacts/release-<version>-set --github timfromhcs/HSCL1
    ```
 
+> **Draft trap (learned 2026-11-11):** `gh release create` creates the release as a **draft** and only
+> publishes it at the end. If the upload is interrupted — it stalled twice on a 1.9 GB part — the release
+> stays a draft with an `untagged-…` URL, and `gh release view` still lists the assets that did arrive.
+> Upload large parts one at a time afterwards (`gh release upload TAG FILE`) and publish explicitly with
+> `gh release edit TAG --draft=false --prerelease`; check `--json tagName,isDraft,url` before reporting
+> success. A draft is not a release.
+
 ## Honest labels
 
 The version's suffix decides what may be claimed: `alpha` for a working preview with a documented "not

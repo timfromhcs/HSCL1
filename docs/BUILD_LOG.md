@@ -2999,6 +2999,24 @@ Provenance nuance: the tag `v0.1.6-alpha.0` names `13c3215` (what the manifest r
 Not in this artifact (landed later, next build): the removal of the dead `[Fonts] desktopFont` pin (Q-64) and
 every commit after `13c3215` that touches tests, docs or that file mode.
 
+**Published (2026-11-11):** tag `v0.1.6-alpha.0` on `13c3215`, GitHub prerelease with 8 assets
+(`part000`…`part002`, `SHA256SUMS`, ISO manifest, SBOM, build manifest, notes).
+`verify_release_consistency.py --version 0.1.6-alpha.0 --github timfromhcs/HSCL1` → **22 checks, 0 failed**,
+including GitHub's own recorded digests for all three parts.
+
+Two release-mechanics findings, both now documented in `docs/RELEASE_PROCESS.md`:
+
+1. **An interrupted `gh release create` leaves a draft.** The combined create-and-upload stalled twice on a
+   1.9 GB part; killing it left the release as a *draft* with an `untagged-…` URL, while `gh release view`
+   happily listed the five small assets that had arrived. Uploading each part with `gh release upload` and
+   then `gh release edit --draft=false --prerelease` produced the real release. A draft is not a release.
+2. **`make_release.py` wrote "Not signed, not tagged, not uploaded" into the notes.** True at assembly time,
+   false after publishing. The line now says tagging and upload are separate owner steps, and the published
+   notes were corrected with `gh release edit --notes-file`.
+
+Disk: the duplicate ISO copy under `artifacts/iso/` was removed after the digest check (the release set and
+its three parts remain), which freed 5.1 GB.
+
 ### Disk hygiene (2026-11-11)
 
 `E:` was at 92 % and the WSL build directory held nine ISOs. Deleted, with the hashes still in this log and
