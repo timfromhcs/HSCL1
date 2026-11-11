@@ -182,6 +182,28 @@ therefore passes `-p no:randomly`: the gate is reproducible, and a real failure 
 one time in three. The underlying order dependence is still unexplained and tracked in
 [AUTONOMOUS_QUEUE](AUTONOMOUS_QUEUE.md).
 
+## Reproducing the installer startup kill (Q-46/Q-61)
+
+The fault: Calamares dies 2-3 s after a desktop-icon start in roughly one start in 6-12, with no core
+dump and no OOM line, and `/usr/bin/hscl-calamares` restarts it inside the first minute.
+
+Three method errors were made before a usable procedure existed, so do it this way:
+
+1. **Measure one boot at a time, sequentially.** Calamares holds a single-instance lock and exits 87,
+   which the wrapper retries. Repeated double-clicks on the icon therefore do **not** create additional
+   starts - a `pgrep -c` that rises and stays constant is one process tree (about five processes), not
+   five installers. Start → observe ~20 s → stop → repeat is the only measurement that counts starts.
+2. **Run the watcher with `setsid`.** Closing Konsole sends SIGHUP to its children and the log stops
+   three seconds in.
+3. **Do not let the watcher match itself.** `pgrep -f calamares` matches the shell whose command line
+   contains the word; use a bracket pattern (`pgrep -cf "[c]alamares"`), which does not match its own
+   literal text, and log the PID list, not only a count.
+
+`tests/visual/scenarios/q61-seq.json` implements 12 sequential starts in one boot through the same
+wrapper the desktop icon uses, and prints `/tmp/probe.log` plus `/tmp/hscl-calamares.log` at the end.
+`tests/visual/scenarios/q61-count.json` is the counter-example that proved the single-instance lock
+(five identical PIDs across four more clicks) and should be kept: it is the evidence for rule 1.
+
 ## Release and audit tooling (no VM)
 
 These were written after real mistakes and are the cheapest way to catch the same class again:
