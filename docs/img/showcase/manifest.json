@@ -163,7 +163,7 @@
       1280,
       800
     ],
-    "description": "Kate showing /etc/os-release on rc8; the window renders with a LIGHT palette inside the dark HCS shell (Q-53), and both desktop entries show the orange ! emblem (Q-63)",
+    "description": "Kate showing /etc/os-release on rc8 with the dark HCS palette (editor mean luma 43/255); both desktop entries carry the orange ! emblem (Q-63)",
     "timestamp": 1794386536.2228866,
     "source_iso": "HSCL1-rc8-amd64.iso"
   },
