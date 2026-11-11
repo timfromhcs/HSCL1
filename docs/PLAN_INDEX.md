@@ -1,5 +1,36 @@
 # HSCL1 plan reconciliation index
 
+## Live status, 2026-11-11 (source `349af12`, 71 commits after the 2026-11-10 audit)
+
+- **Two work streams share this repository.** The 2026-11-10 pass produced the audit, the honest
+  README/handbook and the published `v0.1.5-alpha.0`; a second stream has since built and measured
+  `rc3`…`rc9`, closed most of the visual findings and fixed the Control Center's Miner page. The queue
+  (`AUTONOMOUS_QUEUE.md`) is the single ordering authority; this page only records where things stand.
+- **Newest candidate:** `HSCL1-rc9-amd64.iso` (`0a3c2341…`, 5 488 771 072 B, source `349af12`,
+  `git_dirty: false`, built 2026-11-11 08:54 UTC). Every VM gate now sits on one artifact: boot,
+  install, LUKS2 unlock, in-guest QA and the Security Lab chain were re-run on the rc6–rc8 line.
+- **Published release:** `v0.1.5-alpha.0` (`c3ae31a6…`, built from `406186d`, xz). It predates
+  `rc3`–`rc9` and therefore still has oblique desktop icon labels; the fix (desktop entries installed
+  as files instead of symlinks, so Plasma stops italicising link labels) and the installer restart
+  wrapper are **not** in the published image. A 0.1.6 release from the rc9 line is the next release
+  step, not something the current download offers.
+- **Visual findings settled with evidence:** Q-52 (italic labels, root cause `FolderItemDelegate`
+  `font.italic: model.isLink`) closed on rc4; Q-53 (Kate) closed — measured editor mean luma
+  43.1/255, i.e. dark; Q-57 (wallpaper presets) closed on rc3 with four different capture pairs;
+  Q-58 closed as a **scenario artefact** (the old scenario pressed Alt+F4 before the screenshot).
+- **Still open:** Q-60 (two-line icon labels wrap left of the icon centre, upstream behaviour),
+  Q-61 (installer is SIGKILLed in roughly 1 in 6–12 starts; wrapper retries, killer still unknown),
+  Q-63 (orange "!" emblem on desktop entries after the symlink fix), Q-54 (a handbook capture from a
+  current candidate) and the v1 gates that need hardware or a signing key.
+- **Measured, not impression (2026-11-11):** colour claims must be computed over a named box. A
+  preview of the Kate capture looked light while the pixels were dark; the row was corrected and the
+  rule is recorded in `AUDIT_2026-11-10.md` §5.2. Shape claims (missing window, slanted label) are safe
+  from a preview.
+- **CI:** the 2026-11-10 fixes (filesystem-root storage path, Pillow for the screenshot gate, rustfmt)
+  turned the Rust and Python jobs green; the last full run before this entry was **all 8 jobs success**.
+- **Release staleness rule stays binding:** an artifact proves only the commit it names. `0.1.5` names
+  `406186d`; `rc9` names `349af12`; neither is `HEAD`.
+
 ## Live status, 2026-11-10 (source `c74af1b`)
 
 - **Repository state:** `main` is **104 commits ahead of `origin/main`** and has never been pushed
