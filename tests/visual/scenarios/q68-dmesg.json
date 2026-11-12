@@ -1,0 +1,9 @@
+[
+  { "wait": 15 },
+  { "keys": ["ctrl", "alt", "t"] },
+  { "wait": 12 },
+  { "type": "sudo sh -c 'P=/dev/virtio-ports/hscl.qa; L(){ echo \"Q68| $*\" >$P; }; L dmesg0; dmesg 2>&1|grep -iE \"segfault|general protection|traps\"|tail -20 >$P; for i in $(seq 1 12); do timeout 16 /usr/bin/calamares-launch-normal >/tmp/a.$i 2>&1; L \"A $i rc=$? portal=$(grep -c portal /tmp/a.$i)\"; sleep 2; done; L dmesg1; dmesg 2>&1|grep -iE \"segfault|general protection|traps\"|tail -40 >$P; for i in $(seq 1 12); do QT_QPA_PLATFORMTHEME= XDG_CURRENT_DESKTOP= timeout 16 /usr/bin/calamares-launch-normal >/tmp/b.$i 2>&1; L \"B $i rc=$? portal=$(grep -c portal /tmp/b.$i)\"; sleep 2; done; L dmesg2; dmesg 2>&1|grep -iE \"segfault|general protection|traps\"|tail -60 >$P; L end'" },
+  { "keys": ["ret"] },
+  { "wait": 620 },
+  { "shot": "q68-dmesg-final" }
+]

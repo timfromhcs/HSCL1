@@ -1,0 +1,9 @@
+[
+  { "wait": 15 },
+  { "keys": ["ctrl", "alt", "t"] },
+  { "wait": 12 },
+  { "type": "sudo sh -c 'P=/dev/virtio-ports/hscl.qa; L(){ echo \"Q68| $*\" >$P; }; for i in $(seq 1 12); do timeout 16 /usr/bin/calamares-launch-normal >/tmp/o.$i 2>&1; rc=$?; L \"start $i rc=$rc out=$(wc -c </tmp/o.$i)\"; if [ $rc -ne 124 ]; then L \"== tail of start $i (rc=$rc) ==\"; tail -50 /tmp/o.$i >$P; fi; sleep 2; done; L drkonqi; ls -la /tmp/drkonqi.* >$P 2>&1; L metadata; ls -la /home/hscl1/.cache/kcrash-metadata/ >$P 2>&1; L meta-content; cat /home/hscl1/.cache/kcrash-metadata/*.ini >$P 2>&1; L end'" },
+  { "keys": ["ret"] },
+  { "wait": 340 },
+  { "shot": "q68-tail-final" }
+]

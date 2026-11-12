@@ -5,13 +5,23 @@
 #
 # 1. The welcome module's `internet` check made an HTTPS request inside the requirement phase and crashed
 #    Calamares there; it is removed from `welcome.conf` by the image hook.
-# 2. Even without that, the installer dies in roughly one start in five while it builds its first page, whoever
+# 2. Even without that, the installer dies in roughly one start in six while it builds its first page, whoever
 #    starts it. Measured 2026-11-11 on `HSCL1-rc4`, 10 starts in one boot: 4 up / 1 dead, 4 up / 1 dead - the
 #    second series with `QT_QPA_PLATFORM=xcb`, so the platform plugin is not the cause (see BUILD_LOG). The
-#    journal always looks the same: `KCrash: appFilePath points to nullptr!`,
-#    `KCrash: Application 'unknown' crashing`, drkonqi fails to start, then
-#    `line 16: <pid> Killed calamares -D8`. The crash-handler dialog then covers the screen and the user is
-#    left with a dead wizard.
+#    journal always looks the same: `KCrash: Application 'calamares' crashing... crashRecursionCounter = 2`,
+#    drkonqi starts, then `line 16: <pid> Killed calamares -D8`. The crash-handler dialog then covers the
+#    screen and the user is left with a dead wizard.
+#
+#    Measured 2026-11-12 (queue row Q-68) and worth knowing before reading those logs again:
+#      * the signal is an ABORT, not a fault - `dmesg` has no `segfault`/`traps` line for nine deaths, and
+#        SIGSEGV/SIGBUS/SIGILL/SIGFPE all log one;
+#      * `crashRecursionCounter = 2` is the NORMAL value for a first crash (KCrash increments twice before it
+#        prints), so it does not mean the handler failed twice;
+#      * `KCrash: appFilePath points to nullptr!` / `Application '<unknown>' crashing` comes from a SECOND
+#        process with a different pid - the forked drkonqi, i.e. the broken crash reporter, not calamares;
+#      * the rate depends on the environment by a factor of eight: 1 death in 12 starts as shipped, 8 in 12
+#        with `QT_QPA_PLATFORMTHEME` and `XDG_CURRENT_DESKTOP` cleared. Do NOT "clean up" those variables
+#        here; the shipped environment is the one that mostly works.
 #
 # Software rendering removes the GPU timing from the picture but does not remove the fault, so this wrapper
 # restarts the installer when it dies from a signal **within the first minute** - that is the measured failure

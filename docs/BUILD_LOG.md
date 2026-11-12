@@ -3444,3 +3444,68 @@ this exact artifact, and an image-level SBOM (the shipped one is CLI-scoped, 99 
 still crashes at startup in roughly one start in six and is restarted by the wrapper - Q-68, now correctly
 described as a crash rather than an unexplained kill.
 
+
+### Q-68: the crash is an abort, and it is environment-sensitive (2026-11-12)
+
+Two more boots on the **released 0.1.7 ISO** (not a candidate), both reading their result out of the guest
+through the `hscl.qa` port. Together they correct two long-standing misreadings and replace "unknown" with a
+mechanism class.
+
+**Probe 1 - `artifacts/q68-tail`, `tests/visual/scenarios/q68-tail.json`, 705 s.** 12 sequential starts of
+`calamares-launch-normal` with `timeout 16`, and for every death the **tail of that start's own `-D8` log** -
+the evidence that had been thrown away in every earlier probe, which recorded only byte counts.
+
+| Start | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| rc | 124 | 124 | **137** | 124 | 124 | 124 | **137** | 124 | **137** | 124 | 124 | 124 |
+
+Every death's log ends the same way: `STARTUP: Window now visible and ProgressTreeView populated`,
+`.. 10 view steps loaded.`, `.. Loaded QRC translation "kb_" "en"`, then
+`KCrash: Application 'calamares' crashing... crashRecursionCounter = 2`. So the crash is in the first page,
+before any user input, and the window is already up.
+
+**Correction 1: `crashRecursionCounter = 2` is the normal value for a first crash.** KCrash increments the
+counter once on entry and once more inside `if (crashRecursionCounter < 2)`, and only then prints it - so 2
+is what a *first* crash prints. This log said "its handler fails twice" for two days; that reading was wrong
+and is corrected here and in `KNOWN_LIMITATIONS.md`.
+
+**Correction 2: `KCrash: appFilePath points to nullptr!` is not calamares.** It comes from a **second
+process**: `Application '<unknown>'`, empty arguments, and a pid different from the calamares pid in the same
+log (3437 vs 3580, 4261 vs 4348, 4632 vs 4712). That is the forked `drkonqi` crashing - which is exactly the
+"Crash Handler has closed unexpectedly" dialog. The crash reporter is broken in this environment; the app it
+was called for is a separate problem.
+
+Also: `~/.cache/kcrash-metadata/` stays **empty** and `/tmp/drkonqi.*` never appears. KCrash writes that
+metadata only when core dumps go to a coredump daemon (`shouldWriteMetadataToDisk()` needs
+`drkonqi-coredump-processor`), and this image has neither `systemd-coredump` nor that helper. That is why no
+earlier attempt could get a signal number out of the metadata.
+
+**Probe 2 - `artifacts/q68-dmesg`, `tests/visual/scenarios/q68-dmesg.json`, 1034 s.** Two 12-start series in
+one boot, with `dmesg` filtered for `segfault|general protection|traps` before and after:
+
+| Series | Environment | Deaths |
+|---|---|---|
+| A | as shipped (`XDG_CURRENT_DESKTOP=KDE`, no `QT_QPA_PLATFORMTHEME`) | **1 of 12** |
+| B | `XDG_CURRENT_DESKTOP=` (empty) and `QT_QPA_PLATFORMTHEME=` (empty) | **8 of 12** |
+
+The environment dump the probe wrote first is what makes series B interpretable: the session exports
+`XDG_CURRENT_DESKTOP=KDE` and never sets `QT_QPA_PLATFORMTHEME`, so the only real change in B was turning
+`KDE` into an **empty** value - and an empty value is much worse than the set one.
+
+Three conclusions:
+
+1. **The signal is an abort, not a fault.** `dmesg` contains **no** `segfault`, `traps` or
+   `general protection` line for the 9 deaths. SIGSEGV, SIGBUS, SIGILL and SIGFPE all make the kernel log a
+   fault line; SIGABRT does not. A release build aborts only on `qFatal`, an uncaught exception or allocator
+   corruption, so the remaining question is which message precedes it - not which library segfaults.
+2. **The rate is environment-dependent**, by a factor of eight: 8 % shipped against 67 % with the desktop
+   identity removed. This is an initialisation race that the KDE platform-theme path mostly avoids, and the
+   shipped environment is the *good* one - the wrapper must not "clean up" those variables.
+3. **The portal warning is not causal.** `Failed to register with host portal ... App info not found for
+   'io.calamares.calamares'` appears in surviving starts too (portal line counts 0, 1 and 2 in survivors as
+   well as in the one death of series A). An earlier hypothesis that the portal registration was the trigger
+   is dead.
+
+Totals across the six probes now: 12 deaths in 68 supported starts (~18 %), all exit 137, all after the first
+page is visible. Q-68 stays open with a mechanism class instead of "unknown".
+
