@@ -3585,7 +3585,47 @@ QML page, its German/French translations and `notesqml.conf` stay in the package
 once upstream makes `prettyName()` safe. The image gate used to assert "shown before partition" and now asserts
 the opposite (`installer notes step stays disabled (Q-68)`), which is proven both ways by
 `scripts/dev/test-notes-gate-awk.sh`; `tests/unit/test_installer_notes_page.py` pins that the hook cannot
-re-add the line without evidence. **Not yet in an image**: the change needs the next build to be visible on
-media, and that build is the gate that closes Q-68 completely.
+re-add the line without evidence. **In the image as of 2026-11-13:** `v0.1.8-alpha.0` (`91c8acb`) contains **0** `notesqml` lines in
+`/etc/calamares/settings.conf` and 20 of 20 installer starts survive with a core pattern set - see the
+0.1.8 section below, which is the gate that closed Q-68.
 
+
+
+### 0.1.8-alpha.0: the installer crash is fixed and verified on media (2026-11-13)
+
+| Field | Value |
+|---|---|
+| Artifact | `HSCL1-0.1.8-alpha.0-amd64.iso` |
+| Bytes | 5 027 201 024 |
+| SHA-256 | `def7f190a061811970f6a053d2dfbe1e2e9e797926c62c2b12a28952fcd8c84d` |
+| Source | `91c8acbeff461e733d60452eecd2c608cbd13de0`, `git_dirty: false`, xz |
+| Built | 2026-11-12T20:45:09Z in WSL from `~/hscl1-src` |
+| Release | https://github.com/timfromhcs/HSCL1/releases/tag/v0.1.8-alpha.0 (prerelease, 8 assets) |
+
+**The point of this release is one line of configuration.** The `notesqml` step is no longer in the Calamares
+sequence, so the startup crash that had been open since 0.1.4 cannot happen: its faulting frame was
+`NotesQmlViewStep::prettyName()` (see the Q-68 root-cause entry above for the core and backtrace).
+
+**Verification on the built media, not on a candidate** - `artifacts/boot-0.1.8`, `q68-closed.json`:
+
+| Check | Result |
+|---|---|
+| `grep -c notesqml /etc/calamares/settings.conf` in the booted image | **0** |
+| 20 sequential installer starts, drkonqi made unrunnable, `core_pattern` set | **20 of 20 survive, 0 cores** |
+| `distro/live/verify-image.sh` during the build | all checks passed, including `installer notes step stays disabled (Q-68)` |
+| UEFI boot at 4 GB | desktop reached, `qa_report.py` exit **0** (9 ok, 1 info: Secure Boot off) |
+| `verify_release_consistency.py --github` | **24 checks, 0 failed** |
+| workflow "Verify release assets" | run on the release event, see the run list for `91c8acb` |
+
+The 20-of-20 series is the strong form of the claim: with no crash reporter to find, KCrash re-raises the
+signal, so any crash would have left a core. Zero cores across 20 starts, on media where the step is provably
+absent, is the fix verified rather than argued. At the earlier rate of ~18 % a still-broken build would have
+produced at least one death in 20 starts with ~98 % probability.
+
+Also in this release: `scripts/dev/bump_version.py` reads the current version from `VERSION` instead of
+hardcoding it, so the bump that produced this image could not silently skip a file (0.1.6 shipped from an
+unmerged branch for exactly that reason).
+
+Still open and unchanged: **Q-66** (the empty-ESP cause is unknown, the install is guarded and now
+self-diagnosing), **Q-19** (qmllint ratchet), and every v1 gate that needs hardware or a signing key.
 

@@ -1,56 +1,56 @@
 {
   "repo": "timfromhcs/HSCL1",
   "release": {
-    "tag": "v0.1.7-alpha.0",
-    "name": "HSCL1 0.1.7-alpha.0",
+    "tag": "v0.1.8-alpha.0",
+    "name": "HSCL1 0.1.8-alpha.0",
     "prerelease": true,
-    "published_at": "2026-11-12T10:34:48Z",
-    "url": "https://github.com/timfromhcs/HSCL1/releases/tag/v0.1.7-alpha.0",
+    "published_at": "2026-11-12T21:49:27Z",
+    "url": "https://github.com/timfromhcs/HSCL1/releases/tag/v0.1.8-alpha.0",
     "assets": [
       {
         "name": "build-manifest.json",
-        "size": 1599,
-        "url": "https://github.com/timfromhcs/HSCL1/releases/download/v0.1.7-alpha.0/build-manifest.json"
+        "size": 1454,
+        "url": "https://github.com/timfromhcs/HSCL1/releases/download/v0.1.8-alpha.0/build-manifest.json"
       },
       {
-        "name": "HSCL1-0.1.7-alpha.0-amd64.iso.manifest.json",
+        "name": "HSCL1-0.1.8-alpha.0-amd64.iso.manifest.json",
         "size": 539,
-        "url": "https://github.com/timfromhcs/HSCL1/releases/download/v0.1.7-alpha.0/HSCL1-0.1.7-alpha.0-amd64.iso.manifest.json"
+        "url": "https://github.com/timfromhcs/HSCL1/releases/download/v0.1.8-alpha.0/HSCL1-0.1.8-alpha.0-amd64.iso.manifest.json"
       },
       {
-        "name": "HSCL1-0.1.7-alpha.0-amd64.iso.part000",
+        "name": "HSCL1-0.1.8-alpha.0-amd64.iso.part000",
         "size": 1992294400,
-        "url": "https://github.com/timfromhcs/HSCL1/releases/download/v0.1.7-alpha.0/HSCL1-0.1.7-alpha.0-amd64.iso.part000"
+        "url": "https://github.com/timfromhcs/HSCL1/releases/download/v0.1.8-alpha.0/HSCL1-0.1.8-alpha.0-amd64.iso.part000"
       },
       {
-        "name": "HSCL1-0.1.7-alpha.0-amd64.iso.part001",
+        "name": "HSCL1-0.1.8-alpha.0-amd64.iso.part001",
         "size": 1992294400,
-        "url": "https://github.com/timfromhcs/HSCL1/releases/download/v0.1.7-alpha.0/HSCL1-0.1.7-alpha.0-amd64.iso.part001"
+        "url": "https://github.com/timfromhcs/HSCL1/releases/download/v0.1.8-alpha.0/HSCL1-0.1.8-alpha.0-amd64.iso.part001"
       },
       {
-        "name": "HSCL1-0.1.7-alpha.0-amd64.iso.part002",
+        "name": "HSCL1-0.1.8-alpha.0-amd64.iso.part002",
         "size": 1042612224,
-        "url": "https://github.com/timfromhcs/HSCL1/releases/download/v0.1.7-alpha.0/HSCL1-0.1.7-alpha.0-amd64.iso.part002"
+        "url": "https://github.com/timfromhcs/HSCL1/releases/download/v0.1.8-alpha.0/HSCL1-0.1.8-alpha.0-amd64.iso.part002"
       },
       {
         "name": "release-notes.md",
-        "size": 4163,
-        "url": "https://github.com/timfromhcs/HSCL1/releases/download/v0.1.7-alpha.0/release-notes.md"
+        "size": 4286,
+        "url": "https://github.com/timfromhcs/HSCL1/releases/download/v0.1.8-alpha.0/release-notes.md"
       },
       {
         "name": "SBOM-hscl-cli.spdx.json",
         "size": 76579,
-        "url": "https://github.com/timfromhcs/HSCL1/releases/download/v0.1.7-alpha.0/SBOM-hscl-cli.spdx.json"
+        "url": "https://github.com/timfromhcs/HSCL1/releases/download/v0.1.8-alpha.0/SBOM-hscl-cli.spdx.json"
       },
       {
         "name": "SHA256SUMS",
         "size": 408,
-        "url": "https://github.com/timfromhcs/HSCL1/releases/download/v0.1.7-alpha.0/SHA256SUMS"
+        "url": "https://github.com/timfromhcs/HSCL1/releases/download/v0.1.8-alpha.0/SHA256SUMS"
       }
     ],
     "whole_image": {
-      "name": "HSCL1-0.1.7-alpha.0-amd64.iso",
-      "sha256": "400fb9d7aca53ef4f2b4926fb26732e0cd987b6363fc0f9800e2591d8e951df0",
+      "name": "HSCL1-0.1.8-alpha.0-amd64.iso",
+      "sha256": "def7f190a061811970f6a053d2dfbe1e2e9e797926c62c2b12a28952fcd8c84d",
       "bytes": 5027201024
     }
   }

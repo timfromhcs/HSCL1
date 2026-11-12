@@ -1,0 +1,9 @@
+[
+  { "wait": 15 },
+  { "keys": ["ctrl", "alt", "t"] },
+  { "wait": 12 },
+  { "type": "sudo sh -c 'P=/dev/virtio-ports/hscl.qa; L(){ echo \"Q68| $*\" >$P; }; L notesqml-lines; grep -c notesqml /etc/calamares/settings.conf >$P 2>&1; chmod -x /usr/lib/x86_64-linux-gnu/libexec/drkonqi 2>/dev/null; mkdir -p /tmp/cores; sysctl -qw kernel.core_pattern=/tmp/cores/core.%e.%p; ulimit -c unlimited; L series; for i in $(seq 1 20); do timeout 16 /usr/bin/calamares-launch-normal >/tmp/o.$i 2>&1; L \"T $i rc=$? cores=$(ls /tmp/cores|wc -l)\"; sleep 2; done; L end'" },
+  { "keys": ["ret"] },
+  { "wait": 540 },
+  { "shot": "q68-closed-final" }
+]

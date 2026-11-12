@@ -1,15 +1,15 @@
 [
   {
     "filename": "01_desktop_clean.png",
-    "bytes": 134714,
-    "colors": 19426,
+    "bytes": 124958,
+    "colors": 18763,
     "size": [
       1280,
       800
     ],
-    "description": "Clean HSCL1 live desktop on the 0.1.7 artifact: upright desktop labels, no untrusted emblem, HCS top bar, centred floating dock, Midnight wallpaper",
+    "description": "Clean HSCL1 live desktop on the 0.1.8 artifact: upright desktop labels, no untrusted emblem, HCS top bar, centred floating dock, Midnight wallpaper",
     "timestamp": 1794395972.944104,
-    "source_iso": "HSCL1-0.1.7-alpha.0-amd64.iso sha256 400fb9d7"
+    "source_iso": "HSCL1-0.1.8-alpha.0-amd64.iso sha256 def7f190"
   },
   {
     "filename": "02_wallpaper_aurora.png",

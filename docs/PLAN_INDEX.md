@@ -1,5 +1,20 @@
 # HSCL1 plan reconciliation index
 
+## Live status, 2026-11-13: 0.1.8-alpha.0 ships the installer fix
+
+- **Released:** `v0.1.8-alpha.0` (`def7f190…`, 5 027 201 024 B, source `91c8acb`, xz, clean tree) -
+  https://github.com/timfromhcs/HSCL1/releases/tag/v0.1.8-alpha.0. `verify_release_consistency.py --github`
+  **24 checks / 0 failed**; CI **success** and "Verify release assets" **success** on the same commit.
+- **Q-68 is closed on media:** the booted image has **0** `notesqml` lines in
+  `/etc/calamares/settings.conf`, and **20 of 20** sequential installer starts survive with drkonqi made
+  unrunnable and a core pattern set - zero cores. A still-broken build would have produced a death with ~98 %
+  probability at the old rate. The image gate asserts the step stays disabled.
+- **What is left is not this class of bug:** Q-66 (empty-ESP cause unknown, guarded and self-diagnosing),
+  Q-19 (qmllint ratchet), and the v1 gates that need hardware or a signing key (physical boot, USB, Secure
+  Boot acceptance, TPM, Tor-routed privacy, release signature, image-level SBOM).
+- The desktop hero image in the README is this artifact's own capture (`artifacts/hero-0.1.8`), so the Q-55
+  standard ("the hero is the current candidate") holds.
+
 ## Live status, 2026-11-12: Q-68 solved - the installer crash is the `notesqml` step
 
 - **The installer's startup crash has a named site and a measured fix.** With `drkonqi` made unrunnable
