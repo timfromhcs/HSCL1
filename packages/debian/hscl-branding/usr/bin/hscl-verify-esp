@@ -21,6 +21,12 @@
 # Without this, a recurrence only ever says "no loader", which is the symptom, not the cause.
 set -eu
 efi="${HSCL_ESP:-/boot/efi}"
+# The GRUB and /boot paths are overridable for the same reason as the ESP: the script runs inside the target
+# chroot, where the defaults are correct, but a test that executes it on a normal host must be able to point it
+# at an empty directory - otherwise the host's own /boot/grub/i386-pc makes the legacy branch fire and the
+# negative test passes for the wrong reason (caught by CI on PR #62, 2026-11-12).
+grub="${HSCL_GRUB:-/boot/grub}"
+boot="${HSCL_BOOT:-/boot}"
 
 # diagnose: everything that separates "not mounted" from "mounted but empty". Read-only, never fails.
 diagnose() {
@@ -32,8 +38,8 @@ diagnose() {
   grep -i -E 'efi|vfat' /proc/mounts 2>/dev/null | sed 's/^/hscl-verify-esp:   /' >&2 || echo "hscl-verify-esp:   (none)" >&2
   echo "hscl-verify-esp: ls -la $efi:" >&2
   ls -la "$efi" 2>&1 | sed 's/^/hscl-verify-esp:   /' >&2 || true
-  echo "hscl-verify-esp: grub modules under /boot/grub: $(ls /boot/grub 2>/dev/null | wc -l) entries" >&2
-  echo "hscl-verify-esp: kernel images in /boot: $(ls /boot/vmlinuz-* 2>/dev/null | wc -l)" >&2
+  echo "hscl-verify-esp: grub modules under $grub: $(ls "$grub" 2>/dev/null | wc -l) entries" >&2
+  echo "hscl-verify-esp: kernel images in $boot: $(ls "$boot"/vmlinuz-* 2>/dev/null | wc -l)" >&2
   # The `logs` module may already have copied the installer log into the target; it names what grub-install said.
   for f in /var/log/Installation /var/log/calamares.log; do
     [ -f "$f" ] || continue
@@ -47,8 +53,8 @@ if [ ! -d "$efi/EFI" ]; then
   # A legacy/BIOS install has no EFI system partition and is not supposed to have one: `grub-install --target=i386-pc`
   # writes /boot/grub/i386-pc and puts the boot image on the disk's MBR gap instead. The check must not fail such an
   # install - it would turn "you booted the ISO in BIOS mode" into "the installation is broken".
-  if [ -d /boot/grub/i386-pc ]; then
-    echo "hscl-verify-esp: legacy (BIOS) install - /boot/grub/i386-pc present, no ESP expected; check does not apply"
+  if [ -d "$grub/i386-pc" ]; then
+    echo "hscl-verify-esp: legacy (BIOS) install - $grub/i386-pc present, no ESP expected; check does not apply"
     exit 0
   fi
   echo "hscl-verify-esp: $efi/EFI is missing - the installer did not populate the EFI system partition" >&2
