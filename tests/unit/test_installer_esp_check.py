@@ -55,6 +55,22 @@ def test_the_failure_path_reports_what_discriminates_the_cause():
     assert "Q-66" in text, "name the open queue row so the log is traceable"
 
 
+def test_a_legacy_install_is_not_failed_for_having_no_esp():
+    """The ISO also boots in BIOS mode, and `grub-install --target=i386-pc` writes no ESP by design.
+
+    Without this branch the guard would turn "you booted the ISO in BIOS mode" into "the installation is
+    broken" - a false failure that hides the real UEFI case it exists to catch.
+    """
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "/boot/grub/i386-pc" in text, "the legacy marker must be checked"
+    assert "legacy (BIOS) install" in text
+    # the BIOS branch must pass, and must sit before the UEFI failure exit
+    bios = text.index("/boot/grub/i386-pc")
+    fail = text.index("did not populate the EFI system partition")
+    assert bios < fail, "the legacy branch must be evaluated before the UEFI failure"
+    assert text.count("exit 0") >= 3, "legacy, BOOTX64.EFI and grubx64.efi each pass"
+
+
 def test_the_script_stays_posix_sh():
     """It runs in the target chroot under Calamares; bash may not be the interpreter there."""
     text = SCRIPT.read_text(encoding="utf-8")

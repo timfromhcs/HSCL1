@@ -44,6 +44,13 @@ diagnose() {
 }
 
 if [ ! -d "$efi/EFI" ]; then
+  # A legacy/BIOS install has no EFI system partition and is not supposed to have one: `grub-install --target=i386-pc`
+  # writes /boot/grub/i386-pc and puts the boot image on the disk's MBR gap instead. The check must not fail such an
+  # install - it would turn "you booted the ISO in BIOS mode" into "the installation is broken".
+  if [ -d /boot/grub/i386-pc ]; then
+    echo "hscl-verify-esp: legacy (BIOS) install - /boot/grub/i386-pc present, no ESP expected; check does not apply"
+    exit 0
+  fi
   echo "hscl-verify-esp: $efi/EFI is missing - the installer did not populate the EFI system partition" >&2
   diagnose
   exit 1

@@ -3295,3 +3295,63 @@ loses a cell or claims without evidence.
 **Gates on this tree:** `python -m pytest tests/unit -q` -> **993 passed, 15 skipped** (WSL up) and
 **956 passed, 57 skipped** with WSL shut down for the VM run - the extra skips are the WSL-backed tier and
 are reported, not hidden.
+
+### Q-61 answered: the SIGKILL comes from drkonqi, forked by the crashed Calamares (2026-11-12)
+
+Two audit boots, one of them wasted on a rule that auditd itself removed. The second one named the killer.
+
+**First attempt (`artifacts/q61-audit`, rc11, 4 GB, 905 s):** 1 death in 12 starts, and no usable audit
+data - `auditctl -l` printed `No rules` at the start of the series. The log explains it: my rule was added
+(`CONFIG_CHANGE ... op=add_rule key="q61kill" res=1`, sequence `:64`) and then **removed** by
+`/sbin/auditctl -R /etc/audit/audit.rules` (sequence `:70`) - `systemctl start auditd` returns before the
+daemon re-reads its rules file, so the daemon's own load flushed the rule I had just installed. Lesson in
+`docs/TESTING.md` rule 5: start the daemon, wait, add the rule, and verify the list is not empty.
+
+**Second attempt (`artifacts/q61-audit2`, same artifact, 1063 s):** `systemctl start auditd; sleep 6;
+auditctl -a always,exit -F arch=b64 -S kill -S tgkill -k q61kill` -> `auditctl -l` confirms
+`-a always,exit -F arch=b64 -S kill,tgkill -F key=q61kill`. 12 sequential starts of
+`/usr/bin/calamares-launch-normal`, 16 s observation each:
+
+| Start | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| alive at 16 s | 1 | 1 | 1 | **0** | 1 | 1 | 1 | 1 | 1 | 1 | **0** | **0** |
+| own stdout, bytes | 16 052 | 17 246 | 17 246 | 13 567 | 17 049 | 17 049 | 17 293 | 17 293 | 17 049 | 17 049 | 13 463 | 13 450 |
+
+The audit record (`scripts/dev/q61_audit_verdict.py` extracts it) contains exactly two SIGKILLs against
+calamares, both from the same place:
+
+```
+sender drkonqi (pid 5919, ppid 5841) kill(pid=5841, SIGKILL) success=yes
+    victim pid 5841 comm=calamares
+sender drkonqi (pid 6112, ppid 6011) kill(pid=6011, SIGKILL) success=yes
+    victim pid 6011 comm=calamares
+```
+
+drkonqi's **parent is the calamares pid it kills**. One millisecond earlier the same drkonqi sends
+`kill(pid, 0)` (a liveness probe) to the same pid, and it later SIGSTOPs itself and runs
+`gdb -nw -n -batch -x /tmp/drkonqi.* -p <itself>`. So the chain is: **Calamares crashes -> KCrash forks
+drkonqi from inside the crashed process -> drkonqi kills its own parent with SIGKILL before gathering a
+backtrace -> exit 137, no core, and the "Crash Handler has closed unexpectedly" dialog.**
+
+That explains every observation the earlier probes could not: the 137 instead of 139, the missing core
+(SIGKILL never dumps), the `KCrash: appFilePath points to nullptr` line, and why `KCRASH_DUMP_ONLY=1` in
+the wrapper removes the dialog - it suppresses the very process that sends the SIGKILL.
+
+The `sh` rows in the same log are my own teardown (`kill -9 -<pgid>`, `success=no`, because the group was
+already gone), so **no death in this probe was self-inflicted** - which the earlier screenshot probes could
+not prove.
+
+Rates across the three probes: 1/8 (`q61-vport`), 1/12 (`q61-audit`), 3/12 (`q61-audit2`) = **5 of 32
+supported starts, ~16 %**, consistent with the earlier 1-in-6-12 estimate. The 16 s probe pace may inflate
+it; the desktop-icon rate remains the user-facing number.
+
+Q-61's gate ("the killer identified") is met and the row is closed. **The crash itself is now row Q-68** -
+it was previously hidden behind the kill. Next experiment needs no new ISO: the same 12-start series with
+`KCRASH_DUMP_ONLY` **unset**, `ulimit -c unlimited` and `kernel.core_pattern=/tmp/cores/core.%e.%p`, since
+the wrapper may be the only reason no core has ever been produced; failing that, drkonqi's own
+`/tmp/drkonqi.*` and its `gdb -batch` output name the crash.
+
+**Also this pass:** the ESP guard now prints what discriminates the two empty-ESP hypotheses and passes a
+target that carries BIOS GRUB (`/boot/grub/i386-pc`), so a legacy install is not failed for having no ESP
+by design; `qemu_boot_test.py --secure-boot` now refuses to pretend on Windows - QEMU there ships only the
+empty variables template, so it warns unless `HSCL_OVMF_VARS_MS` points at an enrolled key database.
