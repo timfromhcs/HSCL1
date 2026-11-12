@@ -73,14 +73,21 @@ def test_package_build_compiles_the_translations_and_fails_without_the_tool():
     assert re.search(r"lrelease[^\n]*\n[^\n]*(exit 1|return 1)|missing[^\n]*lrelease|lrelease[^\n]*not found", BUILD), "must fail loudly when lrelease is missing"
 
 
-def test_hook_adds_the_page_before_partition_and_its_config():
-    assert "notesqml" in HOOK and "modules/notesqml.conf" in HOOK
+def test_the_step_is_no_longer_inserted_into_the_sequence():
+    """Q-68: `NotesQmlViewStep::prettyName()` segfaults while the progress tree paints it.
+
+    The hook used to patch the sequence with `- notesqml`. The assets and the module config stay (so the step can be
+    re-enabled once upstream makes `prettyName()` safe), but the sequence line must not come back without evidence.
+    """
+    assert "modules/notesqml.conf" in HOOK, "the module config is still created on purpose"
     assert "qmlSearch: branding" in HOOK
-    assert re.search(r"settings\.conf", HOOK) and "partition" in HOOK
+    assert not re.search(r"^[^#\n]*patch_file[^\n]*notesqml", HOOK, re.MULTILINE), (
+        "the hook must not patch the Calamares sequence with notesqml again - see Q-68"
+    )
 
 
-def test_image_gates_check_page_translations_config_and_order():
-    for name in ("installer notes page installed", "installer notes: German and French translations",
-                 "installer notes: module config", "installer notes: shown before partition"):
+def test_image_gates_check_the_assets_and_that_the_step_stays_disabled():
+    for name in ("installer notes page assets shipped", "installer notes: German and French translations",
+                 "installer notes: module config", "installer notes step stays disabled (Q-68)"):
         assert name in GATE, name
     assert "calamares-hscl1_de.qm" in GATE and "calamares-hscl1_fr.qm" in GATE

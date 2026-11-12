@@ -3494,10 +3494,9 @@ The environment dump the probe wrote first is what makes series B interpretable:
 
 Three conclusions:
 
-1. **The signal is an abort, not a fault.** `dmesg` contains **no** `segfault`, `traps` or
-   `general protection` line for the 9 deaths. SIGSEGV, SIGBUS, SIGILL and SIGFPE all make the kernel log a
-   fault line; SIGABRT does not. A release build aborts only on `qFatal`, an uncaught exception or allocator
-   corruption, so the remaining question is which message precedes it - not which library segfaults.
+1. ~~**The signal is an abort, not a fault.**~~ **Wrong, and corrected by the seventh probe below.** `dmesg`
+   contained no `segfault`/`traps` line, which looked like proof of an abort; with drkonqi disabled the same
+   crash reports **SIGSEGV** and produces a core. An empty `dmesg` in this live session means nothing.
 2. **The rate is environment-dependent**, by a factor of eight: 8 % shipped against 67 % with the desktop
    identity removed. This is an initialisation race that the KDE platform-theme path mostly avoids, and the
    shipped environment is the *good* one - the wrapper must not "clean up" those variables.
@@ -3508,4 +3507,85 @@ Three conclusions:
 
 Totals across the six probes now: 12 deaths in 68 supported starts (~18 %), all exit 137, all after the first
 page is visible. Q-68 stays open with a mechanism class instead of "unknown".
+
+Gates on the commit that recorded this: `forge check` **6/6 PASS, 1030 passed / 24 skipped** (the commit
+message says 1038 - a typo in the message, corrected here; the summary file is
+`artifacts/forge/20261112-195049/summary.json`).
+
+
+### Q-68 root cause: `NotesQmlViewStep::prettyName()` segfaults while the progress tree paints (2026-11-12)
+
+`artifacts/q68-nodrkonqi`, `tests/visual/scenarios/q68-nodrkonqi.json`, released 0.1.7 ISO, 4 GB, one boot.
+The trick that made it visible: **`chmod -x /usr/lib/x86_64-linux-gnu/libexec/drkonqi`**. KCrash then cannot
+find its crash reporter (`QStandardPaths::findExecutable` fails), so `s_launchDrKonqi` stays 0 and
+`defaultCrashHandler` does what the source says it does when drkonqi is unavailable: `setCrashHandler(nullptr)`
+and `raise(sig)`. The process dies of its **own** signal and the kernel writes a core.
+
+| Start | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| rc | 124 | **139** | **139** | 124 | 124 | 124 | **139** | 124 | 124 | 124 | 124 | 124 |
+
+Three cores, 270-274 MB each, in `/tmp/cores`. `gdb -batch -ex "bt 12"` on the first:
+
+```
+Program terminated with signal SIGSEGV, Segmentation fault.
+#0  0x0000703e81f24015 in ?? () from /usr/lib/x86_64-linux-gnu/libcalamares.so.3.3
+#1  Calamares::Locale::TranslatedString::get(QLocale const&) const
+#2  Calamares::Locale::TranslatedString::get() const
+#3  NotesQmlViewStep::prettyName() const        (libcalamares_viewmodule_notesqml.so)
+#4  Calamares::ViewManager::data(QModelIndex const&, int) const
+#5  QAbstractItemModel::multiData(QModelIndex const&, QModelRoleDataSpan) const
+#6  QStyledItemDelegate::initStyleOption(QStyleOptionViewItem*, QModelIndex const&) const
+#7  ProgressTreeDelegate::paint(...)
+#8  QListView::paintEvent(QPaintEvent*)
+```
+
+**So the crash is in the HSCL1 `notesqml` step** - the notes page that `distro/live/hooks/010-hscl-defaults.sh`
+inserts into the Calamares sequence - and it happens while the progress tree paints that step's name. Every
+death lands on the same stack, so this is not a random memory fault; `TranslatedString::get()` is being called
+on something that is not ready while the view paints.
+
+Three earlier readings are now corrected, and this is the third time a plausible reading of these logs was
+wrong:
+
+1. `crashRecursionCounter = 2` is the **normal** value for a first crash; KCrash increments twice before it
+   prints. It never meant "the handler failed twice".
+2. `KCrash: appFilePath points to nullptr!` / `Application '<unknown>' crashing` comes from the **forked
+   drkonqi** (different pid), not from calamares. That is the broken crash reporter.
+3. The signal is **SIGSEGV**, not an abort. The empty `dmesg` that suggested an abort was a measurement
+   artifact of this live session, not evidence.
+
+It also settles why no core was ever obtainable: `KCRASH_DUMP_ONLY=1` and `KDE_DEBUG=1` only stop KCrash from
+*choosing* drkonqi at `initialize()` time; Calamares enables it explicitly, so `s_launchDrKonqi` is 1 no matter
+what the environment says. Removing the executable is the only switch that works.
+
+**Dead ends recorded so they are not repeated:** `strace -f` **hangs** on this fault (the crash handler's wait
+for drkonqi never resolves inside `timeout 16`, so the loop stalls after the first start - two boots lost);
+`~/.cache/kcrash-metadata` stays empty because metadata writing requires a coredump daemon, which the image
+does not have; and `dmesg` is not usable as a fault oracle here.
+
+Next step is a product fix, not a probe: the `notesqml` step either needs a stable title that does not depend
+on the QML object, or it has to leave the sequence.
+
+**Confirmation series - `artifacts/q68-fix`, `tests/visual/scenarios/q68-fix.json`, 8th boot, released 0.1.7
+ISO.** Same drkonqi trick, then two series in one boot with the live guest's `/etc/calamares/settings.conf`
+edited in place:
+
+| Series | Sequence | Deaths |
+|---|---|---|
+| A (control) | with `- notesqml` | **2 of 8** (starts 3 and 6, both `rc=139`) |
+| B (fixed) | `- notesqml` commented out (`sed`, verified: line 51 `#- notesqml probe`) | **0 of 10** |
+
+Fisher's exact on 2/8 against 0/10 is only p ~ 0.20, so the numbers alone would be weak - but every death in
+every probe lands on the **same** stack, and the faulting frame is inside the step that series B removes. The
+fix is therefore the removal, not a statistical claim.
+
+**Implemented:** `distro/live/hooks/010-hscl-defaults.sh` no longer patches `- notesqml` into the sequence; the
+QML page, its German/French translations and `notesqml.conf` stay in the package so the step can be re-enabled
+once upstream makes `prettyName()` safe. The image gate used to assert "shown before partition" and now asserts
+the opposite (`installer notes step stays disabled (Q-68)`), which is proven both ways by
+`scripts/dev/test-notes-gate-awk.sh`; `tests/unit/test_installer_notes_page.py` pins that the hook cannot
+re-add the line without evidence. **Not yet in an image**: the change needs the next build to be visible on
+media, and that build is the gate that closes Q-68 completely.
+
 

@@ -1,5 +1,21 @@
 # HSCL1 plan reconciliation index
 
+## Live status, 2026-11-12: Q-68 solved - the installer crash is the `notesqml` step
+
+- **The installer's startup crash has a named site and a measured fix.** With `drkonqi` made unrunnable
+  (`chmod -x`) KCrash re-raises the signal instead of starting its broken reporter, so the crash dumps a core;
+  the backtrace is always `QListView::paintEvent` -> `QStyledItemDelegate::initStyleOption` -> `ViewManager::data`
+  -> **`NotesQmlViewStep::prettyName()`** -> `Calamares::Locale::TranslatedString::get(QLocale const&)` ->
+  SIGSEGV in `libcalamares`. With the step wired: **2 deaths in 8 starts**; with the sequence line removed:
+  **0 in 10**. The hook no longer inserts it, the assets stay for a future upstream fix, and the image gate now
+  asserts that the step stays disabled.
+- **Three earlier readings of the same logs were wrong** and are corrected in place: `crashRecursionCounter = 2`
+  is normal for a first crash, `appFilePath points to nullptr` is the forked drkonqi (not calamares), and the
+  signal is **SIGSEGV**, not an abort - an empty `dmesg` in this live session proved nothing.
+- **Reusable method:** `chmod -x /usr/lib/x86_64-linux-gnu/libexec/drkonqi` is the only way to get a core from
+  this installer, because `KCRASH_DUMP_ONLY=1` and `KDE_DEBUG=1` cannot disable a reporter that Calamares
+  enables itself. `strace -f` **hangs** on this fault and must not be used.
+
 ## Live status, 2026-11-12: 0.1.7-alpha.0 published from `main`
 
 - **Released:** `v0.1.7-alpha.0` (`400fb9d7…`, 5 027 201 024 B, source `88f0fbe`, xz, clean tree) -

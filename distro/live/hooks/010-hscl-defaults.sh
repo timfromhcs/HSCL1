@@ -215,11 +215,17 @@ patch_file "$ROOTFS/etc/calamares/modules/oemid.conf" 's/^batch-identifier: kubu
 
 # Partition/filesystem names that end up on the installed disk
 patch_file "$ROOTFS/etc/calamares/modules/partition.conf" 's/"kubuntu_boot"/"hscl1_boot"/; s/"kubuntu_2604"/"hscl1_root"/'
-# Notes page (disk encryption explained, en/de/fr via lang/*.qm): a QML view step shown before the partition page. The page file lives in
-# the hscl-branding package; here the module config is created and the step is inserted into the show sequence.
+# Notes page (disk encryption explained, en/de/fr via lang/*.qm): a QML view step that used to be inserted before the
+# partition page. **Disabled 2026-11-12 - it is the cause of the installer's startup crash (queue row Q-68).**
+# Measured on the released 0.1.7 ISO with drkonqi made unrunnable so the crash could dump a core: every death has the
+# same backtrace, `QListView::paintEvent` -> `QStyledItemDelegate::initStyleOption` -> `ViewManager::data` ->
+# `NotesQmlViewStep::prettyName()` -> `Calamares::Locale::TranslatedString::get(QLocale const&)` -> SIGSEGV in
+# libcalamares. The progress tree paints this step's name before the step is ready. With the step in the sequence 2 of
+# 8 starts died; with the sequence line removed, 0 of 10 (artifacts/q68-fix). The QML page and its translations stay
+# in the hscl-branding package so the step can be re-enabled once upstream makes `prettyName()` safe; the encryption
+# explanation is still covered by the handbook and by `showNotEncryptedBootMessage` below.
 if [ -f "$ROOTFS/etc/calamares/settings.conf" ]; then
   printf -- '---\n# where to look for notesqml.qml: the branding directory only\nqmlSearch: branding\n' > "$ROOTFS/etc/calamares/modules/notesqml.conf"
-  patch_file "$ROOTFS/etc/calamares/settings.conf" '0,/^  - partition$/s//  - notesqml\n  - partition/'
 fi
 # With encryption, /boot stays unencrypted (docs/INSTALLER_FACTS.md). Calamares has a message for that, but it was NOT seen in the automatic
 # erase+encrypt path of the dev2 image (only the config value is verified); an HSCL1 explanation is still an open gap.

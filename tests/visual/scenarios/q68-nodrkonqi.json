@@ -1,0 +1,9 @@
+[
+  { "wait": 15 },
+  { "keys": ["ctrl", "alt", "t"] },
+  { "wait": 12 },
+  { "type": "sudo sh -c 'P=/dev/virtio-ports/hscl.qa; L(){ echo \"Q68| $*\" >$P; }; chmod -x /usr/lib/x86_64-linux-gnu/libexec/drkonqi 2>/dev/null; L gone; ls -l /usr/lib/x86_64-linux-gnu/libexec/drkonqi >$P 2>&1; mkdir -p /tmp/cores; sysctl -qw kernel.core_pattern=/tmp/cores/core.%e.%p; ulimit -c unlimited; for i in $(seq 1 12); do timeout 16 /usr/bin/calamares-launch-normal >/tmp/o.$i 2>&1; rc=$?; L \"D $i rc=$rc cores=$(ls /tmp/cores|wc -l)\"; if [ $rc -ne 124 ]; then L \"== tail $i ==\"; tail -10 /tmp/o.$i >$P; fi; sleep 2; done; L cores; ls -l /tmp/cores >$P 2>&1; L bt; c=$(ls /tmp/cores/core.* 2>/dev/null|head -1); [ -n \"$c\" ] && gdb -batch -ex \"bt 12\" /usr/bin/calamares \"$c\" 2>&1|tail -25 >$P; L end'" },
+  { "keys": ["ret"] },
+  { "wait": 420 },
+  { "shot": "q68-nodrkonqi-final" }
+]

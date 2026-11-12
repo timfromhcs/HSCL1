@@ -2,11 +2,8 @@
   { "wait": 15 },
   { "keys": ["ctrl", "alt", "t"] },
   { "wait": 12 },
-  { "type": "sudo apt-get update -qq; sudo apt-get install -y -qq strace 2>&1 | tail -1" },
+  { "type": "sudo sh -c 'apt-get update -qq; apt-get install -y -qq strace >/dev/null 2>&1; P=/dev/virtio-ports/hscl.qa; L(){ echo \"Q68| $*\" >$P; }; L start; command -v strace >$P 2>&1 || L no-strace; for i in $(seq 1 12); do strace -f -qq -o /tmp/s.$i -e trace=write timeout 16 /usr/bin/calamares-launch-normal >/tmp/o.$i 2>&1; rc=$?; L \"S $i rc=$rc\"; if [ $rc -ne 124 ]; then L \"== app tail $i ==\"; tail -14 /tmp/o.$i >$P; L \"== strace tail $i ==\"; tail -22 /tmp/s.$i >$P; fi; sleep 2; done; L end'" },
   { "keys": ["ret"] },
-  { "wait": 260 },
-  { "type": "sudo sh -c 'P=/dev/virtio-ports/hscl.qa; L(){ echo \"Q68| $*\" >$P; }; L env; env|grep -E \"^(QT_|XDG_)\"|sort >$P 2>&1; for i in $(seq 1 6); do strace -f -qq -o /tmp/s.$i -e trace=write timeout 16 /usr/bin/calamares-launch-normal >/tmp/o.$i 2>&1; rc=$?; L \"S $i rc=$rc\"; if [ $rc -ne 124 ]; then L \"== app tail $i ==\"; tail -18 /tmp/o.$i >$P; L \"== strace tail $i ==\"; tail -25 /tmp/s.$i >$P; fi; sleep 2; done; L end'" },
-  { "keys": ["ret"] },
-  { "wait": 300 },
+  { "wait": 560 },
   { "shot": "q68-strace-final" }
 ]

@@ -64,10 +64,13 @@ check "live desktop: control-center entry" sh -c "test -f '$root/etc/skel/Deskto
 check "root filesystem label is hscl1_root" grep -q '"hscl1_root"' "$root/etc/calamares/modules/partition.conf"
 check "installer: no internet requirement" sh -c "! grep -q '^        - internet\$' '$root/etc/calamares/modules/welcome.conf'"
 check "installer: warns that /boot is not encrypted" grep -q '^showNotEncryptedBootMessage: true$' "$root/etc/calamares/modules/partition.conf"
-check "installer notes page installed"     test -s "$root/etc/calamares/branding/hscl1/notesqml.qml"
+check "installer notes page assets shipped"     test -s "$root/etc/calamares/branding/hscl1/notesqml.qml"
 check "installer notes: German and French translations" sh -c "test -s '$root/etc/calamares/branding/hscl1/lang/calamares-hscl1_de.qm' && test -s '$root/etc/calamares/branding/hscl1/lang/calamares-hscl1_fr.qm'"
 check "installer notes: module config"     grep -q '^qmlSearch: branding$' "$root/etc/calamares/modules/notesqml.conf"
-check "installer notes: shown before partition" sh -c "awk '/^- show:/{s=1;next} /^- exec:/{s=0} s && /^  - notesqml\$/{n=NR} s && /^  - partition\$/{p=NR} END{exit !(n && p && n<p)}' '$root/etc/calamares/settings.conf'"
+# Q-68: the notesqml step is NOT in the show sequence any more - its prettyName() segfaults while the progress tree
+# paints (backtrace in BUILD_LOG 2026-11-12). The gate now asserts the opposite of what it used to: the assets stay,
+# the step must not be wired. A future re-enable needs this line changed together with the evidence.
+check "installer notes step stays disabled (Q-68)" sh -c "awk '/^- show:/{s=1;next} /^- exec:/{s=0} s && /^  - notesqml\$/{f=1} END{exit f}' '$root/etc/calamares/settings.conf'"
 check "SDDM theme hscl1"                  test -s "$root/usr/share/sddm/themes/hscl1/Main.qml"
 check "SDDM theme background"             test -s "$root/usr/share/sddm/themes/hscl1/background.png"
 check "SDDM theme selected"               grep -q '^Current=hscl1$' "$root/etc/sddm.conf.d/30-hscl1.conf"
