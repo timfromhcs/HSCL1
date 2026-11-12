@@ -3234,3 +3234,64 @@ survives, but its denominator was one start, not six.
 `test_installer_language.py` (5 tests). CI on `231f2cb` is green in all eight jobs; `81ad65b` is docs
 only and was still running when this line was written.
 
+
+### Q-61 measured through the guest port, and the welcome-logo debt closed by measurement (2026-11-12)
+
+**Method first, because two earlier attempts produced nothing.** The Q-61 probe now writes its result to
+the `hscl.qa` virtio port (`qemu_boot_test.py --qa-out FILE`) instead of relying on a terminal screenshot.
+The two screenshot attempts (`artifacts/q61-seq2`, `q61-seq3`) failed for a structural reason: every
+installer start puts a wizard window in front of Konsole, the scenario's `esc` presses do nothing in a
+terminal, and the shutter fired on a live wizard instead of the log. Both scenarios were deleted; the
+lesson is rule 4 in `docs/TESTING.md`.
+
+`tests/visual/scenarios/q61-vport.json` on `HSCL1-rc11-amd64.iso` (`0b11dee8...`), 4 GB, UEFI, exclusive
+host, one boot, 1158 s, 24 sequential starts (15 s observation, each start killed by its own session id):
+
+| Context | Starts | Died | Note |
+|---|---|---|---|
+| `/usr/bin/hscl-calamares` (shipped wrapper) | 8 | **1 start, twice** | `died from a signal after 2s (exit 137)`, then `after 1s`; the wrapper restarted it and all 8 presented a live installer. That start is identifiable by its doubled output (44 293 B vs 17 246 B for the other seven) |
+| `/usr/bin/calamares-launch-normal` (no wrapper) | 8 | **1** | produced 13 450 B before dying - it started and was killed, it did not fail to start |
+| `/usr/bin/calamares` bare | 8 | 1, **inconclusive** | the one that ended printed 1166 B while the seven survivors printed 54 B, i.e. a different invocation outcome, not the same death. Not counted |
+
+Three things are now established rather than assumed:
+
+1. **The fault does not need the desktop icon.** Context B starts from a root shell under `setsid` - no
+   `.desktop` entry, no Plasma transient unit, no launcher script wrapper - and still dies at the same
+   rate. The launching scope is excluded as the cause.
+2. **The shipped mitigation works.** Both early deaths in context A were restarted and every A start was a
+   running installer 15 s in. `hscl-calamares` turns a ~1-in-8 start failure into a successful start.
+3. **The wizard is killed, it does not crash.** `/usr/bin/calamares-launch-normal` is a **bash script whose
+   line 16 is `calamares -D8;`** (read out of the guest, `artifacts/q61-vport/port.txt`), so the journal's
+   `line 16: <pid> Killed calamares -D8` is bash reporting SIGKILL of its foreground child.
+
+Excluded for this boot by the journal (`grep -E "app-|KCrash|Killed|Killing process|SIGKILL|oom-kill"`):
+kernel OOM killer, `earlyoom` (its threshold line is the only earlyoom entry), a systemd unit stop, and
+KCrash (no `KCrash` line at all). **The sender is still unnamed.** The next experiment needs no new ISO:
+install `auditd` in the live guest, add `-a always,exit -F arch=b64 -S kill -F a1=9 -k q61kill`, run the
+8-start series and read `ausearch -k q61kill` - an audit rule records the **sending** pid, comm and auid,
+which no trace of the victim can. Q-61 therefore stays open with a narrower statement, not a fix.
+
+**Q-66 (empty ESP): diagnostics instead of a guess.** The cause is still unknown, so the guard now reports
+what separates the two hypotheses on its failure path: `findmnt --target /boot/efi`, the EFI/vfat lines of
+`/proc/mounts`, `ls -la /boot/efi`, the `/boot/grub` entry count, the kernel-image count and the tail of
+`/var/log/Installation`. Before, a recurrence could only say "no loader". `test_installer_esp_check.py`
+gained 2 tests (both failure exits call `diagnose`, the probes exist, the script stays POSIX `sh` because
+it runs in the target chroot); 6 tests in that file pass.
+
+**Q-67 (new, closed): the installer logo is not stretched.** The audit and `PLAN_INDEX` debt 2 called
+`11_installer_welcome.png` a stretched logo. Measured: artwork ink 976x183 (ratio 5.333), rendered ink
+721x134 (5.381) -> **+0.9 %**, horizontal scale 0.739 vs vertical 0.732. Identical bbox from a second
+capture. Calamares uses `PreserveAspectFit`; the full-width logo is `welcomeExpandingLogo: true`, set on
+purpose. **No code changed.** The rule is added to `AUDIT_2026-11-10.md` §6: a proportion claim is a
+measurement too.
+
+**CLAIMS.md made machine-checked.** Documentation debt 1 asked for artifact identity per row. Four rows
+had none or had lost their shape: the flagship "main ISO boots" row named no artifact (now bound to the
+published `v0.1.6-alpha.0`, `reached_desktop: true` in 197 s), `hscl graphics detect` had an empty
+evidence cell, the updates row and the respin row named nothing, and the miner row had **four** cells
+because an unescaped `|` split it. `tests/unit/test_claims_table.py` (3 tests) now fails the build if a row
+loses a cell or claims without evidence.
+
+**Gates on this tree:** `python -m pytest tests/unit -q` -> **993 passed, 15 skipped** (WSL up) and
+**956 passed, 57 skipped** with WSL shut down for the VM run - the extra skips are the WSL-backed tier and
+are reported, not hidden.

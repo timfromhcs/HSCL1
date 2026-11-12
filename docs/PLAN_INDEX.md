@@ -339,8 +339,12 @@ being mistaken for the current artifact.
 
 1. `docs/CLAIMS.md` still carries rows bound to artifacts that are no longer on disk;
    each row must name its artifact and date (Q-05 was marked done for the header only).
-2. The installer welcome page stretches the Calamares branding logo across the page
-   (Q-54 covers the recapture; the layout fix is separate).
+2. ~~The installer welcome page stretches the Calamares branding logo across the page
+   (Q-54 covers the recapture; the layout fix is separate).~~ **CLOSED 2026-11-12 by measurement**:
+   the rendered logo ink is 721×134 (ratio 5.381) against artwork ink 976×183 (5.333) — **+0.9 %**,
+   i.e. no distortion; it fills the page width because `welcomeExpandingLogo: true`, which is
+   deliberate. `AUDIT_2026-11-10.md` §6 has the table. Do not reopen without a capture whose measured
+   ratio contradicts those numbers.
 3. ~~Icon labels not centred (Q-52), Kate light inside the dark shell (Q-53)~~ — both **CLOSED** with
    pixel measurements on the 0.1.6 artifact; the label offset is -0.9 px and Kate's editor mean luma is
    43.1/255. Do not list them as debt again without a fresh capture that contradicts those numbers.

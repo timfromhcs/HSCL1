@@ -204,6 +204,22 @@ wrapper the desktop icon uses, and prints `/tmp/probe.log` plus `/tmp/hscl-calam
 `tests/visual/scenarios/q61-count.json` is the counter-example that proved the single-instance lock
 (five identical PIDs across four more clicks) and should be kept: it is the evidence for rule 1.
 
+4. **Read the result out of the guest through the `hscl.qa` port, not off a screenshot.** The
+   screenshot-based runs (`q61-seq2`, `q61-seq3`) wasted two boots: every start puts an installer
+   window in front of Konsole, the scenario's `esc` presses do nothing in a terminal, and the log was
+   never on screen when the shutter fired - the final capture showed a running wizard instead of
+   `== starts ==`. `scripts/qemu_boot_test.py --qa-out FILE` attaches a virtio serial port named
+   `hscl.qa` whose host side is a plain file, so the probe can append text to
+   `/dev/virtio-ports/hscl.qa` and the host reads it afterwards. Prefix every line (`Q61| ...`) so it
+   stays separable from the `hscl-workshop-evidence` report, which writes to the same port on boot.
+   `tests/visual/scenarios/q61-vport.json` does this for three start contexts
+   (`hscl-calamares`, `calamares-launch-normal`, the `calamares` binary) and also records, per start,
+   the byte count of that start's own stdout - that is the control sample which separates "never
+   started" from "started and was killed".
+
+The rule behind all four: a measurement that needs a human to read a screen is not repeatable, and one
+that cannot separate "did not start" from "died" has no denominator.
+
 ## Release and audit tooling (no VM)
 
 These were written after real mistakes and are the cheapest way to catch the same class again:
@@ -215,7 +231,8 @@ These were written after real mistakes and are the cheapest way to catch the sam
 | `scripts/release_split.py IMAGE OUTDIR [PART_MIB]` | parts plus an LF `SHA256SUMS` (the CRLF bug of 2026-11-11 made every published checksum line fail on Linux) | seconds, no 9p |
 | `python -m pytest tests/unit/test_release_metadata_sync.py` | README checksums and `website/data/release.json` describe the same release | instant |
 | `scripts/dev/verify_in_guest_tracks.py --iso ISO --mem 4096 --out DIR` | the twelve in-guest tracks in one boot | ~15 min and an exclusive host |
-| `scripts/dev/probe_installer_kill.py --iso ISO` | the Q-61 discriminator: detached vs direct installer starts, with a 2 s control sample | ~10 min and an **exclusive** host |
+| `scripts/dev/probe_installer_kill.py --iso ISO` | **superseded**: it launched from a non-interactive hook, where the installer never starts (`launched=0` in both contexts), so it cannot answer Q-61. Kept only as a record of that design error | ~10 min and an **exclusive** host |
+| `tests/visual/scenarios/q61-vport.json` via `qemu_boot_test.py --qa-out` | the current Q-61 probe: 8 sequential starts in each of three contexts, per-start alive count and own-output byte count, wrapper log and journal lines, all read from the `hscl.qa` port | ~20 min and an **exclusive** host |
 | `scripts/dev/tick.ps1 -Seconds 90` | a bounded background heartbeat that prints the next actionable queue row; it completes so the agent is woken | free |
 
 Two rules that came out of these:
