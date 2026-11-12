@@ -20,8 +20,14 @@
 # cancelled, window closed - is passed through untouched, and after three early deaths the wrapper gives up
 # instead of looping forever.
 #
-# `KCRASH_DUMP_ONLY=1` stops KCrash from spawning drkonqi, which cannot work in this environment anyway
-# (`org.freedesktop.systemd1 exited with status 1`) and only puts an extra dialog over the wizard.
+# `KCRASH_DUMP_ONLY=1` is meant to stop KCrash from spawning drkonqi (KCrash::initialize() disables drkonqi when it
+# is set), and drkonqi is what puts the broken crash-handler dialog over the wizard. **Measured 2026-11-12: it does
+# not stop the fault in this image.** Six direct starts with the variable set still ended in exit 137 twice, exactly
+# like six without it, and `kernel.core_pattern=/tmp/cores/core.%e.%p` plus `ulimit -c unlimited` produced zero cores
+# in either series (artifacts/q61-core). So this export stays as a precaution, NOT as the mitigation: what actually
+# makes an install succeed is the restart loop below. The SIGKILL was traced to drkonqi by an audit rule on kill(2)
+# (artifacts/q61-audit2); that run did not set this variable, so whether drkonqi still runs with it set is unmeasured.
+# Do not describe this line as a fix without that measurement.
 export QT_QUICK_BACKEND=software
 export LIBGL_ALWAYS_SOFTWARE=1
 export KCRASH_DUMP_ONLY=1

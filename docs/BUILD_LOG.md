@@ -3355,3 +3355,33 @@ the wrapper may be the only reason no core has ever been produced; failing that,
 target that carries BIOS GRUB (`/boot/grub/i386-pc`), so a legacy install is not failed for having no ESP
 by design; `qemu_boot_test.py --secure-boot` now refuses to pretend on Windows - QEMU there ships only the
 empty variables template, so it warns unless `HSCL_OVMF_VARS_MS` points at an enrolled key database.
+
+### The core-dump attempt failed, and it corrects a claim in the wrapper (2026-11-12)
+
+`artifacts/q61-core` (rc11, 4 GB, UEFI, 848 s, `tests/visual/scenarios/q61-core.json`): the probe set
+`kernel.core_pattern=/tmp/cores/core.%e.%p` (read back from `/proc/sys/kernel/core_pattern`, so it took),
+`ulimit -c unlimited`, then ran 6 starts of `/usr/bin/calamares-launch-normal` and 6 more with
+`KCRASH_DUMP_ONLY=1`. This time the exit status was captured directly with `timeout 16` instead of a
+`pgrep` sample, which is strictly better evidence than the earlier "alive at 16 s".
+
+| Series | rc=124 (survived) | rc=137 (SIGKILL) | cores |
+|---|---|---|---|
+| plain | 5 | 1 | **0** |
+| `KCRASH_DUMP_ONLY=1` | 4 | 2 | **0** |
+
+Two conclusions, one of them a correction:
+
+1. **No core is obtainable this way.** 12 starts, 3 deaths, zero cores. Since Q-61's audit proved the
+   process dies by drkonqi's SIGKILL and a SIGKILL never dumps, that is consistent - but it also means the
+   "raise the core limit and read the core" plan is dead, and the next step has to read the crash reporter's
+   own artefacts (`/tmp/drkonqi.*`, `~/.cache/kcrash-metadata/*.ini`) or run one start under `strace -f`.
+2. **`KCRASH_DUMP_ONLY=1` does not do what `/usr/bin/hscl-calamares` says it does.** `KCrash::initialize()`
+   disables drkonqi when that variable is set, so the wrapper's comment ("stops KCrash from spawning
+   drkonqi") was a reasonable reading of the source. Measured, it changes nothing: the dump-only series died
+   with exit 137 at the same rate. The comment now says exactly that, and the export is kept only as a
+   precaution - **the restart loop is the mitigation, not the variable.** This matters because a future
+   reader would otherwise trust a knob that has never been shown to work.
+
+The earlier line in this log and in `KNOWN_LIMITATIONS.md` that read "`KCRASH_DUMP_ONLY=1` suppresses exactly
+the drkonqi that sends it" was written before this measurement and is corrected in both places. Rates now:
+1/8 (`q61-vport`), 1/12 (`q61-audit`), 3/12 (`q61-audit2`), 3/12 (`q61-core`) = **8 of 44 starts, ~18 %**.
