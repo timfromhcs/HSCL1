@@ -1,5 +1,27 @@
 # HSCL1 plan reconciliation index
 
+## Live status, 2026-11-12: 0.1.7-alpha.0 published from `main`
+
+- **Released:** `v0.1.7-alpha.0` (`400fb9d7…`, 5 027 201 024 B, source `88f0fbe`, xz, clean tree) -
+  https://github.com/timfromhcs/HSCL1/releases/tag/v0.1.7-alpha.0. UEFI boot at 4 GB reached the desktop in
+  192 s, `qa_report.py` exit 0, `verify_release_consistency.py --github` **24 checks / 0 failed**, the
+  "Verify release assets" workflow **success** on the same commit, CI **success** on the same commit.
+- **It is the first release whose commit is on `main`.** `v0.1.6-alpha.0` was built from `13c3215` on
+  `release/0.1.6`, which was never merged, so `main` still said `VERSION = 0.1.5-alpha.0` and the next build
+  would have silently reused 0.1.5. The ancestry check is now step 1 of `docs/RELEASE_PROCESS.md`.
+- **Two defects were found by building, not by reading.** (1) The live-locale fix from `97446c6` had never
+  worked - it appended `LANG=` only when absent, and the base image already sets `LANG=C.UTF-8`; the image
+  gate stopped the first build and the hook now replaces the value and generates the locale. (2) `gh release
+  create --notes-file` sends the body through the Windows codepage, so one right-arrow arrived as mojibake
+  while the uploaded asset stayed byte-identical; `make_release.py` now refuses non-ASCII notes.
+- **Q-61 is closed** (the SIGKILL came from `drkonqi`, forked by the crashed Calamares - audit record in
+  `artifacts/q61-audit2`), and **Q-68** is the open remainder: the crash itself. **Q-67** closed by
+  measurement (the logo is not stretched). **Q-66** is guarded and now self-diagnosing.
+- **Rates:** 8 deaths in 44 supported installer starts (~18 %) across four probes; every death is exit 137.
+- **Still open for v1:** Q-68, the Q-66 cause, Q-19's qmllint ratchet, and the gates that need hardware or a
+  signing key (physical boot, USB, Secure Boot acceptance, TPM, Tor-routed privacy, release signature,
+  image-level SBOM).
+
 ## Live status, 2026-11-11 late evening (three actionable rows, one is a single fault)
 
 - **The queue is stable and machine-checked.** `docs/AUTONOMOUS_QUEUE.md` has **66 rows, ids 1..66 with

@@ -64,6 +64,20 @@ def check_no_placeholders(text: str, what: str) -> None:
             raise ReleaseError(f"placeholder {ph!r} found in {what}")
 
 
+def check_ascii(text: str, what: str) -> None:
+    """Release notes must be ASCII.
+
+    `gh release create --notes-file <path>` sends the body through the Windows system codepage: on
+    v0.1.7-alpha.0 a single right-arrow in the notes reached GitHub as mojibake, while the uploaded
+    `release-notes.md` asset of the same file stayed byte-identical. The consistency checker caught it after
+    the release was already public. Passing the text through stdin did not help either, so the rule is the
+    gate: keep the notes ASCII (the repository uses `-` and `...` everywhere for the same reason).
+    """
+    bad = sorted({f"U+{ord(c):04X}" for c in text if ord(c) > 127})
+    if bad:
+        raise ReleaseError(f"{what} contains non-ASCII characters {bad}: gh mangles them in the release body")
+
+
 def validate_readiness(path: Path | None, version: str, iso_m: dict) -> dict:
     if path is None:
         raise ReleaseError("stable release requires --readiness with all AGENTS.md 14.2 gates")
@@ -200,6 +214,7 @@ def build_release(version: str, iso: Path, prebuilt: Path | None, out: Path,
         + "Not signed. Tagging and upload are separate, owner-run steps; this set was assembled locally. See `docs/KNOWN_LIMITATIONS.md` for what is not verified.\n"
     )
     check_no_placeholders(notes, "release-notes.md")
+    check_ascii(notes, "release-notes.md")
     (out / "release-notes.md").write_text(notes, encoding="utf-8")
     names = [iso_name, "SHA256SUMS", "build-manifest.json", "release-notes.md"]
     if pre_m is not None:

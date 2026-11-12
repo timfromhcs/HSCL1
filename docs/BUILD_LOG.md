@@ -3385,3 +3385,62 @@ Two conclusions, one of them a correction:
 The earlier line in this log and in `KNOWN_LIMITATIONS.md` that read "`KCRASH_DUMP_ONLY=1` suppresses exactly
 the drkonqi that sends it" was written before this measurement and is corrected in both places. Rates now:
 1/8 (`q61-vport`), 1/12 (`q61-audit`), 3/12 (`q61-audit2`), 3/12 (`q61-core`) = **8 of 44 starts, ~18 %**.
+
+### 0.1.7-alpha.0: the first release built from a commit on `main` (2026-11-12)
+
+Built, booted, published and cloud-verified in one pass. Two defects were found **by building**, not by
+reading, and both are fixed.
+
+| Field | Value |
+|---|---|
+| Artifact | `HSCL1-0.1.7-alpha.0-amd64.iso` |
+| Bytes | 5 027 201 024 |
+| SHA-256 | `400fb9d7aca53ef4f2b4926fb26732e0cd987b6363fc0f9800e2591d8e951df0` |
+| Source | `88f0fbec1ed1c0e254475c2adeab72568731f924`, `git_dirty: false`, xz |
+| Built | 2026-11-12T09:43:40Z in WSL from `~/hscl1-src` |
+| Volume id | `HSCL1 0.1.7-alpha.0 amd64` |
+| Release | https://github.com/timfromhcs/HSCL1/releases/tag/v0.1.7-alpha.0 (prerelease, 8 assets) |
+
+**Why this release exists at all.** `v0.1.6-alpha.0` was built from `13c3215`, which lives on the branch
+`release/0.1.6` and was never merged - `main` still carried `VERSION = 0.1.5-alpha.0`, so the next build would
+have silently reused 0.1.5 while the tag said 0.1.6. `git merge-base --is-ancestor 13c3215 main` says no;
+`docs/RELEASE_PROCESS.md` step 1 now requires that check before a tag, and 0.1.7 is the first release whose
+commit is on `main`.
+
+**Path:** PR #62 (5 commits) -> CI green on all 16 checks -> merged as `8c86d48` -> locale fix `88f0fbe` ->
+CI green -> ISO built from `88f0fbe`.
+
+**Defect 1, found by the image gate: the live-locale fix never worked.** The first build of 0.1.7 stopped at
+`FAIL live locale is set`. `97446c6` appended `LANG="en_US.UTF-8"` to `/etc/default/locale` only when no
+`LANG=` line existed, but the base image already ships `LANG=C.UTF-8`, so the append never ran - the gate
+added in the same commit is what caught it, and no test exercised that branch. Fixed in both halves: the hook
+rewrites an existing `LANG=` line, and it runs `chroot $ROOTFS locale-gen en_US.UTF-8` (the base generates
+only `C.utf8`, so the variable alone would have made the session fall back to C with a warning). The gate
+gained `live locale is generated`, which asks the target's own `locale -a`; `tests/unit/test_live_locale.py`
+pins all of it. Second build: `verify-image: all checks passed`.
+
+**Defect 2, found by the consistency checker: `gh` mangles non-ASCII in the release body.** The release
+uploaded with one right-arrow in the notes; the **asset** `release-notes.md` arrived byte-identical, but the
+release **body** carried mojibake. `gh release create --notes-file <path>` sends the body through the Windows
+system codepage; passing the text through stdin did not help. Rule now enforced at assembly time:
+`make_release.py` refuses non-ASCII notes and names the codepoint (`tests/unit/test_release_notes_ascii.py`),
+and the notes are ASCII (the repository already writes `-` and `...` for the same reason).
+
+**Gates on this artifact**
+
+| Gate | Result |
+|---|---|
+| `distro/live/verify-image.sh` (build) | all checks passed, including `live locale is set` and `live locale is generated` |
+| UEFI boot, 4 GB, QEMU+WHPX | `reached_desktop: true` in **192 s** (`artifacts/boot-0.1.7-uefi/result.json`) |
+| `scripts/qa_report.py` on the in-guest report | exit **0** - 9 ok, 1 info (Secure Boot off on this firmware) |
+| parts rejoin | 3 parts -> `400fb9d7aca5...`, checked locally **and** on the GitHub runner |
+| `verify_release_consistency.py --github` | **24 checks, 0 failed**, including GitHub's recorded digests and a byte-identical notes body |
+| workflow "Verify release assets" | **success** on `88f0fbe` |
+| CI | **success** on `88f0fbe` |
+
+**Not verified (also in the release notes):** physical hardware, USB boot, TPM unlocking, Secure Boot
+acceptance (the test firmware has it off), release signing (the ISO is unsigned), an encrypted install on
+this exact artifact, and an image-level SBOM (the shipped one is CLI-scoped, 99 packages). The installer
+still crashes at startup in roughly one start in six and is restarted by the wrapper - Q-68, now correctly
+described as a crash rather than an unexplained kill.
+

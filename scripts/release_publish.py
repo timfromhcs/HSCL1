@@ -90,6 +90,11 @@ def main() -> int:
         print(f"{tag} exists as a draft; uploading the missing assets")
 
     if state is None:
+        # NOTE (2026-11-12): `gh release create --notes-file <path>` sends the body through the Windows system
+        # codepage, so a non-ASCII character in the notes reaches GitHub as mojibake while the *uploaded asset* of
+        # the same file stays byte-identical. v0.1.7-alpha.0 hit this with a single "->". Passing the notes through
+        # stdin did not change it. Release notes are therefore ASCII-only, and `make_release.py` refuses a notes
+        # file that is not - that is the gate, this comment is the reason.
         run(["gh", "release", "create", tag, "--repo", a.repo, "--draft", "--title", title,
              "--notes-file", str(notes)], a.dry_run)
 
