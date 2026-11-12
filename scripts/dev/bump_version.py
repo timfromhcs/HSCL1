@@ -3,8 +3,10 @@ import re
 import sys
 from pathlib import Path
 
-OLD = "0.1.5-alpha.0"
+OLD = Path("VERSION").read_text(encoding="utf-8").strip()
 NEW = sys.argv[1] if len(sys.argv) > 1 else "0.1.7-alpha.0"
+if OLD == NEW:
+    raise SystemExit(f"VERSION is already {NEW}")
 
 TARGETS = [
     "VERSION",
