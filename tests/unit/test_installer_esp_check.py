@@ -38,6 +38,31 @@ def test_the_image_gate_checks_the_wiring():
     assert "ESP check follows the bootloader module" in text
 
 
+def test_the_failure_path_reports_what_discriminates_the_cause():
+    """The cause is unknown (Q-66), so the failure must name the state, not only the symptom.
+
+    "no loader" alone cannot distinguish "the ESP was never mounted at /boot/efi" from "the bootloader module
+    reported success and wrote nothing". The guard prints both, so the next recurrence is diagnosable without
+    another multi-boot probe.
+    """
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "diagnose()" in text
+    # called from both failure exits, not only from the last one
+    calls = [line for line in text.splitlines() if line.strip() == "diagnose"]
+    assert len(calls) == 2, "both failure paths must call diagnose"
+    for probe in ("findmnt", "/proc/mounts", "ls -la \"$efi\"", "/boot/grub"):
+        assert probe in text, f"the diagnostics must include {probe}"
+    assert "Q-66" in text, "name the open queue row so the log is traceable"
+
+
+def test_the_script_stays_posix_sh():
+    """It runs in the target chroot under Calamares; bash may not be the interpreter there."""
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert text.splitlines()[0] == "#!/bin/sh"
+    for bashism in ("[[", "function ", "local ", "declare "):
+        assert bashism not in text, f"bashism {bashism!r} in a /bin/sh script"
+
+
 def test_the_script_is_tracked_executable():
     import subprocess
 
