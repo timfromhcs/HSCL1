@@ -1,0 +1,15 @@
+[
+  { "wait": 15 },
+  { "keys": ["ctrl", "alt", "t"] },
+  { "wait": 12 },
+  { "type": "sudo apt-get update -qq; sudo apt-get install -y -qq auditd 2>&1 | tail -3" },
+  { "keys": ["ret"] },
+  { "wait": 150 },
+  { "type": "sudo systemctl start auditd; sudo auditctl -a always,exit -F arch=b64 -S kill -S tkill -S tgkill -S pidfd_send_signal -k q61kill; sudo auditctl -l" },
+  { "keys": ["ret"] },
+  { "wait": 8 },
+  { "type": "sudo sh -c 'P=/dev/virtio-ports/hscl.qa; L(){ echo \"Q61| $*\" >$P; }; L rules; auditctl -l >$P 2>&1; for i in $(seq 1 12); do setsid /usr/bin/calamares-launch-normal >/tmp/o.$i 2>&1 & sleep 16; s=$(ps -o sid= -C calamares|head -1|tr -d \" \"); L \"start $i alive=$(pgrep -cx calamares) out=$(wc -c </tmp/o.$i)\"; [ -n \"$s\" ] && { kill -15 -$s; sleep 4; kill -9 -$s 2>/dev/null; }; sleep 3; done; L audit; ausearch -k q61kill 2>&1|tail -120 >$P; L end'" },
+  { "keys": ["ret"] },
+  { "wait": 330 },
+  { "shot": "q61-audit-final" }
+]

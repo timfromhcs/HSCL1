@@ -23,6 +23,14 @@ read from the scripts in `scripts/` on 2026-11-07; if a script changes, this pag
 1. **Version**: write the version into `VERSION` (single source; the Rust crate inherits it via the
    workspace `version.workspace = true`, and the ISO build reads `VERSION`). A dev image built before the
    bump carries the old string - harmless for content validation, not acceptable for the release artefact.
+   The bump touches **exactly seven files** (`VERSION`, `Cargo.toml`, `Cargo.lock`, the Calamares
+   `branding.desc` and the three handbook introductions); `scripts/dev/bump_version.py NEW` does it and
+   prints what it changed.
+   **The release commit must be on the default branch before the tag exists.** `v0.1.6-alpha.0` was built
+   from `13c3215`, which lives on `release/0.1.6` and was never merged: `main` kept `VERSION = 0.1.5-alpha.0`,
+   so the published 0.1.6 ISO names a version the default branch has never carried, and the next release
+   would have silently reused 0.1.5. Check with `git merge-base --is-ancestor <tag-commit> main` before
+   tagging; `0.1.7-alpha.0` is the first release built from a commit that is on `main`.
 2. **Gates** (see `docs/TESTING.md` for the exact commands): `forge check --strict` green on the Windows
    host **and** in WSL, `cargo test`, `cargo clippy -D warnings`, `cargo fmt --check`, then the image gates
    on the exact artefact: build (`forge build`), boot (`forge boot`, UEFI; BIOS and Secure Boot as separate

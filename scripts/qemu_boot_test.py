@@ -336,6 +336,18 @@ def main():
             code = str(qdir / "share" / ("edk2-x86_64-secure-code.fd" if a.secure_boot else "edk2-x86_64-code.fd"))
             vars_src = str(qdir / "share" / "edk2-i386-vars.fd")
             if a.secure_boot:
+                # Secure Boot only proves anything when the firmware carries the Microsoft key database. QEMU for
+                # Windows ships only the empty variables template, so a plain --secure-boot run there boots a
+                # firmware that has the SecureBoot variable but an empty db/KEK: nothing is validated, the shim is
+                # accepted because there is no policy, and the run would prove nothing while looking green.
+                # Point HSCL_OVMF_VARS_MS at an enrolled template (Ubuntu: /usr/share/OVMF/OVMF_VARS_4M.ms.fd).
+                ms_vars = os.environ.get("HSCL_OVMF_VARS_MS")
+                if ms_vars and Path(ms_vars).is_file():
+                    vars_src = ms_vars
+                    print(f"secure boot: using enrolled key database from {ms_vars}", flush=True)
+                else:
+                    print("warning: --secure-boot without HSCL_OVMF_VARS_MS - the firmware key database is empty, "
+                          "so this run does NOT prove that the signed boot chain is accepted", flush=True)
                 cmd += ["-global", "driver=cfi.pflash01,property=secure,value=on"]
         elif a.secure_boot:
             code, vars_src = f"{OVMF}/OVMF_CODE_4M.secboot.fd", f"{OVMF}/OVMF_VARS_4M.ms.fd"

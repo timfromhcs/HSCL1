@@ -1,0 +1,9 @@
+[
+  { "wait": 15 },
+  { "keys": ["ctrl", "alt", "t"] },
+  { "wait": 12 },
+  { "type": "sudo sh -c 'P=/dev/virtio-ports/hscl.qa; L(){ echo \"Q61| $*\" >$P; }; mkdir -p /tmp/cores; sysctl -qw kernel.core_pattern=/tmp/cores/core.%e.%p; ulimit -c unlimited; L cp; sysctl -n kernel.core_pattern >$P 2>&1; for i in $(seq 1 6); do timeout 16 /usr/bin/calamares-launch-normal >/tmp/o.$i 2>&1; L \"plain $i rc=$? cores=$(ls /tmp/cores|wc -l)\"; sleep 2; done; for i in $(seq 1 6); do KCRASH_DUMP_ONLY=1 timeout 16 /usr/bin/calamares-launch-normal >/tmp/d.$i 2>&1; L \"dumponly $i rc=$? cores=$(ls /tmp/cores|wc -l)\"; sleep 2; done; L cores; ls -l /tmp/cores >$P 2>&1; L bt; c=$(ls /tmp/cores/core.* 2>/dev/null|head -1); [ -n \"$c\" ] && gdb -batch -ex \"bt 15\" /usr/bin/calamares \"$c\" 2>&1|tail -40 >$P; L end'" },
+  { "keys": ["ret"] },
+  { "wait": 420 },
+  { "shot": "q61-core-final" }
+]

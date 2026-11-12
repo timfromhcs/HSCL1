@@ -187,7 +187,7 @@ one time in three. The underlying order dependence is still unexplained and trac
 The fault: Calamares dies 2-3 s after a desktop-icon start in roughly one start in 6-12, with no core
 dump and no OOM line, and `/usr/bin/hscl-calamares` restarts it inside the first minute.
 
-Three method errors were made before a usable procedure existed, so do it this way:
+Four method errors were made before a usable procedure existed, so do it this way:
 
 1. **Measure one boot at a time, sequentially.** Calamares holds a single-instance lock and exits 87,
    which the wrapper retries. Repeated double-clicks on the icon therefore do **not** create additional
@@ -198,11 +198,41 @@ Three method errors were made before a usable procedure existed, so do it this w
 3. **Do not let the watcher match itself.** `pgrep -f calamares` matches the shell whose command line
    contains the word; use a bracket pattern (`pgrep -cf "[c]alamares"`), which does not match its own
    literal text, and log the PID list, not only a count.
+4. **Read the result out of the guest through the `hscl.qa` port, not off a screenshot.** The
+   screenshot-based runs (`q61-seq2`, `q61-seq3`) wasted two boots: every start puts an installer
+   window in front of Konsole, the scenario's `esc` presses do nothing in a terminal, and the log was
+   never on screen when the shutter fired - the final capture showed a running wizard instead of
+   `== starts ==`. `scripts/qemu_boot_test.py --qa-out FILE` attaches a virtio serial port named
+   `hscl.qa` whose host side is a plain file, so the probe can append text to
+   `/dev/virtio-ports/hscl.qa` and the host reads it afterwards. Prefix every line (`Q61| ...`) so it
+   stays separable from the `hscl-workshop-evidence` report, which writes to the same port on boot.
+   `tests/visual/scenarios/q61-vport.json` does this for three start contexts
+   (`hscl-calamares`, `calamares-launch-normal`, the `calamares` binary) and also records, per start,
+   the byte count of that start's own stdout - that is the control sample which separates "never
+   started" from "started and was killed".
 
 `tests/visual/scenarios/q61-seq.json` implements 12 sequential starts in one boot through the same
 wrapper the desktop icon uses, and prints `/tmp/probe.log` plus `/tmp/hscl-calamares.log` at the end.
 `tests/visual/scenarios/q61-count.json` is the counter-example that proved the single-instance lock
 (five identical PIDs across four more clicks) and should be kept: it is the evidence for rule 1.
+
+The rule behind all four: a measurement that needs a human to read a screen is not repeatable, and one
+that cannot separate "did not start" from "died" has no denominator.
+
+5. **If you instrument the kill with `auditd`, add the rule *after* the daemon has finished loading.**
+   The first audit attempt (`q61-audit.json`) recorded a death and still could not name the sender: its
+   log shows `CONFIG_CHANGE ... op=add_rule key="q61kill" res=1` at sequence `:64` and then
+   `op=remove_rule key="q61kill"` at `:70`, issued by `/sbin/auditctl -R /etc/audit/audit.rules` - i.e.
+   `systemctl start auditd` returned before the daemon re-read its rules file, my rule landed first, and
+   the daemon's own load then flushed it. `auditctl -l` said `No rules` at the start of the series.
+   So: `systemctl start auditd; sleep 6; auditctl -a ...; auditctl -l` **and check that the list is not
+   empty** before measuring. `tests/visual/scenarios/q61-audit2.json` does that and additionally reads
+   `/sys/fs/cgroup/memory.events` before and after the series - in cgroup v2 the root `oom_kill` counter
+   covers the whole subtree, which decides the OOM hypothesis without any extra tooling.
+
+When reading the port, remember that only the lines the probe writes itself carry the `Q61|` prefix:
+`auditctl -l`, `ausearch` and `cat /proc/...` output goes into the same file unprefixed. Filtering the
+whole file by `^Q61` silently hides exactly the payload the instrument was added for.
 
 ## Release and audit tooling (no VM)
 
@@ -215,7 +245,8 @@ These were written after real mistakes and are the cheapest way to catch the sam
 | `scripts/release_split.py IMAGE OUTDIR [PART_MIB]` | parts plus an LF `SHA256SUMS` (the CRLF bug of 2026-11-11 made every published checksum line fail on Linux) | seconds, no 9p |
 | `python -m pytest tests/unit/test_release_metadata_sync.py` | README checksums and `website/data/release.json` describe the same release | instant |
 | `scripts/dev/verify_in_guest_tracks.py --iso ISO --mem 4096 --out DIR` | the twelve in-guest tracks in one boot | ~15 min and an exclusive host |
-| `scripts/dev/probe_installer_kill.py --iso ISO` | the Q-61 discriminator: detached vs direct installer starts, with a 2 s control sample | ~10 min and an **exclusive** host |
+| `scripts/dev/probe_installer_kill.py --iso ISO` | **superseded**: it launched from a non-interactive hook, where the installer never starts (`launched=0` in both contexts), so it cannot answer Q-61. Kept only as a record of that design error | ~10 min and an **exclusive** host |
+| `tests/visual/scenarios/q61-vport.json` via `qemu_boot_test.py --qa-out` | the current Q-61 probe: 8 sequential starts in each of three contexts, per-start alive count and own-output byte count, wrapper log and journal lines, all read from the `hscl.qa` port | ~20 min and an **exclusive** host |
 | `scripts/dev/tick.ps1 -Seconds 90` | a bounded background heartbeat that prints the next actionable queue row; it completes so the agent is woken | free |
 
 Two rules that came out of these:

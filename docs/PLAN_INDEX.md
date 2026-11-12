@@ -337,10 +337,22 @@ being mistaken for the current artifact.
 **Updated 2026-11-10:** the README screenshot and release claims were corrected
 (see [`AUDIT_2026-11-10.md`](AUDIT_2026-11-10.md)). Remaining debt:
 
-1. `docs/CLAIMS.md` still carries rows bound to artifacts that are no longer on disk;
-   each row must name its artifact and date (Q-05 was marked done for the header only).
-2. The installer welcome page stretches the Calamares branding logo across the page
-   (Q-54 covers the recapture; the layout fix is separate).
+1. ~~`docs/CLAIMS.md` still carries rows bound to artifacts that are no longer on disk;
+   each row must name its artifact and date (Q-05 was marked done for the header only).~~
+   **ADDRESSED 2026-11-12:** four rows named no artifact or had lost their table shape - the flagship
+   "main ISO boots" row is now bound to the published `v0.1.6-alpha.0` (`reached_desktop` in 197 s), the
+   `hscl graphics detect` row has an evidence cell instead of "see above", the updates and respin rows say
+   plainly that they pre-date artifact-bound rows, and the miner row (which had **four** cells because an
+   unescaped pipe split the status cell) is a three-cell row again. `tests/unit/test_claims_table.py` now
+   fails the build if a row loses a cell or claims without evidence, so this cannot rot silently. Rows that
+   name artifacts no longer on disk are kept on purpose - the header rule ("a row is historical evidence
+   for the artifact it names") is what makes them safe.
+2. ~~The installer welcome page stretches the Calamares branding logo across the page
+   (Q-54 covers the recapture; the layout fix is separate).~~ **CLOSED 2026-11-12 by measurement**:
+   the rendered logo ink is 721×134 (ratio 5.381) against artwork ink 976×183 (5.333) — **+0.9 %**,
+   i.e. no distortion; it fills the page width because `welcomeExpandingLogo: true`, which is
+   deliberate. `AUDIT_2026-11-10.md` §6 has the table. Do not reopen without a capture whose measured
+   ratio contradicts those numbers.
 3. ~~Icon labels not centred (Q-52), Kate light inside the dark shell (Q-53)~~ — both **CLOSED** with
    pixel measurements on the 0.1.6 artifact; the label offset is -0.9 px and Kate's editor mean luma is
    43.1/255. Do not list them as debt again without a fresh capture that contradicts those numbers.

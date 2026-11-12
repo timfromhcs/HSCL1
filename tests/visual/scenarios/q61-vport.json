@@ -1,0 +1,9 @@
+[
+  { "wait": 15 },
+  { "keys": ["ctrl", "alt", "t"] },
+  { "wait": 12 },
+  { "type": "sudo sh -c 'P=/dev/virtio-ports/hscl.qa; L(){ echo \"Q61| $*\" >$P; }; [ -e $P ]||{ echo no-port >&2; exit 1; }; L start $(date -Is); for S in hscl-calamares calamares-launch-normal calamares; do for i in 1 2 3 4 5 6 7 8; do setsid /usr/bin/$S >/tmp/o.$S.$i 2>&1 & sleep 15; s=$(ps -o sid= -C calamares|head -1|tr -d \" \"); L \"$S $i alive=$(pgrep -cx calamares) out=$(wc -c </tmp/o.$S.$i) sid=$s\"; [ -n \"$s\" ] && kill -9 -$s; sleep 5; done; done; L log; sed \"s/^/Q61|  /\" /tmp/hscl-calamares.log >$P; L journal; journalctl -b|grep -E \"app-|KCrash|Killed|Killing process|SIGKILL|oom-kill\"|sed \"s/^/Q61|  /\" >$P; L launchscript; cat /usr/bin/calamares-launch-normal >$P; L end'" },
+  { "keys": ["ret"] },
+  { "wait": 740 },
+  { "shot": "q61-vport-final" }
+]

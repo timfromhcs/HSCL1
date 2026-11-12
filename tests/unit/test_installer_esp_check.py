@@ -38,6 +38,47 @@ def test_the_image_gate_checks_the_wiring():
     assert "ESP check follows the bootloader module" in text
 
 
+def test_the_failure_path_reports_what_discriminates_the_cause():
+    """The cause is unknown (Q-66), so the failure must name the state, not only the symptom.
+
+    "no loader" alone cannot distinguish "the ESP was never mounted at /boot/efi" from "the bootloader module
+    reported success and wrote nothing". The guard prints both, so the next recurrence is diagnosable without
+    another multi-boot probe.
+    """
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "diagnose()" in text
+    # called from both failure exits, not only from the last one
+    calls = [line for line in text.splitlines() if line.strip() == "diagnose"]
+    assert len(calls) == 2, "both failure paths must call diagnose"
+    for probe in ("findmnt", "/proc/mounts", "ls -la \"$efi\"", "/boot/grub"):
+        assert probe in text, f"the diagnostics must include {probe}"
+    assert "Q-66" in text, "name the open queue row so the log is traceable"
+
+
+def test_a_legacy_install_is_not_failed_for_having_no_esp():
+    """The ISO also boots in BIOS mode, and `grub-install --target=i386-pc` writes no ESP by design.
+
+    Without this branch the guard would turn "you booted the ISO in BIOS mode" into "the installation is
+    broken" - a false failure that hides the real UEFI case it exists to catch.
+    """
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert "/boot/grub/i386-pc" in text, "the legacy marker must be checked"
+    assert "legacy (BIOS) install" in text
+    # the BIOS branch must pass, and must sit before the UEFI failure exit
+    bios = text.index("/boot/grub/i386-pc")
+    fail = text.index("did not populate the EFI system partition")
+    assert bios < fail, "the legacy branch must be evaluated before the UEFI failure"
+    assert text.count("exit 0") >= 3, "legacy, BOOTX64.EFI and grubx64.efi each pass"
+
+
+def test_the_script_stays_posix_sh():
+    """It runs in the target chroot under Calamares; bash may not be the interpreter there."""
+    text = SCRIPT.read_text(encoding="utf-8")
+    assert text.splitlines()[0] == "#!/bin/sh"
+    for bashism in ("[[", "function ", "local ", "declare "):
+        assert bashism not in text, f"bashism {bashism!r} in a /bin/sh script"
+
+
 def test_the_script_is_tracked_executable():
     import subprocess
 
