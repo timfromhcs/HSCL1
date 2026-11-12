@@ -155,6 +155,9 @@ check "original live starter diverted"        test -f "$root/usr/libexec/start-k
 check "installer: no upstream donate link"      grep -q '^showDonateUrl: false$' "$root/etc/calamares/modules/welcome.conf"
 check "installer language is pinned to English" grep -q 'language: "en"' "$root/etc/calamares/modules/welcome.conf"
 check "live locale is set"                      grep -q '^LANG="en_US.UTF-8"' "$root/etc/default/locale"
+# The variable alone is not the fix: the base image generates only C.utf8, so a session that exports
+# en_US.UTF-8 without the locale falls back to C with a warning. Prove the locale itself exists.
+check "live locale is generated"                 sh -c "chroot '$root' locale -a 2>/dev/null | grep -qi '^en_US\.utf8\$'"
 check "no upstream website launcher (menu)"     test ! -e "$root/usr/share/applications/org.kubuntu.web.home.desktop"
 check "no Kubuntu Focus launcher (menu)"        test ! -e "$root/usr/share/applications/org.kfocus.web.howtos.desktop"
 check "SDDM theme id is hscl1"                  grep -q '^Theme-Id=hscl1$' "$root/usr/share/sddm/themes/hscl1/metadata.desktop"

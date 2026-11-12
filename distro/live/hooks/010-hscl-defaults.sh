@@ -178,10 +178,22 @@ if [ -f "$welcome_conf" ] && ! grep -q '^[[:space:]]*language:' "$welcome_conf";
   printf 'language: "en"\n' >> "$welcome_conf"
 fi
 # ...and give the live session a real locale so other Qt/KDE tools do not have to guess either.
+# The base image already carries `LANG=C.UTF-8` and has only `C.utf8` generated, so this must **replace** the
+# value - the append-only version that shipped in 97446c6 silently did nothing, which the image gate caught on
+# the first 0.1.7 build (2026-11-12) - and it must **generate** the locale, otherwise the session falls back to
+# C with a "cannot change locale" warning while the variable claims en_US.UTF-8.
 locale_file="$ROOTFS/etc/default/locale"
 mkdir -p "$(dirname "$locale_file")"
-if ! grep -q '^LANG=' "$locale_file" 2>/dev/null; then
+if grep -q '^LANG=' "$locale_file" 2>/dev/null; then
+  sed -i 's|^LANG=.*|LANG="en_US.UTF-8"|' "$locale_file"
+else
   printf 'LANG="en_US.UTF-8"\n' >> "$locale_file"
+fi
+if [ ! -d "$ROOTFS/usr/lib/locale/en_US.UTF-8" ] && ! chroot "$ROOTFS" locale -a 2>/dev/null | grep -qi '^en_US\.utf8$'; then
+  if ! chroot "$ROOTFS" locale-gen en_US.UTF-8 >/dev/null 2>&1; then
+    echo "010-hscl-defaults: locale-gen en_US.UTF-8 failed - the live session would fall back to C" >&2
+    exit 1
+  fi
 fi
 # Upstream website launchers must not appear in the application menu
 rm -f "$ROOTFS/usr/share/applications/org.kubuntu.web.home.desktop" "$ROOTFS/usr/share/applications/org.kfocus.web.howtos.desktop"
