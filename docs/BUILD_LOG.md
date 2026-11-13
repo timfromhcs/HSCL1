@@ -3856,3 +3856,22 @@ Three lessons, all recorded rather than smoothed over:
 
 Also fixed in the scenario: `xset s off -dpms` before Calamares, because the screen blanked during the ten-minute
 install and the first run's `t13`/`t14` were captured black. The 8 GB run's Finish page is visible.
+
+**Installed boot on the same artifact (2026-11-13, later).** With the 8 GB disk attached and **no ISO**
+(`iso=none`, `-boot c`), UEFI/WHPX at 4 GB reached SDDM (HSCL1 theme, account `HSCL1 Tester`), accepted
+`hscl1t` / `hscl1-test-pass-2026`, and logged in to the HSCL1 desktop in 340 s total:
+`v0-desktop`, `v1-doctor`, `v2-firewall`, `v3-apparmor`, `v4-osrelease`. The doctor output from the guest:
+
+```
+hscl 0.1.8-alpha.0
+[PASS] arch x86_64          [PASS] apparmor enabled
+[PASS] memory 3903 MiB      [PASS] firewall ufw enabled
+[PASS] apt-sources no Kali/Debian/PPA repositories configured
+[SKIP] secure-boot not determined: UEFI without a SecureBoot variable (firmware has Secure Boot off)
+[PASS] theme HCSMidnight (from /etc/skel/.config/kdeglobals)
+6 passed, 0 warnings, 0 failed, 1 skipped
+```
+
+Hostname `hscl1-standardpc`. `result.json` records `iso: none`, `reached_desktop: true`, no panic frames.
+Cosmetic and unchanged: the SDDM avatar is still the KDE gear (Q-44) - the AccountsService entry is only
+seeded on the roadmap, not by the installer.

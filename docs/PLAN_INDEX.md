@@ -14,7 +14,14 @@
   (124.1 GB) during the space cleanup; measurements survive in BUILD_LOG, raw files do not, and
   `docs/CLAIMS.md` / `KNOWN_LIMITATIONS.md` now mark every `artifacts/` path as historical. The guard is
   `scripts/dev/cleanup-artifacts.ps1` (dry run, evidence protected) with 5 tests.
-- **Next VM step:** installer + install-to-disk on this artifact, then the installed boot.
+- **Installation and installed boot are verified on rc12, but only at 8 GB** (Q-74): the same scenario at 4 GB
+  panicked (`Attempted to kill init! exitcode=0x0000000b`) and left an ESP without `/EFI`; at 8 GB it finished
+  with "All done", the ESP carries `shimx64/grubx64/mmx64/BOOTX64.EFI`, and the disk boots with `iso=none` to
+  SDDM, logs in as `hscl1t` and reports `hscl doctor` **6 passed / 0 failed / 1 skipped**. README,
+  KNOWN_LIMITATIONS and the handbook now state live 4096 MB / install 8192 MB. The harness also stopped calling
+  a panicked guest a green run.
+- **Next:** the next image build should carry the handbook corrections and the rc12-verified panel; the open
+  cosmetic item is the SDDM avatar (Q-75, still the KDE gear).
 
 ## Live status, 2026-11-13: Control Center at 11 pages, README and website reconciled to the evidence
 
