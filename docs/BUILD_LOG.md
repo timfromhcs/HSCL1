@@ -3741,6 +3741,11 @@ The queue had no open UI row. The stale surfaces were the two user-facing docume
    pages. New gate: the privacy page must name Tails, Tor, `hscl privacy status`, the missing kill switch and
    the missing packet-capture proof.
 
+**The doc-command gate caught this change.** `documented_hscl_commands_resolve_in_the_cli` failed the first
+`forge check` on three placeholders written into `docs/CONTROL_CENTER.md` (`hscl … --json`, `hscl lab …`,
+`hscl <cmd> --help`) - `'…' is not a subcommand of hscl`. They were rewritten as prose instead of being added to
+an exemption list. This is the same class of gate that keeps the README examples honest.
+
 **Measured (2026-11-13).**
 
 | Command | Result |

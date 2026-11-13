@@ -2,7 +2,7 @@
 
 The HSCL1 Control Center is a Qt 6 / QML application (`apps/control-center`) that renders **live** values
 from the `hscl` CLI. It is not a mock and it is not a second implementation of system logic: every value on
-screen comes from a `hscl … --json` call, and every call passes through one allowlist.
+screen comes from a CLI call with `--json`, and every call passes through one allowlist.
 
 ```
 Main.qml (rail + StackLayout)
@@ -29,7 +29,7 @@ Main.qml (rail + StackLayout)
 
 The only state-changing request is **Appearance → Apply**, and it is offered next to a **Preview** that runs
 the same command with `--dry-run`. Everything else stays in the terminal, where the command can ask for the
-attestation phrase (`hscl lab …`), a confirmation or `sudo`.
+attestation phrase (the `lab` subcommands), a confirmation or `sudo`.
 
 ## The allowlist is the security boundary
 
@@ -91,7 +91,7 @@ Then fill the new entries (lrelease compiles them at package build time).
 
 ## Adding a page
 
-1. Confirm the CLI command exists, is read-only and has `--json` output: `hscl <cmd> --help`, then run it.
+1. Confirm the CLI command exists, is read-only and supports `--json`: read its `--help`, then run it.
 2. Add the vector to `CliBackend::isAllowed` (and to `tst_backend.cpp`, including a rejected variant).
 3. Write `pages/<Name>Page.qml` as an `HcsPage` with `title`, `subtitle`, fetchers and cards.
 4. Register the type in `qml/qmldir` and add the page to `Main.qml` **and** to `pageTitles` in the same order.
@@ -109,7 +109,7 @@ Then fill the new entries (lrelease compiles them at package build time).
   switch in this panel and has been corrected.
 * **No root path.** The panel runs unprivileged and never asks for a password. Any future privileged action
   must go through a narrow Polkit action with validated arguments, not through a wider allowlist.
-* **No booted-VM screenshot of the five newest pages yet.** They are covered by the QML suite, lint and a
+* **No booted-VM screenshot of the six newest pages yet.** They are covered by the QML suite, lint and a
   rendered check: the app was built and run under Xvfb with a fake `hscl` that prints the real JSON shapes, and
   all 11 pages were photographed in English and four in German (`artifacts/cc-render-2026-11-13/`, ignored by
   git). That proves layout and translation fit, **not** that the pages match a booted guest - the CLI answers
