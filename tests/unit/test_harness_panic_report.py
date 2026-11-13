@@ -41,3 +41,11 @@ def test_the_summary_keeps_the_key_out_of_a_healthy_result(tmp_path: Path):
         result["panic_suspects"] = suspects
     text = json.dumps(result)
     assert "panic_suspects" not in text
+
+
+def test_a_panicked_run_is_not_ok_even_when_the_desktop_was_reached():
+    """Regression for Q-74: the rc12 install at 4 GB reached the desktop, then panicked, and exited 0."""
+    assert q.run_ok({"reached_desktop": True})
+    assert not q.run_ok({"reached_desktop": True, "panic_suspects": ["t13.png (98% panic purple)"]})
+    assert not q.run_ok({"reached_desktop": False})
+    assert not q.run_ok({})

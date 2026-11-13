@@ -475,7 +475,17 @@ def main():
             (out / "result.json").write_text(json.dumps(result, indent=2))
             print(f"WARNING: {len(suspects)} screenshot(s) look like a kernel panic: {suspects}", flush=True)
     print(json.dumps({k: v for k, v in result.items() if k != "shots"}))
-    return 0 if result["reached_desktop"] else 1
+    return 0 if run_ok(result) else 1
+
+
+def run_ok(result: dict) -> bool:
+    """A run only passes when the desktop was reached **and** no frame looks like a kernel panic.
+
+    Before 2026-11-13 a panicked guest whose early frames had reached the desktop still returned 0, so the
+    install run on rc12 at 4 GB looked green while `t13` showed `KERNEL PANIC! Attempted to kill init!`
+    (Q-74). The summary already carried the suspicion; now the exit code carries it too.
+    """
+    return bool(result.get("reached_desktop")) and not result.get("panic_suspects")
 
 
 def panic_suspects(out: Path) -> list[str]:
