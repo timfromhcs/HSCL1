@@ -3664,3 +3664,30 @@ Two guards keep it honest:
 QML tests after the change: rain plugin 14 passed, Control Center pages 9 passed, `tst_backend` 6 passed.
 `forge check` 7/7 PASS (the QML gate is now part of it), `pytest` 1046 passed / 24 skipped.
 
+
+### Q-16: a positive Secure Boot run is impossible on this host, and the harness now says why (2026-11-13)
+
+`--secure-boot` boots OVMF's secboot build with `-machine q35,smm=on`, because Secure Boot runs its variable
+checks inside SMM. Two attempts, two host-level refusals - neither has anything to do with the ISO:
+
+| Attempt | Result |
+|---|---|
+| QEMU on Windows, WHPX, with the Microsoft key database from `artifacts/ovmf/OVMF_VARS_4M.ms.fd` (sha256 `d2e3a79d…`, copied from Ubuntu's `ovmf` package) | `System Management Mode not supported by this hypervisor.` The machine never starts. |
+| QEMU inside WSL, KVM (`/dev/kvm` present, `nested=1`, `svm` visible) | the machine starts and the **first SMM entry fails**: `KVM: entry failed, hardware error 0xffffffff`, `SMM=1` in the register dump. Six screenshots over five minutes are byte-identical. |
+
+Evidence: `artifacts/boot-sb-kvm/SUMMARY.txt`, `qemu.log`, `shot-001.png`.
+
+**Two harness fixes came out of it**, both useful beyond Secure Boot:
+
+1. **A VM that never comes up now fails fast with the reason.** Before, the caller saw
+   `RuntimeError: QMP socket never appeared` and waited out `--timeout` (40 minutes). Now the first QEMU log
+   line that mentions `not supported|failed|error|cannot|refus` is part of the message:
+   `QMP socket never appeared: ... System Management Mode not supported by this hypervisor.`
+2. **`--secure-boot` warns about SMM up front on Windows**, and still requires `HSCL_OVMF_VARS_MS` so a run with
+   an empty key database cannot look green.
+
+So Q-16's negative case stays DONE (the guest really reports the firmware state), and the positive case is
+recorded as **blocked by the platform** with the exact message for each path. Closing it needs a bare-metal
+Linux host with KVM and SMM support; a WHPX run can never validate Secure Boot, and a WSL/KVM run hangs.
+`docs/TESTING.md` and `docs/KNOWN_LIMITATIONS.md` now say this where the next person will look.
+

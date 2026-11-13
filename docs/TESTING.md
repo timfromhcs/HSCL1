@@ -234,6 +234,28 @@ When reading the port, remember that only the lines the probe writes itself carr
 `auditctl -l`, `ausearch` and `cat /proc/...` output goes into the same file unprefixed. Filtering the
 whole file by `^Q61` silently hides exactly the payload the instrument was added for.
 
+## Secure Boot tests need SMM, and this host has none
+
+`qemu_boot_test.py --secure-boot` boots OVMF's secboot build with `-machine q35,smm=on`, because Secure Boot in
+OVMF runs the variable checks inside SMM. Two independent host limits were measured on 2026-11-13 while trying
+to produce the **positive** case (evidence: `artifacts/boot-sb-kvm/SUMMARY.txt`):
+
+| Host | Result |
+|---|---|
+| QEMU on Windows, WHPX | `System Management Mode not supported by this hypervisor.` - the machine does not start |
+| QEMU in WSL with KVM (`/dev/kvm` present, nested on) | starts, then the first SMM entry fails: `KVM: entry failed, hardware error 0xffffffff` with `SMM=1` in the dump; six screenshots over five minutes are byte-identical |
+
+So a positive Secure Boot run needs a **bare-metal Linux host with KVM and SMM**, or CI with nested
+virtualization that supports SMM. A WHPX run cannot validate anything, and a WSL/KVM run hangs.
+
+Two rules follow:
+
+1. `--secure-boot` without `HSCL_OVMF_VARS_MS` only boots a firmware with an **empty** key database - nothing is
+   validated and the run would look green while proving nothing. The harness warns and says so.
+2. A VM that never comes up now fails **fast** with the QEMU log line that explains it
+   (`QMP socket never appeared: ... System Management Mode not supported`), instead of waiting out the
+   `--timeout`. Before this, a Secure Boot attempt cost 40 minutes to produce "QMP socket never appeared".
+
 ## Release and audit tooling (no VM)
 
 These were written after real mistakes and are the cheapest way to catch the same class again:

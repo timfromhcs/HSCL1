@@ -8,7 +8,7 @@ not proof of usability.
 
 Disposable resources only: a read-only ISO and an optional throwaway qcow2 created inside OUTDIR.
 """
-import argparse, json, os, shutil, socket, struct, subprocess, sys, time, zlib
+import argparse, json, os, re, shutil, socket, struct, subprocess, sys, time, zlib
 from pathlib import Path
 
 OVMF = "/usr/share/OVMF"
@@ -341,6 +341,12 @@ def main():
                 # firmware that has the SecureBoot variable but an empty db/KEK: nothing is validated, the shim is
                 # accepted because there is no policy, and the run would prove nothing while looking green.
                 # Point HSCL_OVMF_VARS_MS at an enrolled template (Ubuntu: /usr/share/OVMF/OVMF_VARS_4M.ms.fd).
+                # SMM is a second, separate blocker on this host: secboot OVMF needs -machine q35,smm=on and WHPX
+                # rejects it ("System Management Mode not supported by this hypervisor"). A positive Secure Boot
+                # run therefore needs a KVM host; nested KVM in WSL fails on SMM entry as well
+                # ("KVM: entry failed, hardware error 0xffffffff", SMM=1 in the register dump).
+                print("warning: WHPX does not implement SMM; Secure Boot needs -accel tcg (very slow) or a KVM host",
+                      flush=True)
                 ms_vars = os.environ.get("HSCL_OVMF_VARS_MS")
                 if ms_vars and Path(ms_vars).is_file():
                     vars_src = ms_vars
@@ -362,7 +368,18 @@ def main():
     proc = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT)
     result = {"_disk": a.disk or "", "firmware": a.firmware, "secure_boot_requested": a.secure_boot, "accel": accel, "iso": os.path.basename(a.iso), "shots": [], "reached_desktop": False}
     try:
-        qmp = Qmp(qmp_path)
+        try:
+            qmp = Qmp(qmp_path)
+        except RuntimeError as exc:
+            # A VM that never comes up is almost always a startup error: an option the hypervisor does not
+            # support, a firmware that refuses to start, a missing feature. The reason is in qemu.log, so hand
+            # it back instead of leaving the caller with "QMP socket never appeared" and a long timeout.
+            log.flush()
+            lines = [ln for ln in (out / "qemu.log").read_text(encoding="utf-8", errors="replace").splitlines()
+                     if ln.strip()]
+            bad = next((ln for ln in lines if re.search(r"not supported|failed|error|cannot|refus", ln, re.I)), None)
+            first = bad or (lines[0] if lines else "qemu.log is empty")
+            raise SystemExit(f"{exc}: {first}") from None
         if a.unlock_passphrase:
             # encrypted installed system: the initramfs asks for the LUKS passphrase before the login screen exists
             time.sleep(a.unlock_at)
