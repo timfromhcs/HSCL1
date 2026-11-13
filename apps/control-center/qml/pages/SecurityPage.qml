@@ -1,17 +1,22 @@
 pragma ComponentBehavior: Bound
 
 import QtQuick
-import QtQuick.Controls.Basic
-import QtQuick.Layouts
 import ".."
 
-Item {
+HcsPage {
     id: page
-    property var backend: null
+    title: qsTr("Security")
+    subtitle: qsTr("Posture from hscl security status and the checks hscl doctor runs.")
+
     StateText { id: st }
     Fetcher { id: secFetch; backend: page.backend; args: ["security", "status"] }
     Fetcher { id: docFetch; backend: page.backend; args: ["doctor"] }
     Component.onCompleted: { secFetch.reload(); docFetch.reload() }
+
+    error: secFetch.error !== "" || docFetch.error !== ""
+        ? qsTr("Could not read every value. The cards show what answered.") : ""
+
+    onRefreshRequested: { secFetch.reload(); docFetch.reload() }
 
     function checkLabel(id) {
         switch (id) {
@@ -26,35 +31,23 @@ Item {
         }
     }
 
-    ScrollView {
-        anchors.fill: parent
-        contentWidth: availableWidth
-        ColumnLayout {
-            width: page.width - 2 * Theme.space5
-            x: Theme.space5
-            spacing: Theme.space4
-            Item { Layout.preferredHeight: Theme.space3 }
-            Text { text: qsTr("Security"); color: Theme.textPrimary; font.pixelSize: Theme.font2xl; font.bold: true; Accessible.role: Accessible.Heading; Accessible.name: text }
-            Card {
-                title: qsTr("Status")
-                Row2 { label: qsTr("Secure Boot"); value: secFetch.result ? st.label(secFetch.result.secure_boot) : (secFetch.error ? qsTr("Could not read data") : qsTr("Loading…")) }
-                Row2 { label: qsTr("AppArmor"); value: secFetch.result ? st.label(secFetch.result.apparmor) : "" }
-                Row2 { label: qsTr("Firewall"); value: secFetch.result ? st.label(secFetch.result.firewall_ufw_enabled) : "" }
-                Row2 { label: qsTr("Unwanted APT sources"); value: secFetch.result ? (secFetch.result.forbidden_apt_sources.length === 0 ? qsTr("none") : secFetch.result.forbidden_apt_sources.join(", ")) : "" }
+    Card {
+        title: qsTr("Status")
+        Row2 { label: qsTr("Secure Boot"); value: secFetch.result ? st.label(secFetch.result.secure_boot) : (secFetch.error ? qsTr("Could not read data") : qsTr("Loading…")) }
+        Row2 { label: qsTr("AppArmor"); value: secFetch.result ? st.label(secFetch.result.apparmor) : "" }
+        Row2 { label: qsTr("Firewall"); value: secFetch.result ? st.label(secFetch.result.firewall_ufw_enabled) : "" }
+        Row2 { label: qsTr("Unwanted APT sources"); value: secFetch.result ? (secFetch.result.forbidden_apt_sources.length === 0 ? qsTr("none") : secFetch.result.forbidden_apt_sources.join(", ")) : "" }
+    }
+    Card {
+        title: qsTr("Health check")
+        Repeater {
+            model: docFetch.result ? docFetch.result.checks : []
+            delegate: Row2 {
+                // declared so the model field reads resolve (Q-19)
+                required property var modelData
+                label: page.checkLabel(modelData.id)
+                value: st.label(modelData.level) + " - " + modelData.detail
             }
-            Card {
-                title: qsTr("Health check")
-                Repeater {
-                    model: docFetch.result ? docFetch.result.checks : []
-                    delegate: Row2 {
-                        // declared so the three model field reads resolve (Q-19)
-                        required property var modelData
-                        label: page.checkLabel(modelData.id)
-                        value: st.label(modelData.level) + " - " + modelData.detail
-                    }
-                }
-            }
-            Item { Layout.preferredHeight: Theme.space5 }
         }
     }
 }

@@ -14,7 +14,13 @@ ApplicationWindow {
 
     Component.onCompleted: rail.forceActiveFocus()
 
-    readonly property var pageTitles: [qsTr("Overview"), qsTr("Appearance"), qsTr("Security"), qsTr("Miner"), qsTr("About")]
+    /// Rail labels. They must stay in the same order and number as the pages in the StackLayout below;
+    /// `tests/unit/test_cc_pages.py` fails when the two drift apart.
+    readonly property var pageTitles: [
+        qsTr("Overview"), qsTr("Appearance"), qsTr("Security"), qsTr("Privacy"),
+        qsTr("Security Lab"), qsTr("Local AI"), qsTr("Updates & Recovery"),
+        qsTr("Developer"), qsTr("Language & Region"), qsTr("Miner"), qsTr("About")
+    ]
 
     /// main.cpp installs the CLI bridge as the context property `cli`. Reading it once here and handing the
     /// value to a declared property keeps every page binding qualified, so qmllint stops flagging each use as
@@ -32,7 +38,7 @@ ApplicationWindow {
         NavRail {
             id: rail
             Layout.fillHeight: true
-            Layout.preferredWidth: 220
+            Layout.preferredWidth: 270
             model: win.pageTitles
             onCurrentIndexChanged: stack.currentIndex = currentIndex
         }
@@ -45,6 +51,12 @@ ApplicationWindow {
             OverviewPage { backend: win.cliBackend }
             AppearancePage { backend: win.cliBackend }
             SecurityPage { backend: win.cliBackend }
+            PrivacyPage { backend: win.cliBackend }
+            LabPage { backend: win.cliBackend }
+            LocalAiPage { backend: win.cliBackend }
+            UpdatesPage { backend: win.cliBackend }
+            DeveloperPage { backend: win.cliBackend }
+            LanguagePage { backend: win.cliBackend }
             MinerPage { backend: win.cliBackend }
             AboutPage { backend: win.cliBackend }
         }

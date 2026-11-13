@@ -1,5 +1,7 @@
 singleton Theme 1.0 Theme.qml
 Card 1.0 components/Card.qml
+HcsButton 1.0 components/HcsButton.qml
+HcsPage 1.0 components/HcsPage.qml
 Row2 1.0 components/Row2.qml
 StateText 1.0 components/StateText.qml
 Fetcher 1.0 components/Fetcher.qml
@@ -7,5 +9,11 @@ NavRail 1.0 components/NavRail.qml
 OverviewPage 1.0 pages/OverviewPage.qml
 AppearancePage 1.0 pages/AppearancePage.qml
 SecurityPage 1.0 pages/SecurityPage.qml
+PrivacyPage 1.0 pages/PrivacyPage.qml
+LabPage 1.0 pages/LabPage.qml
+LocalAiPage 1.0 pages/LocalAiPage.qml
+UpdatesPage 1.0 pages/UpdatesPage.qml
+DeveloperPage 1.0 pages/DeveloperPage.qml
+LanguagePage 1.0 pages/LanguagePage.qml
 AboutPage 1.0 pages/AboutPage.qml
 MinerPage 1.0 pages/MinerPage.qml

@@ -8,9 +8,14 @@ class TstBackend : public QObject {
 private slots:
     void allowsKnownCommands() {
         for (const auto &c : QList<QStringList>{{"status"}, {"doctor"}, {"system", "info"}, {"security", "status"},
+                                                {"ai", "detect"},
                                                 {"appearance", "theme", "list"}, {"appearance", "theme", "set", "hcs-nord"},
                                                 {"appearance", "theme", "set", "hcs-nord", "--dry-run"},
                                                 {"appearance", "theme", "show", "hcs-midnight"},
+                                                // Pages added 2026-11-13: one read-only query each.
+                                                {"privacy", "status"}, {"lab", "status"}, {"recovery", "status"},
+                                                {"dev", "status"}, {"language", "status"},
+                                                {"system", "updates", "--check"},
                                                 // The Miner page needs these two; without them every request ended in
                                                 // "command not allowed" and the page showed the red error banner even
                                                 // with a healthy CLI (measured 2026-11-11 on rc6/rc7).
@@ -24,6 +29,12 @@ private slots:
                                                 {"appearance", "theme", "set", "hcs-nord", "--yes"},
                                                 {"appearance", "theme", "show", "hcs-nord", "extra"},
                                                 {"appearance", "theme", "set", "HCS-Nord"}, {"doctor", "--full"},
+                                                // A setter or an installer is never reachable through the bridge.
+                                                {"system", "updates"}, {"system", "updates", "--install"},
+                                                {"system", "updates", "--check", "extra"}, {"privacy", "tor"},
+                                                {"privacy", "tails", "launch"}, {"lab", "run"},
+                                                {"lab", "toolset", "install", "basic"}, {"dev", "setup"},
+                                                {"language", "set", "de"}, {"recovery", "snapshots", "create"},
                                                 {"miner", "probe"}, {"miner", "probe", "-oProxyCommand=x"},
                                                 {"miner", "probe", "../../etc"}, {"miner", "ota", "1.2.3.4"}})
             QVERIFY2(!CliBackend::isAllowed(c), qPrintable(c.join(' ')));

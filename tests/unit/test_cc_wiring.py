@@ -9,8 +9,8 @@ def test_main_does_not_bind_backend_to_itself():
     main = (CC / "qml/Main.qml").read_text(encoding="utf-8")
     assert not re.search(r"backend:\s*backend\b", main), "self-binding: page.backend would stay null"
     # The context property is read once into a declared member (`cliBackend`), so the page bindings are
-    # qualified and qmllint has one unqualified access instead of five.
-    assert main.count("backend: win.cliBackend") == 5
+    # qualified and qmllint has one unqualified access instead of eleven.
+    assert main.count("backend: win.cliBackend") == 11
     assert main.count('typeof cli !== "undefined"') == 1
 
 

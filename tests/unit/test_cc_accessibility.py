@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 QML = ROOT / "apps/control-center/qml"
-CONTROLS = ("Button", "ToolButton", "CheckBox", "Switch", "RadioButton", "ComboBox", "Slider", "TextField")
+CONTROLS = ("Button", "HcsButton", "ToolButton", "CheckBox", "Switch", "RadioButton", "ComboBox", "Slider", "TextField")
 
 
 def blocks(text: str, control: str):
@@ -34,9 +34,16 @@ def test_every_control_has_an_accessible_name():
     problems = []
     checked = 0
     for path in sorted(QML.rglob("*.qml")):
+        # HcsButton is the base widget itself: it declares the role, while the name is supplied by each call
+        # site (the HcsButton usages are scanned like every other control).
+        base = path.name == "HcsButton.qml"
         text = path.read_text(encoding="utf-8")
+        if base:
+            assert "Accessible.role: Accessible.Button" in text
         for control in CONTROLS:
             for body in blocks(text, control):
+                if base:
+                    continue
                 checked += 1
                 if "Accessible.name" not in body:
                     problems.append(f"{path.name}: {control} without Accessible.name")
@@ -45,14 +52,16 @@ def test_every_control_has_an_accessible_name():
 
 
 def test_every_page_title_is_a_heading():
-    titles = 0
-    for path in sorted(QML.rglob("*.qml")):
-        for line in path.read_text(encoding="utf-8").splitlines():
-            if "font2xl" in line and "bold" in line:
-                titles += 1
-                assert "Accessible.Heading" in line, f"{path.name}: page title without Accessible.Heading"
-                assert "Accessible.name" in line, f"{path.name}: page title without Accessible.name"
-    assert titles == 5, f"expected the five pages' titles, found {titles}"
+    # One shared frame owns the heading, so the heading level cannot drift per page. The frame must declare
+    # both the role and a name, and every page must go through it.
+    frame = (QML / "components/HcsPage.qml").read_text(encoding="utf-8")
+    assert "font.pixelSize: Theme.font2xl" in frame, "HcsPage has no page-title size"
+    assert "font.bold: true" in frame, "HcsPage has no bold page title"
+    assert "Accessible.Heading" in frame and "Accessible.name: page.title" in frame
+    for path in sorted((QML / "pages").glob("*Page.qml")):
+        text = path.read_text(encoding="utf-8")
+        assert "font2xl" not in text, f"{path.name}: page draws its own heading instead of using HcsPage"
+        assert "Accessible.Heading" not in text, f"{path.name}: page declares its own heading"
 
 
 def test_the_control_center_does_not_animate():

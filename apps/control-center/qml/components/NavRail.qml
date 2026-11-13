@@ -53,6 +53,9 @@ Rectangle {
                 font.bold: item.highlighted
                 verticalAlignment: Text.AlignVCenter
                 leftPadding: Theme.space4
+                rightPadding: Theme.space2
+                // "Updates & Wiederherstellung" is longer than the rail; elide instead of clipping the glyphs.
+                elide: Text.ElideRight
             }
             background: Rectangle {
                 color: item.highlighted ? Theme.accentSoft : "transparent"

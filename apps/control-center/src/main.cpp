@@ -1,5 +1,6 @@
 #include <QCoreApplication>
 #include <QDir>
+#include <QFontDatabase>
 #include <QGuiApplication>
 #include <QLocale>
 #include <QQmlApplicationEngine>
@@ -19,6 +20,17 @@ int main(int argc, char *argv[]) {
     app.setApplicationName(QStringLiteral("hscl-control-center"));
     app.setOrganizationName(QStringLiteral("HCSMEDIA"));
     QQuickStyle::setStyle(QStringLiteral("Basic"));
+
+    // The design token names Inter (themes/tokens/tokens.json -> Theme.fontFamily). Until 2026-11-13 nothing
+    // applied it, so the panel silently used whatever the platform default was. Use the token when the family
+    // is installed and keep the platform font otherwise - no font is bundled, so a missing family must not
+    // turn into a missing UI.
+    const QString family = QStringLiteral("Inter");
+    if (QFontDatabase::families().contains(family)) {
+        QFont f = QGuiApplication::font();
+        f.setFamily(family);
+        QGuiApplication::setFont(f);
+    }
 
     const QString base = QStringLiteral("/usr/share/hscl/control-center");
     const QString qmlDir = envOr("HSCL_CC_QML", base + QStringLiteral("/qml"));

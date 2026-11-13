@@ -1,4 +1,5 @@
 """Control Center: every qsTr() string has a non-empty German and French translation in the right context; Theme.qml is in sync."""
+import json
 import re
 import subprocess
 import sys
@@ -9,13 +10,21 @@ ROOT = Path(__file__).resolve().parents[2]
 CC = ROOT / "apps/control-center"
 
 
+def qml_unescape(s: str) -> str:
+    """QML string escapes as the runtime sees them: lupdate stores a `\\n` source as a real newline."""
+    try:
+        return json.loads('"' + s + '"')
+    except json.JSONDecodeError:
+        return s
+
+
 def source_strings():
     found = {}
     for qml in (CC / "qml").rglob("*.qml"):
         if qml.name == "Theme.qml":
             continue
         for s in re.findall(r'qsTr\("((?:[^"\\]|\\.)*)"\)', qml.read_text(encoding="utf-8")):
-            found.setdefault(qml.stem, set()).add(s)
+            found.setdefault(qml.stem, set()).add(qml_unescape(s))
     return found
 
 
@@ -41,7 +50,9 @@ def test_every_string_is_translated_in_de_and_fr():
 
 def test_no_translation_is_left_untranslated_by_accident():
     # identical source/translation is only acceptable for product names and technical terms
-    allowed_same = {"Architecture", "Secure Boot", "AppArmor", "System", "Kernel", "Status", "Version", "Navigation", "Firewall", "%1 MiB", "Plan: %1", "Miner", "Mining", "Hashrate", "Pool", "Hostname", "Firmware", "Shares"}
+    allowed_same = {"Architecture", "Secure Boot", "AppArmor", "System", "Kernel", "Status", "Version", "Navigation", "Firewall", "%1 MiB", "Plan: %1", "Miner", "Mining", "Hashrate", "Pool", "Hostname", "Firmware", "Shares",
+                    # product and protocol names, plus load-bearing technical terms that German and French keep
+                    "Toolchain", "Git", "Rust", "Python", "Node.js", "Details", "Hardware", "Backend", "Tor", "Session", "minimal"}
     for lang in ("de", "fr"):
         for (ctx, s), t in translations(lang).items():
             if t == s:

@@ -18,8 +18,10 @@ RowLayout {
         text: row.label
         color: Theme.textSecondary
         font.pixelSize: Theme.fontMd
-        Layout.preferredWidth: 180
-        elide: Text.ElideRight
+        Layout.preferredWidth: 200
+        // German labels ("Sicherungsordner vorhanden") are longer than the English ones; wrapping keeps the
+        // meaning visible instead of clipping it at a fixed column width (measured 2026-11-13).
+        wrapMode: Text.Wrap
     }
     Text {
         id: valueItem

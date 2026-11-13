@@ -14,6 +14,11 @@ bool CliBackend::isAllowed(const QStringList &a) {
         {"version"}, {"about"}, {"status"}, {"doctor"},
         {"system", "info"}, {"security", "status"}, {"ai", "detect"},
         {"appearance", "theme", "list"}, {"appearance", "theme", "current"}, {"appearance", "theme", "restore"},
+        // The pages added on 2026-11-13 are strictly read-only: a status/JSON query each, never a setter.
+        {"privacy", "status"}, {"lab", "status"}, {"recovery", "status"},
+        {"dev", "status"}, {"language", "status"},
+        // A read-only apt simulation (`--check`), not `--install`.
+        {"system", "updates", "--check"},
         // The Miner page reads the last device and probes it read-only; without these it could only ever show its
         // error banner (measured 2026-11-11).
         {"miner", "status"},
