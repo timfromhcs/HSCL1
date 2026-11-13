@@ -3832,3 +3832,27 @@ website alt text now show the current 11-page panel instead of the five-page one
 
 Gates for this entry: showcase evidence + website + doc links + release metadata = **20 passed**; no source
 changed, so `forge check` and the QML gate are unchanged from `e382047` (both green there).
+
+### Q-74: an install at 4 GB panics, an install at 8 GB completes - and the harness now fails on a panic (2026-11-13)
+
+Two runs of the same scenario (`install-terminal.json`) on `HSCL1-rc12` (`e235ff29…`), UEFI/WHPX:
+
+| Run | RAM | Result |
+|---|---|---|
+| `artifacts/install-rc12` | 4096 MB | wrote 8.42 GB, then **`KERNEL PANIC! Please reboot your computer. Attempted to kill init! exitcode=0x0000000b`** (`t13-before-finish.png`, 98 % panic purple; `detect_panic.py` flagged it). Offline `qemu-nbd` read: `vda1` 300 MiB EFI **without `/EFI`**, `vda2` 39.7 GiB - the bootloader phase never ran, so the disk cannot boot. |
+| `artifacts/install-rc12-8g` | 8192 MB | **"All done. HSCL1 0.1.8-alpha.0 has been installed on your computer."** with the Finish page and "Restart now" (`t13`), after 9.4 GB written. |
+
+Three lessons, all recorded rather than smoothed over:
+
+1. **4 GB is the live-desktop minimum, not the install minimum.** The earlier "complete install at 4 GB" evidence
+   is from `HSCL1-rc1`/`rc3`; it does not reproduce on rc12. `README.md`, `KNOWN_LIMITATIONS.md` and the
+   handbook now say: live ISO 4096 MB, installation 8192 MB.
+2. **The empty ESP on the 4 GB run is explained by the panic** (the installer never reached the bootloader
+   module), which is a new data point for Q-66: that row's earlier empty-ESP installs had no panic screen, so
+   they remain a separate, still-unexplained case.
+3. **A panicked guest used to exit 0.** `result.json` carried `panic_suspects` but `main()` only looked at
+   `reached_desktop`, so the failed install looked green in the harness summary. `run_ok()` now requires the
+   desktop **and** an empty `panic_suspects`; `tests/unit/test_harness_panic_report.py` pins it.
+
+Also fixed in the scenario: `xset s off -dpms` before Calamares, because the screen blanked during the ten-minute
+install and the first run's `t13`/`t14` were captured black. The 8 GB run's Finish page is visible.

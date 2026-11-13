@@ -10,7 +10,7 @@
   "wait": 14
  },
  {
-  "type": "sudo -b /usr/bin/hscl-calamares"
+  "type": "xset s off -dpms; sudo -b /usr/bin/hscl-calamares"
  },
  {
   "keys": [
