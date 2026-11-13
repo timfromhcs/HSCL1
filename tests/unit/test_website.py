@@ -63,6 +63,7 @@ def pages(dist):
     return [dist / "index.html", dist / "download/index.html", dist / "de/index.html", dist / "de/download/index.html",
             dist / "fr/index.html", dist / "fr/download/index.html",
             dist / "security/index.html", dist / "de/security/index.html", dist / "fr/security/index.html",
+            dist / "privacy/index.html", dist / "de/privacy/index.html", dist / "fr/privacy/index.html",
             dist / "install/vm/index.html", dist / "de/install/vm/index.html", dist / "fr/install/vm/index.html"]
 
 
@@ -145,6 +146,18 @@ def test_vm_page_lists_only_tested_hypervisor_settings_and_marks_the_rest_untest
         text = (dist / prefix / "install/vm/index.html").read_text(encoding="utf-8")
         assert "WHPX" in text and ("40 GB" in text or "40 Go" in text) and "VirtualBox" in text
         assert "/dev/sd" not in text  # never a guessed block device
+
+
+def test_privacy_page_names_the_capabilities_the_limits_and_tails(dist):
+    """The privacy page must not become marketing: it has to name Tails, Tor and the missing filtering."""
+    for prefix in ["", "de/", "fr/"]:
+        text = (dist / prefix / "privacy/index.html").read_text(encoding="utf-8")
+        assert "Tails" in text, prefix
+        assert "Tor" in text, prefix
+        assert "hscl privacy status" in text, prefix
+        # The missing pieces must be named, not glossed over: no kill switch and no packet-capture proof.
+        assert ("kill switch" in text) or ("Killswitch" in text) or ("coupe-circuit" in text), prefix
+        assert ("packet" in text.lower()) or ("paquets" in text.lower()), prefix
 
 
 def test_every_page_states_the_full_product_name(dist):

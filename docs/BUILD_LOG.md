@@ -3691,3 +3691,70 @@ recorded as **blocked by the platform** with the exact message for each path. Cl
 Linux host with KVM and SMM support; a WHPX run can never validate Secure Boot, and a WSL/KVM run hangs.
 `docs/TESTING.md` and `docs/KNOWN_LIMITATIONS.md` now say this where the next person will look.
 
+### Control Center coverage, README truth and the website reconciliation (2026-11-13)
+
+Owner request: review the repository, the open PRs, the plans and the README, then continue the UI/UX code and
+the README autonomously.
+
+**State found.** `main` clean at `ac785d7`; one open PR (#63, a dependabot rust-toolchain bump, unrelated).
+The queue had no open UI row. The stale surfaces were the two user-facing documents and the panel's breadth:
+
+- the README said the installer was "still killed in roughly one start in six to twelve" in the same block that
+  said *20 of 20 sequential installer starts survive*, said the Kali toolset had "not been run in a guest"
+  (Q-18/Q-59 record the opposite), promised "isolated network routing" (removed by Q-65), linked a TOC anchor
+  (`#-key-features`) that does not exist, and printed two examples that cannot run (`hscl lab run` without the
+  required `--project`/`--image`, `hscl wallpaper apply rain` where `rain` is not a preset id);
+- the website (EN/DE/FR) still called the Security Lab "not implemented yet", LUKS "not tested", KDE Connect
+  "still listening on 1716" and said the Secure Boot state "has not been read";
+- the Control Center covered 5 of the specification's 14 areas, and each page repeated its own header, its own
+  spacing and its own (or no) error path.
+
+**Work.**
+
+1. **Control Center: 11 pages, one frame.** Added Privacy (`privacy status`), Security Lab (`lab status`),
+   Local AI (`ai detect`), Updates & Recovery (`system updates --check` + `recovery status`), Developer
+   (`dev status`) and Language & Region (`language status`) - every one read-only.
+   `components/HcsPage.qml` owns the scroll container, the single `Accessible.Heading` title, the description,
+   the refresh action and the one labelled error banner; the five existing pages were moved onto it.
+   `components/HcsButton.qml` replaces the Basic style's light default button with the HCS tokens (quiet
+   secondary, accent primary, focus ring); the 2026-11-13 render shows the difference.
+2. **The allowlist grew, and is tested both ways.** `CliBackend::isAllowed` gained the six status vectors and
+   `tst_backend.cpp` now also rejects every setter/installer path that must stay in the terminal:
+   `system updates --install`, `lab run`, `lab toolset install`, `dev setup`, `language set`,
+   `recovery snapshots create`, `privacy tor`.
+3. **New gates (the Q-62 failure class).** `tests/unit/test_cc_pages.py` requires every page file to appear in
+   the `StackLayout` exactly once, the rail labels to match the page count, every page to use `HcsPage` with a
+   localised title, the typography token to be applied in `main.cpp`, and **every static `args:` list in a page
+   to be on the bridge allowlist**. `test_cc_accessibility.py` was rewritten around the shared frame, and
+   double-line wrapping in `Row2` (German `Sicherungsordner vorhanden`) replaced the fixed 180 px clip.
+4. **Typography was a dead token.** `Theme.fontFamily` said Inter but nothing applied it; `main.cpp` now sets
+   the application font to Inter when the family is installed and keeps the platform font otherwise (no font is
+   bundled, so a missing family cannot break the panel). `test_cc_pages.py` pins it.
+5. **Languages.** `lupdate` found 197 sources (115 new, then 5 for the readiness vocabulary); every one is
+   translated in German and French by hand, `lrelease` reports **197 finished / 0 unfinished** for both.
+6. **README.** Status block rewritten around `0.1.8`/Q-68 and the guarded Q-66; Security Lab now cites the rc11
+   chain (`Nmap version 7.991`); the privacy section keeps "reporting, not routing"; TOC anchor fixed; the two
+   broken CLI examples use real flags and a real preset id; the verification table carries the Control Center
+   and website gates and the measured `cargo test` count.
+7. **Website.** `/privacy/` added (15 pages: home, download, VM guide, security, privacy x EN/DE/FR) and the
+   four existing pages reconciled. The Control Center image alt text now says the capture predates the new
+   pages. New gate: the privacy page must name Tails, Tor, `hscl privacy status`, the missing kill switch and
+   the missing packet-capture proof.
+
+**Measured (2026-11-13).**
+
+| Command | Result |
+|---|---|
+| `bash scripts/dev/qml-gate.sh` (WSL, Qt 6.10.2) | rain 14/14, Control Center pages **16/16**, `tst_backend` **6/6**, `qmllint` control-center **0 warnings** (budget 0), rain 129/129, exit 0 |
+| `python -m pytest tests/unit -q` | **1019 passed, 15 skipped**, 0 failed (140 s) |
+| `pytest tests/unit/test_cc_*.py tests/unit/test_website.py tests/unit/test_doc_links.py` | green after the last edit |
+| `cargo test --all` | **276 passed, 0 failed** (one earlier run: 275/1, not reproduced in four further runs - Q-72) |
+| `cargo fmt --all -- --check`, `cargo clippy --all-targets -- -D warnings` | clean |
+| `lrelease hscl-cc_de.ts` / `hscl-cc_fr.ts` | 197 finished / 0 unfinished each |
+| `python scripts/build_website.py` | 15 pages |
+| Rendered check | the built panel ran under Xvfb with a fake `hscl` that prints the real JSON shapes: all 11 pages photographed in English, four in German (`artifacts/cc-render-2026-11-13/`, git-ignored). The German render proves the `.qm` files load and that `Updates & Wiederherstellung` fits |
+
+**Not claimed.** The renders use **mocked CLI answers**, so they are layout and translation evidence, not VM
+evidence and not showcase material. No booted-VM capture of the new pages exists yet. Display, network, user and
+application pages were **not** invented: they need write commands (or a privileged helper) that do not exist.
+The website's Control Center screenshot is still the five-page capture and says so in its alt text.

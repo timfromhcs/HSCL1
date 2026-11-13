@@ -10,7 +10,8 @@
     "lang": "Langue",
     "skip": "Aller au contenu",
     "security": "Sécurité",
-    "vm": "Essayer en VM"
+    "vm": "Essayer en VM",
+    "privacy": "Vie privée"
   },
   "hero": {
     "h1": "Un système. Trois modes.",
@@ -26,11 +27,11 @@
     },
     {
       "t": "Security Lab",
-      "d": "Prévu : les outils Kali dans des conteneurs sans privilèges root ou des machines virtuelles, jamais depuis les sources de paquets de l'hôte. Pas encore réalisé."
+      "d": "Outils Kali dans des conteneurs rootless, jamais depuis les sources de paquets de l'hôte. Toute la chaîne a été vérifiée de bout en bout dans une VM live : pull épinglé par digest, installation du toolset, commit et une exécution qui a affiché la version de Nmap. Désactivé par défaut."
     },
     {
       "t": "Vie privée",
-      "d": "Prévu : un flux de travail Tor et un lanceur pour l'image Tails officielle. Aucune garantie d'anonymat n'est donnée, et aucune ne le sera sans tests."
+      "d": "Un flux de confidentialité, pas une promesse d'anonymat : session live éphémère avec disques internes non montés, rapport d'état honnête, règle de lanceur pour Tor Browser et lanceur Tails vérifié. Le trafic n'est pas routé via Tor."
     }
   ],
   "shots_h": "Le vrai bureau",
@@ -41,14 +42,14 @@
     },
     {
       "src": "img/control-center.png",
-      "alt": "HSCL1 Control Center affichant des valeurs système réelles"
+      "alt": "HSCL1 Control Center affichant des valeurs système réelles (capture de la version à cinq pages ; les nouvelles pages en lecture seule n'y figurent pas encore)"
     }
   ],
   "honest_h": "Ce qui est vérifié et ce qui ne l'est pas",
   "honest": [
     "Démarre jusqu'au bureau live et s'installe sur un disque virtuel dans QEMU (UEFI et BIOS). Testé uniquement dans des machines virtuelles.",
     "Non testé sur du matériel physique. Non signé. L'état de Secure Boot est lu dans l'invité : le micrologiciel de test tournait sans Secure Boot ; l'ISO contient des composants de démarrage signés.",
-    "Security Lab : la chaîne de conteneurs a été vérifiée de bout en bout dans une VM live (Podman rootless, image Kali épinglée par digest, installation du toolset, commit, run). Désactivé par défaut. Le routage de confidentialité reste prévu.",
+    "Security Lab : la chaîne de conteneurs a été vérifiée de bout en bout dans une VM live (Podman rootless, image Kali épinglée par digest, installation du toolset, commit, run). Désactivé par défaut. Le routage Tor n'est pas implémenté : le flux de confidentialité rapporte l'état et lance Tor Browser, mais ne filtre pas le trafic.",
     "HSCL1 n'est pas un produit officiel de Kubuntu, Kali ou Tails et n'est pas soutenu par eux. HSCL1 n'est ni affilié au projet Tails ni approuvé par lui. KALI LINUX™ est une marque d'OffSec. Les noms tiers appartiennent à leurs propriétaires."
   ],
   "dl": {
@@ -71,7 +72,8 @@
     "limits": [
       "Machines virtuelles uniquement ; aucun matériel physique testé.",
       "Non signé.",
-      "Dans cette image, KDE Connect écoute encore sur le port 1716 ; le correctif est dans le code source mais pas dans cette image."
+      "Le plantage de l'installateur, ouvert depuis la 0.1.4, est corrigé dans cette version : la page de notes qui plantait est retirée de la séquence. Un défaut voisin est seulement endigué, pas expliqué - une installation peut se terminer avec une partition EFI vide, et échoue alors visiblement au lieu de laisser un disque qui ne démarre pas.",
+      "KDE Connect est masqué et son activation D-Bus est neutralisée ; la barrière d'image l'exige."
     ],
     "all": "Tous les fichiers sur GitHub",
     "tag": "Page de la version"
@@ -96,10 +98,10 @@
     ],
     "claims_h": "Ce que nous ne prétendons pas",
     "claims": [
-      "Pas d'anonymat : HSCL1 n'est pas Tails, et le mode Vie privée est prévu, pas livré.",
+      "Pas d'anonymat : HSCL1 n'est pas Tails. Le flux de confidentialité rapporte l'état de la session et lance Tor Browser, mais ne route pas le trafic via Tor.",
       "Aucune garantie contre les attaques, aucune certification, aucune affirmation qu'il serait difficile à pirater.",
       "Aucune prise en charge du matériel physique : aucun appareil n'a été testé.",
-      "Secure Boot : l'image démarre dans une machine virtuelle avec un micrologiciel Secure Boot, mais l'état de Secure Boot dans l'invité n'a pas été lu ; aucune affirmation sur Secure Boot n'est donc faite."
+      "Secure Boot : les composants de démarrage signés sont fournis et l'état est lu dans l'invité, mais le micrologiciel de test tournait sans Secure Boot ; un démarrage positif en Secure Boot n'a pas été démontré."
     ],
     "dev_h": "Outil de développement : le Workshop",
     "dev": "Le Workshop est un outil de développement inactif par défaut : aucun service activé, aucun socket et aucun écouteur réseau. Il ne démarre que lorsqu'un hyperviseur fournit un port virtuel dédié, ou lorsqu'un administrateur le lance à la main. Quiconque contrôle ce port contrôle déjà la machine virtuelle, et ses hooks s'exécutent volontairement en root. Ne l'activez pas sur une machine que vous ne contrôlez pas.",
@@ -153,6 +155,10 @@
       [
         "Support d'installation",
         "L'ISO attaché comme lecteur CD-ROM en lecture seule"
+      ],
+      [
+        "Installation chiffrée",
+        "LUKS2 avec 8 Go sur la ligne candidate 0.1.5/0.1.6 : la mauvaise phrase secrète est refusée, la bonne déverrouille. Une exécution à 6 Go a paniqué une fois. Non répété sur la 0.1.8."
       ]
     ],
     "steps_h": "À quoi s'attendre",
@@ -164,11 +170,32 @@
     "not_h": "Non testé",
     "not": [
       "VirtualBox, VMware et Hyper-V : aucun réglage n'est recommandé car aucun n'a été testé.",
-      "KVM sous Linux : les mêmes options QEMU devraient fonctionner, mais nous ne l'avons pas vérifié.",
-      "Installation chiffrée (LUKS2) : pas encore testée.",
+      "KVM sous Linux : le démarrage de l'invité lui-même n'a pas été vérifié par nous ; une exécution KVM n'a servi qu'à prouver que cet hôte ne peut pas entrer en SMM pour Secure Boot.",
       "Accélération 3D, passage USB et dossiers partagés : non testés ; laissez les dossiers partagés désactivés."
     ],
     "script": "Le programme qui exécute ces tests est scripts/qemu_boot_test.py dans le dépôt du code source."
+  },
+  "prv": {
+    "title": "Confidentialité, honnêtement - HSCL1",
+    "h1": "Confidentialité, honnêtement",
+    "intro": "HSCL1 propose un flux de confidentialité, pas une garantie d'anonymat. Cette page liste ce que le logiciel fait réellement, ce qu'il ne fait pas, et quand la version officielle de Tails est la meilleure réponse.",
+    "does_h": "Ce qui existe",
+    "does": [
+      "L'ISO live s'exécute depuis un squashfs en lecture seule avec une superposition volatile : un redémarrage efface la session. Le système installé est persistant par conception.",
+      "Dans la session live, les disques internes ne sont pas montés automatiquement, le swap est uniquement zram et les core dumps sont désactivés. hscl privacy status rapporte chacun de ces faits pour que vous puissiez les vérifier au lieu de croire un badge.",
+      "hscl privacy tor launch démarre Tor Browser et refuse de démarrer un autre navigateur à sa place. C'est une règle de lanceur, pas un filtre réseau.",
+      "hscl privacy tails verify vérifie un ISO officiel de Tails par son SHA-256 (et un hachage attendu si vous en fournissez un) ; hscl privacy tails launch construit une commande QEMU isolée sans stockage de l'hôte attaché."
+    ],
+    "not_h": "Ce qui n'existe pas",
+    "not": [
+      "Pas de routage Tor ni de coupe-circuit : le trafic des applications n'est pas forcé à passer par Tor, et une panne de Tor ne bloque pas l'accès direct.",
+      "Aucune preuve par capture de paquets de l'absence de fuite n'existe, donc aucune n'est affirmée.",
+      "Aucune affirmation d'anonymat ni d'anti-forensique. Tor ne vous protège pas si vous vous identifiez par un identifiant, un téléchargement ou un document.",
+      "Aucune persistance chiffrée dans la session live. Rien n'est enregistré, sauf si vous l'enregistrez vous-même hors de la session."
+    ],
+    "tails_h": "Tails est un projet distinct",
+    "tails_link": "Ouvrir le site officiel de Tails",
+    "tails": "HSCL1 n'est pas Tails et n'est ni affilié au projet Tails ni approuvé par lui. Lorsque votre sécurité dépend d'un anonymat fort, utilisez la version officielle de Tails vérifiée par signature et sa documentation, pas ce flux."
   },
   "expansion": "Hypercharged Supreme Computing Layout 1"
 }

@@ -10,7 +10,8 @@
     "lang": "Language",
     "skip": "Skip to content",
     "security": "Security",
-    "vm": "Try in a VM"
+    "vm": "Try in a VM",
+    "privacy": "Privacy"
   },
   "hero": {
     "h1": "One system. Three modes.",
@@ -26,11 +27,11 @@
     },
     {
       "t": "Security Lab",
-      "d": "Planned: Kali tools in rootless containers or virtual machines, never from the host's package sources. Not implemented yet."
+      "d": "Kali tools in rootless containers, never from the host's package sources. The whole chain was verified end to end in a live VM: digest-pinned pull, toolset install, commit and a run that printed the Nmap version. Off by default."
     },
     {
       "t": "Privacy",
-      "d": "Planned: a Tor workflow and a launcher for the official Tails image. No anonymity claim is made, and none will be made without tests."
+      "d": "A privacy workflow, not an anonymity promise: an ephemeral live session with unmounted internal disks, an honest status report, a Tor Browser launcher rule and a verified-Tails launcher. Traffic is not routed through Tor."
     }
   ],
   "shots_h": "The real desktop",
@@ -41,14 +42,14 @@
     },
     {
       "src": "img/control-center.png",
-      "alt": "HSCL1 Control Center showing live system values"
+      "alt": "HSCL1 Control Center showing live system values (capture from the five-page build; the newer read-only pages are not in this screenshot yet)"
     }
   ],
   "honest_h": "What is verified, and what is not",
   "honest": [
     "Boots to a live desktop and installs to a virtual disk in QEMU (UEFI and BIOS). Tested only in virtual machines.",
-    "Not tested on physical hardware. Not signed. Secure Boot is read inside the guest: the test firmware ran with Secure Boot off, and the ISO does carry signed boot components.",
-    "Security Lab: the container chain was verified end to end in a live VM (rootless Podman, digest-pinned Kali image, toolset install, commit, run). It is off by default. Privacy routing is still planned.",
+    "Not tested on physical hardware. Not signed. Secure Boot is read inside the guest: the test firmware ran with Secure Boot off, and the ISO does carry Microsoft- and Canonical-signed boot components.",
+    "Security Lab: the container chain was verified end to end in a live VM (rootless Podman, digest-pinned Kali image, toolset install, commit, run). It is off by default. Tor routing is not implemented: the privacy workflow reports state and launches Tor Browser but does not filter traffic.",
     "HSCL1 is not an official Kubuntu, Kali or Tails product and is not endorsed by them. HSCL1 is not affiliated with or endorsed by the Tails project. KALI LINUX™ is a trademark of OffSec. Third-party names belong to their owners."
   ],
   "dl": {
@@ -71,7 +72,8 @@
     "limits": [
       "Virtual machines only; no physical hardware has been tested.",
       "Unsigned.",
-      "This image still has KDE Connect listening on port 1716; the fix is in the source but not in this image."
+      "The installer startup crash that had been open since 0.1.4 is fixed in this release: the crashing notes page is out of the installer sequence. One related fault is guarded rather than explained - an install can finish with an empty EFI partition, and then fails visibly instead of leaving a disk that cannot boot.",
+      "KDE Connect is hidden and its D-Bus activation is stubbed; the image gate requires it."
     ],
     "all": "All files on GitHub",
     "tag": "Release page"
@@ -96,10 +98,10 @@
     ],
     "claims_h": "What we do not claim",
     "claims": [
-      "No anonymity: HSCL1 is not Tails, and the Privacy mode is planned, not shipped.",
+      "No anonymity: HSCL1 is not Tails. The privacy workflow reports session state and launches Tor Browser, but it does not route traffic through Tor.",
       "No guarantee against attacks, no certification, no claim that it is hard to hack.",
       "No support for physical hardware: no device has been tested.",
-      "Secure Boot: the image boots under Secure Boot firmware in a virtual machine, but the Secure Boot state inside the guest has not been read, so no Secure Boot claim is made."
+      "Secure Boot: the signed boot components ship and the state is read inside the guest, but the test firmware ran with Secure Boot off and a positive Secure-Boot boot has not been demonstrated."
     ],
     "dev_h": "Developer tool: the Workshop",
     "dev": "The Workshop is a developer tool that is inactive by default: no enabled service, no socket and no network listener. It starts only when a hypervisor provides a dedicated virtual port, or when an administrator starts it by hand. Whoever controls that port already controls the virtual machine, and its hooks run as root by design. Do not enable it on a machine you do not control.",
@@ -153,6 +155,10 @@
       [
         "Installation medium",
         "The ISO attached as a read-only CD-ROM"
+      ],
+      [
+        "Encrypted install",
+        "LUKS2 at 8 GB on the 0.1.5/0.1.6 candidate line: wrong passphrase refused, correct one unlocks. A 6 GB run panicked once. Not repeated on 0.1.8."
       ]
     ],
     "steps_h": "What to expect",
@@ -164,11 +170,32 @@
     "not_h": "Not tested",
     "not": [
       "VirtualBox, VMware and Hyper-V: no settings are recommended because none were tested.",
-      "KVM on Linux: the same QEMU options should work, but this has not been verified by us.",
-      "Encrypted (LUKS2) installation: not tested yet.",
+      "KVM on Linux: the guest boot itself was not verified by us; a KVM run was used only to prove that this host cannot enter SMM for Secure Boot.",
       "3D acceleration, USB passthrough and shared folders: not tested; keep shared folders off."
     ],
     "script": "The harness that runs these tests is scripts/qemu_boot_test.py in the source repository."
+  },
+  "prv": {
+    "title": "Privacy, honestly - HSCL1",
+    "h1": "Privacy, honestly",
+    "intro": "HSCL1 has a privacy workflow, not an anonymity guarantee. This page lists what the software actually does, what it does not do, and where the official Tails release is the better answer.",
+    "does_h": "What is there",
+    "does": [
+      "The live ISO runs from a read-only squashfs with a volatile overlay, so a reboot discards the session. The installed system is persistent by design.",
+      "In the live session internal disks are not mounted automatically, swap is zram only and core dumps are disabled. hscl privacy status reports each of these facts, so you can check them instead of trusting a badge.",
+      "hscl privacy tor launch starts Tor Browser and refuses to start a different browser in its place. That is a launcher rule, not a network filter.",
+      "hscl privacy tails verify checks an official Tails ISO against its SHA-256 (and an expected hash if you supply one); hscl privacy tails launch builds an isolated QEMU command with no host storage attached."
+    ],
+    "not_h": "What is not there",
+    "not": [
+      "No Tor routing and no kill switch: application traffic is not forced through Tor, and a Tor failure does not block direct egress.",
+      "No packet-capture proof of leak-freedom exists, so none is claimed.",
+      "No anonymity and no anti-forensics claim. Tor does not protect you from identifying yourself in a login, a download or a document.",
+      "No encrypted persistence in the live session. Nothing is saved unless you save it outside the session yourself."
+    ],
+    "tails_h": "Tails is a separate project",
+    "tails_link": "Open the official Tails website",
+    "tails": "HSCL1 is not Tails and is not affiliated with or endorsed by the Tails project. Where your safety depends on strong anonymity, use the official, signature-verified Tails release and its documentation, not this workflow."
   },
   "expansion": "Hypercharged Supreme Computing Layout 1"
 }

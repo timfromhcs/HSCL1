@@ -49,6 +49,7 @@ nav a[aria-current=page]{{color:var(--text-primary);font-weight:600}}
 .hero{{padding:4rem 0 3rem}}
 h1{{font-size:clamp(2rem,6vw,3.5rem);line-height:1.1;margin:0 0 1rem}}
 h2{{font-size:1.6rem;margin:3rem 0 1rem}} h3{{margin:.25rem 0}}
+.hero + section h2{{margin-top:1rem}}
 .eyebrow{{margin:0 0 .5rem;color:var(--accent);font-weight:600;letter-spacing:.04em}}
 .lead{{font-size:1.2rem;color:var(--text-secondary);max-width:42rem}}
 .btns{{display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1.5rem}}
@@ -112,6 +113,7 @@ def page(lang: str, c: dict, path: str, title: str, body: str, site: str | None)
 <li><a href="{dl}"{cur("/download/")}>{e(n["download"])}</a></li>
 <li><a href="{prefix(lang)}/install/vm/"{cur("/install/vm/")}>{e(n["vm"])}</a></li>
 <li><a href="{prefix(lang)}/security/"{cur("/security/")}>{e(n["security"])}</a></li>
+<li><a href="{prefix(lang)}/privacy/"{cur("/privacy/")}>{e(n["privacy"])}</a></li>
 </ul></nav>
 <nav aria-label="{e(n["lang"])}"><ul>{langs}</ul></nav>
 </div></header>
@@ -176,6 +178,17 @@ def security(lang: str, c: dict) -> str:
 <section aria-labelledby="docs"><h2 id="docs">{e(x["docs_h"])}</h2><p>{e(x["docs"])}</p><ul>{links}</ul></section>"""
 
 
+def privacy(lang: str, c: dict) -> str:
+    """The privacy workflow, stated as capabilities and as limits. Never a claim of anonymity."""
+    x = c["prv"]
+    lst = lambda items: "<ul>" + "".join(f"<li>{e(i)}</li>" for i in items) + "</ul>"  # noqa: E731
+    return f"""<section class="hero"><h1>{e(x["h1"])}</h1><p class="lead">{e(x["intro"])}</p></section>
+<section aria-labelledby="does"><h2 id="does">{e(x["does_h"])}</h2>{lst(x["does"])}</section>
+<section aria-labelledby="not"><h2 id="not">{e(x["not_h"])}</h2><div class="note">{lst(x["not"])}</div></section>
+<section aria-labelledby="tails"><h2 id="tails">{e(x["tails_h"])}</h2><p>{e(x["tails"])}</p>
+<p><a class="btn ghost" href="https://tails.net/">{e(x["tails_link"])}</a></p></section>"""
+
+
 def vm(lang: str, c: dict) -> str:
     x = c["vm"]
     rows = "".join(f"<tr><th scope=\"row\">{e(a)}</th><td>{e(b)}</td></tr>" for a, b in x["rows"])
@@ -208,7 +221,8 @@ def build(out: Path, site: str | None) -> list[str]:
         c = json.loads((WEB / f"content/{lang}.json").read_text(encoding="utf-8"))
         for path, body, title in [("/", home(lang, c, rel), c["title"]), ("/download/", download(lang, c, rel), f'{c["dl"]["h1"]} - HSCL1'),
                             ("/install/vm/", vm(lang, c), c["vm"]["title"]),
-                            ("/security/", security(lang, c), c["sec"]["title"])]:
+                            ("/security/", security(lang, c), c["sec"]["title"]),
+                            ("/privacy/", privacy(lang, c), c["prv"]["title"])]:
             target = out / (prefix(lang).lstrip("/")) / path.strip("/") / "index.html"
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(page(lang, c, path, title, body, site), encoding="utf-8")

@@ -1,5 +1,24 @@
 # HSCL1 plan reconciliation index
 
+## Live status, 2026-11-13: Control Center at 11 pages, README and website reconciled to the evidence
+
+- **Control Center:** the panel went from 5 to **11 read-only pages** (Privacy, Security Lab, Local AI, Updates &
+  Recovery, Developer, Language & Region added) on one shared `HcsPage` frame with a single heading, one
+  refresh action and one labelled error banner. The CLI bridge allowlist grew by six status commands and now has
+  a test that refuses every setter/installer. Gate: `qml-gate.sh` pages **16/16**, `tst_backend` **6/6**,
+  `qmllint` **0 warnings**; `tests/unit/test_cc_pages.py` pins page/rail parity and the allowlist.
+- **README:** its status block said the installer was "still killed in one start in six to twelve" while the
+  same block said 20 of 20 starts survive; it said the Kali toolset had "not been run in a guest" (Q-18/Q-59
+  record the opposite), promised "isolated network routing" (Q-65 removed that claim), used a dead TOC anchor
+  and two CLI examples that cannot run (`lab run` without `--project`/`--image`, `wallpaper apply rain`). All
+  corrected; the verification table now carries the Control Center and website gates.
+- **Website:** EN/DE/FR were still saying "Security Lab not implemented", "LUKS not tested", "KDE Connect still
+  listening" and "Secure Boot state not read". Reconciled, and a **`/privacy/`** page (15 pages total) now
+  states capabilities, missing filtering and the Tails boundary instead of leaving that to a bullet.
+- **Still true and still open:** no booted-VM capture of the new Control Center pages (the website image is the
+  five-page capture and its alt text says so); the v1 gates that need hardware or a signing key are unchanged;
+  one `cargo test --all` run failed once and was green in the next four runs (Q-72, no cause claimed).
+
 ## Live status, 2026-11-13: 0.1.8-alpha.0 ships the installer fix
 
 - **Released:** `v0.1.8-alpha.0` (`def7f190…`, 5 027 201 024 B, source `91c8acb`, xz, clean tree) -

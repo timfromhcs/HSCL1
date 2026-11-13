@@ -18,7 +18,7 @@
 
 <br>
 
-[✨ Features](#-key-features) • [🚀 Quick Start](#-quickstart-try-it-in-qemu) • [📸 Live Showcase](#-live-application-showcase) • [💻 3 Modes](#-three-operating-modes) • [⚡ CLI Reference](#-command-line-interface-hscl) • [🔧 Troubleshooting](#-troubleshooting--vm-tips) • [📦 Download](#-download--verification) • [🛠️ Build From Source](#-build-from-source)
+[✨ Why HSCL1](#-why-hscl1) • [🚀 Quick Start](#-quickstart-try-it-in-qemu) • [📸 Live Showcase](#-live-application-showcase) • [💻 3 Modes](#-three-operating-modes) • [⚡ CLI Reference](#-command-line-interface-hscl) • [🔧 Troubleshooting](#-troubleshooting--vm-tips) • [📦 Download](#-download--verification) • [🛠️ Build From Source](#-build-from-source)
 
 <br>
 
@@ -33,22 +33,24 @@
 ## ✨ Why HSCL1?
 
 1. **Cohesive Keyboard-First Ergonomics:** A unified workstation experience combining the speed and aesthetics of Omarchy with the rock-solid hardware stability of Ubuntu 26.04 LTS and KDE Plasma 6.6 LTS. Slim top status bar, centered floating dock, and dynamic GPU/CPU shader-driven wallpapers.
-2. **Three Structurally Isolated Modes:** Seamless switching between everyday **Workstation**, isolated **Security Lab** (rootless Podman + official Kali Linux OCI containers), and an ephemeral **Privacy Session** (RAM overlay, unmounted host storage, isolated network routing).
+2. **Three Structurally Isolated Modes:** Everyday **Workstation**, isolated **Security Lab** (rootless Podman + official Kali Linux OCI containers, verified end to end in a guest), and an ephemeral **Privacy Session** (RAM overlay, unmounted host storage, honest reporting - network traffic is **not** filtered, so no anonymity is claimed).
 3. **No HSCL1 telemetry & rigorous attestation:** HSCL1 adds no analytics, no crash upload and no remote control; 100% offline documentation in 3 languages (English, German, French), LUKS2 full-disk encryption with Argon2id, and an evidence-based contract—features are backed by automated tests and recorded proof. Base-system network contacts (time sync, package mirrors, the installer's connectivity and geo-IP check) are disclosed in [Known limitations](docs/KNOWN_LIMITATIONS.md).
 
 > [!IMPORTANT]
 > **Status: Pre-Alpha (`0.1.8-alpha.0`).**
-> HSCL1 is verified **in virtual machines only** (UEFI and BIOS firmware under QEMU 9.2.0 with WHPX / KVM acceleration). The current artifact is `HSCL1-0.1.8-alpha.0-amd64.iso` (`def7f190.`, 5,027,201,024 B, built from `91c8acb`, xz, clean tree): UEFI boot at **4 GB** reached the desktop and `scripts/qa_report.py` exits 0 (9 checks ok, one `info` line about Secure Boot), and **20 of 20 sequential installer starts survive**. Verified in QEMU:
+> HSCL1 is verified **in virtual machines only** (UEFI firmware under QEMU on Windows with WHPX acceleration; recorded runs used QEMU 9.2.0 and 11.1). The current artifact is `HSCL1-0.1.8-alpha.0-amd64.iso` (`def7f190.`, 5,027,201,024 B, built from `91c8acb`, xz, clean tree): UEFI boot at **4 GB** reached the desktop, `scripts/qa_report.py` exits 0 (9 checks ok, one `info` line about Secure Boot), and **20 of 20 sequential installer starts survive**. Verified in QEMU:
 >
-> - a **full unencrypted installation at the documented 4 GB minimum** (`All done`, the disk then boots with `iso=none`, logs in, and reports `hscl doctor` 6 passed / 0 failed / 1 skipped) — evidence from `HSCL1-rc1` (`f8ae5c52…`), not rebuilt for 0.1.6, 0.1.7 or 0.1.8;
-> - an **LUKS2 installation** at 8 GB (wrong passphrase refused by cryptsetup, correct one unlocks, `LUKS volumes open: 1`); a 6 GB LUKS run panicked once — evidence from the 0.1.4/0.1.5 candidates;
-> - the **Security Lab chain end to end on `rc2`** in one live session: digest-pinned Kali pull → `hscl lab install --toolset basic` → `commit` → `run`, last step `Nmap version 7.99`, exit 0.
+> - a **full unencrypted installation at the documented 4 GB minimum** (`All done`, the disk then boots with `iso=none`, logs in, and reports `hscl doctor` 6 passed / 0 failed / 1 skipped) - the most recent complete run is from `HSCL1-rc1` (`f8ae5c52…`) and has not been repeated on 0.1.6-0.1.8;
+> - an **LUKS2 installation** at 8 GB (wrong passphrase refused by cryptsetup, correct one unlocks, `LUKS volumes open: 1`); a 6 GB LUKS run panicked once - evidence from the 0.1.5 candidate line;
+> - the **Security Lab chain end to end** on `rc11` in one live session: digest-pinned Kali pull → `hscl lab install --toolset basic` → `commit` → `run -- nmap --version`, last step printing **`Nmap version 7.991`**, every step exit 0.
 >
-> **Fixed on this artifact:** the desktop labels are upright (they were italic because Plasma italicises *link* labels and the entries were symlinks) and carry **no** orange untrusted badge; the label centre sits within 1 px of the icon centre (measured).
+> **Installer:** the startup crash that had been open since 0.1.4 is fixed on this artifact. The `notesqml` step segfaulted while the progress tree painted its name (`NotesQmlViewStep::prettyName()` → `TranslatedString::get()`), the step is out of the Calamares sequence, and the image gate now asserts that it stays disabled. One related fault is **guarded, not explained**: an install can still report "All done" with an empty EFI partition, so `hscl-verify-esp` fails such an install instead of leaving an unbootable disk.
 >
-> **Secure Boot:** the ISO carries the signed Canonical/Microsoft boot components (`artifacts/sb-0.1.3-alpha.0/report.json`), but the test firmware ran with **Secure Boot off**, so a positive Secure-Boot boot has *not* been demonstrated.
+> **Fixed since 0.1.6:** desktop labels are upright (Plasma italicises *link* labels; the entries are real `.desktop` files now) and carry no untrusted badge; the label centre sits within 1 px of the icon centre (measured).
 >
-> **Not verified:** bare-metal physical hardware, USB-media boot, TPM-backed encryption, a Tor-routed privacy session, signed releases (SHA-256 checksums only). The installer is still killed in roughly one start in six to twelve within its first seconds (Q-61); the launcher retries up to three times. Read [Known limitations](docs/KNOWN_LIMITATIONS.md) and the [evidence ledger](docs/CLAIMS.md) before installing.
+> **Secure Boot:** the ISO carries the signed Canonical/Microsoft boot components (`artifacts/sb-0.1.3-alpha.0/report.json`) and the guest state is read (`mokutil --sb-state`), but a **positive Secure-Boot boot has not been demonstrated**: the test firmware ran with Secure Boot off, and this host cannot enter SMM under WHPX or KVM (recorded in `artifacts/boot-sb-kvm/SUMMARY.txt`).
+>
+> **Not verified:** bare-metal physical hardware, USB-media boot, TPM-backed encryption, a Tor-routed privacy session, signed releases (SHA-256 checksums only). Read [Known limitations](docs/KNOWN_LIMITATIONS.md) and the [evidence ledger](docs/CLAIMS.md) before installing.
 
 > [!NOTE]
 > HSCL1 is **not Tails**, **not an official Kali release**, and is not affiliated with or endorsed by the Tails project, Canonical, the KDE/Kubuntu projects, or Offensive Security. It makes **no anonymity claim**.
@@ -101,7 +103,7 @@ The HCS desktop uses a shader-driven wallpaper engine, switchable with `hscl app
 
 ### 2. Native HCS Control Center (Qt 6 / QML)
 
-A zero-telemetry control center providing instant hardware diagnostics, security policy auditing, theme customization, and system identity verification.
+A zero-telemetry control center providing instant hardware diagnostics, security policy auditing, theme customization, and system identity verification. Eleven pages read the same `hscl --json` commands the terminal uses - Overview, Appearance, Security, Privacy, Security Lab, Local AI, Updates & Recovery, Developer, Language & Region, Miner and About - and every page is **read-only**: it reports what the system says, and the commands that change things stay in the terminal where they can ask for confirmation. Errors surface as one labelled banner, the layout has one keyboard-reachable refresh action, and the whole panel contains no animation (reduced motion by construction).
 
 | System Overview & Hardware Profiling | Security Baseline & Firewall Policy |
 |:---:|:---:|
@@ -177,14 +179,13 @@ flowchart LR
 
 ### B. Security Lab (Authorized Testing Only)
 - **Isolation by Architecture:** Security and penetration testing tools run strictly in rootless OCI containers (Podman) or disposable VMs—**never** mixed into the host APT repositories.
-- **Digest-pinned by construction, not yet exercised:** `hscl lab` refuses any image reference that is not
-  `name@sha256:<64 hex>`; the *pull and toolset build* of an official Kali image has **not** been run in a guest
-  yet (Q-18), so no Kali tool is installed or reported as verified.
+- **Verified in a guest, not just implemented:** on `rc11` the whole chain ran in one 4 GB live session - digest-pinned pull of `kalilinux/kali-rolling`, `hscl lab install --toolset basic` (nmap, tshark, wireshark-common and bind9-dnsutils *inside the container*), `commit`, and `run -- nmap --version` printing `Nmap version 7.991`; every step returned 0. The image reference must be `name@sha256:<64 hex>`; a tag is refused.
 - **Mandatory Authorization:** CLI execution requires explicit attestation:
   ```console
-  $ hscl lab run --yes="I am authorized to test this target" -- nmap -sV 127.0.0.1
+  $ hscl lab run --project demo --image localhost/hscl-lab-demo:latest \
+      --yes="I am authorized to test this target" -- nmap -sV 127.0.0.1
   ```
-- **Fail-Closed:** Containers mount no host home directories, credentials, or SSH agents by default.
+- **Fail-Closed by default:** containers run with `--network=none`, dropped capabilities, a read-only root and no host home, credential or SSH-agent mounts. Some tools lose privileges because of that (the install log shows `unable to set CAP_SETFCAP`), which is a boundary, not a bug.
 
 ### C. Privacy (what is actually there today)
 
@@ -254,10 +255,17 @@ $ hscl memory status                                               # Inspect RAM
 
 # Dynamic desktop styling
 $ hscl wallpaper list                                              # Available wallpaper shader presets
-$ hscl wallpaper apply rain                                        # Switch desktop wallpaper immediately
+$ hscl wallpaper apply midnight-rain                               # Switch desktop wallpaper immediately
+$ hscl appearance theme list                                       # Colour schemes and their wallpaper
+
+# Privacy, language and update state (read-only)
+$ hscl privacy status                                              # Ephemeral overlay, swap, Tor readiness
+$ hscl language status                                             # Active language and where it comes from
+$ hscl system updates --check                                      # Pending APT updates (simulation only)
 
 # Security Lab container execution
-$ hscl lab run --yes="I am authorized to test this target" -- nmap 127.0.0.1
+$ hscl lab run --project demo --image localhost/hscl-lab-demo:latest \
+    --yes="I am authorized to test this target" -- nmap 127.0.0.1
 $ hscl lab install --project demo \
     --image kalilinux/kali-rolling@sha256:<digest> \
     --toolset web --yes="I am authorized to test this target"
@@ -278,11 +286,11 @@ Detailed CLI documentation is available in [`docs/CLI.md`](docs/CLI.md).
 | Issue | Cause | Solution |
 |---|---|---|
 | **Black screen or sluggish boot** | Hardware acceleration disabled in QEMU | Ensure `-accel whpx,kernel-irqchip=off` (Windows) or `-enable-kvm` (Linux) is active. |
-| **Installer closes / "Crash Handler" appears** | The wizard is SIGKILLed 2-3 s after it starts in roughly one start in six to twelve (no core dump, no OOM; see [known limitations](docs/KNOWN_LIMITATIONS.md)) | **Open, mitigated in the next candidate.** `/usr/bin/hscl-calamares` restarts the wizard when it dies inside its first minute, and `HSCL1-rc6` does that. The published `v0.1.5-alpha.0` predates the wrapper: if the window disappears, **start it again** - the next attempt succeeds. An earlier cause (the welcome module's network probe) is fixed and removed from `welcome.conf`. |
-| **Installer stops with `hscl-verify-esp: … did not populate the EFI system partition`** | The installer wrote the system but no EFI loader reached the EFI partition, so the machine would not boot | The image now refuses to report "All done" in that case instead of leaving an unbootable disk (Q-63). Nothing is lost: start the installation again, and if it repeats, report the exact `/var/log/calamares.log` excerpt. |
+| **Installer closes / "Crash Handler" appears** | On 0.1.4-0.1.7 the wizard could segfault while building its first page; KCrash then let `drkonqi` SIGKILL it, which is why there was no core dump | **Fixed in `0.1.8-alpha.0`:** the crashing `notesqml` step is out of the Calamares sequence and the image gate asserts it stays disabled (20/20 starts survived). If it still happens on 0.1.8, start the installer again and record `journalctl -b` plus `/var/log/calamares.log` - that is new evidence, not the known fault. |
+| **Installer stops with `hscl-verify-esp: … did not populate the EFI system partition`** | The installer wrote the system but no EFI loader reached the EFI partition, so the machine would not boot | The image refuses to report "All done" in that case instead of leaving a disk that cannot boot (Q-66, the cause is still unknown). Nothing is lost: install again, and if it repeats, keep the exact `/var/log/calamares.log` excerpt - the guard prints what it saw. |
 | **Out-of-memory / kernel panic** | Allocating < 3 GB RAM to the VM | The live ISO unpacks a zstd squashfs into RAM overlay; allocate at least **3072 MB** (recommended: **4096 MB**). |
 | **Welcome screen doesn't dismiss** | Plasma first-run dialog modal grab | Press `Esc` or click the bottom-left "Skip" button (`(0.288, 0.848)` screen coordinates). |
-| **Secure Boot verification failure** | Unsigned test image on third-party UEFI | Use the signed Ubuntu shim/GRUB bootchain or run with standard OVMF firmware (`--firmware uefi`). |
+| **Secure Boot verification failure** | HSCL1 ships Microsoft- and Canonical-signed boot components, but a positive Secure-Boot boot has **not** been demonstrated: this host cannot enter SMM under WHPX or KVM | Run with standard OVMF firmware (`--firmware uefi`) and read the state inside the guest with `mokutil --sb-state`; do not treat a file signature as firmware acceptance. |
 | **Installer cannot find disk** | No virtual disk attached to VM | Pass `--disk <path.qcow2>` to `qemu_boot_test.py` or `-drive file=<disk>,if=virtio` in QEMU. |
 
 ---
@@ -296,8 +304,10 @@ HSCL1 adheres to a strict evidence-driven development contract: **nothing is cla
 | **Remastered Live/Installer ISO** | `VM-VERIFIED` | `HSCL1-0.1.8-alpha.0-amd64.iso` (`def7f190.`, source `91c8acb`, xz): live desktop at 4 GB under UEFI (QEMU+WHPX), `qa_report.py` exit 0 with 9 checks, `verify-image` green including `installer notes step stays disabled (Q-68)`; [`docs/img/showcase/01_desktop_clean.png`](docs/img/showcase/01_desktop_clean.png) is this artifact's own capture |
 | **Signed boot components present** | `TESTED` | `artifacts/sb-0.1.3-alpha.0/report.json`: Microsoft-signed `bootx64.efi`, Canonical-signed `grubx64.efi`, `vmlinuz`, `mmx64.efi`. A **positive Secure-Boot boot is not demonstrated** — the test firmware ran with Secure Boot off and the guest says so |
 | **LUKS2 Full-Disk Installation** | `VM-VERIFIED` | 40 GB virtual disk at 8 GB RAM: Argon2id, `/` = `0:0 755`, wrong passphrase refused, correct one unlocks, no passphrase in logs; image from the 0.1.3 line: [`docs/img/desktop-installed.png`](docs/img/desktop-installed.png) |
-| **Rust `hscl` CLI Workspace** | `TESTED` | `cargo test --all`: **275 passed, 0 failed** (Windows, 2026-11-10); `cargo clippy --all-targets -D warnings` and `cargo fmt --check` clean |
-| **Security Lab CLI** | `VM-VERIFIED` | rc2 live guest: digest-pinned Kali pull, `install --toolset basic`, `commit`, `run` → `Nmap version 7.99`, exit 0; `run` defaults to `--network=none` and drops capabilities |
+| **Rust `hscl` CLI Workspace** | `TESTED` | `cargo test --all`: **276 passed, 0 failed**; `cargo clippy --all-targets -D warnings` and `cargo fmt --check` clean (Windows, 2026-11-13) |
+| **Control Center (Qt 6 / QML)** | `TESTED` | `scripts/dev/qml-gate.sh`: **16/16** page tests, **6/6** CLI-bridge tests, `qmllint` **0 warnings** on the Control Center (budget 0); `tests/unit/test_cc_pages.py` pins page/rail parity and that every page request is on the bridge allowlist; EN/DE/FR strings complete (`test_cc_i18n.py`) |
+| **Static website (EN/DE/FR)** | `TESTED` | `scripts/build_website.py` builds **15 pages** (home, download, VM guide, security and privacy, each in EN/DE/FR); `test_website.py` checks one `h1` per page, `lang`, resolving internal links and assets, download links that are real release assets, and no forbidden security wording |
+| **Security Lab CLI** | `VM-VERIFIED` | rc11 live guest: digest-pinned Kali pull, `install --toolset basic`, `commit`, `run` → `Nmap version 7.991`, exit 0; `run` defaults to `--network=none`, drops capabilities and requires an attestation phrase |
 | **MCP Stdio Server Protocol** | `TESTED` | 7/7 protocol tests passed via `scripts/dev/mcp_selftest.py` (JSON-RPC handshake, 14 tools listed) |
 | **Memory Manager Baseline** | `VM-VERIFIED` | `/dev/zram0` (1.9 GB zstd, priority 100), `earlyoom` active, `hscl-ai.slice` memory capped at 60% |
 | **HCSEASYMATH Symbolic Engine** | `TESTED` | 244 math test cases green; differentiate, integrate, evaluate, simplify, solve, plot |
@@ -369,11 +379,12 @@ $ scripts/dev/wsl-cycle.sh iso --fast
 | Path | Purpose |
 |---|---|
 | [`cli/hscl`](cli/hscl) | Rust CLI workspace, MCP server, security lab, memory manager, and system diagnostics |
-| [`apps/control-center`](apps/control-center) | Qt 6 / QML Control Center with modular diagnostics, security, and appearance pages |
+| [`apps/control-center`](apps/control-center) | Qt 6 / QML Control Center: 11 read-only pages, one shared page frame, a narrow CLI allowlist and EN/DE/FR translations |
 | [`apps/hcseasymath`](apps/hcseasymath) | Isolated symbolic mathematics engine and educational user interface |
 | [`packages/debian`](packages/debian) | HSCL1 Debian packages (`base`, `branding`, `desktop`, `security`, `handbook`, `control-center`, `workshop`) |
 | [`distro`](distro) | Live image hooks, Calamares installer configuration, initrd customization, and security sysctl |
 | [`themes`](themes) | Design tokens (Midnight, Light, Nord, Aurora) and asset generation scripts |
+| [`website`](website) | Trilingual landing page content and release metadata; `scripts/build_website.py` renders it into `website/dist` |
 | [`scripts`](scripts) | Remaster pipeline, release split/join, QEMU boot test harness, and developer cycle tools |
 | [`handbook`](handbook) | Trilingual offline documentation handbook (English, Deutsch, Français) |
 | [`docs`](docs) | Architecture specifications, threat models, claims ledger, and roadmap plans |
@@ -391,6 +402,7 @@ $ scripts/dev/wsl-cycle.sh iso --fast
 - [Known Limitations](docs/KNOWN_LIMITATIONS.md) — Honest disclosure of pre-alpha boundaries and gaps.
 - [Architecture Overview](docs/ARCHITECTURE.md) — System layers, packaging, and interaction model.
 - [Threat Model & Security](docs/THREAT_MODEL.md) — Security assumptions and container isolation rules.
+- [Control Center](docs/CONTROL_CENTER.md) — The 11 pages, the read-only CLI allowlist, the shared page frame and how to add a page.
 - [Build Log](docs/BUILD_LOG.md) — Chronological engineering execution and test logs.
 - [Roadmap to v1.0.0](docs/superpowers/plans/2026-11-08-selfheal-masterplan.md) — Active self-healing research masterplan.
 - [Quality audit & visual QA (2026-11-09)](docs/QA_FINDINGS_2026-11-09.md) — What works, what is weak, every known defect.
