@@ -1,5 +1,21 @@
 # HSCL1 plan reconciliation index
 
+## Live status, 2026-11-13 (evening): rc12 proves the 11-page Control Center in a booted guest
+
+- **`HSCL1-rc12-amd64.iso`** (`e235ff29…`, 5 488 771 072 B, zstd-fast): built from image-relevant `e382047`,
+  `verify-image` green in-build, UEFI/WHPX at **4 GB** reached the desktop in **233 s**, QA report written.
+  The manifest says `git_dirty: true` because uncommitted docs were present at build start - the image content
+  is the committed panel, but the artifact is **not** release-bound; a clean xz rebuild is required for a tag.
+- **All 11 Control Center pages captured in the guest** with real CLI values (Q-73): Privacy shows overlay and
+  zram active with persistent swap inactive and Tor inactive; Security Lab shows Podman absent and network
+  `none`; Updates shows 0 upgradable **with** stale lists (79 days) and the warning; Developer shows git+python
+  only. Showcase `04`-`07` now come from rc12 and `24`/`25` are new; the website alt text matches.
+- **Space incident (recorded):** a PowerShell 5.1 `-Include` bug emptied the local `artifacts/` tree
+  (124.1 GB) during the space cleanup; measurements survive in BUILD_LOG, raw files do not, and
+  `docs/CLAIMS.md` / `KNOWN_LIMITATIONS.md` now mark every `artifacts/` path as historical. The guard is
+  `scripts/dev/cleanup-artifacts.ps1` (dry run, evidence protected) with 5 tests.
+- **Next VM step:** installer + install-to-disk on this artifact, then the installed boot.
+
 ## Live status, 2026-11-13: Control Center at 11 pages, README and website reconciled to the evidence
 
 - **Control Center:** the panel went from 5 to **11 read-only pages** (Privacy, Security Lab, Local AI, Updates &

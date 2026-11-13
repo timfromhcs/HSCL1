@@ -97,51 +97,51 @@
   },
   {
     "filename": "04_control_center_overview.png",
-    "bytes": 117655,
-    "colors": 18703,
+    "bytes": 131094,
+    "colors": 20951,
     "size": [
       1280,
       800
     ],
-    "description": "Control Center Overview with live values: HSCL1 0.1.5-alpha.0, kernel 7.0.0-30, AppArmor/UFW yes and the health check counters (candidate rc8, 2026-11-11)",
-    "timestamp": 1794381371.269509,
-    "source_iso": "HSCL1-rc8-amd64.iso sha256 0ea3290c"
+    "description": "Control Center Overview on rc12: 11-page rail with live system, security and health values",
+    "timestamp": 1794584584.3990264,
+    "source_iso": "HSCL1-rc12-amd64.iso sha256 e235ff29"
   },
   {
     "filename": "05_control_center_appearance.png",
-    "bytes": 98448,
-    "colors": 10175,
+    "bytes": 118719,
+    "colors": 18262,
     "size": [
       1280,
       800
     ],
-    "description": "Control Center: appearance with the four HCS themes, each with Preview and Apply (candidate 2026-11-10)",
-    "timestamp": 1794305916.9840486,
-    "source_iso": "HSCL1-qa-green-amd64.iso sha256 5d4ea47e"
+    "description": "Control Center Appearance on rc12: shipped themes with Preview (dry run) and Apply",
+    "timestamp": 1794584587.7597435,
+    "source_iso": "HSCL1-rc12-amd64.iso sha256 e235ff29"
   },
   {
     "filename": "06_control_center_security.png",
-    "bytes": 135898,
-    "colors": 16398,
+    "bytes": 155262,
+    "colors": 24464,
     "size": [
       1280,
       800
     ],
-    "description": "Control Center: security page with the honest Secure Boot line 'UEFI without a SecureBoot variable (firmware has Secure Boot off)' (candidate 2026-11-10)",
-    "timestamp": 1794305920.3303485,
-    "source_iso": "HSCL1-qa-green-amd64.iso sha256 5d4ea47e"
+    "description": "Control Center Security on rc12: posture and the checks hscl doctor runs",
+    "timestamp": 1794584591.117335,
+    "source_iso": "HSCL1-rc12-amd64.iso sha256 e235ff29"
   },
   {
     "filename": "07_control_center_about.png",
-    "bytes": 119791,
-    "colors": 14745,
+    "bytes": 122808,
+    "colors": 20238,
     "size": [
       1280,
       800
     ],
-    "description": "Control Center: About page (candidate 2026-11-10)",
-    "timestamp": 1794305927.0279353,
-    "source_iso": "HSCL1-qa-green-amd64.iso sha256 5d4ea47e"
+    "description": "Control Center About on rc12: version, publisher and the Tails/Kali boundary",
+    "timestamp": 1794584626.084146,
+    "source_iso": "HSCL1-rc12-amd64.iso sha256 e235ff29"
   },
   {
     "filename": "10_app_dolphin.png",
@@ -309,5 +309,29 @@
     "description": "Welcome Center opened from the launcher: first page \"Welcome to HSCL1\", one navigation dot (candidate rc9, 2026-11-11)",
     "timestamp": 1794387975.3222358,
     "source_iso": "HSCL1-rc9-amd64.iso sha256 0a3c2341"
+  },
+  {
+    "filename": "24_control_center_privacy.png",
+    "bytes": 160744,
+    "colors": 25153,
+    "size": [
+      1280,
+      800
+    ],
+    "description": "Control Center Privacy on rc12: ephemeral overlay, zram, core dumps, Tor state and the honest limits",
+    "timestamp": 1794584594.48202,
+    "source_iso": "HSCL1-rc12-amd64.iso sha256 e235ff29"
+  },
+  {
+    "filename": "25_control_center_lab.png",
+    "bytes": 148880,
+    "colors": 24846,
+    "size": [
+      1280,
+      800
+    ],
+    "description": "Control Center Security Lab on rc12: Podman state, lab folder, toolsets and the container boundaries",
+    "timestamp": 1794584598.8686695,
+    "source_iso": "HSCL1-rc12-amd64.iso sha256 e235ff29"
   }
 ]

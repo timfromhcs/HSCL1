@@ -3792,3 +3792,43 @@ evidence extension (`.json/.png/.md/.log/.txt/.yml/.yaml/.spdx/.html`) and keeps
 **Recovery.** The verified base ISO and the 14 GB build work directory are on the WSL disk, so
 `HSCL1-rc12-amd64.iso` is building from `e382047`; its boot, QA and Control-Center evidence is captured fresh and
 recorded here.
+
+### rc12: the 11-page Control Center is verified in a booted guest (2026-11-13)
+
+Artifact: `HSCL1-rc12-amd64.iso`, 5 488 771 072 B, sha256
+`e235ff298ccb963a79e2b35f9add89e4f02ad4e798714d2d2055956c23a424e1`, `zstd-fast`, VolID
+`HSCL1 0.1.8-alpha.0 amd64`. Built from a tree whose image-relevant files are exactly `7df3b68`/`e382047`
+(`git diff --name-only 7df3b68..HEAD -- apps cli distro packages themes` is empty). The manifest records
+`git_commit 20df591` and **`git_dirty: true`** because the incident docs and the cleanup guard were still
+uncommitted when the build started; none of those paths is packaged. **Consequence:** this candidate is proof,
+not a release artifact - a release build must come from a clean tree (and use xz).
+
+Build: base Kubuntu 26.04.1 SHA-256 verified against the signed `SHA256SUMS`; `verify-image.sh` inside the
+build: **all checks passed** (root ownership, os-release, handbook en/de/fr, SDDM `hscl1`, ESP/installer notes,
+KDE Connect hidden) plus the in-ISO checks (`initrd` md5 matches, `/.disk/info` starts with HSCL1).
+
+Boot: UEFI (OVMF), WHPX, **4 GB**, 1280x800, `--try-live --dismiss-welcome`, `qa_report` attached.
+`reached_desktop: true` after **233 s**, `desktop_final_wallpaper_match 0.129`, and all 12 scenario shots:
+`p01-overview` … `p11-about`, `p12-desktop` (`artifacts/boot-rc12-uefi/result.json`).
+
+Control Center, read from the guest (not mocked):
+
+| Page | Real value in the capture |
+|---|---|
+| Overview | `HSCL1 0.1.8-alpha.0 (Ubuntu 26.04 LTS base)`, kernel 7.0.0-30-generic, 3903 MiB, doctor 6 pass / 0 warn / 0 fail / 1 skip |
+| Privacy | overlay **active**, root `overlay`, zram **active**, persistent disk swap **inactive**, core dumps disabled **active**, internal disks **none**, Tor **inactive**, Tor Browser **no** |
+| Security Lab | Podman **no**, `/home/hscl1/SecurityLabs` missing, network `none`, all five toolsets listed |
+| Updates & Recovery | 0 upgradable **with** `lists stale: yes`, `lists age 79 days`, and the "run sudo apt update first" warning |
+| Developer | git **yes**, python **yes**, rust/node/compilers/containers/virt **no**, `make` missing, installed `git, python3` |
+| Language & Region | English (en), `en_US.UTF-8`, supported en/de/fr |
+
+QA report `artifacts/qa/rc12-qa.txt`: os-release (NAME/HSCL1_NAME_LONG/HSCL1_VERSION), `hscl status` with
+AppArmor yes, ufw yes, **no forbidden APT sources**, and the full `hscl doctor` JSON.
+
+Showcase and website: `04`/`05`/`06`/`07` were replaced by rc12 captures and
+`24_control_center_privacy.png` + `25_control_center_lab.png` added, all recorded in
+`docs/img/showcase/manifest.json` as `HSCL1-rc12-amd64.iso sha256 e235ff29`. The README table and the
+website alt text now show the current 11-page panel instead of the five-page one.
+
+Gates for this entry: showcase evidence + website + doc links + release metadata = **20 passed**; no source
+changed, so `forge check` and the QML gate are unchanged from `e382047` (both green there).

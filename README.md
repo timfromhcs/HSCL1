@@ -110,6 +110,10 @@ A zero-telemetry control center providing instant hardware diagnostics, security
 | ![Control Center Overview](docs/img/showcase/04_control_center_overview.png) | ![Control Center Security](docs/img/showcase/06_control_center_security.png) |
 | **Appearance & Desktop Design Tokens** | **System Attestation & Versioning** |
 | ![Control Center Appearance](docs/img/showcase/05_control_center_appearance.png) | ![Control Center About](docs/img/showcase/07_control_center_about.png) |
+| **Privacy Session Facts** | **Security Lab Boundaries** |
+| ![Control Center Privacy](docs/img/showcase/24_control_center_privacy.png) | ![Control Center Security Lab](docs/img/showcase/25_control_center_lab.png) |
+
+All six captures come from `HSCL1-rc12` (UEFI, 4 GB) and show the 11-page rail with **live** values - the Privacy page reads `ephemeral overlay: active`, `zram: active`, `persistent disk swap: inactive`, and the Security Lab page reads `podman installed: no` because the lab is off by default.
 
 ---
 
