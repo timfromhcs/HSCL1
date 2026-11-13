@@ -82,6 +82,11 @@ patch_file "$ROOTFS/etc/calamares/settings.conf" 's/^branding: *kubuntu$/brandin
 # the `bootloader` module that fails the install when no EFI loader exists.
 patch_file "$ROOTFS/etc/calamares/settings.conf" 's|^- id: logs$|- id: hscl_verify_esp\n  module: shellprocess\n  config: hscl_verify_esp.conf\n- id: logs|'
 patch_file "$ROOTFS/etc/calamares/settings.conf" 's|^  - bootloader$|  - bootloader\n  - shellprocess@hscl_verify_esp|'
+# The installed greeter showed the KDE gear because no AccountsService entry exists for the user (Q-44/Q-75,
+# measured on rc12 2026-11-13). Seed an Icon the greeter can read - the home is 0750, so `.face.icon` there is
+# not. Runs right after `users`, before the displaymanager module.
+patch_file "$ROOTFS/etc/calamares/settings.conf" 's|^- id: logs$|- id: hscl_seed_avatar\n  module: shellprocess\n  config: hscl_seed_avatar.conf\n- id: logs|'
+patch_file "$ROOTFS/etc/calamares/settings.conf" 's|^  - displaymanager$|  - shellprocess@hscl_seed_avatar\n  - displaymanager|'
 # The welcome module's network probe runs inside ModuleManager::checkRequirements() at startup and made
 # Calamares crash in a VM (KCrash log 2026-11-10: "Application 'calamares' crashing... crashRecursionCounter = 2"
 # right after initViewSteps/checkRequirements, then KCrash SIGKILLed the process). The image installs offline,
