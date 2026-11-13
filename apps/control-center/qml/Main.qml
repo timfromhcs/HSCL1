@@ -19,7 +19,11 @@ ApplicationWindow {
     /// main.cpp installs the CLI bridge as the context property `cli`. Reading it once here and handing the
     /// value to a declared property keeps every page binding qualified, so qmllint stops flagging each use as
     /// unqualified access (and the pages get a typed member instead of a global).
+    /// A C++ context property can never be resolved by the linter, so this single intentional read is suppressed
+    /// locally rather than carried in the warning budget forever (Q-19).
+    // qmllint disable unqualified
     readonly property var cliBackend: typeof cli !== "undefined" ? cli : null
+    // qmllint enable unqualified
 
     RowLayout {
         anchors.fill: parent

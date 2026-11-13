@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
@@ -44,7 +46,12 @@ Item {
                 title: qsTr("Health check")
                 Repeater {
                     model: docFetch.result ? docFetch.result.checks : []
-                    delegate: Row2 { label: page.checkLabel(modelData.id); value: st.label(modelData.level) + " - " + modelData.detail }
+                    delegate: Row2 {
+                        // declared so the three model field reads resolve (Q-19)
+                        required property var modelData
+                        label: page.checkLabel(modelData.id)
+                        value: st.label(modelData.level) + " - " + modelData.detail
+                    }
                 }
             }
             Item { Layout.preferredHeight: Theme.space5 }

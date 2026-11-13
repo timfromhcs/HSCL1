@@ -6,9 +6,10 @@
 # /usr/lib/qt6/bin on Ubuntu 26.04 even when `qmltestrunner6` is not linked into PATH.
 #
 # Policy for qmllint: exit codes are useless (it returns 0 even for syntax errors), so the
-# output is parsed. `[syntax]` and `Error:` lines fail the gate. `[unqualified]` warnings do
-# not: they currently come from the C++ context property `cli` and from delegates that read
-# outer ids, and clearing them is its own task (docs/AUTONOMOUS_QUEUE.md).
+# output is parsed. `[syntax]` and `Error:` lines fail the gate. Warnings are counted per pool:
+# the Control Center must stay at **zero**, the Plasma wallpaper plugin has a documented allowance
+# because qmllint cannot resolve the Plasma/Kirigami/KCM QML modules on a host without them
+# (docs/AUTONOMOUS_QUEUE.md, Q-19).
 set -Eeuo pipefail
 
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -62,28 +63,46 @@ else
   echo "qml-gate: tst_backend skipped (cmake or Qt6 dev files missing)"
 fi
 
-mapfile -t files < <(find apps/control-center/qml \
-  packages/debian/hscl-desktop/usr/share/plasma/wallpapers/org.hcs.hscl1.rain \
+mapfile -t cc_files < <(find apps/control-center/qml -name '*.qml' -type f | sort)
+mapfile -t wp_files < <(find packages/debian/hscl-desktop/usr/share/plasma/wallpapers/org.hcs.hscl1.rain \
   -name '*.qml' -type f | sort)
-if [ "${#files[@]}" -eq 0 ]; then
+if [ "${#cc_files[@]}" -eq 0 ]; then
   echo "qml-gate: no QML files found" >&2
   exit 2
 fi
 
-out="$("$lint" "${files[@]}" 2>&1 || true)"
-warnings="$(printf '%s\n' "$out" | grep -c '^Warning:' || true)"
-errors="$(printf '%s\n' "$out" | grep -cE '^Error:|\[syntax\]' || true)"
-echo "qmllint: ${#files[@]} files, ${warnings} warnings, ${errors} errors"
-if [ "$errors" -ne 0 ]; then
-  printf '%s\n' "$out" | grep -E '^Error:|\[syntax\]' >&2
-  exit 1
-fi
-# Ratchet: the warning count may not grow. It was 153 on 2026-11-09 (MinerPage added; the page itself lints clean) (mostly PlasmaCore
-# singletons in the wallpaper plugin and outer-id access in Repeater delegates). Lower this
-# number whenever warnings are fixed; never raise it to make a red run green.
-budget="${QML_WARN_BUDGET:-149}"
-if [ "$warnings" -gt "$budget" ]; then
-  echo "qml-gate: $warnings lint warnings exceed the budget of $budget" >&2
-  printf '%s\n' "$out" | grep '^Warning:' | sed 's/ \[.*//' | sort | uniq -c | sort -rn | head -20 >&2
-  exit 1
-fi
+# Two pools, because only one of them is our own code that can be fixed by editing it.
+#
+#   control-center  our application, plain QtQuick.Controls: the budget is 0 and must stay 0. The last 20 were
+#                   fixed on 2026-11-13 (Q-19): `required property` for the model roles, `pragma ComponentBehavior:
+#                   Bound` so delegates may reference the enclosing page's ids, and one local `qmllint disable`
+#                   for the C++ context property `cli`, which no linter can resolve.
+#   rain plugin     a Plasma wallpaper. qmllint cannot resolve `org.kde.plasma.plasmoid` (WallpaperItem),
+#                   `org.kde.kirigami` or `org.kde.kcmutils` on a host without the Plasma QML modules, and each
+#                   unresolved type cascades into `unqualified`/`missing-property` noise. The allowance is the
+#                   measured count with those modules absent; lower it when the modules are installed, never
+#                   raise it to make a red run green.
+lint_area() { # name dir budget reason
+  local name="$1" dir="$2" budget="$3" reason="$4" out warnings errors
+  local -a files
+  mapfile -t files < <(find "$dir" -name '*.qml' -type f | sort)
+  out="$("$lint" "${files[@]}" 2>&1 || true)"
+  warnings="$(printf '%s\n' "$out" | grep -c '^Warning:' || true)"
+  errors="$(printf '%s\n' "$out" | grep -cE '^Error:|\[syntax\]' || true)"
+  echo "qmllint: $name, $warnings warnings, $errors errors (budget $budget)"
+  if [ "$errors" -ne 0 ]; then
+    printf '%s\n' "$out" | grep -E '^Error:|\[syntax\]' >&2
+    exit 1
+  fi
+  if [ "$warnings" -gt "$budget" ]; then
+    echo "qml-gate: $name has $warnings lint warnings, over the budget of $budget. $reason" >&2
+    printf '%s\n' "$out" | grep '^Warning:' | sed -E 's/^Warning: //' | sort | uniq -c | sort -rn | head -15 >&2
+    exit 1
+  fi
+}
+
+lint_area "control-center" apps/control-center/qml "${QML_CC_WARN_BUDGET:-0}" \
+  "Our own QML must lint clean; fix the binding or suppress that single line with a reason."
+lint_area "rain wallpaper" packages/debian/hscl-desktop/usr/share/plasma/wallpapers/org.hcs.hscl1.rain \
+  "${QML_WP_WARN_BUDGET:-129}" \
+  "These are cascades from the Plasma/Kirigami/KCM QML modules not being installed here - install them to lower it."

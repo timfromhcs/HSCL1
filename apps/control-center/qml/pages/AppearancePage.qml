@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
@@ -36,23 +38,27 @@ Item {
                 Repeater {
                     model: listFetch.result ? listFetch.result.themes : []
                     delegate: RowLayout {
+                        id: themeRow
+                        // `required property` instead of the implicit model role: qmllint then resolves every use, and
+                        // the delegate is explicitly typed (Q-19).
+                        required property var modelData
                         Layout.fillWidth: true
                         spacing: Theme.space3
                         Text {
-                            text: modelData.title + (listFetch.result.current === modelData.id ? "  (" + qsTr("current") + ")" : "")
+                            text: themeRow.modelData.title + (listFetch.result.current === themeRow.modelData.id ? "  (" + qsTr("current") + ")" : "")
                             color: Theme.textPrimary
                             font.pixelSize: Theme.fontMd
                             Layout.fillWidth: true
                         }
                         Button {
                             text: qsTr("Preview")
-                            Accessible.name: qsTr("Preview %1").arg(modelData.title)
-                            onClicked: page.backend.request("preview", ["appearance", "theme", "set", modelData.id, "--dry-run"])
+                            Accessible.name: qsTr("Preview %1").arg(themeRow.modelData.title)
+                            onClicked: page.backend.request("preview", ["appearance", "theme", "set", themeRow.modelData.id, "--dry-run"])
                         }
                         Button {
                             text: qsTr("Apply")
-                            Accessible.name: qsTr("Apply %1").arg(modelData.title)
-                            onClicked: page.backend.request("apply", ["appearance", "theme", "set", modelData.id])
+                            Accessible.name: qsTr("Apply %1").arg(themeRow.modelData.title)
+                            onClicked: page.backend.request("apply", ["appearance", "theme", "set", themeRow.modelData.id])
                         }
                     }
                 }

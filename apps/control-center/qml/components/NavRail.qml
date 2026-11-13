@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls.Basic
 import ".."
@@ -33,13 +35,17 @@ Rectangle {
         clip: true
         delegate: ItemDelegate {
             id: item
-            width: list.width
+            // Declared so qmllint resolves them instead of reporting unqualified access, and so the delegate is
+            // typed for a reader. `ListView.view` replaces the outer `list` id for the same reason.
+            required property int index
+            required property string modelData
+            width: ListView.view.width
             height: 44
             highlighted: ListView.isCurrentItem
-            text: modelData
+            text: item.modelData
             Accessible.role: Accessible.PageTab
-            Accessible.name: modelData
-            onClicked: list.currentIndex = index
+            Accessible.name: item.modelData
+            onClicked: ListView.view.currentIndex = item.index
             contentItem: Text {
                 text: item.text
                 color: item.highlighted ? Theme.textPrimary : Theme.textSecondary

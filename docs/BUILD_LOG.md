@@ -3629,3 +3629,38 @@ unmerged branch for exactly that reason).
 Still open and unchanged: **Q-66** (the empty-ESP cause is unknown, the install is guarded and now
 self-diagnosing), **Q-19** (qmllint ratchet), and every v1 gate that needs hardware or a signing key.
 
+
+### Q-19: the Control Center lints at zero, and the gate now has two pools (2026-11-13)
+
+`qmllint apps/control-center/qml` reported **20** warnings; it reports **0** now. The fixes are the ones the
+queue predicted, but the last three needed a mechanism rather than more `required property`:
+
+| Change | Warnings |
+|---|---|
+| `AppearancePage`: delegate root gets `required property var modelData`, every use qualified | 9 |
+| `SecurityPage`: same for the checks `Row2` delegate | 5 |
+| `NavRail`: `required property int index`, `required property string modelData`, `width: ListView.view.width`, `ListView.view.currentIndex` instead of the outer `list` id | 5 |
+| `pragma ComponentBehavior: Bound` on the three pages that reference an enclosing id from a delegate | - |
+| `Main.qml`: the one unresolvable C++ context property (`cli`) is suppressed with `// qmllint disable` **and a reason** | 1 |
+
+The pragma is the load-bearing part: without it qmllint treats a delegate as its own component and flags every
+reference to the enclosing page's ids, which is exactly what the remaining warnings were.
+
+**The gate is now two pools, not one number.** `scripts/dev/qml-gate.sh` lints the Control Center with a budget
+of **0** and the Plasma wallpaper plugin with an explicit allowance of **129**, with the reason printed in the
+script: qmllint cannot resolve `org.kde.plasma.plasmoid`, `org.kde.kirigami` or `org.kde.kcmutils` on a host
+without the Plasma QML modules, and each unresolved type cascades into `unqualified`/`missing-property` noise
+(126 of the 129 are in five wallpaper files). One pooled budget would have let a real regression in our code
+hide behind the plugin's noise.
+
+Two guards keep it honest:
+
+- `scripts/dev/test-qml-gate-ratchet.sh` drops one real unqualified access into `apps/control-center/qml` and
+  requires the gate to fail: `ok the gate fails with 1 warning in the Control Center (budget 0)`.
+- `tests/unit/test_qml_lint_budget.py` (6 tests) pins the two pools, requires a reason on every allowance,
+  keeps the syntax/error path, demands the proof script, refuses an unexplained `qmllint disable`, and requires
+  the pragma on the three pages.
+
+QML tests after the change: rain plugin 14 passed, Control Center pages 9 passed, `tst_backend` 6 passed.
+`forge check` 7/7 PASS (the QML gate is now part of it), `pytest` 1046 passed / 24 skipped.
+
