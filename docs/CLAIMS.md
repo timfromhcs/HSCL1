@@ -10,6 +10,12 @@ Rows below were recorded against earlier images (`0.1.3-alpha.0`
 historical evidence for the artifact it names and never proof for the current tree.** The 2026-11-10 audit and
 the list of open defect rows are in [AUDIT_2026-11-10.md](AUDIT_2026-11-10.md).
 
+> **Local evidence files.** `artifacts/` is git-ignored, so no row below can be verified by opening a path in
+> this repository. On 2026-11-13 the build host's `artifacts/` tree was accidentally cleared during a space
+> cleanup (124.1 GB, 83 445 files, cause and guard in [BUILD_LOG](BUILD_LOG.md)); every `artifacts/...` citation
+> in this file and the docs is therefore a **historical path**, and the measurements themselves live in
+> [`BUILD_LOG.md`](BUILD_LOG.md).
+
 Current source corrections (2026-11-08): HCSEASYMATH has six API/CLI operations and all six are exposed by the one-page UI at `d9a6f02`; `plot` returns sampled data rendered as SVG, not a verified mathematical plot image. The recorded app gate is 244 passed (`artifacts/forge/20261108-134544/summary.json`); it is not a browser accessibility or OS-image test. `hscl lab` has CLI execution wired (`hscl lab run`, `install`, `commit`, `destroy`) with mandatory `--yes="I am authorized to test this target"` preflight checks; rootless Podman execution and basic tool installation verified on the builder host; in-guest guest integration remains the next verification target.
 
 | Feature | Status | Evidence / what is missing |

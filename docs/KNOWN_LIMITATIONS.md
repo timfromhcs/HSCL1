@@ -5,7 +5,7 @@ Status of this document: maintained with every phase. Last reconciliation: **202
 HSCL1 is **pre-alpha**. Nothing below has been tested on physical hardware. Rows are corrected whenever an earlier status turns out to
 be stale - a limitation list that lags behind reality is a false claim in the other direction.
 
-Image evidence is bound to its build. The published `v0.1.6-alpha.0` names source commit `13c3215`; the newest local candidate `HSCL1-rc11-amd64.iso` (SHA-256 in `artifacts/iso/HSCL1-rc11-amd64.iso.sha256`) names `9310a7c`, which contains later fixes but is **not** published. Neither proves the current `HEAD`: every VM result in this document is attached to the artifact named next to it. Secure Boot file signatures are not firmware acceptance. See [release readiness audit](research/2026-11-08-release-readiness-audit.md).
+Image evidence is bound to its build. The published `v0.1.8-alpha.0` names source commit `91c8acb`; the newest local candidate, `HSCL1-rc12-amd64.iso`, is built from `e382047` and is **not** published. Neither proves the current `HEAD`: every VM result in this document is attached to the artifact named next to it. **Local evidence files:** `artifacts/` is git-ignored and was accidentally cleared on 2026-11-13 during a space cleanup ([BUILD_LOG](BUILD_LOG.md), "Incident"), so every `artifacts/...` path quoted here is historical and the measurements themselves are in that log. Secure Boot file signatures are not firmware acceptance. See [release readiness audit](research/2026-11-08-release-readiness-audit.md).
 
 | Area | Status | Limitation |
 |---|---|---|

@@ -3763,3 +3763,32 @@ an exemption list. This is the same class of gate that keeps the README examples
 evidence and not showcase material. No booted-VM capture of the new pages exists yet. Display, network, user and
 application pages were **not** invented: they need write commands (or a privileged helper) that do not exist.
 The website's Control Center screenshot is still the five-page capture and says so in its alt text.
+
+### Incident 2026-11-13: a cleanup script deleted the whole `artifacts/` tree (124.1 GB)
+
+Intent: free space on `E:` (0.10 GB free) before the next ISO build by deleting only disposable VM disks and
+superseded candidate ISOs. Result: **every file under `artifacts/` was deleted** - 83 445 files, 124.1 GB,
+including the VM evidence (boot/install/LUKS/lab screenshots, QA reports, the Q-61 audit records, the
+Secure-Boot summary), the local copy of the published 0.1.8 ISO and the Xvfb renders made earlier the same day.
+Repository source, docs, tests and published release assets were not touched; `artifacts/` is git-ignored by
+design, so nothing in git changed.
+
+**Cause, reproduced rather than guessed.** The filter was
+`Get-ChildItem -LiteralPath <dir> -Recurse -File -Include *.qcow2,*.raw,*.img` executed with **Windows
+PowerShell 5.1**, which **ignores `-Include` when it is combined with `-LiteralPath`** and returns every file.
+PowerShell 7 honours the filter, and the dry run had been done in pwsh 7 - which is why it looked correct. A
+three-file test tree reproduces it: 5.1 returns `a.txt,b.qcow2,c.log` for `-Include *.qcow2`; pwsh 7 returns
+`b.qcow2`.
+
+**Consequences.** The measurements stand - they are recorded in this log and in `CLAIMS.md` - but their raw files
+are gone, so a citation such as `artifacts/boot-sb-kvm/SUMMARY.txt` names a path that no longer exists on the
+build host. `CLAIMS.md` and `KNOWN_LIMITATIONS.md` now say so. The published `0.1.8` assets remain on GitHub.
+
+**Guard.** `scripts/dev/cleanup-artifacts.ps1` filters with `Where-Object` and an explicit disk-extension list,
+never uses `-Include`, is a dry run unless `-Apply` is passed, prints the exact list and total, protects every
+evidence extension (`.json/.png/.md/.log/.txt/.yml/.yaml/.spdx/.html`) and keeps the newest ISO and release set.
+`tests/unit/test_cleanup_guard.py` (5 tests) fails if `-Include` returns to that script.
+
+**Recovery.** The verified base ISO and the 14 GB build work directory are on the WSL disk, so
+`HSCL1-rc12-amd64.iso` is building from `e382047`; its boot, QA and Control-Center evidence is captured fresh and
+recorded here.

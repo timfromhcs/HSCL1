@@ -112,5 +112,6 @@ Then fill the new entries (lrelease compiles them at package build time).
 * **No booted-VM screenshot of the six newest pages yet.** They are covered by the QML suite, lint and a
   rendered check: the app was built and run under Xvfb with a fake `hscl` that prints the real JSON shapes, and
   all 11 pages were photographed in English and four in German (`artifacts/cc-render-2026-11-13/`, ignored by
-  git). That proves layout and translation fit, **not** that the pages match a booted guest - the CLI answers
-  in those images are mocked, so they are not showcase material.
+  git - the directory was cleared in the 2026-11-13 cleanup, see `BUILD_LOG.md`; it is regenerable with the
+  same fake-CLI method). That proves layout and translation fit, **not** that the pages match a booted guest -
+  the CLI answers in those images are mocked, so they are not showcase material.
