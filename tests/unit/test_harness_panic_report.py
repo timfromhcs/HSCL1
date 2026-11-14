@@ -6,6 +6,10 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
+pytest.importorskip("PIL", reason="Pillow is required for screenshot panic detection tests")
+
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 

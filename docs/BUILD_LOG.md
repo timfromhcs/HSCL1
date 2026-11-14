@@ -3998,3 +3998,16 @@ In-guest proof: rebooted installed disk (`artifacts/boot-installed-rc13-avatar-t
   - URL: `https://github.com/timfromhcs/HSCL1/releases/tag/v1.0.0` (marked as Latest, non-prerelease).
   - All 8 assets uploaded and verified.
   - Final consistency check `scripts/verify_release_consistency.py --github timfromhcs/HSCL1`: **24 checks, 0 failed**.
+
+## Phase 10: Post-v1 Maintenance & Honesty Ledger Sync (2026-11-14)
+
+- **Q-78 (Reconcile KNOWN_LIMITATIONS and CLAIMS to reflect v1.0.0 stable release):**
+  - Updated `docs/KNOWN_LIMITATIONS.md` and `docs/CLAIMS.md` with truthful, exact data corresponding to `v1.0.0` stable release (`d23a0bbe...`, source `6664491` on `main`).
+  - Recorded in-guest evidence: 194 s UEFI live desktop boot (`qa_report.py` exit 0), 8 GB install (1719 s, 10.14 GB written, "All done"), installed boot with `iso=none` in 338 s verifying SDDM authentic blue mark avatar (`#0064FF` ring, 2,578 pixels; KDE gear eliminated).
+  - Maintained explicit non-claims: physical bare-metal hardware testing and physical USB boot remain pending until hardware is accessible to the publisher.
+  - Gated by `test_claims_table.py` (3 passed), `test_doc_links.py` (2 passed), and `test_queue_integrity.py` (4 passed).
+
+- **Q-79 (Dependabot PR #63 & Test Suite Hardening):**
+  - Merged dependabot PR #63 (`chore(deps): update dtolnay/rust-toolchain requirement to 2c76c034f9e32a5d6e2c104dc4df23a22476db04`) in `.github/workflows/fuzz.yml` with all 8 CI checks green.
+  - Hardened `tests/unit/test_detect_panic.py` and `tests/unit/test_harness_panic_report.py` with `pytest.importorskip("PIL")` so environments without Pillow skip cleanly instead of raising unhandled `ModuleNotFoundError`.
+  - Verified `cargo test --all --no-fail-fast`: **276 passed / 0 failed** in 10.22 s.
