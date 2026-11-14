@@ -103,10 +103,16 @@ def main() -> int:
         run(["gh", "release", "upload", tag, str(p), "--repo", a.repo, "--clobber"], a.dry_run)
 
     if a.draft_only:
-        print(f"left as a draft: publish with `gh release edit {tag} --draft=false --prerelease`")
+        print(f"left as a draft: publish with `gh release edit {tag} --draft=false`")
         return 0
 
-    run(["gh", "release", "edit", tag, "--repo", a.repo, "--draft=false", "--prerelease"], a.dry_run)
+    is_prerelease = "-" in a.version or a.version.startswith("0.")
+    edit_cmd = ["gh", "release", "edit", tag, "--repo", a.repo, "--draft=false"]
+    if is_prerelease:
+        edit_cmd.append("--prerelease")
+    else:
+        edit_cmd.append("--latest")
+    run(edit_cmd, a.dry_run)
 
     if not a.dry_run:
         final = release_state(tag, a.repo)
