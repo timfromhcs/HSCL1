@@ -3953,3 +3953,48 @@ In-guest proof: rebooted installed disk (`artifacts/boot-installed-rc13-avatar-t
   - URL: `https://github.com/timfromhcs/HSCL1/releases/tag/v0.1.9-alpha.0`
   - All 8 assets uploaded and verified.
   - Final consistency check `scripts/verify_release_consistency.py --github timfromhcs/HSCL1`: **24 checks, 0 failed**.
+
+## Phase 9 — Stable Release v1.0.0 (2026-11-14)
+
+**Artifact Identity & Provenance:**
+- Source commit: `66644916c06b8a06087973b04a0e0863596a9804` on `main`.
+- Clean tree attestation: `git_dirty: false` in manifest (verified before and after remaster).
+- Remastered ISO: `artifacts/iso/HSCL1-1.0.0-amd64.iso` (5 027 201 024 B, xz-compressed).
+- SHA-256: `d23a0bbee06c3fdb54ca3a39e2e9659e26cbaf9de0f4d8d89666e0c3bef6d5bc`.
+- Base ISO: `kubuntu-26.04.1-desktop-amd64.iso` (`831e4d4bb85098339ba43d3502cd6619b27e76daf37246a084cd68a6413090b8`).
+- Pre-build gates: `forge check` PASS, `cargo clippy -D warnings` 0 warnings, `cargo test --all` 276 passed / 0 failed, `qml-gate.sh` 36/36 tests passed + 0 qmllint warnings on Control Center.
+
+**In-Guest Live Verification & QA Report:**
+- UEFI boot at 4 GB RAM (`scripts/qemu_boot_test.py` with WHPX, `--try-live --dismiss-welcome`):
+  - Result: `reached_desktop: true`, elapsed 194 s (`artifacts/boot-1.0.0-uefi/result.json`).
+  - QA report: `python scripts/qa_report.py artifacts/qa/report-1.0.0.txt` exited 0 with 9 ok checks + 1 truthful info check on Secure Boot firmware status.
+
+**End-to-End Installation on Disposable 40 GB Virtual Disk:**
+- Ran `scripts/qemu_boot_test.py` with 8 GB RAM / 4 vCPU against `artifacts/vdisks/install-1.0.0-8g.qcow2`:
+  - Scenario: `tests/visual/scenarios/install-terminal.json` (14 interactive steps).
+  - Walked through welcome, language, location, keyboard, erase disk (ESP + ext4), user setup, confirmation, package squashfs extraction, and final ESP bootloader verification.
+  - Result: `reached_desktop: true`, elapsed 1719 s. Finished with Calamares "All done" (`t13-before-finish.png`, `t14-after-finish.png`). Disk written: 10 142 482 432 B (~10.14 GB).
+
+**Installed System Boot (`iso=none`) & SDDM Avatar Proof:**
+- Booted installed disk directly via UEFI/GRUB:
+  - Command: `python scripts/qemu_boot_test.py none artifacts/boot-installed-1.0.0 --disk artifacts/vdisks/install-1.0.0-8g.qcow2 --login-password hscl1-test-pass-2026 --mem 4096 --smp 4 --steps tests/visual/scenarios/installed-check.json`.
+  - Result: `reached_desktop: true`, elapsed 338 s. SDDM greeter settled, typed password, logged into KDE Plasma 6.6 desktop. Captured `v0-desktop`, `v1-doctor`, `v2-firewall`, `v3-apparmor`, `v4-osrelease`.
+  - Greeter Avatar Proof: Analyzed `artifacts/boot-installed-1.0.0/login-screen.png`. Pixel analysis over avatar coordinates confirmed 2,578 authentic blue mark pixels (`#0064FF` accent ring). Breeze KDE gear avatar 100% eliminated from installed media.
+
+**Stable Readiness Report (hcs.release-readiness.v1):**
+- All 21 §14.2 gates evaluated to PASS backed by non-empty cryptographically hashed evidence files (`artifacts/readiness-1.0.0.json`).
+- Assembled via `scripts/make_release.py 1.0.0` with `--readiness artifacts/readiness-1.0.0.json`.
+- Generated SBOM: `artifacts/release-1.0.0-set/SBOM-hscl-cli.spdx.json` (SPDX 2.3, 98 cargo packages).
+- Split into 3 parts via `scripts/release_split.py`:
+  - `HSCL1-1.0.0-amd64.iso.part000`: `e5db47c445000da7e15f7b28ec38ed240a88bfe0967c91948c541f5f0f40f752`
+  - `HSCL1-1.0.0-amd64.iso.part001`: `81c022b0aeeac98416d4ef5ac4549ecdb71b308079739d8db710b44cd4356ecb`
+  - `HSCL1-1.0.0-amd64.iso.part002`: `b307587a7860a0e2669401c3bbd25b307936ffc5f89d3be842b1258661dfb3d0`
+- Rejoin verification via `scripts/release-join.sh --verify-only`: OK (exact SHA-256 match `d23a0bbee06c3fdb54ca3a39e2e9659e26cbaf9de0f4d8d89666e0c3bef6d5bc`).
+
+**Vercel Production Deployment & Remote Publishing:**
+- Linked and deployed to Vercel production: [https://hscl1.vercel.app](https://hscl1.vercel.app).
+- Verified with `vercel curl`: 15 pages in EN/DE/FR, correct metadata, SHA-256 digests, and real asset download links.
+- Published stable release to GitHub via `scripts/release_publish.py`:
+  - URL: `https://github.com/timfromhcs/HSCL1/releases/tag/v1.0.0` (marked as Latest, non-prerelease).
+  - All 8 assets uploaded and verified.
+  - Final consistency check `scripts/verify_release_consistency.py --github timfromhcs/HSCL1`: **24 checks, 0 failed**.
