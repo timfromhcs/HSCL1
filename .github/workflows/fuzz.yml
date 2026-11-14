@@ -48,7 +48,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable branch, fetched 2026-11-07
+      - uses: dtolnay/rust-toolchain@2c76c034f9e32a5d6e2c104dc4df23a22476db04 # stable branch, fetched 2026-11-07
       - run: cargo test --release -p hscl -- prop_
         env:
           PROPTEST_CASES: "20000"
@@ -59,7 +59,7 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable branch, fetched 2026-11-07
+      - uses: dtolnay/rust-toolchain@2c76c034f9e32a5d6e2c104dc4df23a22476db04 # stable branch, fetched 2026-11-07
       - name: Install cargo-mutants
         run: cargo install cargo-mutants --locked
       - name: Mutate toolcall.rs and redact.rs (time boxed)
