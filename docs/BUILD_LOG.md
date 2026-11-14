@@ -3909,3 +3909,47 @@ Fix implemented and verified:
 
 In-guest proof: rebooted installed disk (`artifacts/boot-installed-rc13-avatar-test`, `result.json: reached_desktop: true, elapsed_s: 135`), `login-screen.png` captures the authentic HSCL1 mark (digit "1" in the `#0064FF` accent ring) on the greeter. The KDE gear is completely eliminated.
 `artifacts/boot-installed-rc13` also completed the 5 in-guest verification scenarios (`v0-desktop`, `v1-doctor`, `v2-firewall`, `v3-apparmor`, `v4-osrelease`).
+
+### Candidate 0.1.9-alpha.0: Clean Tree Attestation, Full 11-Page Control Center Audit, 8GB Installation & SDDM Greeter Avatar Proof (2026-11-14)
+
+**Artifact Identity & Provenance:**
+- Source commit: `14e9800d1b871fd65870d1743d2e0f550740fc4d` on `main` (`origin/main` in sync).
+- Clean tree attestation: `git_dirty: false` in manifest (verified before and after remaster).
+- Remastered ISO: `artifacts/iso/HSCL1-0.1.9-alpha.0-amd64.iso` (5 027 201 024 B, xz-compressed).
+- SHA-256: `e317066ae510995315d9a32d51a32a3a3e433a8069f645f326229253be787eef`.
+- Base ISO: `kubuntu-26.04.1-desktop-amd64.iso` (`831e4d4bb85098339ba43d3502cd6619b27e76daf37246a084cd68a6413090b8`).
+- Pre-build gates: `forge check` PASS (115s), `cargo clippy -D warnings` 0 warnings, `cargo test --all` 276 passed / 0 failed, `qml-gate.sh` 36/36 tests passed + 0 qmllint warnings on Control Center.
+
+**In-Guest Live Verification & QA Report:**
+- UEFI boot at 4 GB RAM (`scripts/qemu_boot_test.py` with WHPX, `--try-live --dismiss-welcome`):
+  - Result: `reached_desktop: true`, elapsed 193 s (`artifacts/boot-0.1.9-uefi/result.json`).
+  - QA report: `python scripts/qa_report.py artifacts/qa/report-0.1.9.txt` exited 0 with 9 ok checks + 1 truthful info check on Secure Boot firmware status.
+- 11-Page Control Center In-Guest Visual Scenario (`tests/visual/scenarios/cc-11-pages.json`):
+  - Result: `reached_desktop: true`, elapsed 277 s (`artifacts/boot-0.1.9-cc/result.json`).
+  - Captured all 12 scenario frames (`p01-overview.png` through `p12-desktop.png`) verifying live guest values for Overview, Security, Appearance, Miner, Privacy, Security Lab, Local AI, Updates, Developer, Storage, Language & Region.
+
+**End-to-End Installation on Disposable 40 GB Virtual Disk:**
+- Ran `scripts/qemu_boot_test.py` with 8 GB RAM / 4 vCPU against `artifacts/vdisks/install-0.1.9-8g.qcow2`:
+  - Scenario: `tests/visual/scenarios/install-terminal.json` (14 interactive steps).
+  - Walked through welcome, language, location, keyboard, erase disk (ESP + ext4), user setup, confirmation, package squashfs extraction, and final ESP bootloader verification.
+  - Result: `reached_desktop: true`, elapsed 1701 s. Finished with Calamares "All done" (`t13-before-finish.png`, `t14-after-finish.png`). Disk written: 10 119 413 760 B (~10.12 GB). `panic_suspects: 0`.
+
+**Installed System Boot (`iso=none`) & SDDM Avatar Proof:**
+- Booted installed disk directly via UEFI/GRUB:
+  - Command: `python scripts/qemu_boot_test.py none artifacts/boot-installed-0.1.9 --disk artifacts/vdisks/install-0.1.9-8g.qcow2 --login-password hscl1-test-pass-2026 --mem 4096 --smp 4 --steps tests/visual/scenarios/installed-check.json`.
+  - Result: `reached_desktop: true`, elapsed 338 s. SDDM greeter settled, typed password, logged into KDE Plasma 6.6 desktop. Captured `v0-desktop`, `v1-doctor`, `v2-firewall`, `v3-apparmor`, `v4-osrelease`.
+  - Greeter Avatar Proof: Analyzed `artifacts/boot-installed-0.1.9/login-screen.png`. Ascii raster of pixels over lines 280-380 reveals the authentic circular ring and digit "1" (`#0064FF` accent ring + white mark). The KDE gear avatar is 100% eliminated from the freshly installed disk!
+
+**Release Assembly, Splitting & Remote Publishing:**
+- Assembled via `scripts/make_release.py 0.1.9-alpha.0` with backed evidence hashes (`boot_report`, `boot_screenshot`, `install_result`, `installed_boot`).
+- Generated SBOM: `artifacts/release-0.1.9-set/SBOM-hscl-cli.spdx.json` (SPDX 2.3, 98 cargo packages).
+- Split into 3 parts via `scripts/release_split.py`:
+  - `HSCL1-0.1.9-alpha.0-amd64.iso.part000`: `f87bba0a50e1dc00853e9605db561e10957a1467a4159d092df71d3bde7c7db2`
+  - `HSCL1-0.1.9-alpha.0-amd64.iso.part001`: `9b4b8a371831c81b6ec1cbb9372b504cdfee7b4dca58881249659f3a3d4ca8ae`
+  - `HSCL1-0.1.9-alpha.0-amd64.iso.part002`: `365df8d02dfd013858cc3d335549567983c7cb2a91d54506a6cf838af5748be8`
+- Rejoin verification via `scripts/release-join.sh --verify-only`: OK (exact SHA-256 match `e317066a...`).
+- Website metadata & README synced, website rebuilt (15 pages EN/DE/FR), committed and pushed on `main` (`dd282c4`).
+- Published to GitHub via `scripts/release_publish.py`:
+  - URL: `https://github.com/timfromhcs/HSCL1/releases/tag/v0.1.9-alpha.0`
+  - All 8 assets uploaded and verified.
+  - Final consistency check `scripts/verify_release_consistency.py --github timfromhcs/HSCL1`: **24 checks, 0 failed**.
