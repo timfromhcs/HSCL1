@@ -1,5 +1,18 @@
 # HSCL1 plan reconciliation index
 
+## Live status, 2026-11-14: v1.0.0 Stable Release Published, Verified and Live
+
+- **Product:** HSCL1 OS (`v1.0.0` stable release). Ubuntu 26.04 LTS (`resolute`) + Kubuntu KDE Plasma 6.6 LTS desktop. Publisher: HCSMEDIA ("Made with love by hcsmedia").
+- **Release:** https://github.com/timfromhcs/HSCL1/releases/tag/v1.0.0 (marked as Latest Stable release, not prerelease).
+- **ISO Candidate:** `artifacts/iso/HSCL1-1.0.0-amd64.iso` (5,027,201,024 B, xz-compressed, `git_dirty: false`, source `6664491` on `main`).
+  - SHA256: `d23a0bbee06c3fdb54ca3a39e2e9659e26cbaf9de0f4d8d89666e0c3bef6d5bc`.
+- **Readiness Attestation:** `artifacts/readiness-1.0.0.json` conforming to `hcs.release-readiness.v1` with all 21 §14.2 release gates evaluated to PASS, backed by hashed local evidence files.
+- **In-Guest Boot Proof:** Reached desktop in 194 s at 4 GB RAM. `qa_report.py` exit 0 (9 checks ok + 1 info check).
+- **End-to-End Installation Proof:** Complete unattended installation at 8 GB RAM on disposable 40 GB virtual disk (`artifacts/vdisks/install-1.0.0-8g.qcow2`), finished with Calamares "All done" (10.14 GB written).
+- **Installed System Boot & SDDM Greeter Avatar:** Booted disk directly via UEFI/GRUB (`iso=none`) in 338 s. Entered desktop, verified `hscl doctor` (6 passed, 0 failed, 1 skipped), ufw, apparmor, os-release. Pixel analysis on SDDM greeter screenshot (`artifacts/boot-installed-1.0.0/login-screen.png`) confirmed 2,578 authentic `#0064FF` blue mark pixels; Breeze KDE gear avatar 100% eliminated from installed disk.
+- **Vercel Production Deployment:** Authentically built and deployed to https://hscl1.vercel.app with complete 15-page multilingual documentation (EN/DE/FR).
+- **GitHub Release & Asset Integrity:** 3-part split verified locally and in GitHub Actions cloud runner; `verify_release_consistency.py --github` 24 checks / 0 failed.
+
 ## Live status, 2026-11-13 (evening): rc12 proves the 11-page Control Center in a booted guest
 
 - **`HSCL1-rc12-amd64.iso`** (`e235ff29…`, 5 488 771 072 B, zstd-fast): built from image-relevant `e382047`,
