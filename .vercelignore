@@ -1,0 +1,17 @@
+target/
+artifacts/
+cli/
+distro/
+packages/
+tests/
+tools/
+wallpapers/
+apps/
+docs/miner/
+docs/research/
+*.iso
+*.qcow2
+*.log
+*.spdx.json
+*.tar.*
+.git/
