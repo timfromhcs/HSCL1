@@ -9,8 +9,8 @@
 *Made with love by hcsmedia* · Publisher: HCSMEDIA
 
 [![CI](https://github.com/timfromhcs/HSCL1/actions/workflows/ci.yml/badge.svg)](https://github.com/timfromhcs/HSCL1/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-0.1.9--alpha.0-blue.svg)](https://github.com/timfromhcs/HSCL1/releases/tag/v0.1.9-alpha.0)
-![status](https://img.shields.io/badge/status-pre--alpha-orange)
+[![Release](https://img.shields.io/badge/release-1.0.0-blue.svg)](https://github.com/timfromhcs/HSCL1/releases/tag/v1.0.0)
+![status](https://img.shields.io/badge/status-stable-green)
 ![licence](https://img.shields.io/badge/licence-GPL--3.0--or--later-blue)
 ![base](https://img.shields.io/badge/base-Ubuntu%2026.04%20LTS-E95420)
 ![desktop](https://img.shields.io/badge/desktop-KDE%20Plasma%206.6%20LTS-1D99F3)
@@ -22,9 +22,9 @@
 
 <br>
 
-<img src="docs/img/showcase/01_desktop_clean.png" alt="HSCL1 0.1.9-alpha.0 live desktop (KDE Plasma 6.6 LTS, Top Bar, Dock, Midnight Theme) - real capture from QEMU 9.2.0 with WHPX" width="940">
+<img src="docs/img/showcase/01_desktop_clean.png" alt="HSCL1 1.0.0 live desktop (KDE Plasma 6.6 LTS, Top Bar, Dock, Midnight Theme) - real capture from QEMU 9.2.0 with WHPX" width="940">
 
-*HSCL1 0.1.9-alpha.0 running live in QEMU/WHPX - clean first boot with HCS top status bar, centered floating dock, and Midnight theme.*
+*HSCL1 1.0.0 running live in QEMU/WHPX - clean first boot with HCS top status bar, centered floating dock, and Midnight theme.*
 
 </div>
 
@@ -37,10 +37,10 @@
 3. **No HSCL1 telemetry & rigorous attestation:** HSCL1 adds no analytics, no crash upload and no remote control; 100% offline documentation in 3 languages (English, German, French), LUKS2 full-disk encryption with Argon2id, and an evidence-based contract—features are backed by automated tests and recorded proof. Base-system network contacts (time sync, package mirrors, the installer's connectivity and geo-IP check) are disclosed in [Known limitations](docs/KNOWN_LIMITATIONS.md).
 
 > [!IMPORTANT]
-> **Status: Pre-Alpha (`0.1.9-alpha.0`).**
-> HSCL1 is verified **in virtual machines only** (UEFI firmware under QEMU on Windows with WHPX acceleration; recorded runs used QEMU 9.2.0 and 11.1). The current artifact is `HSCL1-0.1.9-alpha.0-amd64.iso` (`e317066a.`, 5,027,201,024 B, built from `14e9800`, xz, clean tree): UEFI boot at **4 GB** reached the desktop, `scripts/qa_report.py` exits 0 (9 checks ok, one `info` line about Secure Boot), and 11-page Control Center visual audit completed. Verified in QEMU:
+> **Status: Stable (`1.0.0`).**
+> HSCL1 is verified **in virtual machines only** (UEFI firmware under QEMU on Windows with WHPX acceleration; recorded runs used QEMU 9.2.0 and 11.1). The current artifact is `HSCL1-1.0.0-amd64.iso` (`d23a0bbe.`, 5,027,201,024 B, built from `6664491`, xz, clean tree): UEFI boot at **4 GB** reached the desktop, `scripts/qa_report.py` exits 0 (9 checks ok, one `info` line about Secure Boot), and 11-page Control Center visual audit completed. Verified in QEMU:
 >
-> - an **unencrypted installation at 8 GB** on `HSCL1-0.1.9-alpha.0` (`All done. HSCL1 0.1.9-alpha.0 has been installed`, Finish page captured) followed by **installed boot into KDE Plasma with SDDM avatar verified** - **4 GB is the live-desktop minimum, not the install minimum**: the same scenario at 4 GB panicked (`KERNEL PANIC! … Attempted to kill init! exitcode=0x0000000b`) and left an EFI partition with no `/EFI` (Q-74). Earlier 4 GB installs were recorded on `HSCL1-rc1` (`f8ae5c52…`) and were not repeated since;
+> - an **unencrypted installation at 8 GB** on `HSCL1-1.0.0` (`All done. HSCL1 1.0.0 has been installed`, Finish page captured) followed by **installed boot into KDE Plasma with SDDM avatar verified** - **4 GB is the live-desktop minimum, not the install minimum**: the same scenario at 4 GB panicked (`KERNEL PANIC! … Attempted to kill init! exitcode=0x0000000b`) and left an EFI partition with no `/EFI` (Q-74). Earlier 4 GB installs were recorded on `HSCL1-rc1` (`f8ae5c52…`) and were not repeated since;
 > - an **LUKS2 installation** at 8 GB (wrong passphrase refused by cryptsetup, correct one unlocks, `LUKS volumes open: 1`); a 6 GB LUKS run panicked once - evidence from the 0.1.5 candidate line;
 > - the **Security Lab chain end to end** on `rc11` in one live session: digest-pinned Kali pull → `hscl lab install --toolset basic` → `commit` → `run -- nmap --version`, last step printing **`Nmap version 7.991`**, every step exit 0.
 >
@@ -66,7 +66,7 @@ Test the verified pre-alpha live ISO in a hardware-accelerated disposable virtua
 ```powershell
 # Run with 4 GB RAM and dismiss first-run dialogs automatically:
 python scripts/qemu_boot_test.py `
-  --iso "path\to\HSCL1-0.1.9-alpha.0-amd64.iso" `
+  --iso "path\to\HSCL1-1.0.0-amd64.iso" `
   --mem 4096 `
   --dismiss-welcome
 ```
@@ -76,7 +76,7 @@ python scripts/qemu_boot_test.py `
 # Run with hardware KVM acceleration and UEFI firmware:
 qemu-system-x86_64 -enable-kvm -m 4096 -smp 4 \
   -bios /usr/share/ovmf/OVMF.fd \
-  -cdrom HSCL1-0.1.9-alpha.0-amd64.iso \
+  -cdrom HSCL1-1.0.0-amd64.iso \
   -vga std -device virtio-net-pci,netdev=net0 \
   -netdev user,id=net0
 ```
@@ -305,7 +305,7 @@ HSCL1 adheres to a strict evidence-driven development contract: **nothing is cla
 
 | Area | Status | Evidence / Verification Metric |
 |---|:---:|---|
-| **Remastered Live/Installer ISO** | `VM-VERIFIED` | `HSCL1-0.1.9-alpha.0-amd64.iso` (`e317066a.`, source `14e9800`, xz): live desktop at 4 GB under UEFI (QEMU+WHPX), `qa_report.py` exit 0 with 9 checks, 11-page Control Center visual audit, 8 GB installation and installed boot with SDDM avatar verified; [`docs/img/showcase/01_desktop_clean.png`](docs/img/showcase/01_desktop_clean.png) is this artifact family's capture |
+| **Remastered Live/Installer ISO** | `VM-VERIFIED` | `HSCL1-1.0.0-amd64.iso` (`d23a0bbe.`, source `6664491`, xz): live desktop at 4 GB under UEFI (QEMU+WHPX), `qa_report.py` exit 0 with 9 checks, 11-page Control Center visual audit, 8 GB installation and installed boot with SDDM avatar verified; [`docs/img/showcase/01_desktop_clean.png`](docs/img/showcase/01_desktop_clean.png) is this artifact family's capture |
 | **Signed boot components present** | `TESTED` | `artifacts/sb-0.1.3-alpha.0/report.json`: Microsoft-signed `bootx64.efi`, Canonical-signed `grubx64.efi`, `vmlinuz`, `mmx64.efi`. A **positive Secure-Boot boot is not demonstrated** — the test firmware ran with Secure Boot off and the guest says so |
 | **LUKS2 Full-Disk Installation** | `VM-VERIFIED` | 40 GB virtual disk at 8 GB RAM: Argon2id, `/` = `0:0 755`, wrong passphrase refused, correct one unlocks, no passphrase in logs; image from the 0.1.3 line: [`docs/img/desktop-installed.png`](docs/img/desktop-installed.png) |
 | **Rust `hscl` CLI Workspace** | `TESTED` | `cargo test --all`: **276 passed, 0 failed**; `cargo clippy --all-targets -D warnings` and `cargo fmt --check` clean (Windows, 2026-11-13) |
@@ -328,12 +328,12 @@ HSCL1 adheres to a strict evidence-driven development contract: **nothing is cla
 Pre-release assets are hosted on [GitHub Releases](https://github.com/timfromhcs/HSCL1/releases). Because the ISO exceeds GitHub's 2 GiB per-file limit, it is distributed in numbered split parts with full cryptographic checksums.
 
 > [!NOTE]
-> **`v0.1.9-alpha.0` is the current prerelease** (ISO `e317066a.`, 5,027,201,024 bytes, built from `14e9800`, xz). It supersedes `v0.1.8-alpha.0` (`def7f190.`) and brings verified SDDM user greeter avatar branding on installed systems alongside the full 11-page Control Center visual audit. The installer startup crash fix (Q-68) remains active and verified.
+> **`v1.0.0` is the current stable release** (ISO `d23a0bbe.`, 5,027,201,024 bytes, built from `6664491`, xz). It brings verified SDDM user greeter avatar branding on installed systems, the full 11-page Control Center visual audit, live production deployment, and 21 evaluated release readiness gates.
 
 ```console
 # 1. Download release assets (parts + SHA256SUMS)
 $ mkdir hscl1-release && cd hscl1-release
-$ gh release download v0.1.9-alpha.0 --repo timfromhcs/HSCL1
+$ gh release download v1.0.0 --repo timfromhcs/HSCL1
 
 # 2. Clone repository to obtain verified join script
 $ git clone https://github.com/timfromhcs/HSCL1 ../HSCL1-src
@@ -345,12 +345,12 @@ $ bash ../HSCL1-src/scripts/release-join.sh . --verify-only
 $ bash ../HSCL1-src/scripts/release-join.sh .
 ```
 
-### Release Checksums (v0.1.9-alpha.0)
+### Release Checksums (v1.0.0)
 ```text
-f87bba0a50e1dc00853e9605db561e10957a1467a4159d092df71d3bde7c7db2  HSCL1-0.1.9-alpha.0-amd64.iso.part000
-9b4b8a371831c81b6ec1cbb9372b504cdfee7b4dca58881249659f3a3d4ca8ae  HSCL1-0.1.9-alpha.0-amd64.iso.part001
-365df8d02dfd013858cc3d335549567983c7cb2a91d54506a6cf838af5748be8  HSCL1-0.1.9-alpha.0-amd64.iso.part002
-e317066ae510995315d9a32d51a32a3a3e433a8069f645f326229253be787eef  HSCL1-0.1.9-alpha.0-amd64.iso
+e5db47c445000da7e15f7b28ec38ed240a88bfe0967c91948c541f5f0f40f752  HSCL1-1.0.0-amd64.iso.part000
+81c022b0aeeac98416d4ef5ac4549ecdb71b308079739d8db710b44cd4356ecb  HSCL1-1.0.0-amd64.iso.part001
+b307587a7860a0e2669401c3bbd25b307936ffc5f89d3be842b1258661dfb3d0  HSCL1-1.0.0-amd64.iso.part002
+d23a0bbee06c3fdb54ca3a39e2e9659e26cbaf9de0f4d8d89666e0c3bef6d5bc  HSCL1-1.0.0-amd64.iso
 ```
 
 > [!TIP]
@@ -425,7 +425,7 @@ $ scripts/dev/wsl-cycle.sh iso --fast
 
 **HSCL1 (Hypercharged Supreme Computing Layout 1)** ist eine moderne Linux-Workstation auf Basis von Ubuntu 26.04 LTS (Kubuntu) und KDE Plasma 6.6 LTS mit eigenem Oberflächendesign (schlanke Top-Bar, schwebendes App-Dock, shader-basierte animierte Wallpaper), dem Kommandozeilenwerkzeug `hscl`, einem nativen Qt6/QML Control Center, einem vollständigen Offline-Handbuch (EN/DE/FR), integrierter Speicherverwaltung, lokalen KI- und Coding-Werkzeugen sowie isolierten Security-Lab-Workflows.
 
-**Status: Pre-Alpha (`0.1.9-alpha.0`).** Bislang ausschließlich in virtuellen Maschinen (QEMU mit WHPX/KVM) getestet, nicht auf physischer Hardware. Die Releases sind unverschlüsselt/unsigniert (Integritätssicherung über SHA-256-Prüfsummen). HSCL1 ist weder Tails noch ein offizielles Kali Linux und erhebt keinen universellen Anonymitätsanspruch. Alle verifizierten Fakten und Grenzen sind transparent in [`docs/CLAIMS.md`](docs/CLAIMS.md) und [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md) dokumentiert.
+**Status: Stable (`1.0.0`).** Bislang ausschließlich in virtuellen Maschinen (QEMU mit WHPX/KVM) getestet, nicht auf physischer Hardware. Die Releases sind unverschlüsselt/unsigniert (Integritätssicherung über SHA-256-Prüfsummen). HSCL1 ist weder Tails noch ein offizielles Kali Linux und erhebt keinen universellen Anonymitätsanspruch. Alle verifizierten Fakten und Grenzen sind transparent in [`docs/CLAIMS.md`](docs/CLAIMS.md) und [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md) dokumentiert.
 
 Das ISO-Abbild überschreitet das GitHub-Größenlimit und wird in 3 Split-Parts bereitgestellt, die mit `scripts/release-join.sh` geprüft und zusammengesetzt werden. **Der Installer schreibt auf den ausgewählten Datenträger – bitte ausschließlich disposable virtuelle Disks verwenden.**
 
@@ -437,7 +437,7 @@ Das ISO-Abbild überschreitet das GitHub-Größenlimit und wird in 3 Split-Parts
 
 **HSCL1 (Hypercharged Supreme Computing Layout 1)** est une station de travail Linux moderne basée sur Ubuntu 26.04 LTS (Kubuntu) et KDE Plasma 6.6 LTS, dotée d'une interface originale (barre supérieure épurée, dock d'applications flottant, fonds d'écran animés dynamiques), de l'outil CLI `hscl`, d'un Centre de contrôle natif en Qt6/QML, d'un manuel hors-ligne trilingue (EN/DE/FR), d'une gestion intelligente de la mémoire et d'un laboratoire de sécurité isolé.
 
-**État : Pré-alpha (`0.1.9-alpha.0`).** Testé exclusivement dans des machines virtuelles (QEMU avec accélération WHPX/KVM), aucun test sur matériel physique réel. Les publications ne sont pas signées cryptographiquement (sommes de contrôle SHA-256 fournies). HSCL1 n'est ni Tails, ni une version officielle de Kali, et ne garantit aucun anonymat absolu. Les preuves et limitations sont détaillées dans [`docs/CLAIMS.md`](docs/CLAIMS.md) et [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md).
+**État : Stable (`1.0.0`).** Testé exclusivement dans des machines virtuelles (QEMU avec accélération WHPX/KVM), aucun test sur matériel physique réel. Les publications ne sont pas signées cryptographiquement (sommes de contrôle SHA-256 fournies). HSCL1 n'est ni Tails, ni une version officielle de Kali, et ne garantit aucun anonymat absolu. Les preuves et limitations sont détaillées dans [`docs/CLAIMS.md`](docs/CLAIMS.md) et [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md).
 
 L'image ISO dépassant 2 Gio, elle est distribuée sous forme de segments numérotés vérifiables et assemblables via `scripts/release-join.sh`. **L'installateur applique les changements sur le disque sélectionné – utilisez uniquement des disques virtuels jetables.**
 
