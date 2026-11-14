@@ -25,6 +25,7 @@ for home in /home/*; do
     [ "$uid" -ge 1000 ] || continue
     [ "$uid" -lt 60000 ] || continue
 
+    # AccountsService entry (read by KCM User Manager / GNOME):
     dir=/var/lib/AccountsService/users
     mkdir -p "$dir"
     tmp="$dir/.$user.tmp"
@@ -35,6 +36,13 @@ for home in /home/*; do
     } > "$tmp"
     chmod 0600 "$tmp"
     mv "$tmp" "$dir/$user"
+
+    # SDDM user avatar (SDDM reads /usr/share/sddm/faces/<user>.face.icon):
+    sddm_faces=/usr/share/sddm/faces
+    if [ -d "$sddm_faces" ]; then
+        cp -f "$icon" "$sddm_faces/$user.face.icon"
+        chmod 0644 "$sddm_faces/$user.face.icon"
+    fi
 done
 
 exit 0

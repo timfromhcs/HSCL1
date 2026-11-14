@@ -80,6 +80,8 @@ check "SDDM theme background"             test -s "$root/usr/share/sddm/themes/h
 check "SDDM theme selected"               grep -q '^Current=hscl1$' "$root/etc/sddm.conf.d/30-hscl1.conf"
 check "SDDM theme has no Kubuntu artwork" sh -c "! ls '$root'/usr/share/sddm/themes/hscl1/ | grep -i kubuntu_"
 check "default avatar is the HSCL1 mark"  cmp -s "$root/etc/skel/.face" "$root/usr/share/hscl/brand/hscl1-mark-256.png"
+check "SDDM theme face is the HSCL1 mark"  cmp -s "$root/usr/share/sddm/themes/hscl1/faces/.face.icon" "$root/usr/share/hscl/brand/hscl1-mark-256.png"
+check "SDDM default face is the HSCL1 mark" cmp -s "$root/usr/share/sddm/faces/.face.icon" "$root/usr/share/hscl/brand/hscl1-mark-256.png"
 check "OEM launcher renamed"              grep -q '^Name=Install HSCL1' "$root/usr/share/applications/calamares-launch-oem.desktop"
 check "OEM batch id is hscl1-*"           grep -q '^batch-identifier: hscl1-' "$root/etc/calamares/modules/oemid.conf"
 check "earlyoom installed"                test -x "$root/usr/bin/earlyoom"

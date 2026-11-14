@@ -28,6 +28,7 @@ def test_the_helper_only_touches_human_accounts():
     assert "$uid\" -ge 1000" in text
     assert "$uid\" -lt 60000" in text
     assert "/var/lib/AccountsService/users" in text
+    assert "/usr/share/sddm/faces" in text
 
 
 def test_the_helper_is_posix_sh_without_bashisms():
@@ -60,6 +61,8 @@ def test_the_image_gate_checks_the_wiring():
         "avatar shellprocess config",
         "avatar step follows users",
         "brand avatar is readable",
+        "SDDM theme face is the HSCL1 mark",
+        "SDDM default face is the HSCL1 mark",
     ):
         assert line in text, line
 

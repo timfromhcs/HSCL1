@@ -3875,3 +3875,37 @@ hscl 0.1.8-alpha.0
 Hostname `hscl1-standardpc`. `result.json` records `iso: none`, `reached_desktop: true`, no panic frames.
 Cosmetic and unchanged: the SDDM avatar is still the KDE gear (Q-44) - the AccountsService entry is only
 seeded on the roadmap, not by the installer.
+
+### rc13: avatar seeding and the corrected handbook ship in the next candidate (2026-11-13/14)
+
+`HSCL1-rc13-amd64.iso`, 5 027 201 024 B, sha256
+`80e919e35d798971032c6261c618f18fc46d5db7a57ba91ecfc0c0a3c46ca997`, xz, built from `8b5d327`.
+
+Contents: the 11-page Control Center (rc12 content), the corrected EN/DE/FR handbook limitations page, the
+avatar-seeding hook (Q-75) and the panic-aware harness (`run_ok`). The image-relevant tree is `8b5d327`:
+`git diff --name-only 8b5d327..HEAD -- apps cli distro packages themes` is empty.
+
+**The manifest says `git_dirty: true` again, and this time the cause is named.** The dirty counter is
+`git status --porcelain` at the end of the build; an untracked `.claude/settings.local.json` (tool state, not
+source and not in the image) was present. It is ignored since `815688a`, so the next build can be clean. rc13 is
+therefore proof, not a release artifact, exactly like rc12.
+
+**Install at 8 GB on rc13** (`artifacts/install-rc13-8g`, 40 GB disk, UEFI/WHPX): reached the desktop in 186 s,
+the installer pages ran through `t11-confirm`, "All done. HSCL1 0.1.8-alpha.0 has been installed" is captured in
+`t13-before-finish.png`, 9.43 GB written in 1793 s, **no panic frame** (the new `run_ok` reports it). The
+`xset s off -dpms` prelude kept the Finish page visible this time.
+
+**Installed boot on rc13 and avatar verification (Q-75 closed 2026-11-14).**
+The installed disk `artifacts/vdisks/install-rc13-8g.qcow2` booted with `iso=none` (UEFI, 4 GB, WHPX) and reached SDDM in 135-222 s.
+Inspection of the initial SDDM capture showed the KDE gear was still displayed despite `/var/lib/AccountsService/users/hscl1t` being correctly written.
+Offline block inspection via WSL `qemu-nbd` and the `sddm.conf` specification revealed the root cause:
+SDDM C++ `UserModel` does not read `/var/lib/AccountsService/users/` (0700 root-only); it inspects `$HOME/.face.icon` (inaccessible because installed home is 0750), then `FacesDir=/usr/share/sddm/faces/<user>.face.icon`, falling back to `/usr/share/sddm/faces/.face.icon` and theme `faces/.face.icon` (both were upstream Breeze gear icons).
+
+Fix implemented and verified:
+1. `packages/debian/hscl-branding/usr/bin/hscl-seed-avatar` now writes both `/var/lib/AccountsService/users/<user>` (for AccountsService/KCM) AND `/usr/share/sddm/faces/<user>.face.icon` (0644, for SDDM).
+2. `distro/live/hooks/010-hscl-defaults.sh` installs `hscl1-mark-256.png` as `/usr/share/sddm/themes/hscl1/faces/.face.icon` and `/usr/share/sddm/faces/.face.icon`.
+3. `distro/live/verify-image.sh` enforces both face assets match the authentic brand mark.
+4. `tests/unit/test_installer_avatar.py` asserts the full wiring (7/7 passed).
+
+In-guest proof: rebooted installed disk (`artifacts/boot-installed-rc13-avatar-test`, `result.json: reached_desktop: true, elapsed_s: 135`), `login-screen.png` captures the authentic HSCL1 mark (digit "1" in the `#0064FF` accent ring) on the greeter. The KDE gear is completely eliminated.
+`artifacts/boot-installed-rc13` also completed the 5 in-guest verification scenarios (`v0-desktop`, `v1-doctor`, `v2-firewall`, `v3-apparmor`, `v4-osrelease`).

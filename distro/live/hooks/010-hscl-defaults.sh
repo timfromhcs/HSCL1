@@ -110,6 +110,10 @@ if [ -d "$sddm/kubuntu" ]; then
   rm -f "$sddm/hscl1/preview.png" "$sddm/hscl1/"kubuntu_*.png
   install -m 0644 "$ROOTFS/usr/share/wallpapers/HSCL1Midnight/contents/images/1920x1080.png" "$sddm/hscl1/background.png"
   install -m 0644 "$ROOTFS/usr/share/hscl/brand/hscl1-mark-dark.svg" "$sddm/hscl1/default-logo.svg"
+  mkdir -p "$sddm/hscl1/faces"
+  install -m 0644 "$ROOTFS/usr/share/hscl/brand/hscl1-mark-256.png" "$sddm/hscl1/faces/.face.icon"
+  mkdir -p "$ROOTFS/usr/share/sddm/faces"
+  install -m 0644 "$ROOTFS/usr/share/hscl/brand/hscl1-mark-256.png" "$ROOTFS/usr/share/sddm/faces/.face.icon"
   cat > "$sddm/hscl1/theme.conf" <<'CONF'
 [General]
 showlogo=hidden
