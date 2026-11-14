@@ -43,3 +43,18 @@ def test_the_checker_sees_the_documents_it_claims_to_check():
     assert len(files) > 100, len(files)
     assert any(p.name == "README.md" for p in files)
     assert any(p.name == "KNOWN_LIMITATIONS.md" for p in files)
+
+
+def test_no_markdown_links_to_git_ignored_artifacts():
+    """artifacts/ is git-ignored and only exists on local developer builds; links to it break in CI and on GitHub."""
+    broken = []
+    for path in markdown_files():
+        text = path.read_text(encoding="utf-8", errors="replace")
+        for target in LINK.findall(text):
+            if target.startswith(SKIP_PREFIX):
+                continue
+            clean = target.split("#", 1)[0].replace("\\", "/")
+            if "artifacts/" in clean:
+                broken.append((path.relative_to(ROOT).as_posix(), target))
+    assert not broken, f"Markdown links must not point to git-ignored artifacts directory: {broken}"
+

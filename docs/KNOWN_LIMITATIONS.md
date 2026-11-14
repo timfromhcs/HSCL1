@@ -4,7 +4,7 @@ Status of this document: maintained with every phase. Last reconciliation: **202
 
 HSCL1 `v1.0.0` is thoroughly verified in virtual machines. As documented truthfully below, bare-metal physical hardware testing, physical USB boot, TPM unlocking, and hardware-enrolled Secure Boot acceptance remain pending until physical test hardware is accessible to the publisher. Rows are updated with each phase.
 
-Image evidence is bound to its build. The published `v1.0.0` names source commit `6664491` on `main`. Every VM result in this document is attached to the artifact named next to it. Local evidence files: `artifacts/` is git-ignored; measurement summaries and SHA-256 digests are recorded in [`BUILD_LOG.md`](BUILD_LOG.md) and [`artifacts/readiness-1.0.0.json`](../artifacts/readiness-1.0.0.json). Secure Boot file signatures are verified on PE components; firmware acceptance remains subject to hypervisor SMM constraints. See [release readiness audit](research/2026-11-08-release-readiness-audit.md).
+Image evidence is bound to its build. The published `v1.0.0` names source commit `6664491` on `main`. Every VM result in this document is attached to the artifact named next to it. Local evidence files: `artifacts/` is git-ignored; measurement summaries and SHA-256 digests are recorded in [`BUILD_LOG.md`](BUILD_LOG.md) and `artifacts/readiness-1.0.0.json`. Secure Boot file signatures are verified on PE components; firmware acceptance remains subject to hypervisor SMM constraints. See [release readiness audit](research/2026-11-08-release-readiness-audit.md).
 
 | Area | Status | Limitation |
 |---|---|---|
